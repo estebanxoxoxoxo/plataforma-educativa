@@ -1,0 +1,35 @@
+/* Layout de la app: barra lateral + área principal. */
+.app{position:relative;height:100vh;display:grid;grid-template-columns:220px 1fr;background:#F6F7FB;color:#1B2238;font-family:var(--body);overflow:hidden}
+.side{background:#FFFFFF;border-right:1px solid #E4E8F1;padding:26px 16px 22px;display:flex;flex-direction:column;gap:26px;min-height:0}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:800;font-size:22px;padding-left:6px}
+nav{display:flex;flex-direction:column;gap:4px}
+.nav-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:7px;font-weight:800;font-size:17px;color:#47506B;transition:background .25s,color .25s;cursor:pointer}
+.nav-item svg{width:22px;height:22px;flex:none}
+.nav-item:hover{background:#F1F3F8}
+.nav-item[data-sec="discover"].on{background:#E2F5F3;color:#0B6B66}
+.nav-item[data-sec="learn"].on{background:#E7ECFD;color:#2843A8}
+.nav-item[data-sec="practice"].on{background:#FDEBE3;color:#B8431C}
+.nav-item[data-sec="friends"].on{background:#EFE8FE;color:#5431B3}
+.nav-item[data-sec="leagues"].on{background:#FFF1D6;color:#8A5A00}
+.sub{max-height:0;overflow:hidden;transition:max-height .45s ease;display:flex;flex-direction:column;gap:2px}
+.sub.open{max-height:110px}
+.sub-item{display:flex;align-items:center;gap:10px;padding:9px 14px 9px 22px;margin-left:24px;border-left:2px solid #E4E8F1;font-weight:700;font-size:15px;color:#6A7390;transition:color .25s,border-color .25s;cursor:pointer}
+.sub-item svg{width:17px;height:17px}
+.sub-item.on{color:#0B6B66;border-left-color:#13A39A}
+/* (antes .kid — renombrado: chocaba con la burbuja .m.kid del chat) */
+.profile{margin-top:auto;display:flex;align-items:center;gap:12px;padding:10px;border-radius:7px;background:#F6F7FB}
+.profile .av{width:38px;height:38px;border-radius:50%;background:#FFC23D;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:18px;color:#5A3D00}
+.profile b{display:block;font-size:15px}.profile small{color:#6A7390;font-weight:700}
+
+.main{position:relative;overflow:hidden;min-width:0}
+.view{position:absolute;inset:0;padding:32px 40px;overflow-y:auto;animation:fadein .45s both}
+
+/* Home */
+#v-home{display:grid;place-content:center;text-align:center;gap:8px}
+#v-home .h2{font-size:44px}
+
+/* Modo "stage": 1280x720 escalado, para comparar contra el prototipo (?stage) */
+.stage-frame{position:relative;width:min(1180px,100%);aspect-ratio:16/9;margin:28px auto;border-radius:8px;overflow:hidden;border:1px solid #D3D9E6;box-shadow:0 18px 50px -20px rgba(20,26,44,.35)}
+.stage{position:absolute;left:0;top:0;width:1280px;height:720px;transform-origin:0 0;overflow:hidden}
+.stage .app{height:100%}
+body.stage-mode{background:#ECEFF6;padding:0 16px}
