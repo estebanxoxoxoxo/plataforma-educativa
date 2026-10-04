@@ -4,3 +4,7 @@ dist/
 .DS_Store
 *.log
 .env*
+
+# backend: datos descifrados y secretos (nunca al repo)
+server/data/
+server/.env

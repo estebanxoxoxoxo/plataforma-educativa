@@ -40,10 +40,14 @@ export function SearchPage() {
     setResults({ pages: init('pages'), images: init('images'), videos: init('videos') } as Results);
     (['pages', 'images', 'videos'] as Tab[]).forEach((t) => {
       if (hit[t]) return;
-      api.search(q, t).then((res) => {
-        (hit as Record<Tab, unknown>)[t] = res;
-        if (alive) setResults((r) => r && { ...r, [t]: { res, animate: t === active } });
-      });
+      api.search(q, t).then(
+        (res) => {
+          (hit as Record<Tab, unknown>)[t] = res;
+          if (alive) setResults((r) => r && { ...r, [t]: { res, animate: t === active } });
+        },
+        // backend caído: se muestra el aviso (sin cachear, para reintentar en la próxima búsqueda)
+        () => { if (alive) setResults((r) => r && { ...r, [t]: { res: { query: q, items: [], error: 'unavailable' }, animate: false } }); },
+      );
     });
     return () => { alive = false; };
   }, [q]);
@@ -67,12 +71,16 @@ export function SearchPage() {
       <SearchBar value={input} onChange={setInput} onSubmit={() => submit()} />
       <UnderlineTabs tabs={SEARCH_TABS} value={tab} onChange={setTab} className="tabs" tabClass="tab" inkClass="ink" />
       {tab === 'pages' && <WhitelistNote />}
-      {tab === 'images' && results?.images.res?.related && <RelatedChips chips={results.images.res.related} onPick={(l) => { setInput(`${l} ${q}`); submit(`${l} ${q}`); }} />}
+      {tab === 'images' && results?.images.res?.related && <RelatedChips chips={results.images.res.related} onPick={(l) => { setInput(l); submit(l); }} />}
       {q && results && (empty
-        ? <p className="sempty">No encontramos resultados aptos para chicos sobre “{q}”. Probá con dinosaurios, volcanes o planetas.</p>
+        ? <p className="sempty">{cur?.res?.error
+          ? 'No pude buscar ahora mismo. Probemos de nuevo en un ratito.'
+          : tab === 'pages'
+            ? `No encontré nada sobre “${q}” en tus sitios aprobados.`
+            : `No encontramos resultados aptos para chicos sobre “${q}”. Probá con dinosaurios, volcanes o planetas.`}</p>
         : <>
           {tab === 'pages' && <ModeratedResults key={`p-${q}`} kind="page" items={results.pages.res?.items ?? null} animate={results.pages.animate}
-            render={(p) => <PageItem p={p} onOpen={() => go(`/descubrir/articulo/${p.articleId}`)} />} />}
+            render={(p) => <PageItem p={p} onOpen={() => go(`/descubrir/articulo/${encodeURIComponent(p.articleId)}`)} />} />}
           {tab === 'images' && <ModeratedResults key={`i-${q}`} kind="img" items={results.images.res?.items ?? null} animate={results.images.animate}
             render={(m) => <ImageItem m={m} />} />}
           {tab === 'videos' && <ModeratedResults key={`v-${q}`} kind="vid" items={results.videos.res?.items ?? null} animate={results.videos.animate}

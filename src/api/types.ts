@@ -16,33 +16,47 @@ export type ImageResult = { id: string; img: string; caption: string; source: { 
 export type VideoResult = { id: string; img: string; title: string; subtitle: string; duration: string; channel: string; date: string };
 export type RelatedChip = { label: string; img: string };
 
-export type SearchResponse<T> = { query: string; items: Moderated<T>[]; related?: RelatedChip[] };
+export type SearchResponse<T> = { query: string; items: Moderated<T>[]; related?: RelatedChip[]; /** solo en la UI: la búsqueda falló */ error?: string };
 
+/** Artículo real extraído y moderado por el backend (Wikipedia REST o Jina → Readability → DOMPurify → juez). */
 export type Article = {
-  id: string;
+  /** = URL de origen */ id: string;
+  url: string;
   /** Tema para "Generar curso" */ topic: string;
   title: string;
-  hatnote?: string;
-  /** range y caption son HTML. taxonomy: [etiqueta, valor, estilo] → 'a' = link azul, 'b' = negrita */
-  infobox: { title: string; range: string; img: string; caption: string; taxonomy: [string, string, ('a' | 'b')?][] };
-  /** HTML del cuerpo. Los links internos usan <span class="a" data-article="id"> */
+  siteName?: string;
+  hero?: string;
+  /** HTML saneado. Los <a href> apuntan a URLs absolutas: se moderan al tocarlos. */
   html: string;
 };
-export type ArticleResponse = { status: 'ok'; article: Article } | { status: 'blocked'; reason: string };
+export type ArticleResponse =
+  | { status: 'ok'; article: Article }
+  /** reason: 'site' = fuera de la lista blanca · 'content' = el juez lo rechazó */
+  | { status: 'blocked'; reason: string; motivo?: string }
+  /** No se pudo leer o revisar (muro anti-bot, falla del extractor o del juez). Fail-closed. */
+  | { status: 'error'; reason: string };
 
 export type Video = VideoResult & {
   durationSec: number; reviewed: boolean;
   /** Datos del canal y del video como los muestra YouTube */ subscribers: string; verified: boolean; likes: string;
+  channelThumb?: string;
 };
 
 export type Course = {
   id: string; name: string; units: number; progress: number;
   img: string; bg: [string, string]; isNew?: boolean;
 };
-export type ResourceKind = 'video' | 'lect' | 'imgr' | 'act';
+/** Un capítulo de Aprender = UN contenido real y aprobado (video del catálogo o lectura de un sitio aprobado). */
+export type Chapter = {
+  title: string;
+  kind: 'video' | 'lectura';
+  /** Texto del tag: "Video · 4:13" / "Lectura" */ label: string;
+  /** Canal o sitio de origen */ source: string;
+  target: { type: 'video'; id: string } | { type: 'article'; url: string };
+};
 export type CourseDetail = Course & {
   chapters: number;
-  unitList: { title: string; chapters: { title: string; resources: { kind: ResourceKind; label: string }[] }[] }[];
+  unitList: { title: string; chapters: Chapter[] }[];
 };
 
 export type ExType = 'open' | 'mc' | 'vf';
@@ -75,9 +89,20 @@ export type GeoScope = 'zona' | 'prov' | 'pais';
 export type GeoRanking = { scope: GeoScope; top: { nick: string; color: string; xp: number }[]; me: { nick: string; pos: number; xp: number } };
 export type LeagueResult = { id: string; name: string; desc: string; color: string; joined: boolean };
 
-export type SharedCard = { title: string; meta: string; img: string; videoId?: string };
-export type ChatEvent =
-  | { type: 'token'; text: string }
-  | { type: 'share-checking' }
-  | { type: 'share'; card: SharedCard }
-  | { type: 'done' };
+/** Lo que el chat muestra además del texto (ya resuelto y moderado por el backend). */
+export type ChatMedia = {
+  videos?: VideoResult[];
+  images?: { id: string; thumb: string; full: string; title: string; source: string; pageUrl: string }[];
+  articles?: { title: string; url: string; snippet?: string }[];
+};
+export type ChatTurn = { role: 'user' | 'assistant'; content: string };
+export type ChatReply = {
+  kind: 'normal' | 'redireccion' | 'crisis' | 'failclosed' | 'interceptado';
+  text: string;
+  /** Cómo entra este turno al contexto de los próximos (texto + marcadores). */
+  contextText: string;
+  /** Si viene, reemplaza el mensaje del niño en el contexto (cuarentena: crisis / lista negra). */
+  childContextText?: string;
+  media?: ChatMedia;
+  /** Resumen de la decisión de moderación (DecisionTrace) */ trace: string;
+};

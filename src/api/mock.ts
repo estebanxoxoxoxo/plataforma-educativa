@@ -1,8 +1,8 @@
 // Datos de prueba. Todo lo que aparece en el prototipo está acá tal cual;
 // lo que el prototipo no mostraba (otros temas, más ejercicios) es relleno coherente.
 import type {
-  Article, Course, CourseDetail, Exercise, Friend, FriendMessage, ImageResult, JourneyItem,
-  LeagueResult, MyLeague, NodeType, PageResult, RelatedChip, ResourceKind, User, VideoResult,
+  Course, Exercise, Friend, FriendMessage, JourneyItem,
+  LeagueResult, MyLeague, NodeType, User,
 } from './types';
 
 export const ME: User = { name: 'Sofi', age: 9, nick: 'SofiExplora' };
@@ -17,140 +17,6 @@ export const topicOf = (q: string): Topic | null => {
   return null;
 };
 
-const ISRC: [string, string][] = [['Enciclopedia Infantil', '#5F6368'], ['Museo de Ciencias', '#3A5BD9'], ['Revista Explora', '#F26B3A'], ['Ciencia para chicos', '#13A39A'], ['Geografía Joven', '#8A5CF5'], ['Parques Nacionales', '#18A957']];
-const VMETA: [string, string][] = [['Ciencia para chicos', '24 sept 2024'], ['Explora TV', '17 sept 2024'], ['Aula Espacial', '18 nov 2025'], ['Planeta Kids', '2 mar 2025'], ['Ciencia para chicos', '8 ene 2025'], ['Astro Junior', '30 jul 2024'], ['Explora TV', '12 may 2025'], ['Canciones del Aula', '5 oct 2024']];
-
-export const PAGES: Record<Topic, PageResult[]> = {
-  dinosaurios: [
-    { id: 'pg-d1', site: 'Enciclopedia Infantil', url: 'https://enciclopedia-infantil.org › wiki › Dinosauria', title: 'Dinosauria - Enciclopedia Infantil', snippet: 'Los <b>dinosaurios</b> son un grupo de reptiles que aparecieron en el período Triásico y dominaron la Tierra durante más de 160 millones de años ...', color: '#5F6368', articleId: 'dinosauria' },
-    { id: 'pg-d2', site: 'Museo de Ciencias Naturales', url: 'https://museociencias.org › colecciones › t-rex', title: 'El Tiranosaurio rex, explicado para chicos', date: '14 jun 2024', snippet: 'Cuánto medía, qué comía y por qué tenía los brazos tan cortos. Conocé al <b>dinosaurio</b> carnívoro más famoso de la colección.', color: '#3A5BD9', articleId: 'tiranosaurio' },
-    { id: 'pg-d3', site: 'Revista Explora', url: 'https://revistaexplora.com › paleontologia', title: '¿Cómo trabajan los paleontólogos? Herramientas y pasos', date: '3 feb 2025', snippet: 'Las herramientas y los pasos para encontrar, limpiar y estudiar un fósil de <b>dinosaurio</b>, contados por una paleontóloga.', color: '#F26B3A', articleId: 'paleontologos' },
-    { id: 'pg-d4', site: 'Parques de la Patagonia', url: 'https://parquespatagonia.org.ar › huellas', title: 'Huellas de dinosaurios en la Patagonia argentina', snippet: 'Lugares de Neuquén y Río Negro donde todavía se ven pisadas de <b>dinosaurios</b> de hace 100 millones de años.', color: '#13A39A', articleId: 'huellas-patagonia' },
-    { id: 'pg-d5', site: 'Juegos Educativos', url: 'https://juegoseducativos.net › fosiles', title: 'Juego: armá tu propio fósil de dinosaurio', date: '20 ago 2025', snippet: 'Uní los huesos en el orden correcto y descubrí qué <b>dinosaurio</b> es. Para chicos de 6 a 12 años.', color: '#8A5CF5', articleId: 'juego-fosil' },
-  ],
-  volcanes: [
-    { id: 'pg-v1', site: 'Enciclopedia Infantil', url: 'https://enciclopedia-infantil.org › wiki › Volcán', title: 'Volcán - Enciclopedia Infantil', snippet: 'Un <b>volcán</b> es una abertura en la corteza terrestre por donde sale magma, gases y ceniza del interior de la Tierra ...', color: '#5F6368', articleId: 'volcan' },
-    { id: 'pg-v2', site: 'Geografía Joven', url: 'https://geografiajoven.org › argentina › lanin', title: 'Los volcanes de Argentina: del Lanín al Copahue', date: '9 abr 2025', snippet: 'Un recorrido por los <b>volcanes</b> más conocidos de la cordillera y cuáles siguen activos.', color: '#8A5CF5', articleId: 'volcanes-argentina' },
-    { id: 'pg-v3', site: 'Revista Explora', url: 'https://revistaexplora.com › experimentos', title: 'Experimento: hacé tu propio volcán casero', date: '11 nov 2024', snippet: 'Con bicarbonato, vinagre y un poco de colorante podés armar una erupción en la mesa de tu casa.', color: '#F26B3A', articleId: 'volcan-casero' },
-    { id: 'pg-v4', site: 'Ciencia para chicos', url: 'https://cienciaparachicos.org › tierra › lava', title: '¿Qué es la lava y cómo se convierte en roca?', snippet: 'La lava es roca derretida. Cuando se enfría se vuelve basalto, piedra pómez y otras rocas <b>volcánicas</b>.', color: '#13A39A', articleId: 'lava' },
-  ],
-  planetas: [
-    { id: 'pg-p1', site: 'Enciclopedia Infantil', url: 'https://enciclopedia-infantil.org › wiki › Planeta', title: 'Planeta - Enciclopedia Infantil', snippet: 'Un <b>planeta</b> es un cuerpo celeste que gira alrededor de una estrella. En el sistema solar hay ocho ...', color: '#5F6368', articleId: 'planeta' },
-    { id: 'pg-p2', site: 'Aula Espacial', url: 'https://aulaespacial.org › sistema-solar', title: 'Los 8 planetas del sistema solar, uno por uno', date: '18 nov 2025', snippet: 'De Mercurio a Neptuno: tamaño, temperatura y datos curiosos de cada <b>planeta</b>.', color: '#3A5BD9', articleId: 'ocho-planetas' },
-    { id: 'pg-p3', site: 'Museo de Ciencias Naturales', url: 'https://museociencias.org › espacio › marte', title: 'Marte, el planeta rojo, explicado para chicos', date: '2 mar 2025', snippet: 'Por qué es rojo, qué robots lo exploran y si alguna vez podremos vivir en ese <b>planeta</b>.', color: '#F26B3A', articleId: 'marte' },
-  ],
-};
-
-const IMG_DATA: Record<Topic, [string, string][]> = {
-  dinosaurios: [['d_ammonite', 'Fósil de amonite'], ['d_footprint', 'Huella de terópodo'], ['d_fern', 'Helecho prehistórico'], ['d_bone', 'Hueso fosilizado'], ['d_egg', 'Huevo de dinosaurio'], ['d_tracks', 'Huellas en la roca'], ['d_ammonite2', 'Amonite pulido'], ['d_leaves', 'Hojas fósiles'], ['d_skeleton', 'Esqueleto en el museo'], ['d_nest', 'Nido de huevos'], ['d_sauropod', 'Pisada gigante'], ['d_trex', 'Cráneo de tiranosaurio']],
-  volcanes: [['v_eruption', 'Volcán en erupción'], ['v_crater', 'Cráter desde arriba'], ['v_basalt', 'Roca volcánica'], ['v_island', 'Isla volcánica'], ['v_lanin', 'Volcán Lanín nevado'], ['v_pumice', 'Piedra pómez'], ['v_craterlake', 'Laguna en un cráter'], ['v_dormant', 'Monte Fuji, volcán dormido'], ['v_surtsey', 'Isla nueva en el mar'], ['v_pahoehoe', 'Lava ya fría'], ['v_ash', 'Ceniza en el cielo'], ['v_aerial', 'Volcán visto desde un avión']],
-  planetas: [['p_planets', 'Los planetas en fila'], ['p_saturn', 'Los anillos de Saturno'], ['p_mars', 'Marte, el planeta rojo'], ['p_jupiter', 'Nubes de Júpiter'], ['p_moon', 'La Luna llena'], ['p_sun', 'El Sol de cerca'], ['p_rocket', 'Cohete despegando'], ['p_iss', 'Vista desde la estación espacial']],
-};
-// mismo cálculo que el prototipo: ISRC[(caption.length + i) % 6]
-export const IMAGES: Record<Topic, ImageResult[]> = Object.fromEntries(
-  Object.entries(IMG_DATA).map(([t, arr]) => [t, arr.map(([img, caption], i) => {
-    const s = ISRC[(caption.length + i) % ISRC.length];
-    return { id: `im-${img}`, img, caption, source: { name: s[0], color: s[1] } };
-  })]),
-) as Record<Topic, ImageResult[]>;
-
-export const RELATED: Record<Topic, RelatedChip[]> = {
-  dinosaurios: ['Tiranosaurio', 'Fósiles', 'Huellas', 'Huevos', 'Esqueletos', 'Para dibujar'].map((label, i) => ({ label, img: IMG_DATA.dinosaurios[(i * 2 + 1) % 12][0] })),
-  volcanes: ['Erupción', 'Lava', 'Cráter', 'Maqueta', 'Lanín', 'Islas'].map((label, i) => ({ label, img: IMG_DATA.volcanes[(i * 2 + 1) % 12][0] })),
-  planetas: ['Saturno', 'Marte', 'Luna', 'Cohetes', 'Júpiter', 'El Sol'].map((label, i) => ({ label, img: IMG_DATA.planetas[(i * 2 + 1) % 8][0] })),
-};
-
-const VID_DATA: Record<Topic, [string, string, string, string][]> = {
-  planetas: [['p_planets', 'Los 8 planetas en orden', 'Viaje por el sistema solar', '5:20'], ['p_rocket', 'Cómo despega un cohete', 'Explicado para chicos', '3:45'], ['p_moon', '¿Por qué cambia la Luna?', 'Las fases lunares', '4:10'], ['p_saturn', 'Saturno y sus anillos', 'De qué están hechos', '3:05'], ['p_sun', '¿Qué es una estrella?', 'El Sol y sus vecinas', '4:30'], ['p_iss', 'Un día en la estación espacial', 'Así viven los astronautas', '6:15'], ['p_mars', 'Marte, el planeta rojo', 'Robots que lo exploran', '5:02'], ['p_jupiter', 'Canción de los planetas', 'Para aprender cantando', '2:40']],
-  volcanes: [['vv_kilauea', '¿Cómo nace un volcán?', 'Explicado con dibujos', '4:20'], ['vv_inside', 'Adentro de un cráter', 'Un viaje con drones', '5:10'], ['vv_flow', 'De lava a roca', 'Cómo se enfría la lava', '3:35'], ['vv_submarine', 'Islas que salen del mar', 'Volcanes submarinos', '4:45'], ['vv_copahue', 'Volcanes de Argentina', 'Del Lanín al Copahue', '6:00'], ['vv_model', 'Experimento: volcán casero', 'Para hacer en casa', '3:15'], ['vv_scientist', 'Vulcanólogos en acción', 'Así se estudian', '5:30'], ['vv_stromboli', 'Canción de los volcanes', 'Para cantar en clase', '2:30']],
-  dinosaurios: [['d_trex', 'Así era el Tiranosaurio rex', 'El carnívoro más famoso', '4:50'], ['d_skeleton', 'Cómo se arma un esqueleto', 'Detrás de escena en el museo', '5:15'], ['d_footprint', 'Huellas que cuentan historias', 'Pisadas de hace millones de años', '3:40'], ['d_egg', '¿Cómo nacían los dinosaurios?', 'Huevos y nidos', '4:05'], ['chat_asteroid', 'El día que cayó el asteroide', 'La extinción explicada', '3:40'], ['d_fern', '¿Qué comían los herbívoros?', 'Plantas del Jurásico', '3:55']],
-};
-const toSec = (d: string) => { const [m, s] = d.split(':').map(Number); return m * 60 + s; };
-export const VIDEOS: Record<Topic, VideoResult[]> = Object.fromEntries(
-  Object.entries(VID_DATA).map(([t, arr]) => [t, arr.map(([img, title, subtitle, duration], i) => ({
-    id: `vd-${img}`, img, title, subtitle, duration, channel: VMETA[i % 8][0], date: VMETA[i % 8][1],
-  }))]),
-) as Record<Topic, VideoResult[]>;
-export const videoSeconds = toSec;
-
-/** Datos de canal para el reproductor (formato YouTube). */
-export const CHANNELS: Record<string, { subscribers: string; verified: boolean }> = {
-  'Ciencia para chicos': { subscribers: '1,2 M de suscriptores', verified: true },
-  'Explora TV': { subscribers: '845 k de suscriptores', verified: true },
-  'Aula Espacial': { subscribers: '312 k de suscriptores', verified: false },
-  'Planeta Kids': { subscribers: '2,4 M de suscriptores', verified: true },
-  'Astro Junior': { subscribers: '98,5 k de suscriptores', verified: false },
-  'Canciones del Aula': { subscribers: '3,1 M de suscriptores', verified: true },
-};
-export const likesFor = (id: string) => { const n = [...id].reduce((a, c) => a + c.charCodeAt(0), 0); return `${(n % 90) + 5} k`; };
-
-/** Posiciones donde la moderación "encuentra" contenido no apto (igual que el prototipo). */
-export const BLOCKED_AT = { images: [2, 5, 7, 11, 13, 16], videos: [3, 8] };
-
-/* ---------------- artículos ---------------- */
-const slug = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-/** Convierte cada <span class="a">X</span> en un link interno moderable. */
-const linkify = (html: string) => html.replace(/<span class="a">([^<]+)<\/span>/g, (_, t) => `<span class="a" data-article="${slug(t)}">${t}</span>`);
-
-const DINO_BODY = `<p>Los <b>dinosaurios</b> (<b>Dinosauria</b>, del griego «lagartos terribles») son un grupo de <span class="a">reptiles</span> que aparecieron durante el período <span class="a">Triásico</span>, hace unos 233 millones de años.<sup>[1]</sup> Durante más de 160 millones de años fueron los <span class="a">vertebrados</span> terrestres dominantes.</p>
-<p>Había dinosaurios de todos los tamaños: algunos eran tan chicos como una gallina y otros, como el <span class="a">Argentinosaurus</span>, medían más de 30 metros de largo.<sup>[2]</sup> La mayoría se <span class="a">extinguió</span> hace 66 millones de años, pero las <span class="a">aves</span> son sus descendientes directos.<sup>[3]</sup></p>
-<div class="wk-toc"><b>Contenido</b><ol><li>Características</li><li>Alimentación</li><li>Fósiles en Argentina</li><li>Extinción</li></ol></div>
-<h2>Características</h2>
-<p>Los dinosaurios caminaban con las patas ubicadas debajo del cuerpo, y no a los costados como los <span class="a">lagartos</span>. Eso les permitía moverse más rápido y sostener cuerpos muy grandes.<sup>[4]</sup></p>
-<h2>Alimentación</h2>
-<p>Algunos eran <span class="a">herbívoros</span>, como el <span class="a">diplodocus</span>, que usaba su cuello larguísimo para alcanzar las hojas de los árboles. Otros, como el <span class="a">tiranosaurio</span>, eran <span class="a">carnívoros</span>.</p>
-<h2>Fósiles en Argentina</h2>
-<div class="wk-thumb"><img src="/img/d_footprint.jpg" alt=""><div>Huella de un dinosaurio terópodo conservada en arenisca.</div></div>
-<p>Sabemos cómo eran gracias a los <span class="a">fósiles</span>: huesos, huellas y huevos que quedaron guardados en la roca. En la <span class="a">Patagonia argentina</span> se encontraron algunos de los dinosaurios más grandes del mundo, como el <span class="a">Argentinosaurus</span>.<sup>[5]</sup></p>`;
-
-const ARGENTO_BODY = `<p><b><i>Argentinosaurus</i></b> es un género de <span class="a">dinosaurios saurópodos</span> que vivió hace unos 95 millones de años en lo que hoy es la provincia de <span class="a">Neuquén</span>, Argentina.<sup>[1]</sup> Es uno de los animales terrestres más grandes que existieron: podía medir más de 30 metros de largo y pesar tanto como diez elefantes.<sup>[2]</sup></p>
-<p>Sus fósiles se exhiben en el <span class="a">Museo Carmen Funes</span> de <span class="a">Plaza Huincul</span>. Su nombre significa «lagarto argentino».<sup>[3]</sup></p>
-<div class="wk-toc"><b>Contenido</b><ol><li>Descubrimiento</li><li>Tamaño</li><li>En la cultura popular</li></ol></div>
-<h2>Descubrimiento</h2>
-<p>En 1987, un productor rural encontró un hueso enorme en su campo, cerca de Plaza Huincul. Al principio pensó que era un tronco petrificado.<sup>[4]</sup></p>
-<h2>En la cultura popular</h2>
-<p>Aparece en documentales sobre dinosaurios y en la película <span class="a">Titanes del Cretácico</span>, apta para mayores de 16 años.<sup>[5]</sup></p>`;
-
-export const ARTICLES: Record<string, Article> = {
-  dinosauria: {
-    id: 'dinosauria', topic: 'Dinosaurios', title: 'Dinosauria', hatnote: '«Dinosaurio» redirige aquí.',
-    infobox: {
-      title: 'Dinosaurios', img: 'a_hero',
-      range: '<span class="a">Rango temporal</span>: 233 – 66 Ma<br><span class="a">Triásico Superior</span> – <span class="a">Reciente</span>',
-      caption: 'Esqueleto de <i>Argentinosaurus</i>, uno de los dinosaurios más grandes, hallado en Neuquén.',
-      taxonomy: [['Dominio:', 'Eukaryota'], ['Reino:', 'Animalia', 'a'], ['Filo:', 'Chordata', 'a'], ['Clase:', 'Sauropsida', 'a'], ['Superorden:', 'Dinosauria', 'b']],
-    },
-    html: linkify(DINO_BODY),
-  },
-  argentinosaurus: {
-    id: 'argentinosaurus', topic: 'Dinosaurios', title: 'Argentinosaurus',
-    infobox: {
-      title: 'Argentinosaurus', img: 'a_hero',
-      range: '<span class="a">Rango temporal</span>: 97 – 93 Ma<br><span class="a">Cretácico Superior</span>',
-      caption: 'Reconstrucción del esqueleto de <i>Argentinosaurus huinculensis</i> en un museo.',
-      taxonomy: [['Reino:', 'Animalia', 'a'], ['Clase:', 'Sauropsida', 'a'], ['Superorden:', 'Dinosauria', 'a'], ['Suborden:', 'Sauropodomorpha', 'a'], ['Género:', 'Argentinosaurus', 'b']],
-    },
-    html: linkify(ARGENTO_BODY),
-  },
-};
-/** Links que la moderación rechaza. */
-export const BLOCKED_ARTICLES = new Set(['titanes-del-cretacico']);
-
-const TOPIC_HERO: Record<Topic, string> = { dinosaurios: 'a_hero', volcanes: 'v_eruption', planetas: 'p_planets' };
-const TOPIC_NAME: Record<Topic, string> = { dinosaurios: 'Dinosaurios', volcanes: 'Volcanes', planetas: 'Planetas' };
-
-/** Artículo de relleno para cualquier link/resultado sin artículo propio. */
-export function stubArticle(id: string): Article {
-  const page = Object.values(PAGES).flat().find((p) => p.articleId === id);
-  const title = page ? page.title.replace(/ - Enciclopedia Infantil$/, '') : id.split('-').map((w, i) => (i ? w : w[0].toUpperCase() + w.slice(1))).join(' ');
-  const topic = topicOf(page ? page.title + page.snippet : id) ?? 'dinosaurios';
-  return {
-    id, topic: TOPIC_NAME[topic], title,
-    infobox: { title, img: TOPIC_HERO[topic], range: `Tema: <span class="a">${TOPIC_NAME[topic]}</span>`, caption: 'Imagen de referencia.', taxonomy: [] },
-    html: linkify(`<p>${page ? page.snippet : `<b>${title}</b> es un artículo de ejemplo.`}</p><p>Este contenido es de prueba: cuando el backend esté conectado, acá va el artículo completo ya moderado. Mientras tanto podés volver a <span class="a">Dinosauria</span>.</p>`),
-  };
-}
-
 /* ---------------- cursos ---------------- */
 export const COURSES: Course[] = [
   { id: 'solar', name: 'El sistema solar', units: 6, progress: 33, img: 'c_solar', bg: ['#3A5BD9', '#1E2F7A'] },
@@ -164,23 +30,6 @@ export const GEN_COURSE: Record<string, Pick<Course, 'img' | 'bg'>> = {
   Volcanes: { img: 'v_eruption', bg: ['#F26B3A', '#B8431C'] },
   Planetas: { img: 'p_planets', bg: ['#3A5BD9', '#1E2F7A'] },
 };
-
-type R = [ResourceKind, string];
-const ch = (title: string, ...resources: R[]) => ({ title, resources: resources.map(([kind, label]) => ({ kind, label })) });
-export const SOLAR_UNITS: CourseDetail['unitList'] = [
-  { title: 'El Sol', chapters: [ch('¿Qué es una estrella?', ['video', 'Video 4 min'], ['lect', 'Lectura'], ['imgr', 'Imágenes']), ch('La luz y el calor', ['video', 'Video 3 min'], ['lect', 'Lectura'], ['act', 'Actividad']), ch('El Sol y las estaciones', ['lect', 'Lectura'], ['imgr', 'Imágenes'])] },
-  { title: 'Los planetas', chapters: [ch('Planetas rocosos', ['video', 'Video 5 min'], ['lect', 'Lectura']), ch('Gigantes gaseosos', ['video', 'Video 4 min'], ['imgr', 'Imágenes']), ch('¿Por qué Plutón ya no es planeta?', ['lect', 'Lectura'], ['act', 'Actividad'])] },
-  { title: 'La Luna', chapters: [ch('Las fases de la Luna', ['video', 'Video 4 min'], ['imgr', 'Imágenes']), ch('Las mareas', ['lect', 'Lectura']), ch('Viajes a la Luna', ['video', 'Video 6 min'], ['act', 'Actividad'])] },
-  { title: 'Estrellas y constelaciones', chapters: [ch('¿Por qué brillan?', ['lect', 'Lectura']), ch('Constelaciones famosas', ['imgr', 'Imágenes'], ['act', 'Actividad']), ch('La Vía Láctea', ['video', 'Video 3 min'])] },
-  { title: 'Cometas y asteroides', chapters: [ch('¿Qué es un cometa?', ['video', 'Video 3 min'], ['lect', 'Lectura']), ch('El cinturón de asteroides', ['imgr', 'Imágenes']), ch('Estrellas fugaces', ['lect', 'Lectura'], ['act', 'Actividad'])] },
-  { title: 'Explorar el espacio', chapters: [ch('Cohetes y satélites', ['video', 'Video 5 min']), ch('La estación espacial', ['video', 'Video 6 min'], ['imgr', 'Imágenes']), ch('Robots en Marte', ['lect', 'Lectura'], ['act', 'Actividad'])] },
-];
-export function genericUnits(name: string, n: number): CourseDetail['unitList'] {
-  return Array.from({ length: n }, (_, i) => ({
-    title: `${name}: parte ${i + 1}`,
-    chapters: [ch('Introducción', ['video', 'Video 4 min'], ['lect', 'Lectura']), ch('Conceptos clave', ['lect', 'Lectura'], ['imgr', 'Imágenes']), ch('A practicar', ['act', 'Actividad'])],
-  }));
-}
 
 /* ---------------- journey + ejercicios ---------------- */
 // mismo orden que ITEMS del prototipo

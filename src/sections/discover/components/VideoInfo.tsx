@@ -23,16 +23,18 @@ export const VideoInfo = ({ v }: { v: Video }) => (
     <h3>{v.title}</h3>
     <div className="yt-row">
       <div className="yt-owner">
-        <span className="yt-av">{v.channel[0]}</span>
+        {v.channelThumb
+          ? <img className="yt-av" src={v.channelThumb} alt="" referrerPolicy="no-referrer" />
+          : <span className="yt-av">{v.channel[0]}</span>}
         <div className="yt-ch">
           <div className="yt-name">{v.channel}{v.verified && <IcVerified />}</div>
-          <div className="yt-subs">{v.subscribers}</div>
+          {v.subscribers && <div className="yt-subs">{v.subscribers}</div>}
         </div>
         <button className="yt-sub">Suscribirse</button>
       </div>
       <div className="yt-actions">
         <div className="yt-seg">
-          <button className="yt-btn" aria-label="Me gusta"><IcLike />{v.likes}</button>
+          <button className={`yt-btn${v.likes ? '' : ' icon'}`} aria-label="Me gusta"><IcLike />{v.likes}</button>
           <span className="yt-div" />
           <button className="yt-btn icon" aria-label="No me gusta"><span className="yt-flip"><IcLike /></span></button>
         </div>

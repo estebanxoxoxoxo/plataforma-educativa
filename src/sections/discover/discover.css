@@ -144,10 +144,7 @@
 #v-player .back{grid-column:1/-1;color:#0B6B66}
 .player{position:relative;aspect-ratio:16/9;border-radius:7px;overflow:hidden;background:#0E1220}
 .pframe{position:absolute;inset:0}
-.pframe > *{width:100%;height:100%;display:block;object-fit:cover;transform-origin:60% 50%}
-.player.playing .pframe > *{animation:kb 14s linear both}
-.player.paused .pframe > *{animation-play-state:paused}
-@keyframes kb{to{transform:scale(1.14)}}
+.pframe > img{width:100%;height:100%;display:block;object-fit:cover}
 .pctrl{position:absolute;left:0;right:0;bottom:0;padding:34px 14px 8px;background:linear-gradient(rgba(0,0,0,0),rgba(0,0,0,.72));color:#fff;z-index:2}
 /* (antes .pbar — la regla .pbar de las tarjetas de curso la pisaba y recortaba el punto rojo) */
 .vbar{position:relative;height:4px;background:rgba(255,255,255,.3);margin-bottom:9px;cursor:pointer}
@@ -162,7 +159,7 @@
 /* fila del canal: copia de la página de video de YouTube (ytd-watch-metadata) */
 .yt-row{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:12px;font-family:"Roboto","Arial",sans-serif;color:#0F0F0F}
 .yt-owner{display:flex;align-items:center;min-width:0}
-.yt-av{flex:none;width:40px;height:40px;border-radius:50%;background:#3A5BD9;color:#fff;display:grid;place-items:center;font:500 18px "Roboto","Arial",sans-serif;margin-right:12px}
+.yt-av{flex:none;width:40px;height:40px;border-radius:50%;object-fit:cover;background:#3A5BD9;color:#fff;display:grid;place-items:center;font:500 18px "Roboto","Arial",sans-serif;margin-right:12px}
 .yt-ch{min-width:0;margin-right:24px}
 .yt-name{display:flex;align-items:center;gap:4px;font-size:16px;line-height:22px;font-weight:500;white-space:nowrap}
 .yt-name svg{width:14px;height:14px;fill:#606060;flex:none}
@@ -220,3 +217,41 @@
 .send svg{width:18px;height:18px}
 .note{text-align:center;font-size:13px;font-weight:800;color:#0B6B66;display:flex;justify-content:center;align-items:center;gap:6px}
 .note svg{width:15px;height:15px}
+
+/* Cuerpo de artículos reales (HTML saneado del backend) */
+.wk-html{font:15px/1.6 Arial,sans-serif}
+.wk-html p{margin:0 0 12px}
+.wk-html h2{margin:18px 0 8px}
+.wk-html h3{margin:14px 0 6px;font:700 17px/1.3 Arial,sans-serif}
+.wk-html a{color:#3366CC;cursor:pointer;text-decoration:none}
+.wk-html a:hover{text-decoration:underline}
+.wk-html img{max-width:100%;height:auto;border-radius:2px}
+.wk-html figure{margin:6px 0 14px;max-width:360px}
+.wk-html figcaption{font-size:12px;line-height:1.4;color:#54595D;padding-top:4px}
+.wk-html ul,.wk-html ol{margin:0 0 12px;padding-left:22px}
+.wk-html table{border-collapse:collapse;margin:0 0 14px;font-size:13.5px;display:block;overflow-x:auto;max-width:100%}
+.wk-html th,.wk-html td{border:1px solid #A2A9B1;padding:4px 8px;text-align:left;vertical-align:top}
+.wk-html th{background:#EAECF0}
+.wk-html blockquote{margin:0 0 12px;padding-left:14px;border-left:3px solid #C8CCD1;color:#54595D}
+.wk-hero{width:300px}
+
+/* Chat: texto con formato, galería y artículos */
+.bub .md p{margin:0 0 8px}.bub .md p:last-child{margin-bottom:0}
+.bub .md ul,.bub .md ol{margin:4px 0 8px;padding-left:20px}
+.bub .md li{margin:2px 0}
+.chat-gallery{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;max-width:440px}
+.chat-img{display:block;aspect-ratio:1;border-radius:6px;overflow:hidden;background:#F1F3F4}
+.chat-img img{width:100%;height:100%;object-fit:cover;display:block}
+.chat-art{display:grid;gap:3px;text-align:left;max-width:420px;padding:10px 12px;border:1.5px solid #E7EAF2;border-radius:7px;background:#fff;cursor:pointer}
+.chat-art:hover{border-color:#13A39A}
+.chat-art b{font-size:14.5px;color:#1A0DAB}
+.chat-art span{font-size:12.5px;font-weight:600;color:#47506B;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.chat-art small{font-size:11.5px;color:#0B6B66;font-weight:700}
+
+/* Reproductor real: iframe de youtube-nocookie contenido (sin clics directos) + controles propios */
+.pframe iframe{position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none}
+.pclick{position:absolute;inset:0;z-index:1;cursor:pointer}
+.pcover{position:absolute;inset:0;z-index:1;display:grid;place-items:center;background:#0E1220 center/cover no-repeat;cursor:pointer}
+.pcover::before{content:"";position:absolute;inset:0;background:rgba(14,18,32,.45)}
+.pcover .big{position:relative;width:68px;height:68px;border-radius:50%;background:rgba(255,255,255,.95);display:grid;place-items:center}
+.pcover .big svg{width:26px;height:26px;margin-left:4px}

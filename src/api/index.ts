@@ -1,11 +1,10 @@
-// API FAKE. Simula latencia de red y estado de servidor en memoria.
-// Cada llamada se loguea en la consola como una request real (→ / ←).
-// Para conectar el backend real: reemplazá el cuerpo de cada método por un fetch()
-// que devuelva el mismo tipo; la UI no necesita cambios.
+// Cliente de API. Descubrir (búsqueda, artículos, imágenes, videos, chat) y el usuario van al backend
+// real (server/, lógica de Smarty). Cursos, práctica, amigos y ligas siguen SIMULADOS: latencia y estado
+// en memoria. Cada llamada se loguea en la consola (→ / ←).
 import * as M from './mock';
 import type {
-  AnswerResult, Answer, ArticleResponse, ChatEvent, Course, CourseDetail, Exercise, Friend, FriendMessage,
-  GeoRanking, GeoScope, ImageResult, Journey, LeagueResult, LeagueStanding, Moderated, MyLeague, PageResult, SearchResponse,
+  AnswerResult, Answer, ArticleResponse, ChatReply, ChatTurn, Course, CourseDetail, Exercise, Friend, FriendMessage,
+  GeoRanking, GeoScope, ImageResult, Journey, LeagueResult, LeagueStanding, MyLeague, PageResult, SearchResponse,
   Tab, User, Video, VideoResult,
 } from './types';
 
@@ -17,6 +16,17 @@ const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
+}
+
+/** Llamada al backend real (server/). Los errores de red se tratan como fallas (fail-closed en la UI). */
+async function http<T>(path: string, body?: unknown): Promise<T> {
+  const method = body === undefined ? 'GET' : 'POST';
+  console.debug(`%c[api] → ${method} ${path} (backend)`, 'color:#C24B1F;font-weight:bold', body ?? '');
+  const r = await fetch(path, body === undefined ? undefined : { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!r.ok) throw new ApiError(r.status, `HTTP ${r.status}`);
+  const data = (await r.json()) as T;
+  console.debug(`%c[api] ← ${method} ${path}`, 'color:#3A5BD9', data);
+  return data;
 }
 
 async function call<T>(method: string, path: string, latency: number, fn: () => T): Promise<T> {
@@ -43,55 +53,40 @@ const findCourse = (id: string) => {
   return c;
 };
 
-function withBlocked<T extends { id: string }>(ok: T[], at: number[]): Moderated<T>[] {
-  const out: Moderated<T>[] = [];
-  for (let i = 0, k = 0; k < ok.length; i++) out.push(at.includes(i) ? { id: `blk-${i}`, blocked: true } : ok[k++]);
-  return out;
-}
-
 /* ---------- endpoints ---------- */
 export const api = {
-  me: () => call<User>('GET', '/me', 250, () => M.ME),
+  me: () => http<User>('/api/me'),
 
-  /** Una búsqueda vale para todas las solapas. Imágenes y videos vuelven con lo que la moderación filtró. */
-  search: <T extends Tab>(q: string, tab: T) =>
-    call<SearchResponse<SearchMap[T]>>('GET', `/search?q=${encodeURIComponent(q)}&tab=${tab}`, tab === 'pages' ? 1400 : 1100, () => {
-      const t = M.topicOf(q);
-      let res: SearchResponse<PageResult | ImageResult | VideoResult> = { query: q, items: [] };
-      if (t && tab === 'pages') res = { query: q, items: M.PAGES[t] };
-      else if (t && tab === 'images') res = { query: q, items: withBlocked(M.IMAGES[t], M.BLOCKED_AT.images), related: M.RELATED[t] };
-      else if (t) res = { query: q, items: withBlocked(M.VIDEOS[t], M.BLOCKED_AT.videos) };
-      return res as SearchResponse<SearchMap[T]>;
-    }),
+  /** Una búsqueda vale para todas las solapas (backend real):
+   *  páginas = Serper sobre la lista blanca · imágenes = Pixabay + Commons moderadas · videos = catálogo aprobado. */
+  search: <T extends Tab>(q: string, tab: T) => http<SearchResponse<SearchMap[T]>>(`/api/search/${tab}?q=${encodeURIComponent(q)}`),
 
-  /** Abre un artículo: el servidor lo modera completo antes de devolverlo. */
-  article: (id: string) => call<ArticleResponse>('GET', `/articles/${id}`, 1900, () => {
-    if (M.BLOCKED_ARTICLES.has(id)) return { status: 'blocked', reason: 'Revisamos la página y su contenido no es apropiado para tu edad.' };
-    return { status: 'ok', article: M.ARTICLES[id] ?? M.stubArticle(id) };
-  }),
+  /** Abre un artículo (id = URL): el backend chequea la lista blanca, extrae y lo modera con el juez. */
+  article: (url: string) => http<ArticleResponse>(`/api/article?url=${encodeURIComponent(url)}`),
 
-  video: (id: string) => call<Video>('GET', `/videos/${id}`, 500, () => {
-    const v = Object.values(M.VIDEOS).flat().find((x) => x.id === id);
-    if (!v) throw new ApiError(404, 'Video no encontrado');
-    const ch = M.CHANNELS[v.channel] ?? { subscribers: '12 k de suscriptores', verified: false };
-    return { ...v, durationSec: M.videoSeconds(v.duration), reviewed: true, ...ch, likes: M.likesFor(v.id) };
-  }),
+  /** Un video del catálogo aprobado + datos reales de YouTube (canal, suscriptores, Me gusta). */
+  video: (id: string) => http<Video>(`/api/video?id=${encodeURIComponent(id)}`),
 
   /* cursos */
   courseRequested: (topic: string) => call<boolean>('GET', `/courses/requests?topic=${topic}`, 200, () => db.generated.some((c) => c.name === topic)),
   generateCourse: (topic: string) => call<{ topic: string; etaMinutes: number }>('POST', '/courses/generate', 800, () => {
     if (!db.generated.some((c) => c.name === topic)) {
       const look = M.GEN_COURSE[topic] ?? M.GEN_COURSE.Dinosaurios;
-      db.generated.unshift({ id: `gen-${norm(topic).replace(/\W+/g, '-')}`, name: topic, units: 4, progress: 0, isNew: true, ...look });
+      const id = `gen-${norm(topic).replace(/\W+/g, '-')}`;
+      db.generated.unshift({ id, name: topic, units: 4, progress: 0, isNew: true, ...look });
+      // El backend arma el temario (modelo) y busca un contenido aprobado por capítulo, en segundo plano.
+      void http(`/api/learn/course?id=${encodeURIComponent(id)}&name=${encodeURIComponent(topic)}`).catch(() => {});
     }
     return { topic, etaMinutes: 5 };
   }),
   courses: () => call<Course[]>('GET', '/courses', 650, allCourses),
-  course: (id: string) => call<CourseDetail>('GET', `/courses/${id}`, 600, () => {
-    const c = findCourse(id);
-    const unitList = id === 'solar' ? M.SOLAR_UNITS : M.genericUnits(c.name, c.units);
-    return { ...c, units: unitList.length, unitList, chapters: unitList.reduce((n, u) => n + u.chapters.length, 0) };
-  }),
+  /** Detalle de un curso: el temario y un contenido real por capítulo los resuelve el backend
+   *  (videos del catálogo aprobado, lecturas de sitios aprobados ya revisadas por el juez). */
+  course: async (id: string): Promise<CourseDetail> => {
+    const c = await call('GET', `/courses/${id}`, 150, () => findCourse(id));
+    const r = await http<{ units: CourseDetail['unitList'] }>(`/api/learn/course?id=${encodeURIComponent(id)}&name=${encodeURIComponent(c.name)}`);
+    return { ...c, units: r.units.length, unitList: r.units, chapters: r.units.reduce((n, u) => n + u.chapters.length, 0) };
+  },
 
   /* practicar */
   journey: (courseId: string) => call<Journey>('GET', `/practice/${courseId}/journey`, 600, () => {
@@ -132,41 +127,9 @@ export const api = {
     return { done: db.progress[courseId] };
   }),
 
-  /* chat con IA (streaming) */
-  async *chat(text: string): AsyncGenerator<ChatEvent> {
-    console.debug(`%c[api] → POST /chat (stream)`, 'color:#13A39A;font-weight:bold', { text });
-    await sleep(jitter(1300));
-    const t = norm(text);
-    let answer: string;
-    let share: { title: string; meta: string; img: string; videoId?: string } | undefined;
-    if (/sangr|miedo|matar|arma|muert|terror|violen|pelea/.test(t)) {
-      answer = 'No puedo ayudarte con eso. ¿Querés que te cuente cómo algunos dinosaurios usaban crestas y colores para asustar a otros?';
-    } else if (/extin/.test(t) && /dino/.test(t)) {
-      answer = 'Hace unos 66 millones de años cayó un asteroide enorme. El polvo tapó el Sol, hizo mucho frío y muchas plantas se murieron. Sin comida, los dinosaurios grandes no sobrevivieron. ¡Pero las aves son sus parientes y siguen vivas!';
-      share = { title: 'El día que cayó el asteroide', meta: 'Video · 3:40', img: 'chat_asteroid', videoId: 'vd-chat_asteroid' };
-    } else if (M.topicOf(t) === 'volcanes') {
-      answer = 'Un volcán es como una chimenea de la Tierra: por ahí sale roca derretida, que se llama magma. Cuando sale afuera la llamamos lava, y al enfriarse se convierte en roca.';
-      share = { title: '¿Cómo nace un volcán?', meta: 'Video · 4:20', img: 'vv_kilauea', videoId: 'vd-vv_kilauea' };
-    } else if (M.topicOf(t) === 'planetas') {
-      answer = 'En el sistema solar hay ocho planetas que giran alrededor del Sol: Mercurio, Venus, la Tierra, Marte, Júpiter, Saturno, Urano y Neptuno. ¡Júpiter es el más grande!';
-      share = { title: 'Los 8 planetas en orden', meta: 'Video · 5:20', img: 'p_planets', videoId: 'vd-p_planets' };
-    } else if (M.topicOf(t) === 'dinosaurios') {
-      answer = 'Los dinosaurios vivieron durante más de 160 millones de años. Algunos eran gigantes como el Argentinosaurus, que vivió en Neuquén, ¡y otros eran del tamaño de una gallina!';
-    } else {
-      // DEMO: todo lo que no es de los 3 temas habilitados se trata como no apto.
-      // En producción la IA propondría algo apropiado relacionado con lo que preguntó.
-      answer = 'No puedo ayudarte con eso. ¿Querés que hablemos de dinosaurios, volcanes o planetas?';
-    }
-    for (const w of answer.split(' ')) { await sleep(55); yield { type: 'token', text: w }; }
-    if (share) {
-      await sleep(500);
-      yield { type: 'share-checking' };
-      await sleep(1500);
-      yield { type: 'share', card: share };
-    }
-    console.debug(`%c[api] ← POST /chat (fin)`, 'color:#3A5BD9');
-    yield { type: 'done' };
-  },
+  /** Turno del chat: el backend corre el pipeline de moderación de Smarty (sin streaming: nada se
+   *  muestra antes del juez de salida). `history` es el contexto ya "en cuarentena". */
+  chat: (history: ChatTurn[], text: string) => http<ChatReply>('/api/chat', { history, text }),
 
   /* amigos */
   friends: () => call<Friend[]>('GET', '/friends', 500, () => M.FRIENDS),
