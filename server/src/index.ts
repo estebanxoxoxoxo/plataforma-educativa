@@ -9,15 +9,22 @@
 //   GET /api/feed?after=  ·  POST /api/feed/react   → FAKE (demo) hasta que exista el feed real
 //   GET /api/me                   → apodo del chico
 //   GET /api/learn/course?id=&name= → temario del curso con un contenido real por capítulo
-import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
+//   /api/space/*                  → Mi espacio: Drive (carpetas+papelera), listas, canales seguidos (space.ts)
+import { createServer } from 'node:http'
 import { config } from './config'
 import { getArticle } from './articles'
 import { queryTokens, searchPages } from './search'
 import { searchImages } from './images'
-import { getVideo, loadVideoMeta, searchVideos, toVideoResult } from './videos'
+import { allChannels, getVideo, loadChannelMeta, loadVideoMeta, searchVideos, toVideoResult, videosOfChannel } from './videos'
 import { sendChildMessage } from './chat'
 import { getCourse, prewarmCourses } from './learn'
 import { getFeed, reactFeed } from './feedFake'
+import * as space from './space'
+import { practiceRoutes } from './practice'
+import { progressRoutes, resetProgress } from './progress'
+import * as market from './market'
+import { leaguesRoutes } from './leaguesFake'
+import { readJson, send } from './web'
 import type { Msg } from './llm'
 
 const PORT = Number(process.env.PORT ?? 8787)
@@ -55,22 +62,24 @@ function boldSnippet(snippet: string, q: string): string {
 }
 const colorFor = (h: string) => COLORS[[...h].reduce((a, c) => a + c.charCodeAt(0), 0) % COLORS.length]
 
-/* ---------- servidor ---------- */
-async function readJson<T>(req: IncomingMessage): Promise<T> {
-  let raw = ''
-  for await (const chunk of req) { raw += chunk; if (raw.length > 200_000) throw new Error('body demasiado grande') }
-  return JSON.parse(raw || '{}') as T
-}
-
-function send(res: ServerResponse, status: number, body: unknown) {
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
-  res.end(JSON.stringify(body))
-}
-
+/* ---------- servidor (send/readJson viven en web.ts, compartidos con los módulos de rutas) ---------- */
 createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', 'http://localhost')
   const t0 = Date.now()
   try {
+    // --- DEMO: cada carga de página vuelve a los valores iniciales (la economía vive en RAM). ---
+    if (url.pathname === '/api/demo/reset' && req.method === 'POST') {
+      resetProgress()
+      ;(market as { resetMarket?: () => void }).resetMarket?.()
+      return send(res, 200, { ok: true })
+    }
+
+    // --- Dominios con módulo propio (cada uno maneja sus subrutas y métodos) ---
+    if (url.pathname.startsWith('/api/practice/')) return await practiceRoutes(req, res, url)
+    if (url.pathname.startsWith('/api/progress/')) return progressRoutes(req, res, url)
+    if (url.pathname.startsWith('/api/market')) return await market.marketRoutes(req, res, url)
+    if (url.pathname.startsWith('/api/leagues/')) return await leaguesRoutes(req, res, url)
+
     // --- FEED (FAKE): ver feedFake.ts ---
     if (url.pathname === '/api/feed' && req.method === 'GET') {
       return send(res, 200, getFeed(url.searchParams.get('after')))
@@ -79,6 +88,63 @@ createServer(async (req, res) => {
       const b = await readJson<{ id?: string; emoji?: string }>(req)
       if (!b.id || !b.emoji) return send(res, 400, { error: 'id/emoji' })
       return send(res, 200, reactFeed(String(b.id), String(b.emoji)))
+    }
+
+    // --- MI ESPACIO (backend real: server/src/space.ts, persistido en data/space.json) ---
+    if (url.pathname.startsWith('/api/space/') && req.method === 'POST') {
+      const b = await readJson<Record<string, unknown>>(req)
+      const num = (k: string) => Number(b[k] ?? 0) || 0
+      const str = (k: string) => String(b[k] ?? '')
+      switch (url.pathname) {
+        case '/api/space/save': {
+          const r = space.saveItem(b as space.SavePayload)
+          return r.error ? send(res, 400, { error: r.error }) : send(res, 200, r)
+        }
+        case '/api/space/drive/folder': return send(res, 200, space.createFolder(str('name'), num('parentId'), b.color ? str('color') : undefined, b.emoji ? str('emoji') : undefined))
+        case '/api/space/drive/folder/update': return send(res, 200, { ok: space.updateFolder(num('id'), { name: b.name as string | undefined, color: b.color as string | undefined, emoji: b.emoji as string | undefined }) })
+        case '/api/space/drive/folder/move': return send(res, 200, { ok: space.moveFolder(num('id'), num('parentId')) })
+        case '/api/space/drive/folder/trash': return send(res, 200, { ok: (space.trashFolder(num('id')), true) })
+        case '/api/space/drive/item/move': return send(res, 200, { ok: space.moveItem(num('id'), num('folderId')) })
+        case '/api/space/drive/item/trash': return send(res, 200, { ok: (space.trashItem(num('id')), true) })
+        case '/api/space/drive/restore': return send(res, 200, { ok: (b.kind === 'folder' ? space.restoreFolder(num('id')) : space.restoreItem(num('id')), true) })
+        case '/api/space/drive/purge': return send(res, 200, { ok: (b.kind === 'folder' ? space.purgeFolder(num('id')) : space.purgeItem(num('id')), true) })
+        case '/api/space/follow': return send(res, 200, { followed: space.toggleFollow(str('channelId'), typeof b.value === 'boolean' ? b.value : undefined) })
+        case '/api/space/playlists/create': return send(res, 200, space.createPlaylist(str('name'), b.videoId ? str('videoId') : undefined))
+        case '/api/space/playlists/rename': return send(res, 200, { ok: space.renamePlaylist(num('id'), str('name')) })
+        case '/api/space/playlists/delete': return send(res, 200, { ok: (space.deletePlaylist(num('id')), true) })
+        case '/api/space/playlists/add': return send(res, 200, space.playlistAdd(num('id'), str('videoId')))
+        case '/api/space/playlists/remove': return send(res, 200, { ok: space.playlistRemove(num('id'), str('videoId')) })
+        case '/api/space/playlists/swap': return send(res, 200, { ok: space.playlistSwap(num('id'), str('a'), str('b')) })
+      }
+      return send(res, 404, { error: 'not found' })
+    }
+    if (url.pathname.startsWith('/api/space/') && req.method === 'GET') {
+      if (url.pathname === '/api/space/drive') return send(res, 200, space.driveView(Number(url.searchParams.get('folder') ?? 0) || 0))
+      if (url.pathname === '/api/space/folders') return send(res, 200, space.folderTree())
+      if (url.pathname === '/api/space/drive/trash') return send(res, 200, space.trashView())
+      if (url.pathname === '/api/space/channels') {
+        const follows = new Set(space.followedIds())
+        return send(res, 200, { channels: allChannels().map(c => ({ ...c, followed: follows.has(c.id) })) })
+      }
+      if (url.pathname === '/api/space/channel') {
+        const id = url.searchParams.get('id') ?? ''
+        const c = allChannels().find(x => x.id === id)
+        if (!c) return send(res, 404, { error: 'canal' })
+        const vids = videosOfChannel(id)
+        const shown = vids.slice(0, 120)
+        await loadVideoMeta(shown.map(v => v.videoId))
+        const m = await loadChannelMeta(id)
+        return send(res, 200, {
+          channel: { ...c, followed: space.isFollowed(id), thumb: m.thumb, subscribers: m.subscribers != null ? new Intl.NumberFormat('es-AR', { notation: 'compact', maximumFractionDigits: 1 }).format(m.subscribers) + ' de suscriptores' : '' },
+          total: vids.length, videos: shown.map(toVideoResult),
+        })
+      }
+      if (url.pathname === '/api/space/playlists') return send(res, 200, space.playlists())
+      if (url.pathname === '/api/space/playlist') {
+        const d = space.playlistDetail(Number(url.searchParams.get('id') ?? 0) || 0)
+        return d ? send(res, 200, d) : send(res, 404, { error: 'lista' })
+      }
+      return send(res, 404, { error: 'not found' })
     }
 
     if (req.method === 'POST' && url.pathname === '/api/chat') {
@@ -127,7 +193,7 @@ createServer(async (req, res) => {
 
     if (url.pathname === '/api/video') {
       const v = await getVideo(url.searchParams.get('id') ?? '')
-      return v ? send(res, 200, v) : send(res, 404, { error: 'Video no aprobado' })
+      return v ? send(res, 200, { ...v, followed: space.isFollowed(v.channelId) }) : send(res, 404, { error: 'Video no aprobado' })
     }
 
     if (url.pathname === '/api/health') return send(res, 200, { ok: true, policyVersion: config.policyVersion, sites: config.sites.length })

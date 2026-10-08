@@ -56,12 +56,12 @@ export function FeedPage() {
   // El contenido se abre en Descubrir, con "volver" al Inicio.
   const back = { backTo: '/', backLabel: '‹ Inicio' };
   const h = {
-    video: (v: { id: string }) => go(`/descubrir/video/${v.id}`, { state: back }),
-    article: (url: string) => go(`/descubrir/articulo/${encodeURIComponent(url)}`, { state: back }),
+    video: (v: { id: string }) => go(`/buscar/video/${v.id}`, { state: back }),
+    article: (url: string) => go(`/buscar/articulo/${encodeURIComponent(url)}`, { state: back }),
     route: (courseId: string) => go(`/aprender/${courseId}`),
     practice: (courseId: string) => go(`/practicar/${courseId}`),
     league: () => go('/ligas'),
-    topic: (t: string) => go(`/descubrir/busqueda?q=${encodeURIComponent(t)}&tab=videos`),
+    topic: (t: string) => go(`/buscar?q=${encodeURIComponent(t)}&tab=videos`),
   };
 
   return (

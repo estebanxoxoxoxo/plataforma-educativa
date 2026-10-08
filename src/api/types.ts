@@ -40,7 +40,29 @@ export type Video = VideoResult & {
   durationSec: number; reviewed: boolean;
   /** Datos del canal y del video como los muestra YouTube */ subscribers: string; verified: boolean; likes: string;
   channelThumb?: string;
+  /** Para seguir el canal (MyTube) */ channelId: string; followed: boolean;
 };
+
+/* ---------- Mi espacio: Drive (carpetas), canales seguidos y listas (backend real: server/src/space.ts) ---------- */
+/** Todas las carpetas se ven iguales (ícono único estilo Windows); sin color/emoji por carpeta. */
+export type DriveFolder = { id: number; name: string; parentId: number; count: number };
+export type FolderNode = { id: number; name: string; parentId: number };
+export type DriveTarget = { type: 'video'; id: string } | { type: 'article'; url: string } | { type: 'image'; url: string };
+export type DriveItem = { id: number; type: 'video' | 'articulo' | 'imagen'; title: string; img?: string; subtitle?: string; target: DriveTarget; createdAt: number };
+export type DriveView = { path: { id: number; name: string }[]; folders: DriveFolder[]; items: DriveItem[] };
+export type TrashView = { folders: { id: number; name: string }[]; items: DriveItem[] };
+export type SavePayload = {
+  folderId?: number;
+  video?: { id: string };
+  article?: { url: string; title: string; source?: string };
+  image?: { url: string; caption?: string; source?: string };
+};
+
+export type Channel = { id: string; name: string; videos: number; cover: string; followed: boolean };
+export type ChannelDetail = { channel: Channel & { thumb?: string; subscribers?: string }; total: number; videos: VideoResult[] };
+
+export type Playlist = { id: number; name: string; count: number; cover?: string };
+export type PlaylistDetail = { id: number; name: string; videos: VideoResult[] };
 
 export type Course = {
   id: string; name: string; units: number; progress: number;
@@ -82,13 +104,38 @@ export type AnswerResult = {
   correct: boolean; title: string; detail: string;
   /** Solo pregunta abierta */ ai?: { verdict: string; feedback: string };
   /** Solo multiple choice / VF: opciones correctas para pintar */ correctOptions?: string[];
+  /** Premio REAL al acertar (contrato con server/src/progress.ts): puntos de este ejercicio,
+   *  XP acumulada en la semana y saldo de Energy Coin resultante. */
+  xp?: number; xpWeek?: number; ec?: number;
 };
+
+/* ---------- Progreso real: XP semanal (el puntaje ÚNICO de liga/zona/país) + Energy Coin ---------- */
+export type ProgressSummary = {
+  xpWeek: number;
+  /** Saldo de Energy Coin (⚡) para gastar en la Tienda */ ec: number;
+  streakDays: number;
+  /** Para "Seguí practicando" (null si nunca practicó) */
+  continue: { courseId: string; title: string; done: number; total: number } | null;
+};
+export type EcTx = { id: number; ts: number; kind: 'earn' | 'spend'; amount: number; label: string };
+
+/* ---------- Tienda (marketplace: las recompensas las publica el padre) ---------- */
+export type MarketItem = {
+  id: number; title: string; desc?: string;
+  /** Precio en Energy Coin */ price: number;
+  /** Emoji grande de la recompensa */ emoji: string;
+  /** Quién la publicó */ source: 'padre' | 'plataforma';
+  /** Canjes disponibles (null = sin límite) */ stock: number | null;
+  /** Está en la lista de deseos del chico (la wishlist persiste; no la toca el reset del demo) */ wished: boolean;
+};
+export type Redemption = { id: number; itemId: number; title: string; emoji: string; price: number; ts: number; status: 'pendiente' | 'entregado' };
 
 export type Friend = { id: string; nick: string; color: string; status: string; xp: string; streak: string; league: string; since: string; commonCourses: string[] };
 export type FriendMessage = { id: string; from: 'me' | 'them'; text: string };
 
-/** La liga del chico: ASIGNADA según sus resultados (no se elige). */
-export type AssignedLeague = { id: string; name: string; color: string; pos: number; total: number; closes: string };
+/** La liga del chico: ASIGNADA según sus resultados (no se elige).
+ *  `xp` es el puntaje de la semana — el MISMO que aparece en la zona y el país. */
+export type AssignedLeague = { id: string; name: string; color: string; pos: number; total: number; closes: string; xp: number };
 /** Tabla completa de una liga (todas las posiciones; `me` marca la propia). */
 export type LeagueStanding = {
   league: { id: string; name: string; color: string; total: number; pos: number };

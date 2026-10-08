@@ -53,7 +53,12 @@
 .imgs .ph-b{padding:8px 2px 2px;display:grid;gap:6px}.imgs .ph-b i{height:8px}.imgs .ph-b i:nth-child(1){width:88%}.imgs .ph-b i:nth-child(2){width:50%}.imgs .ph-b i:nth-child(3){display:none}
 .imgs .flag{left:50%;top:38%;transform:translate(-50%,-50%) scale(.8);background:#fff;padding:5px 10px;border-radius:999px;font-size:13px}
 .imgs .flagged .flag{transform:translate(-50%,-50%) scale(1)}
-.gimg{display:block;border-radius:6px;overflow:hidden;background:#F1F3F4}
+.gimg{display:block;position:relative;border-radius:6px;overflow:hidden;background:#F1F3F4}
+/* guardar la imagen en una carpeta (aparece al pasar por encima) */
+.gsave{position:absolute;right:6px;top:6px;width:30px;height:30px;display:grid;place-items:center;border-radius:6px;background:rgba(14,18,32,.72);color:#fff;opacity:0;transition:opacity .2s;cursor:pointer}
+.gsave svg{width:15px;height:15px}
+.it:hover .gsave,.gsave:focus-visible{opacity:1}
+.gsave:hover{background:rgba(14,18,32,.92)}
 .gimg img{display:block;width:100%;aspect-ratio:4/3;height:auto;object-fit:cover}
 .gicap{margin-top:7px;font:12px/16px Arial,sans-serif;color:#1F1F1F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gisrc{display:flex;align-items:center;gap:6px;margin-top:2px;font:12px/16px Arial,sans-serif;color:#4D5156;white-space:nowrap;overflow:hidden}
@@ -175,6 +180,18 @@
 .yt-btn.icon{width:36px;padding:0;justify-content:center}
 .yt-seg .yt-btn.icon{width:auto;padding:0 12px}
 .yt-btn svg{width:24px;height:24px;fill:currentColor;flex:none}
+/* Los íconos de trazo (Guardar/Lista/Fondo) no se rellenan: solo línea. */
+.yt-btn svg[stroke]{fill:none;width:19px;height:19px}
+.yt-sub.on{background:#E2F5F3;color:#0B6B66}
+.yt-sub.on:hover{background:#D4EEEA}
+/* barra del lector: Guardar + Generar curso */
+.abar-acts{display:flex;align-items:center;gap:10px}
+.asave{display:inline-flex;align-items:center;gap:7px;font-weight:800;font-size:14px;color:#47506B;border:1px solid #D3D9E6;border-radius:7px;padding:9px 14px;background:#fff;cursor:pointer}
+.asave:hover{background:#F1F3F8}
+.asave:disabled{opacity:.5;cursor:default}
+.asave svg{width:16px;height:16px}
+/* chip "Lista · video N de M" cuando se reproduce una cola */
+.pqueue{grid-column:1/-1;margin:-6px 0 0;color:#6A7390;font-weight:800;font-size:13px}
 .yt-flip{display:grid;transform:rotate(180deg)}
 
 /* miniatura de video (chat) */

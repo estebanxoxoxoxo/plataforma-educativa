@@ -1,11 +1,13 @@
-// Cliente de API. Descubrir (búsqueda, artículos, imágenes, videos, chat) y el usuario van al backend
-// real (server/, lógica de Smarty). Cursos, práctica, amigos y ligas siguen SIMULADOS: latencia y estado
-// en memoria. Cada llamada se loguea en la consola (→ / ←).
+// Cliente de API. Casi todo va al backend real (server/): búsqueda, artículos, imágenes, videos, chat,
+// Mi espacio, práctica (ejercicios del contenido real), progreso/Energy Coin, Tienda, y ligas/feed como
+// FAKES de servidor con XP real. Solo quedan simulados en el navegador: cursos (lista/generación) y
+// amigos. Cada llamada se loguea en la consola (→ / ←).
 import * as M from './mock';
 import type {
-  AnswerResult, Answer, ArticleResponse, ChatReply, ChatTurn, Course, FeedReaction, FeedResponse, CourseDetail, Exercise, Friend, FriendMessage,
-  AssignedLeague, GeoRanking, GeoScope, ImageResult, Journey, JourneyItem, LeagueStanding, PageResult, SearchResponse,
-  Tab, User, Video, VideoResult,
+  AnswerResult, Answer, ArticleResponse, ChannelDetail, Channel, ChatReply, ChatTurn, Course, DriveFolder, DriveItem, DriveView,
+  EcTx, FeedReaction, FeedResponse, FolderNode, CourseDetail, Exercise, Friend, FriendMessage,
+  AssignedLeague, GeoRanking, GeoScope, ImageResult, Journey, LeagueStanding, MarketItem, PageResult, Playlist, PlaylistDetail,
+  ProgressSummary, Redemption, SavePayload, SearchResponse, Tab, TrashView, User, Video, VideoResult,
 } from './types';
 
 export type SearchMap = { pages: PageResult; images: ImageResult; videos: VideoResult };
@@ -40,7 +42,6 @@ async function call<T>(method: string, path: string, latency: number, fn: () => 
 /* ---------- "base de datos" en memoria ---------- */
 const db = {
   generated: [] as Course[],
-  progress: { solar: 2 } as Record<string, number>,
   threads: structuredClone(M.THREADS) as Record<string, FriendMessage[]>,
   pending: {} as Record<string, { text: string; at: number }[]>,
   seq: 100,
@@ -70,6 +71,44 @@ export const api = {
   /** Un video del catálogo aprobado + datos reales de YouTube (canal, suscriptores, Me gusta). */
   video: (id: string) => http<Video>(`/api/video?id=${encodeURIComponent(id)}`),
 
+  /* ---- Progreso real (XP semanal + Energy Coin) y Tienda. CONTRATO CONGELADO (docs/AGENTS.md):
+         lo ganado practicando (tanda 1) y lo gastado en la Tienda (tanda 2) viven en server/src/progress.ts ---- */
+  progress: () => http<ProgressSummary>('/api/progress/summary'),
+  ecTx: () => http<{ tx: EcTx[] }>('/api/progress/tx'),
+  market: () => http<{ items: MarketItem[]; ec: number }>('/api/market'),
+  redeem: (itemId: number) => http<{ ok: boolean; ec: number; redemption?: Redemption; error?: string }>('/api/market/redeem', { itemId }),
+  redemptions: () => http<{ redemptions: Redemption[] }>('/api/market/redemptions'),
+  /** Marca/desmarca un premio en la lista de deseos (toggle si no viene value). */
+  wish: (itemId: number, value?: boolean) => http<{ wishlist: number[] }>('/api/market/wish', { itemId, value }),
+
+  /* ---- Mi espacio (backend real: server/src/space.ts, persistido en server/data/space.json) ---- */
+  drive: (folder = 0) => http<DriveView>(`/api/space/drive?folder=${folder}`),
+  driveFolders: () => http<{ folders: FolderNode[] }>('/api/space/folders'),
+  createFolder: (name: string, parentId: number) => http<DriveFolder>('/api/space/drive/folder', { name, parentId }),
+  editFolder: (id: number, patch: { name?: string }) => http<{ ok: boolean }>('/api/space/drive/folder/update', { id, ...patch }),
+  moveFolder: (id: number, parentId: number) => http<{ ok: boolean }>('/api/space/drive/folder/move', { id, parentId }),
+  trashFolder: (id: number) => http<{ ok: boolean }>('/api/space/drive/folder/trash', { id }),
+  moveItem: (id: number, folderId: number) => http<{ ok: boolean }>('/api/space/drive/item/move', { id, folderId }),
+  trashItem: (id: number) => http<{ ok: boolean }>('/api/space/drive/item/trash', { id }),
+  driveTrash: () => http<TrashView>('/api/space/drive/trash'),
+  restore: (kind: 'folder' | 'item', id: number) => http<{ ok: boolean }>('/api/space/drive/restore', { kind, id }),
+  purge: (kind: 'folder' | 'item', id: number) => http<{ ok: boolean }>('/api/space/drive/purge', { kind, id }),
+  /** Guarda un video / artículo / imagen en una carpeta ("¿Dónde lo guardás?"). */
+  saveItem: (p: SavePayload) => http<{ item: DriveItem; existed?: boolean }>('/api/space/save', p),
+
+  channels: () => http<{ channels: Channel[] }>('/api/space/channels'),
+  channel: (id: string) => http<ChannelDetail>(`/api/space/channel?id=${encodeURIComponent(id)}`),
+  toggleFollow: (channelId: string, value?: boolean) => http<{ followed: boolean }>('/api/space/follow', { channelId, value }),
+
+  playlists: () => http<{ playlists: Playlist[] }>('/api/space/playlists'),
+  playlist: (id: number) => http<PlaylistDetail>(`/api/space/playlist?id=${id}`),
+  createPlaylist: (name: string, videoId?: string) => http<Playlist>('/api/space/playlists/create', { name, videoId }),
+  renamePlaylist: (id: number, name: string) => http<{ ok: boolean }>('/api/space/playlists/rename', { id, name }),
+  deletePlaylist: (id: number) => http<{ ok: boolean }>('/api/space/playlists/delete', { id }),
+  playlistAdd: (id: number, videoId: string) => http<{ ok: boolean; count?: number; existed?: boolean }>('/api/space/playlists/add', { id, videoId }),
+  playlistRemove: (id: number, videoId: string) => http<{ ok: boolean }>('/api/space/playlists/remove', { id, videoId }),
+  playlistSwap: (id: number, a: string, b: string) => http<{ ok: boolean }>('/api/space/playlists/swap', { id, a, b }),
+
   /* cursos */
   courseRequested: (topic: string) => call<boolean>('GET', `/courses/requests?topic=${topic}`, 200, () => db.generated.some((c) => c.name === topic)),
   generateCourse: (topic: string) => call<{ topic: string; etaMinutes: number }>('POST', '/courses/generate', 800, () => {
@@ -91,51 +130,19 @@ export const api = {
     return { ...c, units: r.units.length, unitList: r.units, chapters: r.units.reduce((n, u) => n + u.chapters.length, 0) };
   },
 
-  /* practicar */
-  journey: (courseId: string) => call<Journey>('GET', `/practice/${courseId}/journey`, 600, () => {
-    const c = findCourse(courseId);
-    const solar = courseId === 'solar';
-    const done = db.progress[courseId] ?? Math.floor((c.progress / 100) * 8);
-    db.progress[courseId] = done;
-    const XP = { open: 15, mc: 10, vf: 5, trophy: 30, skip: 0 } as const;
-    const items = M.JOURNEY_ITEMS(solar ? 'El Sol: nuestra estrella' : `${c.name}: parte 1`, solar ? 'Los planetas' : `${c.name}: parte 2`)
-      .map((it): JourneyItem => {
-        if (it.kind !== 'node') return it;
-        const ex = M.SOLAR_EXERCISES.find((e) => e.n === it.n);
-        const prompt = ex ? (ex.type === 'vf' ? ex.statement : ex.question) : undefined;
-        return { ...it, prompt, seconds: ex?.seconds, xp: XP[it.type], ...(it.type === 'trophy' ? { badge: solar ? 'Guardián del Sol' : `Experto en ${c.name}` } : {}) };
-      });
-    return {
-      courseId, courseName: c.name, courseImg: c.img, courseBg: c.bg, unitLabel: 'Unidad 1', done,
-      title: solar ? 'El Sol y los planetas' : c.name, items,
-    };
-  }),
-  exercise: (courseId: string, n: number) => call<Exercise>('GET', `/practice/${courseId}/exercises/${n}`, 450, () => {
-    const ex = M.SOLAR_EXERCISES.find((e) => e.n === n);
-    if (!ex) throw new ApiError(404, 'Ejercicio no encontrado');
-    return ex;
-  }),
-  /** Corrige. La pregunta abierta la "analiza la IA" (más latencia). */
-  submit: (courseId: string, n: number, a: Answer) => call<AnswerResult>('POST', `/practice/${courseId}/exercises/${n}/answer`, a.kind === 'open' ? 1900 : 350, () => {
-    const k = M.KEYS[n];
-    if (a.kind === 'timeout') return { correct: false, title: 'Se terminó el tiempo', detail: k.badText, correctOptions: k.mc ? (k.mc.length ? k.mc : ['__none__']) : k.vf !== undefined ? [String(k.vf)] : undefined };
-    if (a.kind === 'open') {
-      const ok = a.text.trim().length >= 12 && !!k.open?.test(norm(a.text));
-      return { correct: ok, title: ok ? '¡Correcto!' : 'Casi…', detail: 'La IA analizó tu respuesta.', ai: { verdict: ok ? 'Correcta' : 'Incorrecta', feedback: ok ? k.okText : k.badText } };
-    }
-    if (a.kind === 'mc') {
-      const key = k.mc ?? [];
-      const sel = a.selected.filter((s) => s !== '__none__');
-      const ok = key.length ? sel.length === key.length && key.every((x) => sel.includes(x)) : a.selected.includes('__none__');
-      return { correct: ok, title: ok ? '¡Correcto!' : 'Incorrecto', detail: ok ? k.okText : k.badText, correctOptions: key.length ? key : ['__none__'] };
-    }
-    const ok = a.value === k.vf;
-    return { correct: ok, title: ok ? '¡Correcto!' : 'Incorrecto', detail: ok ? k.okText : k.badText, correctOptions: [String(k.vf)] };
-  }),
-  completeNode: (courseId: string, n: number) => call<{ done: number }>('POST', `/practice/${courseId}/nodes/${n}/complete`, 300, () => {
-    if ((db.progress[courseId] ?? 0) === n) db.progress[courseId] = n + 1;
-    return { done: db.progress[courseId] };
-  }),
+  /* practicar — backend real (server/src/practice.ts): ejercicios generados del contenido aprobado de cada curso
+     (regla de oro: solo datos que están en el material), corregidos en el servidor; cada acierto suma XP + Energy Coin. */
+  journey: async (courseId: string): Promise<Journey> => {
+    // El catálogo de cursos todavía es demo (M.COURSES + generados en memoria): de ahí salen el arte de la tarjeta
+    // y el nombre que el server necesita la primera vez que arma la práctica de un curso generado.
+    const c = allCourses().find((x) => x.id === courseId);
+    const j = await http<Journey>(`/api/practice/journey?course=${encodeURIComponent(courseId)}${c ? `&name=${encodeURIComponent(c.name)}` : ''}`);
+    return c ? { ...j, courseImg: c.img, courseBg: c.bg } : j;
+  },
+  exercise: (courseId: string, n: number) => http<Exercise>(`/api/practice/exercise?course=${encodeURIComponent(courseId)}&n=${n}`),
+  /** Corrige en el servidor (la abierta la analiza un modelo). Si acierta el paso que toca, trae el premio (xp/xpWeek/ec). */
+  submit: (courseId: string, n: number, a: Answer) => http<AnswerResult>('/api/practice/answer', { course: courseId, n, answer: a }),
+  completeNode: (courseId: string, n: number) => http<{ done: number }>('/api/practice/complete', { course: courseId, n }),
 
   /** Turno del chat: el backend corre el pipeline de moderación de Smarty (sin streaming: nada se
    *  muestra antes del juez de salida). `history` es el contexto ya "en cuarentena". */
@@ -164,28 +171,12 @@ export const api = {
     return msgs;
   }),
 
-  /* ligas */
+  /* ligas — server FAKE (server/src/leaguesFake.ts): los otros 11 chicos y los rankings de zona/país son demo,
+     pero "Vos" lleva la XP REAL de la semana (el mismo número en las tres tablas) y el puesto sale de ordenarla. */
   /** La liga del chico (asignada por sus resultados; no hay "unirse"). */
-  myLeague: () => call<AssignedLeague>('GET', '/leagues/mine', 400, () => M.ASSIGNED),
+  myLeague: () => http<AssignedLeague>('/api/leagues/mine'),
   /** Tabla completa de MI liga, con mi puesto marcado. */
-  leagueStanding: (id: string) => call<LeagueStanding>('GET', `/leagues/${id}/standing`, 600, () => {
-    if (id !== M.ASSIGNED.id) throw new ApiError(404, 'Esa liga no es tuya');
-    const info = M.ASSIGNED;
-    const top = M.LEAGUE_TOP_XP[id] ?? 2600;
-    const rows = Array.from({ length: info.total }, (_, i) => {
-      const me = i + 1 === info.pos;
-      const nick = me ? M.ME.nick : `${M.NICKS[i % M.NICKS.length]}${i >= M.NICKS.length ? Math.floor(i / M.NICKS.length) + 1 : ''}`;
-      return { pos: i + 1, nick, color: me ? '#FFC23D' : M.COLS[i % M.COLS.length], xp: Math.round(top * (1 - i / (info.total * 1.2))), ...(me && { me: true }) };
-    });
-    return { league: { id, name: info.name, color: info.color, total: info.total, pos: info.pos }, rows };
-  }),
+  leagueStanding: (id: string) => http<LeagueStanding>(`/api/leagues/standing?id=${encodeURIComponent(id)}`),
   /** Puesto por puntaje en la zona o el país (top 10 + mi puesto). */
-  geoRanking: (scope: GeoScope) => call<GeoRanking>('GET', `/leagues/geo/${scope}`, 450, () => {
-    const G = M.GEO[scope];
-    return {
-      scope, name: G.name,
-      top: Array.from({ length: 10 }, (_, i) => ({ nick: M.NICKS[(i + G.off) % M.NICKS.length], color: M.COLS[(i + G.off) % M.COLS.length], xp: Math.round(G.top * (1 - i * 0.045)) })),
-      me: { nick: M.ME.nick, pos: G.me, xp: G.xp },
-    };
-  }),
+  geoRanking: (scope: GeoScope) => http<GeoRanking>(`/api/leagues/geo?scope=${scope}`),
 };

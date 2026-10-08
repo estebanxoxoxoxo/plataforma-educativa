@@ -214,3 +214,9 @@
 .act.on:hover svg{transform:translateX(2px)}
 .act.busy{opacity:.8;cursor:progress}
 .exfoot.good .act{background:#18A957}.exfoot.bad .act{background:#1B2238}
+
+/* premio real al acertar: +N ⚡ (XP de la semana y Energy Coin, 1:1) */
+.exprize{flex:none;display:inline-flex;align-items:center;padding:7px 13px;border-radius:999px;background:#FFF4DA;border:1.5px solid #F5D58A;color:#8A5A00;font-family:var(--display);font-weight:800;font-size:18px;line-height:1;white-space:nowrap;box-shadow:0 6px 14px -10px #C4830A;animation:exprize .6s cubic-bezier(.2,1.6,.4,1) .1s both}
+@keyframes exprize{from{opacity:0;transform:translateY(8px) scale(.5)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){.exprize{animation:none}}
+.pjwait{margin-top:18px;animation:fadein .6s both}

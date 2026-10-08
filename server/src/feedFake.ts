@@ -5,8 +5,13 @@
 //   - Los ítems de VIDEO salen del catálogo aprobado real (se pueden abrir y reproducir).
 //   - Las LECTURAS son URLs reales de sitios de la lista blanca (pasan por el lector moderado).
 //   - Los eventos de AMIGOS, la invitación a LIGA y las reacciones son datos de demo en memoria.
+//   - La barra lateral NO es demo: liga/zona/país salen de leaguesFake (con la XP real de ./progress) y "Seguí
+//     practicando" del progreso real + el recorrido real de Practicar: los MISMOS números que Ligas y Practicar.
 // Para conectar el backend real: reemplazar getFeed()/reactFeed() manteniendo las formas.
 import { whiteTopics } from './config'
+import { leagueSidebar } from './leaguesFake'
+import { practiceSummary } from './practice'
+import { summary } from './progress'
 import { searchVideos, toVideoResult, type CatalogVideo } from './videos'
 
 type VideoCard = ReturnType<typeof toVideoResult>
@@ -127,11 +132,20 @@ function build(): FeedItem[] {
       } else if (kind === 'league' && idx.league === 0) {
         idx.league = 1
         // La liga se ASIGNA por resultados: la noticia informa dónde competís esta semana, no invita a unirse.
-        items.push({ kind, id: 'fl-cometa', time: timeOf(i), name: 'Liga Cometa', desc: 'Por tus resultados, esta semana competís con 30 chicos de tu nivel. La liga cierra el domingo.' })
+        items.push({ kind, id: 'fl-cometa', time: timeOf(i), name: 'Liga Cometa', desc: 'Por tus resultados, esta semana competís con otros 11 chicos de tu nivel. La liga cierra el domingo.' })
       }
     }
   }
   return (built = items)
+}
+
+/* "Seguí practicando": el último curso practicado (progreso real) con el nombre y el total de pasos del recorrido
+   REAL de Practicar (el progreso guarda los suyos; si el recorrido ya está armado, mandan los del recorrido). */
+function continueCard(): FeedSidebar['continue'] {
+  const c = summary().continue ?? { courseId: 'solar', title: 'El sistema solar', done: 0, total: 1 }
+  const p = practiceSummary(c.courseId)
+  const total = p?.total ?? c.total
+  return { courseId: c.courseId, title: p?.name ?? c.title, done: Math.min(c.done, total), total }
 }
 
 const PAGE = 9
@@ -143,10 +157,6 @@ export function getFeed(after?: string | null): FeedResponse {
   if (off > 0) return { items, next }
   return {
     items, next,
-    sidebar: {
-      league: { name: 'Liga Cometa', pos: 7, total: 30, zone: { name: 'Palermo', pos: 37 }, country: { name: 'Argentina', pos: 4812 } },
-      continue: { courseId: 'solar', title: 'El Sol y los planetas', done: 2, total: 13 },
-      topics: topicsUsed.slice(0, 6),
-    },
+    sidebar: { league: leagueSidebar(), continue: continueCard(), topics: topicsUsed.slice(0, 6) },
   }
 }

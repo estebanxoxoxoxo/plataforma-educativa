@@ -3,7 +3,8 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../../api';
 import type { Article } from '../../../api/types';
 import { lastSearch } from '../../../hooks/user';
-import { IcSparkDouble } from '../../../shared/components/icons';
+import { FolderSheet } from '../../../shared/components/FolderSheet';
+import { IcBookmark, IcSparkDouble } from '../../../shared/components/icons';
 import { GenerateCourseModal } from '../components/GenerateCourseModal';
 import { ModerationOverlay, type ModState } from '../components/ModerationOverlay';
 import { WikiArticle } from '../components/WikiArticle';
@@ -21,6 +22,7 @@ export function ArticlePage() {
   const [blockedOnOpen, setBlockedOnOpen] = useState(false);
   const [requested, setRequested] = useState(false);
   const [modal, setModal] = useState(false);
+  const [saving, setSaving] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
 
   // Abrir: el servidor modera la página completa antes de mostrarla.
@@ -51,7 +53,7 @@ export function ArticlePage() {
     const r = await api.article(target).catch(() => null);
     if (!r || r.status === 'error') { setMod('error'); return; }
     if (r.status === 'blocked') { setMod('block'); return; }
-    go(`/descubrir/articulo/${encodeURIComponent(target)}`, { state: { article: r.article, backTo: st?.backTo, backLabel: st?.backLabel } });
+    go(`/buscar/articulo/${encodeURIComponent(target)}`, { state: { article: r.article, backTo: st?.backTo, backLabel: st?.backLabel } });
   };
 
   const generate = async () => {
@@ -65,7 +67,10 @@ export function ArticlePage() {
     <section className="view" id="v-article">
       <div className="abar">
         <button className="back" style={{ color: '#0B6B66' }} onClick={() => go(back.to)}>{back.label}</button>
-        <button className={`gen${requested ? ' off' : ''}`} disabled={requested || !article} onClick={generate}><IcSparkDouble />Generar curso sobre este tema</button>
+        <div className="abar-acts">
+          <button className="asave" disabled={!article} onClick={() => setSaving(true)}><IcBookmark />Guardar</button>
+          <button className={`gen${requested ? ' off' : ''}`} disabled={requested || !article} onClick={generate}><IcSparkDouble />Generar curso sobre este tema</button>
+        </div>
       </div>
       <div className="aview">
         <div className="ascroll" ref={scroller}>
@@ -74,6 +79,12 @@ export function ArticlePage() {
         <ModerationOverlay state={mod} onOk={() => (blockedOnOpen && !article ? go(back.to) : setMod('none'))} />
       </div>
       <GenerateCourseModal open={modal} topic={article?.topic ?? ''} onClose={() => setModal(false)} />
+      {article && <FolderSheet open={saving} title="¿Dónde lo guardás?" cta="Guardar acá"
+        onPick={async (folderId, folderName) => {
+          const r = await api.saveItem({ folderId, article: { url: article.id, title: article.title, source: article.siteName } }).catch(() => null);
+          if (!r) return { error: 'No se pudo guardar ahora.' };
+          return { done: r.existed ? `Ya estaba en ${folderName}` : `Guardado en ${folderName}` };
+        }} onClose={() => setSaving(false)} />}
     </section>
   );
 }

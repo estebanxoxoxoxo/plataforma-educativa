@@ -27,7 +27,7 @@ export function LeaguesPage() {
           <LeagueIcon color={data.league.color} />
           <div>
             <h3 className="ltitle">{data.league.name}</h3>
-            <p className="lede">Asignada por tus resultados · Tu puesto {data.league.pos} de {data.league.total} · cierra {data.league.closes}</p>
+            <p className="lede">Asignada por tus resultados · Tu puesto {data.league.pos} de {data.league.total} · {data.league.xp.toLocaleString('es-AR')} XP esta semana · cierra {data.league.closes}</p>
           </div>
         </div>
         <FullRanking rows={data.standing.rows} />

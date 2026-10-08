@@ -2,27 +2,37 @@ import { useEffect, useRef, useState } from 'react';
 import type { Video } from '../../../api/types';
 import { IcPCC, IcPFull, IcPGear, IcPNext, IcPPause, IcPPlay, IcPVol, IcPlayDark } from '../../../shared/components/icons';
 import { imgSrc } from '../../../shared/lib/img';
-import { parseYtMessage, ytCommand, ytEmbedUrl, ytSubscribe, type YtState } from '../lib/ytBridge';
+import { parseYtMessage, ytCommand, ytEmbedUrl, ytSubscribe, type YtState } from '../../../shared/lib/ytBridge';
 
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 /* Reproductor limpio: YouTube nocookie contenido (sandbox, sin clics directos) con controles propios.
    En pausa o al terminar, una cortina tapa el player (en YouTube ahí aparecen sugerencias de otros videos). */
-export function VideoPlayer({ v }: { v: Video }) {
+export function VideoPlayer({ v, onEnded, onTime }: { v: Video; onEnded?: () => void; onTime?: (t: number) => void }) {
   const frame = useRef<HTMLIFrameElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<YtState>('buffering');
   const [t, setT] = useState(0);
   const [dur, setDur] = useState(v.durationSec || 0);
   const [muted, setMuted] = useState(false);
+  // Aviso de fin (para el auto-avance de una cola): una sola vez por video, sin closures viejos.
+  const endedRef = useRef(onEnded);
+  endedRef.current = onEnded;
+  const onTimeRef = useRef(onTime);
+  onTimeRef.current = onTime;
+  const firedEnd = useRef(false);
 
   useEffect(() => {
     const on = (e: MessageEvent) => {
       if (e.source !== frame.current?.contentWindow) return;
       const m = parseYtMessage(e);
       if (!m) return;
-      if (m.state) setState(m.state);
-      if (m.currentTime != null) setT(m.currentTime);
+      if (m.state) {
+        setState(m.state);
+        if (m.state === 'ended' && !firedEnd.current) { firedEnd.current = true; endedRef.current?.(); }
+        if (m.state === 'playing') firedEnd.current = false;
+      }
+      if (m.currentTime != null) { setT(m.currentTime); onTimeRef.current?.(m.currentTime); }
       if (m.duration) setDur(m.duration);
       if (m.muted != null) setMuted(m.muted);
     };

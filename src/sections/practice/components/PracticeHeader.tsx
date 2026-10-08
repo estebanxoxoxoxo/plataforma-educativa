@@ -25,7 +25,7 @@ export function PracticeHeader({ j, done, onBack, onGuide }: { j: Journey; done:
           <span key={it.n} className={`seg ${it.n < done ? 'done' : it.n === done ? 'cur' : ''}`} style={{ ['--c' as string]: TYPES[it.type].c }} />
         ))}
       </div>
-      <p className="pstat"><b>{Math.min(done, nodes.length)} de {nodes.length}</b> pasos completados · <b>{xp} XP</b> ganados en esta unidad</p>
+      <p className="pstat"><b>{Math.min(done, nodes.length)} de {nodes.length}</b> pasos completados · <b>{xp} XP</b> ganados en este curso</p>
     </header>
   );
 }

@@ -5,7 +5,7 @@ import { TYPES } from '../lib/exerciseTypes';
 
 type Node = Extract<JourneyItem, { kind: 'node' }>;
 
-/** Panel lateral: avance de la unidad, el próximo paso y la referencia de los tipos de práctica. */
+/** Panel lateral: avance del recorrido del curso, el próximo paso y la referencia de los tipos de práctica. */
 export function ProgressPanel({ j, done, onOpen }: { j: Journey; done: number; onOpen: (n: Node) => void }) {
   const nodes = j.items.filter((it): it is Node => it.kind === 'node');
   const total = nodes.length, pct = Math.round((Math.min(done, total) / total) * 100);
@@ -16,7 +16,7 @@ export function ProgressPanel({ j, done, onOpen }: { j: Journey; done: number; o
   return (
     <aside className="ppanel">
       <section className="pcard">
-        <h4>Tu unidad</h4>
+        <h4>Tu recorrido</h4>
         <div className="pring">
           <svg viewBox="0 0 84 84" aria-hidden>
             <circle cx="42" cy="42" r={R} className="rbg" />

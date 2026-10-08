@@ -6,10 +6,12 @@ import './styles/base.css';
 import './styles/shell.css';
 import './sections/home/home.css';
 import './sections/discover/discover.css';
+import './sections/space/space.css';
 import './sections/learn/learn.css';
 import './sections/practice/practice.css';
 import './sections/friends/friends.css';
 import './sections/leagues/leagues.css';
+import './sections/store/store.css';
 
 /** Modo "stage" (?stage al abrir): 1280×720 escalado como el prototipo, para comparar píxel a píxel. */
 function StageFrame({ children }: { children: ReactNode }) {

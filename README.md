@@ -45,6 +45,11 @@ Node + TypeScript, reutiliza la lógica de la POC de Smarty. Las claves viven so
 | `GET /api/me` | Apodo del chico (de la configuración de Smarty) | — |
 | `GET /api/learn/course?id=&name=` | Aprender: temario del curso (fijo para los 5 cursos; generado por un modelo para los creados con "Generar curso") y **un contenido real por capítulo**: video del catálogo aprobado (1–20 min, sin repetir) o lectura de un sitio aprobado que ya pasó extracción + juez y está en español. Cacheado en `server/data/cache/courses/` | nuevo |
 | `GET /api/feed` · `POST /api/feed/react` | **FAKE (demo)**: el feed de la home (recomendaciones + noticias sociales + reacciones). El algoritmo real no existe todavía; `server/src/feedFake.ts` lo simula manteniendo las formas de respuesta — los videos y lecturas que recomienda son contenido real del catálogo/lista blanca, lo social es de demo | VISION.md §3 |
+| `/api/practice/*` | **Practicar real**: ejercicios GENERADOS del contenido real de cada capítulo (lecturas extraídas y aprobadas, metadata de videos del catálogo) con regla de oro —ningún fact fuera del material, cada ejercicio guarda su cita—, revisión adversarial + validación determinística, caché por unidad en `server/data/cache/practice/`, corrección server-side (abiertas con el modelo; sin crédito cae a palabras clave) y premio real vía `progress.addXp()` | nuevo (`practice.ts`) |
+| `/api/leagues/*` | **FAKE de servidor** (patrón feedFake): "Vos" con la XP semanal REAL en la liga de 12, la zona y el país; el puesto se recalcula al practicar. NPCs y fórmulas geo documentados como demo | `leaguesFake.ts` |
+| `GET /api/progress/summary` · `GET /api/progress/tx` | **Progreso real (RAM)**: XP semanal (el puntaje ÚNICO de liga/zona/país), Energy Coin 1:1, racha y "seguí practicando". NADA de esto persiste: vive en RAM y `POST /api/demo/reset` (lo dispara el front en cada carga de página) vuelve al seed | nuevo (`progress.ts`) |
+| `GET /api/market` · `POST /api/market/redeem` · `GET /api/market/redemptions` · `POST /api/market/wish` | **Tienda (RAM)**: premios publicados por el padre (seed demo), canje que gasta EC (los rechazos de negocio van con `200 + ok:false` para que el chico vea el motivo), canjes "pendientes de entrega". La **lista de deseos** sí persiste (`server/data/wishlist.json`): es preferencia del chico, no economía | nuevo (`market.ts`) |
+| `/api/space/*` | **Mi espacio** (real, persistido en `server/data/space.json`): Drive de carpetas anidadas (en la raíz viven SOLO carpetas, lógica Windows/nube; "General" recibe lo que no tiene destino) con papelera restaurable y "Guardar en…" (videos del catálogo, lecturas de sitios aprobados, imágenes moderadas), canales seguidos (MyTube: vistas sobre el catálogo aprobado, ~150 canales), y listas de reproducción ordenadas. Un video guardado/listado solo referencia un `videoId` aprobado: al leer se re-resuelve y se descarta lo des-aprobado o bloqueado | `drive.ts`, `mytube.ts`, `listas.ts` (lógica); el POC guardaba en IndexedDB |
 
 Los links dentro de un artículo pasan por la misma ruta antes de abrirse. El reproductor usa YouTube nocookie contenido (sandbox, sin clics directos) con controles propios, como Smarty.
 
@@ -52,15 +57,21 @@ Prompts, reglas y constantes: se usa el override de la familia (del respaldo) o 
 
 ## Lo que sigue simulado
 
-Reemplazá el cuerpo de cada método restante de `src/api/index.ts` por una llamada al backend que devuelva el mismo tipo de `types.ts`. Los contenedores no cambian.
-El feed ya llama al server, pero contra `feedFake.ts`: para conectar el algoritmo real alcanza con reemplazar `getFeed()`/`reactFeed()` en el server.
+Reemplazá el cuerpo de cada método restante de `src/api/index.ts` por una llamada al backend que devuelva el mismo tipo de `types.ts`. Los contenedores no cambian. Queda simulado en el navegador: cursos (lista/generación) y amigos. Fakes de servidor con formas finales: feed (`feedFake.ts`) y ligas (`leaguesFake.ts`), ya alimentados por la XP real de `progress.ts`.
 
 `api.chat` es un generador asíncrono (streaming): podés mapearlo a SSE o WebSocket emitiendo los mismos eventos (`token`, `share-checking`, `share`, `done`).
 
 ## Rutas
 
-`/` (feed) · `/descubrir/busqueda?q=&tab=` · `/descubrir/articulo/:id` · `/descubrir/video/:id` · `/descubrir/chat` ·
+`/` (feed) · `/buscar?q=&tab=` · `/buscar/articulo/:id` · `/buscar/video/:id` · `/descubrir` (el chat: Descubrir es la forma conversacional de encontrar; Buscar y Descubrir son puntos de menú propios, sin submenús) ·
+`/espacio/carpetas[/:folderId]` · `/espacio/papelera` · `/espacio/videos` (solapas Canales | Mis listas; detalle en `/espacio/videos/canal/:id` y `/espacio/videos/lista/:id`) · `/tienda` (y `/tienda?vista=deseos`, la lista de deseos) ·
 `/aprender` · `/aprender/:id` · `/practicar` · `/practicar/:id` · `/practicar/:id/ejercicio/:n` · `/amigos` · `/ligas`
+
+**Audio de fondo**: `src/shared/audio/` (port de `backgroundAudio.ts` + `ambientNoise.ts` de Smarty) — cola con repeat
+off/one/all, handoff desde el player ("Escuchar de fondo" sigue desde la misma posición y manda la cola entera si venías
+de una lista), duck automático cuando un video pasa a primer plano, y ruidos blanco/marrón/rosa sintetizados con Web Audio.
+El control vive en la barra lateral (MiniPlayer); el iframe oculto, en el Layout. Pendiente: topes parentales de volumen
+(`settings.maxVol*` de Smarty) cuando exista el panel del padre.
 
 ## Diferencias con el prototipo
 

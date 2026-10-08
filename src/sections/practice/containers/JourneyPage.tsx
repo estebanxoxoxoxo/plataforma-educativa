@@ -27,7 +27,7 @@ export function JourneyPage() {
   const go = useNavigate();
   const loc = useLocation();
   const completed = (loc.state as { completed?: number } | null)?.completed;
-  const { data: j, setData } = useAsync(() => api.journey(id), [id]);
+  const { data: j, setData, error } = useAsync(() => api.journey(id), [id]);
   const [shownDone, setShownDone] = useState<number | null>(null);
   const list = useRef<HTMLDivElement>(null);
   const dots = useRef<Record<number, HTMLSpanElement | null>>({});
@@ -72,7 +72,13 @@ export function JourneyPage() {
     go(`/practicar/${id}/ejercicio/${n.n}`);
   };
 
-  if (!j || shownDone === null) return <section className="view" id="v-journey" />;
+  // La primera vez que se practica un curso generado, el server arma los ejercicios (puede tardar): se avisa.
+  if (!j || shownDone === null) return (
+    <section className="view" id="v-journey">
+      <button className="back" onClick={() => go('/practicar')}>‹ Practicar</button>
+      <p className="lede pjwait">{error ? 'No pude armar la práctica de este curso ahora. Probemos de nuevo en un ratito.' : 'Preparando la práctica con el contenido del curso…'}</p>
+    </section>
+  );
   const state = (n: number): StepState => (n < shownDone ? 'done' : n === shownDone ? 'current' : 'locked');
 
   return (

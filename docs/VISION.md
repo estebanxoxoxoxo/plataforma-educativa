@@ -59,7 +59,7 @@ Como "si no sabés que algo existe, no sabés buscarlo", hacen falta las cuatro:
 
 1. **Buscador semántico** (tipo Google, con solapas) — existe en la UI actual.
 2. **Índices**: recorrer canales, playlists, directorios. Es **MyTube**: los canales a los que el
-   chico se suscribió, sus playlists. (Existe en la POC de Smarty; no está en la UI nueva.)
+   chico se suscribió, sus playlists. (Hecho en la UI nueva: "Mi espacio → Videos", con Canales y Mis listas en solapas.)
 3. **Feed de descubrimiento** (la home): recomendaciones de contenido según el algoritmo
    configurado por el padre + los intereses del chico, **y además** las noticias sociales (logros de
    amigos, cierres de liga, rutas compartidas) con reacciones por emoji, estilo LinkedIn. **No
@@ -70,11 +70,14 @@ Como "si no sabés que algo existe, no sabés buscarlo", hacen falta las cuatro:
 ## 4. Conservar y volver al contenido
 
 - **Drive**: carpetas y subcarpetas para investigaciones escolares; todo lo encontrado (por feed,
-  chat, buscador o índices) se puede guardar ahí. (Hecho en Smarty.)
-- **Suscripciones a canales** y **playlists propias**. (Hecho en Smarty: MyTube y "Mis listas".)
+  chat, buscador o índices) se puede guardar ahí. (Hecho en la UI nueva: "Mi espacio → Carpetas",
+  con papelera restaurable; 8-oct-2026.)
+- **Suscripciones a canales** y **playlists propias**. (Hecho en la UI nueva: "Mi espacio →
+  Canales / Mis listas"; 8-oct-2026.)
 - **Reproductor en segundo plano**: la plataforma es también el reproductor de música del chico
   (la música vive en YouTube), más ruido blanco/rosa/marrón y lluvia para concentrarse. (Hecho en
-  Smarty.)
+  la UI nueva: MiniPlayer en la barra lateral, ruidos sintetizados blanco/marrón/rosa; falta
+  "lluvia" y los topes parentales de volumen; 8-oct-2026.)
 
 ## 5. Rutas de aprendizaje — el corazón de la plataforma
 
@@ -117,7 +120,7 @@ costo a casi nada.
 | 1. Experiencia | Efectos visuales/sonoros al ganar o perder puntos + **música adaptativa**: multitrack por stems cuyos volúmenes, tempo, densidad de orquestación y efectos reaccionan a los estados cognitivos detectados (velocidad de respuesta, racha buena/mala); un track de reloj aparece en ejercicios con tiempo; queda solo el pad cuando se busca sensación de tiempo detenido. "Se siente como un videojuego." (Esto es exactamente lo que prototipa `audio-lab/` en smarty-poc.) |
 | 2. Acumulación | **Energy Coin**: los puntos de cualquier ruta/ejercicio van a una **billetera**. |
 | 3. Utilidad | **Marketplace**: el padre publica recompensas a su medida (horas de videojuego, salidas, una bici, una consola, o cosas humildes); además hay ítems de plataforma (ropa de avatar, regalos para otros usuarios). Sin marketplace no hay razón de ser para la coin: van juntos. |
-| 4. Competencia | **Ligas**: se **asignan según los resultados del chico** (no se eligen), 10–15 puestos, cierre semanal, medallas (1º/2º/3º) que aparecen en el feed de tus amigos. Además, con el puntaje el chico tiene un **puesto nacional y uno de su zona**. Desafío matemático ya analizado alguna vez: **todo chico debe tener siempre una liga donde pueda ser competitivo**. Las ligas son la puerta por la que el chico descubre que hay otra gente en la plataforma. *(Precisión de Esteban, 8-oct-2026.)* |
+| 4. Competencia | **Ligas**: se **asignan según los resultados del chico** (no se eligen), **12 participantes**, cierre semanal, medallas (1º/2º/3º) que aparecen en el feed de tus amigos. El **puntaje semanal es UNO solo** (lo que el chico cosechó en la semana): el mismo número ordena su liga, su puesto de **zona** y el **nacional** — no hay un puntaje por tabla. Desafío matemático ya analizado alguna vez: **todo chico debe tener siempre una liga donde pueda ser competitivo**. Las ligas son la puerta por la que el chico descubre que hay otra gente en la plataforma. *(Precisiones de Esteban, 8-oct-2026.)* |
 | 5. Colaboración | **Equipos/clanes** para ligas por equipos. Clave para homeschoolers (están solos en casa): conocen a otros chicos y se empujan entre ellos cuando uno se queda atrás. |
 | 6. Reputación | Emblemas/estandartes en el avatar (ej. "1º de su liga la semana pasada"), ropa del avatar como estatus (la default es "soviética"; con coin te comprás ropa con onda). El prestigio se gana **generando**: aprendiendo lo que vos mismo dijiste que ibas a aprender. |
 | + Altruismo | Ayudar, responder preguntas, regalar ítems comprados con tu coin ("noviecitos" regalándose ropa de avatar = enganche). |
@@ -190,17 +193,17 @@ costo a casi nada.
 | Buscador whitelisted (páginas/imágenes/videos) | ✔ completo | ✔ real (backend propio con lógica de Smarty) |
 | Vista de lectura moderada | ✔ | ✔ real |
 | Chat seguro con tools | ✔ | ✔ real |
-| MyTube (suscripciones, canales) | ✔ | ✖ (solo búsqueda en catálogo) |
-| Playlists del chico | ✔ ("Mis listas") | ✖ |
-| Drive (carpetas) | ✔ | ✖ |
-| Música de fondo + ruidos | ✔ | ✖ |
-| Feed (descubrir + social) | ✖ | ✖ — **pieza central faltante** |
-| Rutas desde contenido + facts verificados | parcial (learnRoutes en el backup; el generador "route lab" no está en el snapshot) | parcial (cursos con contenido real + temario generado por tema) |
+| MyTube (suscripciones, canales) | ✔ | ✔ real ("Mi espacio → Videos → Canales": 16 seguidos de arranque + "Para descubrir" en una línea al pie) |
+| Playlists del chico | ✔ ("Mis listas") | ✔ real (orden propio, reproducir todo con auto-avance, escuchar de fondo la cola entera) |
+| Drive (carpetas) | ✔ | ✔ real (carpetas anidadas, raíz solo-carpetas tipo nube con "General" por defecto, papelera restaurable, "Guardar en…" desde video/lectura/imagen; `server/data/space.json`) |
+| Música de fondo + ruidos | ✔ | ✔ real (MiniPlayer en la barra: cola + repeat + seek + duck; ruidos blanco/marrón/rosa por Web Audio; faltan topes parentales) |
+| Feed (descubrir + social) | ✖ | parcial (server fake con XP/continuar REALES; sin algoritmo de recomendación) |
+| Rutas desde contenido + facts verificados | parcial (learnRoutes en el backup; el generador "route lab" no está en el snapshot) | parcial-fuerte (Practicar REAL: ejercicios generados del contenido aprobado con regla de oro + cita por ejercicio + revisión adversarial; XP/EC reales. Falta: route-lab, edición del padre, conteo por fact) |
 | Active Recall | ✖ | ✖ |
 | Simulaciones integradoras | ✖ | ✖ |
 | Matemática determinista | ✖ | ✖ |
 | Música adaptativa | ✔ prototipo (`audio-lab`) | ✖ |
-| Energy Coin + billetera + marketplace | ✖ | ✖ (solo XP visual) |
+| Energy Coin + billetera + marketplace | ✖ | ✔ real en demo ("Tienda": billetera en RAM con reset por carga de página, premios del padre, canjes pendientes de entrega, lista de deseos persistida; falta el panel del padre y los ítems de plataforma) |
 | Ligas semanales por coin + equipos | ✖ | parcial (liga asignada por resultados + tablas de zona y país, con datos fake; sin ciclos reales ni equipos) |
 | Amigos + feed de logros + DMs moderados | ✖ | maqueta (la moderación en tiempo real ya existe en el backend) |
 | Avatar + guardarropas | prototipo (`avatar-lab`, `voice-server`) | ✖ |

@@ -65,7 +65,7 @@ export async function loadVideoMeta(ids: string[]): Promise<void> {
   for (const it of data?.items ?? []) meta.set(it.id, { publishedAt: it.snippet?.publishedAt, likes: it.statistics?.likeCount ? Number(it.statistics.likeCount) : undefined })
   for (const id of missing) if (!meta.has(id)) meta.set(id, {})
 }
-async function loadChannelMeta(channelId: string): Promise<{ thumb?: string; subscribers?: number }> {
+export async function loadChannelMeta(channelId: string): Promise<{ thumb?: string; subscribers?: number }> {
   if (!channelId) return {}
   if (chMeta.has(channelId)) return chMeta.get(channelId)!
   const data = await yt<{ items?: { snippet?: { thumbnails?: { default?: { url?: string } } }; statistics?: { subscriberCount?: string; hiddenSubscriberCount?: boolean } }[] }>('channels', { part: 'snippet,statistics', id: channelId })
@@ -73,6 +73,28 @@ async function loadChannelMeta(channelId: string): Promise<{ thumb?: string; sub
   const m = { thumb: it?.snippet?.thumbnails?.default?.url, subscribers: it?.statistics && !it.statistics.hiddenSubscriberCount && it.statistics.subscriberCount ? Number(it.statistics.subscriberCount) : undefined }
   chMeta.set(channelId, m)
   return m
+}
+
+/* ---------- canales (MyTube): vistas sobre el catálogo aprobado, como mytube.ts de Smarty ---------- */
+export interface ChannelSummary { id: string; name: string; videos: number; cover: string }
+let channels: ChannelSummary[] | null = null
+/** Canales con ≥1 video aprobado, ordenados por cantidad (son ~150; se memoiza). */
+export function allChannels(): ChannelSummary[] {
+  if (channels) return channels
+  const by = new Map<string, { name: string; n: number; cover: string }>()
+  for (const v of catalog) {
+    if (!v.channelId) continue
+    const e = by.get(v.channelId)
+    if (e) e.n++
+    else by.set(v.channelId, { name: v.channelTitle || v.source, n: 1, cover: v.thumb || `https://i.ytimg.com/vi/${v.videoId}/mqdefault.jpg` })
+  }
+  return (channels = [...by.entries()].map(([id, e]) => ({ id, name: e.name, videos: e.n, cover: e.cover })).sort((a, b) => b.videos - a.videos))
+}
+
+/** Videos aprobados de un canal, dedup por videoId y sin palabras bloqueadas (regla de mytube.ts). */
+export function videosOfChannel(channelId: string): CatalogVideo[] {
+  const seen = new Set<string>()
+  return catalog.filter(v => v.channelId === channelId && !!v.videoId && !seen.has(v.videoId) && (seen.add(v.videoId), true) && matchBlockedWord(v.title) === null)
 }
 
 /* ---------- formato para la UI (types.ts VideoResult / Video) ---------- */
@@ -95,7 +117,7 @@ export async function getVideo(id: string) {
   const ch = await loadChannelMeta(v.channelId)
   const m = meta.get(id) ?? {}
   return {
-    ...toVideoResult(v), durationSec: v.duration, reviewed: true, verified: false,
+    ...toVideoResult(v), channelId: v.channelId, durationSec: v.duration, reviewed: true, verified: false,
     subscribers: ch.subscribers != null ? `${compact(ch.subscribers)} de suscriptores` : '',
     likes: m.likes != null ? compact(m.likes) : '', channelThumb: ch.thumb,
   }

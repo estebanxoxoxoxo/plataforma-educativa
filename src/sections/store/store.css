@@ -1,0 +1,193 @@
+/* =================== Tienda: billetera de Energy Coin + premios del padre + canjes =================== */
+/* Todo con prefijo st- (grepeado en todos los .css de src: sin choques). Color de la sección: verde hoja
+   (nav activo y acciones); el oro queda para la moneda ⚡, igual que la XP en Practicar. */
+#v-store{
+  --st-green:#2B8420; --st-green-h:#257319; --st-green-d:#1F6317; --st-soft:#E8F6D8; --st-ink:#3B6E12;
+  --st-gold-bg:#FFF1D6; --st-gold-ink:#7A4F00;
+  background:linear-gradient(180deg,#FFFFFF 0,#F6F7FB 220px);
+}
+.st-page{max-width:1040px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:22px}
+.st-head .lede{max-width:640px}
+.st-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- billetera (hero) ---- */
+.st-hero{position:relative;overflow:hidden;display:flex;flex-wrap:wrap;gap:18px 34px;padding:22px 26px 24px;border-radius:14px;border:1px solid #F1DDB0;
+  background:radial-gradient(440px 230px at 100% 0,rgba(255,204,84,.36),transparent 70%),linear-gradient(135deg,#FFFCF3 0%,#FFF2D6 100%);
+  box-shadow:0 18px 38px -30px rgba(138,90,0,.65)}
+.st-hero-main{flex:1 1 300px;min-width:0;display:grid;align-content:start;justify-items:start}
+.st-kicker{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8A5A00}
+.st-bal{margin:8px 0 0;display:flex;align-items:center;gap:10px;line-height:1}
+.st-bal-bolt{font-size:44px;line-height:1;filter:drop-shadow(0 4px 6px rgba(196,131,10,.28))}
+.st-bal-num{font-family:var(--display);font-weight:800;font-size:62px;line-height:.95;letter-spacing:-.01em;color:#1B2238;font-variant-numeric:tabular-nums}
+.st-unit{margin-top:4px;font-family:var(--display);font-weight:800;font-size:18px;color:#8A5A00}
+.st-earn{margin:12px 0 0;font-weight:700;font-size:14.5px;color:#47506B}
+.st-link{font-weight:800;color:var(--st-ink);white-space:nowrap;border-bottom:2px solid rgba(43,132,32,.28);transition:color .2s,border-color .2s}
+.st-link:hover{color:var(--st-green-d);border-bottom-color:var(--st-green)}
+.st-hero-side{flex:1 1 280px;max-width:400px;min-width:0;display:grid;align-content:center;justify-items:end;gap:10px}
+/* accesos del hero: mismo lenguaje de píldora; cada una con el color de lo que abre */
+.st-pill{max-width:100%;display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;font-weight:800;font-size:13px;line-height:1.3;cursor:pointer;transition:background .2s,border-color .2s}
+.st-pill--wish{background:#FDEEF4;color:#9E2350;border:1px solid #F3C6D6}
+.st-pill--wish:hover{background:#FBE1EC;border-color:#EBA3BE}
+.st-pill--pend{background:var(--st-soft);color:var(--st-ink);border:1px solid #CFE8B8}
+.st-pill--pend:hover{background:#DDF0C8;border-color:#B5DA97}
+/* ❤ dentro de un texto (el mismo corazón rosa de las tarjetas) */
+.st-heart-inline{display:inline-block;vertical-align:-3px;color:#E5487A}
+.st-heart-inline .st-heart-ic{width:15px;height:15px}
+
+/* ---- premios ---- */
+.st-sec{display:grid;gap:14px;min-width:0}
+.st-sec-head{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 14px}
+.st-sec-head h3{margin:0;font-family:var(--display);font-weight:800;font-size:23px;line-height:1.1}
+.st-sec-head p{margin:0;font-size:14px;font-weight:700;color:#6A7390}
+.st-sec-hint{margin-left:auto;font-size:12.5px;font-weight:700;color:#9AA3BC}
+.st-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,214px),1fr));gap:16px}
+.st-card{position:relative;display:grid;grid-template-rows:auto 1fr auto auto;gap:10px;min-width:0;background:#fff;border:1px solid var(--card-line);border-radius:12px;padding:10px 10px 12px;transition:box-shadow .25s,transform .25s,border-color .25s}
+.st-card:hover{border-color:#D9DEEA;box-shadow:0 14px 28px -18px rgba(27,34,56,.4);transform:translateY(-2px)}
+.st-art{position:relative;display:grid;place-items:center;height:108px;border-radius:9px;background:var(--tint,#F1F3F8);overflow:hidden}
+.st-emoji{font-size:58px;line-height:1;filter:drop-shadow(0 6px 8px rgba(27,34,56,.14));transition:transform .3s ease}
+.st-card:hover .st-emoji{transform:scale(1.08) rotate(-4deg)}
+.st-info{display:grid;align-content:start;gap:3px;min-width:0;padding:0 4px}
+.st-from{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#8A93AD}
+.st-name{margin:0;font-family:var(--display);font-weight:800;font-size:18px;line-height:1.15;color:#1B2238;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.st-desc{margin:2px 0 0;font-size:13px;font-weight:600;line-height:1.4;color:#5A6380;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.st-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:30px;padding:0 4px}
+.st-price{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:999px;background:var(--st-gold-bg);color:var(--st-gold-ink);font-family:var(--display);font-weight:800;font-size:16.5px;line-height:1.25;white-space:nowrap;font-variant-numeric:tabular-nums}
+.st-stock{font-size:12.5px;font-weight:800;color:#B8431C;white-space:nowrap}
+/* agotado: la tarjeta queda apagada */
+.st-card.is-out{background:#FBFBFD}
+.st-card.is-out:hover{transform:none;box-shadow:none;border-color:var(--card-line)}
+.st-card.is-out .st-art{background:#EEF0F5}
+.st-card.is-out .st-emoji{filter:grayscale(1);opacity:.55;transform:none}
+.st-card.is-out .st-name,.st-card.is-out .st-desc,.st-card.is-out .st-from{color:#9AA3BC}
+.st-card.is-out .st-price{background:#EEF0F5;color:#8A93AD}
+.st-badge-out{position:absolute;top:9px;left:9px;padding:3px 9px;border-radius:999px;background:#1B2238;color:#fff;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+/* ❤ lista de deseos: flota sobre el recuadro (no mueve el layout); igual de nítido en agotados */
+.st-heart{position:absolute;top:8px;right:8px;z-index:1;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.92);color:#6A7390;box-shadow:0 2px 8px -2px rgba(27,34,56,.28);cursor:pointer;transition:transform .15s ease,color .2s,background .2s}
+.st-heart:hover{color:#E5487A;background:#fff;transform:scale(1.08)}
+.st-heart:active{transform:scale(.92)}
+.st-heart.is-on{color:#E5487A}
+.st-heart-ic{display:block;width:20px;height:20px}
+.st-heart.is-pop .st-heart-ic{animation:st-heart .4s ease}
+@keyframes st-heart{0%{transform:scale(1)}40%{transform:scale(1.35)}100%{transform:scale(1)}}
+/* progreso hacia el precio (tarjetas de la vista de deseos) */
+.st-prog{display:flex;align-items:center;gap:8px;min-width:0;padding:0 4px}
+.st-prog-bar{flex:1;min-width:40px;height:7px;border-radius:4px;background:#F2E8D2;overflow:hidden}
+.st-prog-bar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#F2A81D,#FFC94A);transition:width .6s ease}
+.st-prog-m{flex:none;font-size:12.5px;font-weight:800;color:#6A7390;white-space:nowrap;font-variant-numeric:tabular-nums}
+.st-prog.is-ok .st-prog-bar i{background:var(--st-green)}
+.st-prog.is-ok .st-prog-m{color:var(--st-green)}
+.st-prog.is-out .st-prog-bar{background:#EEF0F5}
+.st-prog.is-out .st-prog-m{color:#9AA3BC}
+
+/* ---- vista "Tu lista de deseos" (/tienda?vista=deseos) ---- */
+.st-back{justify-self:start;margin-bottom:-10px}
+.st-lede-ec{color:#1B2238;white-space:nowrap;font-variant-numeric:tabular-nums}
+.st-wv-empty{display:grid;justify-items:center;gap:12px;text-align:center;background:#fff;border:1px dashed #E9B8CB;border-radius:14px;padding:34px 20px 30px}
+.st-wv-empty-ic{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:#FDEEF4;color:#E5487A}
+.st-wv-empty-ic .st-heart-ic{width:32px;height:32px}
+.st-wv-empty-t{margin:0;max-width:420px;font-weight:800;font-size:16px;line-height:1.45;color:#47506B}
+/* aviso flotante (no se pudo guardar un deseo): se ve en las dos vistas */
+.st-toast{position:fixed;left:50%;bottom:24px;z-index:70;transform:translateX(-50%);max-width:min(92vw,460px);padding:11px 16px;border-radius:10px;background:#1B2238;color:#fff;font-weight:800;font-size:14px;box-shadow:0 16px 36px -14px rgba(27,34,56,.55);animation:popin .25s ease both}
+
+/* ---- botones de la sección ---- */
+.st-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:10px 18px;border-radius:9px;background:var(--st-green);color:#fff;font-weight:800;font-size:15px;line-height:1.2;text-align:center;box-shadow:0 3px 0 var(--st-green-d);cursor:pointer;transition:background .2s,box-shadow .12s,transform .12s}
+.st-btn:hover:not(:disabled){background:var(--st-green-h)}
+.st-btn:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 var(--st-green-d)}
+.st-btn:disabled{cursor:not-allowed;box-shadow:none;background:#EEF0F5;color:#5A6380}
+/* "Te faltan N ⚡": el botón se ve cargándose con lo que ya juntaste */
+.st-btn.is-short:disabled{background:linear-gradient(90deg,#DDF0CB var(--pct,0%),#EEF0F5 var(--pct,0%));color:#3D4760;font-variant-numeric:tabular-nums}
+.st-btn.is-busy:disabled{background:var(--st-green);color:#fff;cursor:progress;opacity:.9}
+.st-btn--ghost{background:#fff;color:#47506B;border:1.5px solid #D3D9E6;box-shadow:none}
+.st-btn--ghost:hover:not(:disabled){background:#F1F3F8}
+.st-btn--ghost:active:not(:disabled){transform:none;box-shadow:none}
+.st-btn--ghost:disabled{background:#fff;color:#A5ACBD}
+.st-card .st-btn{width:100%}
+.st-spin{flex:none;width:16px;height:16px;border-radius:50%;border:2.5px solid rgba(255,255,255,.45);border-top-color:#fff;animation:spin .8s linear infinite}
+
+/* ---- hoja de canje (sobre el patrón global .shov/.shcard) ---- */
+.st-ov{animation:fadein .2s both}
+.st-sheet{width:min(420px,94vw);justify-items:stretch;gap:12px;padding:24px 24px 22px;animation:st-in .24s ease both}
+.st-sheet:focus{outline:none}
+@keyframes st-in{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+.st-sheet-art{position:relative;justify-self:center;width:96px;height:96px;border-radius:20px;display:grid;place-items:center;background:var(--tint,#F1F3F8);font-size:56px;line-height:1}
+.st-sheet-art.is-dim{filter:grayscale(.7);opacity:.75}
+.st-sheet-q{margin:2px 0 0;text-align:center;font-family:var(--display);font-weight:800;font-size:22px;line-height:1.2;text-wrap:balance;overflow-wrap:anywhere}
+.st-sheet-sub{margin:-2px 0 4px;text-align:center;font-weight:700;font-size:14px;line-height:1.45;color:#6A7390}
+.st-sheet-sub b{color:#1B2238;white-space:nowrap;font-variant-numeric:tabular-nums}
+.st-sheet-sub span,.st-done-bal span{display:block}
+.st-sheet-err{margin:-2px 0 4px;text-align:center;font-weight:800;font-size:16px;color:#B32D33}
+.st-sheet-btns{display:flex;justify-content:center;flex-wrap:wrap;gap:10px}
+.st-sheet-btns .st-btn{min-width:132px}
+.st-done{display:grid;justify-items:center;gap:8px;text-align:center}
+.st-done .st-sheet-art{animation:st-pop .5s cubic-bezier(.2,1.5,.4,1) both}
+@keyframes st-pop{from{opacity:0;transform:scale(.55)}to{opacity:1;transform:none}}
+.st-done-t{margin:8px 0 0;font-family:var(--display);font-weight:800;font-size:29px;line-height:1.1;color:var(--st-ink)}
+.st-done-p{margin:0;font-weight:800;font-size:16.5px;line-height:1.35;color:#1B2238;text-wrap:balance}
+.st-done-bal{margin:0 0 6px;font-weight:700;font-size:13.5px;line-height:1.45;color:#6A7390;font-variant-numeric:tabular-nums}
+.st-done-bal b{color:#1B2238;white-space:nowrap}
+/* festejo chico, una sola vez: ocho chispas que salen del premio */
+.st-burst{position:absolute;inset:0;pointer-events:none}
+.st-burst i{position:absolute;left:50%;top:50%;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:2px;background:var(--c);opacity:0;animation:st-burst .8s ease-out .12s both}
+@keyframes st-burst{from{opacity:1;transform:rotate(var(--a)) translateY(-30px) scale(.6)}to{opacity:0;transform:rotate(var(--a)) translateY(-66px) scale(1)}}
+
+/* ---- canjes y movimientos ---- */
+.st-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:18px;align-items:start;padding-bottom:12px}
+.st-panel{display:grid;gap:8px;min-width:0;background:#fff;border:1px solid #E6E9F1;border-radius:12px;padding:16px 18px;scroll-margin-top:16px}
+.st-panel-head{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:2px 12px;margin-bottom:2px}
+.st-panel-head h3{margin:0;font-family:var(--display);font-weight:800;font-size:20px;line-height:1.1}
+.st-panel-head small{font-size:12.5px;font-weight:700;color:#8A93AD}
+.st-panel-empty{margin:0;display:grid;gap:4px;font-weight:700;font-size:14px;line-height:1.45;color:#6A7390}
+.st-panel-empty p{margin:0;font-weight:800;color:#47506B}
+.st-panel-empty small{font-size:13px}
+.st-list{list-style:none;margin:0;padding:0;display:grid}
+.st-row,.st-tx{display:flex;align-items:center;gap:12px;min-width:0;padding:9px 6px;border-radius:9px}
+.st-row + .st-row,.st-tx + .st-tx{border-top:1px solid #F0F2F7}
+.st-row.is-new{animation:st-new 2.6s ease both}
+@keyframes st-new{0%,45%{background:#EAF7DF}100%{background:transparent}}
+.st-row-emo{flex:none;width:40px;height:40px;border-radius:10px;display:grid;place-items:center;background:var(--tint,#F1F3F8);font-size:22px;line-height:1}
+.st-row-main{flex:1;min-width:0;display:grid;gap:1px}
+.st-row-main b{font-size:14.5px;line-height:1.3;color:#1B2238;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-row-main time{font-size:12px;font-weight:700;color:#8A93AD}
+.st-row-amt{flex:none;font-weight:800;font-size:13.5px;color:var(--st-gold-ink);white-space:nowrap;font-variant-numeric:tabular-nums}
+.st-status{flex:none;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:800;white-space:nowrap}
+.st-status::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.st-status.is-pend{background:#FFF1D6;color:#8A5A00}
+.st-status.is-done{background:#E3F6EA;color:#0F7F40}
+.st-tx-ico{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:15px;line-height:1}
+.st-tx-ico.is-earn{background:#FFF4DA}
+.st-tx-ico.is-spend{background:#FDECEC}
+.st-tx-amt{flex:none;font-weight:800;font-size:14.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.st-tx-amt.is-earn{color:#237A2B}
+.st-tx-amt.is-spend{color:#C2333A}
+.st-more{justify-self:start;margin-top:2px;padding:7px 12px;border-radius:8px;font-weight:800;font-size:13.5px;color:var(--st-ink);transition:background .2s}
+.st-more:hover{background:var(--st-soft)}
+
+/* ---- estados ---- */
+.st-empty{margin:0;color:#6A7390;font-weight:700;background:#fff;border:1px dashed #D3D9E6;border-radius:12px;padding:18px 20px}
+.st-fail{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;background:#fff;border:1px solid #F3C2C4;border-radius:12px;padding:16px 18px}
+.st-fail p{margin:0;font-weight:800;color:#B32D33}
+.st-skel{display:grid;gap:22px}
+.st-sk{display:block;border-radius:7px;background:linear-gradient(90deg,#E6E9F1 0%,#F1F3F8 50%,#E6E9F1 100%);background-size:200% 100%;animation:shim 1.3s linear infinite}
+.st-sk-hero{height:178px;border-radius:14px}
+.st-card--sk{pointer-events:none}
+.st-sk-art{height:108px;border-radius:9px}
+.st-sk-l1{height:10px;width:42%;margin-top:4px}
+.st-sk-l2{height:16px;width:82%}
+.st-sk-btn{height:42px;border-radius:9px;margin-top:14px}
+
+/* el hero se apila (billetera arriba, lista de deseos abajo): la lista ocupa todo el ancho */
+@media (max-width:980px){
+  .st-hero-side{max-width:none;justify-items:start}
+}
+@media (max-width:820px){
+  .st-hero{padding:18px 18px 20px}
+  .st-bal-num{font-size:50px}
+  .st-bal-bolt{font-size:36px}
+}
+@media (prefers-reduced-motion: reduce){
+  .st-sk,.st-ov,.st-sheet,.st-done .st-sheet-art,.st-row.is-new,.st-spin,.st-toast{animation:none}
+  .st-burst{display:none}
+  .st-card,.st-emoji,.st-prog-bar i,.st-heart,.st-pill{transition:none}
+  .st-card:hover,.st-card:hover .st-emoji,.st-heart:hover,.st-heart:active{transform:none}
+  .st-heart.is-pop .st-heart-ic{animation:none}
+}

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { api, type SearchMap } from '../../../api';
-import type { SearchResponse, Tab } from '../../../api/types';
+import type { ImageResult, SearchResponse, Tab } from '../../../api/types';
 import { lastSearch } from '../../../hooks/user';
+import { FolderSheet } from '../../../shared/components/FolderSheet';
 import { UnderlineTabs } from '../../../shared/components/UnderlineTabs';
 import { ImageItem } from '../cards/ImageCard';
 import { PageItem } from '../cards/PageCard';
@@ -22,6 +23,7 @@ export function SearchPage() {
   const tab = (params.get('tab') as Tab) || 'pages';
   const [input, setInput] = useState(q);
   const [results, setResults] = useState<Results | null>(null);
+  const [savingImg, setSavingImg] = useState<ImageResult | null>(null);
   const go = useNavigate();
   const loc = useLocation();
   const tabAtSearch = useRef(tab);
@@ -80,12 +82,18 @@ export function SearchPage() {
             : `No encontramos resultados aptos para chicos sobre “${q}”. Probá con dinosaurios, volcanes o planetas.`}</p>
         : <>
           {tab === 'pages' && <ModeratedResults key={`p-${q}`} kind="page" items={results.pages.res?.items ?? null} animate={results.pages.animate}
-            render={(p) => <PageItem p={p} onOpen={() => go(`/descubrir/articulo/${encodeURIComponent(p.articleId)}`)} />} />}
+            render={(p) => <PageItem p={p} onOpen={() => go(`/buscar/articulo/${encodeURIComponent(p.articleId)}`)} />} />}
           {tab === 'images' && <ModeratedResults key={`i-${q}`} kind="img" items={results.images.res?.items ?? null} animate={results.images.animate}
-            render={(m) => <ImageItem m={m} />} />}
+            render={(m) => <ImageItem m={m} onSave={() => setSavingImg(m)} />} />}
           {tab === 'videos' && <ModeratedResults key={`v-${q}`} kind="vid" items={results.videos.res?.items ?? null} animate={results.videos.animate}
-            render={(v) => <VideoItem v={v} onOpen={() => go(`/descubrir/video/${v.id}`)} />} />}
+            render={(v) => <VideoItem v={v} onOpen={() => go(`/buscar/video/${v.id}`)} />} />}
         </>)}
+      {savingImg && <FolderSheet open title="¿Dónde la guardás?" cta="Guardar acá"
+        onPick={async (folderId, folderName) => {
+          const r = await api.saveItem({ folderId, image: { url: savingImg.img, caption: savingImg.caption, source: savingImg.source.name } }).catch(() => null);
+          if (!r) return { error: 'No se pudo guardar ahora.' };
+          return { done: r.existed ? `Ya estaba en ${folderName}` : `Guardada en ${folderName}` };
+        }} onClose={() => setSavingImg(null)} />}
     </section>
   );
 }

@@ -13,8 +13,8 @@ export function CoursePage() {
   // El contenido se abre en Descubrir (lector moderado o reproductor) con un "volver" al curso.
   const back = { backTo: `/aprender/${id}`, backLabel: '‹ Volver al curso' };
   const open = (ch: Chapter) => (ch.target.type === 'video'
-    ? go(`/descubrir/video/${ch.target.id}`, { state: back })
-    : go(`/descubrir/articulo/${encodeURIComponent(ch.target.url)}`, { state: back }));
+    ? go(`/buscar/video/${ch.target.id}`, { state: back })
+    : go(`/buscar/articulo/${encodeURIComponent(ch.target.url)}`, { state: back }));
 
   return (
     <section className="view" id="v-course">

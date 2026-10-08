@@ -24,7 +24,7 @@ function Exercise_() {
   const { id = '', n: nStr = '0' } = useParams();
   const n = Number(nStr);
   const go = useNavigate();
-  const { data: ex } = useAsync(() => api.exercise(id, n), [id, n]);
+  const { data: ex, error } = useAsync(() => api.exercise(id, n), [id, n]);
   const [phase, setPhase] = useState<Phase>('answering');
   const [left, setLeft] = useState<number | null>(null);
   const [text, setText] = useState('');
@@ -50,7 +50,12 @@ function Exercise_() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [left, phase, ex]);
 
-  if (!ex) return <section className="view" id="v-ex" />;
+  if (!ex) return (
+    <section className="view" id="v-ex">
+      {error && <div className="exwrap"><p className="lede pjwait">No encontré este ejercicio. Volvé al recorrido y seguí desde ahí.</p>
+        <button className="back" onClick={() => go(`/practicar/${id}`)}>‹ Volver al recorrido</button></div>}
+    </section>
+  );
   const T = TYPES[ex.type];
   const ready = ex.type === 'open' ? text.trim().length > 0 : ex.type === 'mc' ? sel.length > 0 : vf !== null;
   const answer = (): Answer => (ex.type === 'open' ? { kind: 'open', text } : ex.type === 'mc' ? { kind: 'mc', selected: sel } : { kind: 'vf', value: vf! });
@@ -82,7 +87,7 @@ function Exercise_() {
             result={phase === 'result' ? (result?.correct ? 'good' : 'bad') : undefined}
             title={result?.title} detail={result?.detail} hint={hint}
             label={phase === 'result' ? (result?.correct ? 'Seguir' : 'Volver al recorrido') : phase === 'checking' ? (ex.type === 'open' ? 'Analizando…' : 'Revisando…') : ex.type === 'open' ? 'Enviar respuesta' : 'Comprobar'}
-            enabled={phase === 'answering' && ready} busy={phase === 'checking'}
+            enabled={phase === 'answering' && ready} busy={phase === 'checking'} prize={phase === 'result' ? result?.xp : undefined}
             onClick={() => (phase === 'result' ? next() : ready && submit(answer()))}
           />
         </article>
