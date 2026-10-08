@@ -18,10 +18,12 @@
 .nav-item:hover{background:#F1F3F8;color:#47506B}
 .nav-item.on{background:var(--sec-bg);border-color:var(--sec-bd);color:var(--sec-fg)}
 /* Por sección: relleno suave · borde · etiqueta (etiqueta ≥4.5:1 sobre su relleno; la inactiva #6A7390 da 4.7:1
-   sobre blanco y en hover pasa a #47506B porque sobre el gris bajaría a 4.2:1). */
-.nav-item[data-sec="home"]{--sec-bg:#EEF1F8;--sec-bd:#9AA5C4;--sec-fg:#1B2238}
+   sobre blanco y en hover pasa a #47506B porque sobre el gris bajaría a 4.2:1). Contraste etiqueta/relleno:
+   home 6.5 · search 5.6 · chat 13.9 · space 6.1 · store 5.5 · learn 7.3 · practice 5.2 · friends 7.3 · leagues 6.1.
+   "home" es DESCUBRIR (el feed, ruta /): rosa como su brújula. El chat usa el gris-azulado neutro. */
+.nav-item[data-sec="home"]{--sec-bg:#FCEAF1;--sec-bd:#EE7AA4;--sec-fg:#9E2350}
 .nav-item[data-sec="search"]{--sec-bg:#E0F5F3;--sec-bd:#3DBDB3;--sec-fg:#0B6B66}
-.nav-item[data-sec="discover"]{--sec-bg:#FCEAF1;--sec-bd:#EE7AA4;--sec-fg:#9E2350}
+.nav-item[data-sec="chat"]{--sec-bg:#EEF1F8;--sec-bd:#9AA5C4;--sec-fg:#1B2238}
 .nav-item[data-sec="space"]{--sec-bg:#E1F2FB;--sec-bd:#57B6E6;--sec-fg:#0E5F8A}
 .nav-item[data-sec="store"]{--sec-bg:#EAF7DC;--sec-bd:#7DC447;--sec-fg:#3B6E12}
 .nav-item[data-sec="learn"]{--sec-bg:#E8EDFE;--sec-bd:#7B93F0;--sec-fg:#2843A8}
@@ -112,7 +114,22 @@
 }
 
 .main{position:relative;overflow:hidden;min-width:0}
-.view{position:absolute;inset:0;padding:32px 40px;overflow-y:auto;animation:fadein .45s both}
+
+/* ── Columna de contenido: el MISMO ancho y la MISMA alineación en todas las secciones ──
+   Estándar = Descubrir (el feed, /): un bloque de hasta --content-w (1040px) CENTRADO en el área principal, con al menos
+   --view-px (40px) de aire a cada lado (tokens en base.css). Lo resuelve el padding horizontal de .view: los % del
+   padding se calculan sobre el ancho de .main (su bloque contenedor), así que max(40px, (100% − 1040px) / 2) deja el
+   content box de CUALQUIER vista exactamente sobre la columna, sin envoltorios ni max-width por sección:
+     · .main ≤ 1120px (ventanas de hasta 1360): la columna ocupa todo (main − 80) y arranca a 40px del menú;
+     · más ancho: queda en 1040 y centrada (en una ventana de 1920 arranca en x=560, como el feed).
+   scrollbar-gutter:stable reserva la canaleta de la barra de scroll aunque la vista no scrollee: con barras clásicas
+   (Windows) una sección corta y una larga quedan con la MISMA columna (la canaleta, ~15px, se descuenta del final de
+   la columna en todas por igual: el contenido mide 1040 − 15); con barras superpuestas no cambia nada (1040 justos).
+   Regla para las secciones: NO poner un max-width/margin:auto de página propio (la columna ya viene dada).
+   Excepciones más angostas, siempre sobre el MISMO eje central y nunca más anchas que la columna: reproductor de video
+   760 (#v-player), lector de artículos 900 (.wk) y ejercicio 780 (.exwrap). Una vista sin padding propio (el lector,
+   #v-article) alinea sus barras con var(--view-pad-x), que se hereda y vale lo mismo en sus hijos a todo el ancho. */
+.view{--view-pad-x:max(var(--view-px),calc((100% - var(--content-w)) / 2));position:absolute;inset:0;padding:32px var(--view-pad-x);overflow-y:auto;scrollbar-gutter:stable;animation:fadein .45s both}
 
 /* Modo "stage": 1280x720 escalado, para comparar contra el prototipo (?stage) */
 .stage-frame{position:relative;width:min(1180px,100%);aspect-ratio:16/9;margin:28px auto;border-radius:8px;overflow:hidden;border:1px solid #D3D9E6;box-shadow:0 18px 50px -20px rgba(20,26,44,.35)}

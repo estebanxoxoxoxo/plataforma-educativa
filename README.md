@@ -30,6 +30,9 @@ Abrí con `?stage` (por ejemplo `http://localhost:5173/?stage`) para verla en el
 
 Una sección puede usar piezas de otra: Practicar reutiliza la grilla y la tarjeta de curso de `learn`.
 
+Todas las vistas comparten UNA columna central (1040px máx, centrada), definida por `.view` en
+`styles/shell.css` con los tokens `--content-w`/`--view-px`; las secciones no definen ancho de página.
+
 ## Backend (`server/`)
 
 Node + TypeScript, reutiliza la lógica de la POC de Smarty. Las claves viven solo en el servidor.
@@ -46,9 +49,10 @@ Node + TypeScript, reutiliza la lógica de la POC de Smarty. Las claves viven so
 | `GET /api/learn/course?id=&name=` | Aprender: temario del curso (fijo para los 5 cursos; generado por un modelo para los creados con "Generar curso") y **un contenido real por capítulo**: video del catálogo aprobado (1–20 min, sin repetir) o lectura de un sitio aprobado que ya pasó extracción + juez y está en español. Cacheado en `server/data/cache/courses/` | nuevo |
 | `GET /api/feed` · `POST /api/feed/react` | **FAKE (demo)**: el feed de la home (recomendaciones + noticias sociales + reacciones). El algoritmo real no existe todavía; `server/src/feedFake.ts` lo simula manteniendo las formas de respuesta — los videos y lecturas que recomienda son contenido real del catálogo/lista blanca, lo social es de demo | VISION.md §3 |
 | `/api/practice/*` | **Practicar real**: ejercicios GENERADOS del contenido real de cada capítulo (lecturas extraídas y aprobadas, metadata de videos del catálogo) con regla de oro —ningún fact fuera del material, cada ejercicio guarda su cita—, revisión adversarial + validación determinística, caché por unidad en `server/data/cache/practice/`, corrección server-side (abiertas con el modelo; sin crédito cae a palabras clave) y premio real vía `progress.addXp()` | nuevo (`practice.ts`) |
-| `/api/leagues/*` | **FAKE de servidor** (patrón feedFake): "Vos" con la XP semanal REAL en la liga de 12, la zona y el país; el puesto se recalcula al practicar. NPCs y fórmulas geo documentados como demo | `leaguesFake.ts` |
+| `/api/leagues/*` | **FAKE de servidor** (patrón feedFake): "Vos" con la XP semanal REAL en la liga de 12, la zona y el país; el puesto se recalcula al practicar. `/mine` trae el ciclo: `closesInDays` REAL (cuenta regresiva al domingo) y `lastWeek` (seed demo: 2º → 🥈). El cierre real (congelar tabla, repartir medallas, re-asignar) es backend futuro | `leaguesFake.ts` |
 | `GET /api/progress/summary` · `GET /api/progress/tx` | **Progreso real (RAM)**: XP semanal (el puntaje ÚNICO de liga/zona/país), Energy Coin 1:1, racha y "seguí practicando". NADA de esto persiste: vive en RAM y `POST /api/demo/reset` (lo dispara el front en cada carga de página) vuelve al seed | nuevo (`progress.ts`) |
-| `GET /api/market` · `POST /api/market/redeem` · `GET /api/market/redemptions` · `POST /api/market/wish` | **Tienda (RAM)**: premios publicados por el padre (seed demo), canje que gasta EC (los rechazos de negocio van con `200 + ok:false` para que el chico vea el motivo), canjes "pendientes de entrega". La **lista de deseos** sí persiste (`server/data/wishlist.json`): es preferencia del chico, no economía | nuevo (`market.ts`) |
+| `GET /api/market` · `POST /api/market/redeem` · `GET /api/market/redemptions` · `POST /api/market/wish` | **Tienda (RAM)**: premios publicados por el padre (seed demo), canje que gasta EC (los rechazos de negocio van con `200 + ok:false` para que el chico vea el motivo), canjes "pendientes de entrega". La **lista de deseos** sí persiste (`server/data/wishlist.json`). Los premios se leen de `parent.json` (los administra el padre); con la Tienda apagada todo `/api/market*` responde 403 | nuevo (`market.ts`) |
+| `/api/parent/*` | **Zona del padre v1** (config PERSISTIDA en `server/data/parent.json`): grandes on-off de funcionalidades (Tienda/Ligas/Amigos/Chat, con 403 server-side en market y chat cuando están apagadas), premios del marketplace (publicar/editar/archivar; el seed vive acá), "Ya se lo di" para los canjes, actividad del chico (XP/⚡/racha/guardados con carpeta) y protecciones en lectura | nuevo (`parent.ts`) |
 | `/api/space/*` | **Mi espacio** (real, persistido en `server/data/space.json`): Drive de carpetas anidadas (en la raíz viven SOLO carpetas, lógica Windows/nube; "General" recibe lo que no tiene destino) con papelera restaurable y "Guardar en…" (videos del catálogo, lecturas de sitios aprobados, imágenes moderadas), canales seguidos (MyTube: vistas sobre el catálogo aprobado, ~150 canales), y listas de reproducción ordenadas. Un video guardado/listado solo referencia un `videoId` aprobado: al leer se re-resuelve y se descarta lo des-aprobado o bloqueado | `drive.ts`, `mytube.ts`, `listas.ts` (lógica); el POC guardaba en IndexedDB |
 
 Los links dentro de un artículo pasan por la misma ruta antes de abrirse. El reproductor usa YouTube nocookie contenido (sandbox, sin clics directos) con controles propios, como Smarty.
@@ -63,8 +67,8 @@ Reemplazá el cuerpo de cada método restante de `src/api/index.ts` por una llam
 
 ## Rutas
 
-`/` (feed) · `/buscar?q=&tab=` · `/buscar/articulo/:id` · `/buscar/video/:id` · `/descubrir` (el chat: Descubrir es la forma conversacional de encontrar; Buscar y Descubrir son puntos de menú propios, sin submenús) ·
-`/espacio/carpetas[/:folderId]` · `/espacio/papelera` · `/espacio/videos` (solapas Canales | Mis listas; detalle en `/espacio/videos/canal/:id` y `/espacio/videos/lista/:id`) · `/tienda` (y `/tienda?vista=deseos`, la lista de deseos) ·
+`/` (**Descubrir**: el feed de recomendaciones ES el descubrir de la visión, y es la home) · `/buscar?q=&tab=` · `/buscar/articulo/:id` · `/buscar/video/:id` · `/chat` (el chat seguro; redirecciones desde las rutas viejas `/descubrir*`) ·
+`/espacio/carpetas[/:folderId]` · `/espacio/papelera` · `/espacio/videos` (solapas Canales | Mis listas; detalle en `/espacio/videos/canal/:id` y `/espacio/videos/lista/:id`) · `/tienda` (y `/tienda?vista=deseos`, la lista de deseos) · `/padres` (+ `/padres/{premios,actividad,protecciones}`, con portón de adulto; acceso discreto bajo el perfil) ·
 `/aprender` · `/aprender/:id` · `/practicar` · `/practicar/:id` · `/practicar/:id/ejercicio/:n` · `/amigos` · `/ligas`
 
 **Audio de fondo**: `src/shared/audio/` (port de `backgroundAudio.ts` + `ambientNoise.ts` de Smarty) — cola con repeat

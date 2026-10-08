@@ -24,6 +24,7 @@ import { practiceRoutes } from './practice'
 import { progressRoutes, resetProgress } from './progress'
 import * as market from './market'
 import { leaguesRoutes } from './leaguesFake'
+import { featureOn, parentRoutes } from './parent'
 import { readJson, send } from './web'
 import type { Msg } from './llm'
 
@@ -79,6 +80,7 @@ createServer(async (req, res) => {
     if (url.pathname.startsWith('/api/progress/')) return progressRoutes(req, res, url)
     if (url.pathname.startsWith('/api/market')) return await market.marketRoutes(req, res, url)
     if (url.pathname.startsWith('/api/leagues/')) return await leaguesRoutes(req, res, url)
+    if (url.pathname.startsWith('/api/parent/')) return await parentRoutes(req, res, url)
 
     // --- FEED (FAKE): ver feedFake.ts ---
     if (url.pathname === '/api/feed' && req.method === 'GET') {
@@ -148,6 +150,8 @@ createServer(async (req, res) => {
     }
 
     if (req.method === 'POST' && url.pathname === '/api/chat') {
+      // Gate del padre (fail-closed): si la familia apagó el chat, ni se lee el mensaje.
+      if (!featureOn('chat')) return send(res, 403, { error: 'El chat está apagado por tu familia' })
       const body = await readJson<{ history?: Msg[]; text?: string }>(req)
       const text = String(body.text ?? '').trim().slice(0, 2000) // límite de input de Smarty (RF-1.5)
       if (!text) return send(res, 400, { error: 'mensaje vacío' })

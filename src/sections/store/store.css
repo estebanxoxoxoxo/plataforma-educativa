@@ -6,7 +6,8 @@
   --st-gold-bg:#FFF1D6; --st-gold-ink:#7A4F00;
   background:linear-gradient(180deg,#FFFFFF 0,#F6F7FB 220px);
 }
-.st-page{max-width:1040px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:22px}
+/* ancho y alineación: la columna estándar de .view (shell.css) */
+.st-page{display:grid;grid-template-columns:minmax(0,1fr);gap:22px}
 .st-head .lede{max-width:640px}
 .st-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 

@@ -130,12 +130,47 @@ export type MarketItem = {
 };
 export type Redemption = { id: number; itemId: number; title: string; emoji: string; price: number; ts: number; status: 'pendiente' | 'entregado' };
 
+/* ---------- Zona del padre (v1): grandes on-off, premios propios, actividad del chico ---------- */
+/** Funcionalidades que el padre prende/apaga (audio 22: "si no quiere que exista, no existe"). */
+export type ParentFeatures = { tienda: boolean; ligas: boolean; amigos: boolean; chat: boolean };
+export type NewMarketItem = { title: string; desc?: string; price: number; emoji: string; stock: number | null };
+export type ParentSavedRow = { title: string; type: 'video' | 'articulo' | 'imagen'; folder: string; createdAt: number };
+/** Premio del padre como lo ve el panel: con lo que queda (`left`) y los canjes de esta demo. */
+export type ParentItemView = {
+  id: number; emoji: string; title: string; desc?: string; price: number;
+  /** Stock configurado por el padre (null = sin límite) */ stock: number | null;
+  /** Lo que queda para canjear (null = sin límite) */ left: number | null;
+  /** Canjes de esta demo (la economía vive en RAM) */ redeemed: number;
+  archived: boolean; createdAt: number;
+};
+/** Lo que ya filtra el backend real (solo lectura en la v1 del panel). */
+export type ParentProtections = {
+  sites: number; videos: number; blockedWords: number; blockedTopics: number;
+  domainMode: 'blanca' | 'negra' | 'hibrido'; policyVersion: number;
+};
+/** Edición de un premio: NewMarketItem parcial + `archived` (false = reactivar). */
+export type ParentItemPatch = Partial<NewMarketItem> & { archived?: boolean };
+export type ParentActivity = {
+  xpWeek: number; ec: number; streakDays: number;
+  continue: ProgressSummary['continue'];
+  saved: ParentSavedRow[];
+  redemptions: Redemption[];
+  /** Aditivos de la v1 del panel (los sirve /api/parent/activity) */
+  items?: ParentItemView[];
+  protections?: ParentProtections;
+};
+
 export type Friend = { id: string; nick: string; color: string; status: string; xp: string; streak: string; league: string; since: string; commonCourses: string[] };
 export type FriendMessage = { id: string; from: 'me' | 'them'; text: string };
 
 /** La liga del chico: ASIGNADA según sus resultados (no se elige).
- *  `xp` es el puntaje de la semana — el MISMO que aparece en la zona y el país. */
-export type AssignedLeague = { id: string; name: string; color: string; pos: number; total: number; closes: string; xp: number };
+ *  `xp` es el puntaje de la semana — el MISMO que aparece en la zona y el país.
+ *  `closesInDays` y `lastWeek` (cierre semanal + medalla) son del ciclo de liga. */
+export type AssignedLeague = {
+  id: string; name: string; color: string; pos: number; total: number; closes: string; xp: number;
+  closesInDays?: number;
+  lastWeek?: { pos: number; medal: 'oro' | 'plata' | 'bronce' | null } | null;
+};
 /** Tabla completa de una liga (todas las posiciones; `me` marca la propia). */
 export type LeagueStanding = {
   league: { id: string; name: string; color: string; total: number; pos: number };
@@ -171,8 +206,8 @@ export type FeedItem =
   | { kind: 'friend'; id: string; time: string; friend: { nick: string; color: string }; text: string; icon: 'medal' | 'streak' | 'badge' | 'route' | 'league'; reactions: FeedReaction[] }
   | { kind: 'league'; id: string; time: string; name: string; desc: string };
 export type FeedSidebar = {
-  /** Liga asignada por resultados + puestos por puntaje (zona y país). */
-  league: { name: string; pos: number; total: number; zone: { name: string; pos: number }; country: { name: string; pos: number } };
+  /** Liga asignada por resultados + puestos por puntaje (zona y país). `medal` = cierre pasado. */
+  league: { name: string; pos: number; total: number; zone: { name: string; pos: number }; country: { name: string; pos: number }; medal?: 'oro' | 'plata' | 'bronce' | null };
   continue: { courseId: string; title: string; done: number; total: number };
   topics: string[];
 };

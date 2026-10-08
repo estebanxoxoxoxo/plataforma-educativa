@@ -5,7 +5,8 @@
 import * as M from './mock';
 import type {
   AnswerResult, Answer, ArticleResponse, ChannelDetail, Channel, ChatReply, ChatTurn, Course, DriveFolder, DriveItem, DriveView,
-  EcTx, FeedReaction, FeedResponse, FolderNode, CourseDetail, Exercise, Friend, FriendMessage,
+  EcTx, FeedReaction, FeedResponse, FolderNode, CourseDetail, Exercise, Friend, FriendMessage, NewMarketItem,
+  ParentActivity, ParentFeatures, ParentItemPatch,
   AssignedLeague, GeoRanking, GeoScope, ImageResult, Journey, LeagueStanding, MarketItem, PageResult, Playlist, PlaylistDetail,
   ProgressSummary, Redemption, SavePayload, SearchResponse, Tab, TrashView, User, Video, VideoResult,
 } from './types';
@@ -80,6 +81,15 @@ export const api = {
   redemptions: () => http<{ redemptions: Redemption[] }>('/api/market/redemptions'),
   /** Marca/desmarca un premio en la lista de deseos (toggle si no viene value). */
   wish: (itemId: number, value?: boolean) => http<{ wishlist: number[] }>('/api/market/wish', { itemId, value }),
+
+  /* ---- Zona del padre (v1). CONTRATO CONGELADO; server/src/parent.ts lo implementa la tanda 4 ---- */
+  features: () => http<ParentFeatures>('/api/parent/features'),
+  setFeature: (key: keyof ParentFeatures, on: boolean) => http<ParentFeatures>('/api/parent/features', { key, on }),
+  parentActivity: () => http<ParentActivity>('/api/parent/activity'),
+  parentItemAdd: (item: NewMarketItem) => http<MarketItem>('/api/parent/items', item),
+  parentItemUpdate: (id: number, patch: ParentItemPatch) => http<{ ok: boolean }>('/api/parent/items/update', { id, ...patch }),
+  parentItemArchive: (id: number) => http<{ ok: boolean }>('/api/parent/items/archive', { id }),
+  deliverRedemption: (id: number) => http<{ ok: boolean }>('/api/parent/deliver', { id }),
 
   /* ---- Mi espacio (backend real: server/src/space.ts, persistido en server/data/space.json) ---- */
   drive: (folder = 0) => http<DriveView>(`/api/space/drive?folder=${folder}`),

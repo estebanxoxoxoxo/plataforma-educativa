@@ -1,6 +1,6 @@
 /* =================== Ligas: mi liga (asignada) + zona + país, sin solapas =================== */
+/* ancho y alineación: la columna estándar de .view (shell.css); antes cada bloque tenía su propio max-width de 780 */
 #v-leagues{background:linear-gradient(180deg,#FFFFFF 0,#F6F7FB 200px)}
-#v-leagues > *{max-width:780px}
 
 /* encabezado de mi liga */
 .lhead{display:flex;align-items:center;gap:16px;margin:20px 0 14px}
@@ -9,6 +9,17 @@
 .lhead .lic{width:56px;height:56px;border-radius:9px}
 .lhead .lic svg{width:30px;height:30px}
 .ltitle{margin:0;font-family:var(--display);font-weight:800;font-size:24px;line-height:1.1}
+.lhead > div{min-width:0}
+
+/* ciclo semanal (hero): cuánto falta para el cierre + estandarte de la semana pasada (solo podio, con el color de su
+   medalla: los mismos de la tabla, lib/format.ts) */
+.lchips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.lchip{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:3px 12px 3px 9px;border-radius:999px;border:1.5px solid #E1E5EE;background:#fff;color:#47506B;font-size:13px;font-weight:800;line-height:1.2}
+.lchip-ic{font-size:15px;line-height:1}
+.lclose[data-today]{border-color:#F5B49A;background:#FDEBE3;color:#B03F18}
+.lmedal{--lmd:#E8A317;--lmd-bg:#FFF4D6;--lmd-fg:#7F5300;border-color:var(--lmd);background:linear-gradient(135deg,var(--lmd-bg) 0%,#fff 70%);color:var(--lmd-fg)}
+.lmedal[data-medal="plata"]{--lmd:#9AA3B5;--lmd-bg:#E9EDF3;--lmd-fg:#3E4760}
+.lmedal[data-medal="bronce"]{--lmd:#C07A43;--lmd-bg:#FBEADB;--lmd-fg:#7A3F12}
 
 /* separadores de sección (zona / país) */
 .lsec{display:flex;align-items:baseline;gap:10px;margin:28px 0 12px}

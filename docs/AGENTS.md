@@ -22,18 +22,24 @@ framework en `server/` (puerto 8787, proxy `/api` de Vite). El usuario demo es I
 5. **CSS**: clases con prefijo propio de la sección. Antes de inventar una clase, grepearla en
    `src/**/*.css` — ya hubo choques reales (`.act`, `.scard`, `.vthumb`, `.fgo`). Ojo con el
    *grid blowout*: `#v-space` usa `grid-template-columns:minmax(0,1fr)` por eso.
+   **Layout de página**: el ancho y la alineación los da `.view` (tokens `--content-w`/`--view-px`
+   en base.css) — NINGUNA sección pone su propio max-width/margin:auto de página. Excepciones más
+   angostas SIEMPRE centradas en el mismo eje (video 760, lector 900, ejercicio 780). Una vista con
+   `padding:0` alinea sus barras con `var(--view-pad-x)`. Listas de filas en grid: `minmax(0,1fr)`.
 6. Drive: en la RAÍZ viven solo carpetas (lógica Windows/nube); los archivos siempre adentro de
    una carpeta; "General" es el destino por defecto. Carpetas todas con el MISMO ícono
    (`IcFolderWin`). Papelera restaurable: nada se borra de verdad sin "borrar definitivo".
 7. Ligas: se ASIGNAN por resultados (nunca se eligen/buscan), 12 participantes, y el puntaje
-   semanal es UNO solo (mismo número en liga, zona y país).
-8. Menú actual: Inicio · Buscar (`/buscar/*`) · Descubrir (= el chat, `/descubrir`) · Mi espacio
-   (`/espacio/carpetas`, `/espacio/videos` con solapas Canales|Mis listas) · Tienda (`/tienda`) ·
-   Aprender · Practicar · Amigos · Ligas. Si cambiás rutas, dejá redirecciones de las viejas.
+   semanal es UNO solo (mismo número en liga, zona y país). El ciclo semanal (closesInDays real +
+   lastWeek/medalla) tiene UNA sola fuente: server/src/leaguesFake.ts — no lo dupliques.
+8. Menú actual: Descubrir (= el FEED, es la home en `/`) · Buscar (`/buscar/*`) · Chat (`/chat`) ·
+   Mi espacio (`/espacio/carpetas`, `/espacio/videos` con solapas Canales|Mis listas) · Tienda
+   (`/tienda`) · Aprender · Practicar · Amigos · Ligas. "Descubrir" es el feed de recomendaciones
+   (así lo define la visión), NO el chat. Si cambiás rutas, dejá redirecciones de las viejas.
 9. **La economía del demo vive en RAM** (pedido de Esteban): XP/Energy Coin/canjes NO se persisten
    a disco; cada carga de página hace POST /api/demo/reset (ver src/hooks/user.tsx) y todo vuelve a
    los valores iniciales (seed). Si tu módulo guarda estado económico, exponé un reset() y
-   registralo en ese endpoint. SÍ persisten los activos/preferencias del chico: space.json y wishlist.json.
+   registralo en ese endpoint. SÍ persisten los activos/preferencias del chico (space.json, wishlist.json) y la CONFIG del padre (parent.json: on-off de funcionalidades y premios de la Tienda).
 10. **Watcher de Vite/tsx en Windows**: a veces pierde la segunda de dos ediciones seguidas del
    mismo archivo y sirve un módulo viejo. Si el navegador no refleja tu cambio, verificá el módulo
    servido y hacé un `touch` del archivo para forzar la recarga.

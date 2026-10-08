@@ -8,12 +8,7 @@ const svg = (children: ReactNode, base: P) => (props: P) => (
 const stroke = (w: number, extra: P = {}): P => ({ fill: 'none', stroke: 'currentColor', strokeWidth: w, ...extra });
 
 // Navegación
-export const IcDiscover = svg(<><circle cx="12" cy="12" r="9" /><path d="M15.5 8.5l-2 5-5 2 2-5z" /></>, stroke(2.2, { strokeLinejoin: 'round' }));
-export const IcSearch = svg(<><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4 4" /></>, stroke(2.4, { strokeLinecap: 'round' }));
 export const IcChat = svg(<path d="M4 5h16v11H10l-6 4z" />, stroke(2.2, { strokeLinejoin: 'round' }));
-export const IcLearn = svg(<><path d="M4 5.5C4 4.7 4.7 4 5.5 4H20v14H5.5A1.5 1.5 0 004 19.5z" /><path d="M4 19.5A1.5 1.5 0 005.5 21H20v-3" /><path d="M9 8h7" /></>, stroke(2.2, { strokeLinejoin: 'round' }));
-export const IcPractice = svg(<><path d="M5 21V4" /><path d="M5 4h12l-2.5 4L17 12H5" /></>, stroke(2.2, { strokeLinejoin: 'round', strokeLinecap: 'round' }));
-export const IcFriends = svg(<><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5" /><circle cx="17" cy="9" r="2.8" /><path d="M16.5 14.6c2.6.2 4.4 2 5 5" /></>, stroke(2.2, { strokeLinecap: 'round' }));
 export const IcTrophyLine = svg(<><path d="M7 4h10v5a5 5 0 01-10 0z" /><path d="M7 6H4v1.5A3.5 3.5 0 007.5 11M17 6h3v1.5A3.5 3.5 0 0116.5 11M12 14v3M8 20h8" /></>, stroke(2.2, { strokeLinejoin: 'round', strokeLinecap: 'round' }));
 
 // Búsqueda (look Google)
@@ -69,11 +64,9 @@ export const IcMedal = svg(<><path d="M12 2.8l7.8 4.5v9.4L12 21.2l-7.8-4.5V7.3z"
 export const IcNone = svg(<><circle cx="12" cy="12" r="8.5" /><path d="M6 18L18 6" /></>, stroke(2.2, { strokeLinecap: 'round' }));
 
 // Feed / home
-export const IcHome = svg(<><path d="M4 10.6L12 3.8l8 6.8" /><path d="M6.2 9.4V20h11.6V9.4" /><path d="M10 20v-5.6h4V20" /></>, stroke(2.2, { strokeLinecap: 'round', strokeLinejoin: 'round' }));
 export const IcShare = svg(<><circle cx="6" cy="12" r="2.6" /><circle cx="17.5" cy="5.5" r="2.6" /><circle cx="17.5" cy="18.5" r="2.6" /><path d="M8.3 10.8l6.9-4M8.3 13.2l6.9 4" /></>, stroke(2, {}));
 
 // Mi espacio (Drive, canales, listas) + audio de fondo
-export const IcSpace = svg(<><path d="M3.5 7.5A1.5 1.5 0 015 6h4l2 2.5h8a1.5 1.5 0 011.5 1.5v8A1.5 1.5 0 0119 19.5H5A1.5 1.5 0 013.5 18z" /><path d="M3.5 12h17" /></>, stroke(2.2, { strokeLinejoin: 'round' }));
 /** Carpeta "estilo Windows": la MISMA para todas (amarilla, solapa atrás + cuerpo adelante). */
 export const IcFolderWin = (props: P) => (
   <svg viewBox="0 0 48 38" {...props}>
@@ -82,8 +75,6 @@ export const IcFolderWin = (props: P) => (
     <path d="M4 13.5a3 3 0 013-3h34a3 3 0 013 3v1.8H4z" fill="#FFD98A" />
   </svg>
 );
-export const IcFolder = svg(<path d="M3.5 7.5A1.5 1.5 0 015 6h4l2 2.5h8a1.5 1.5 0 011.5 1.5v8A1.5 1.5 0 0119 19.5H5A1.5 1.5 0 013.5 18z" />, stroke(2.2, { strokeLinejoin: 'round' }));
-export const IcTv = svg(<><rect x="3" y="6" width="18" height="13" rx="2" /><path d="M8.5 2.5L12 6l3.5-3.5" /><path d="M10 10l5 2.75L10 15.5z" /></>, stroke(2, { strokeLinejoin: 'round', strokeLinecap: 'round' }));
 export const IcListMusic = svg(<><path d="M4 6h10M4 11h10M4 16h6" strokeLinecap="round" /><circle cx="16.5" cy="17" r="2.5" /><path d="M19 17V8l3-1" strokeLinecap="round" strokeLinejoin="round" /></>, stroke(2.2));
 export const IcHeadphones = svg(<><path d="M4 14v-2a8 8 0 0116 0v2" /><rect x="3" y="14" width="4.5" height="6" rx="1.8" /><rect x="16.5" y="14" width="4.5" height="6" rx="1.8" /></>, stroke(2.1, { strokeLinecap: 'round', strokeLinejoin: 'round' }));
 export const IcBookmark = svg(<path d="M6.5 4h11v16.5L12 16.6l-5.5 3.9z" />, stroke(2.2, { strokeLinejoin: 'round' }));
@@ -102,7 +93,6 @@ export const IcDownSm = svg(<path d="M6 9.5l6 6 6-6" />, stroke(2.6, { strokeLin
 
 // Tienda (premios del padre, se canjean con Energy Coin)
 /** Regalo: caja + tapa + cinta + moño, mismo trazo 2.2 que el resto del menú. */
-export const IcGift = svg(<><rect x="3.5" y="8" width="17" height="4.5" rx="1.2" /><path d="M5.5 12.5V19A1.5 1.5 0 007 20.5h10a1.5 1.5 0 001.5-1.5v-6.5" /><path d="M12 8v12.5" /><path d="M12 8C11 5.4 9.1 3.8 7.5 4.4c-1.5.6-1.3 2.9.6 3.4.9.2 2.4.2 3.9.2zM12 8c1-2.6 2.9-4.2 4.5-3.6 1.5.6 1.3 2.9-.6 3.4-.9.2-2.4.2-3.9.2z" /></>, stroke(2.2, { strokeLinecap: 'round', strokeLinejoin: 'round' }));
 
 // ── Menú lateral (estética Duolingo): íconos RELLENOS y multicolor, viewBox 32, colores FIJOS (sin currentColor)
 //    → se ven iguales activos o inactivos; el estado lo marcan la píldora y la etiqueta. Son decorativos (el botón
@@ -116,23 +106,10 @@ const NK = {
   sky: '#38A8E0', skyD: '#1E8BC6', skyL: '#D9F1FC',
   pink: '#EC5F92', pinkL: '#FFE6EF',
   blue: '#3A5BD9', blueL: '#F2F5FF', blueM: '#A9BBF6',
-  orange: '#F26B3A', orangeD: '#D9531F', violet: '#8A5CF5',
+  orange: '#F26B3A', orangeD: '#D9531F', violet: '#8A5CF5', green: '#2FB57A',
   fTab: '#E6A23C', fBody: '#FFC95C', fHi: '#FFD98A', // = IcFolderWin
 };
-/** Inicio: casita de techo coral, cuerpo dorado y puerta oscura. */
-export const IcNavHome = filled(<>
-  <path d="M6.5 14.2L16 6.6l9.5 7.6V25a3 3 0 01-3 3h-13a3 3 0 01-3-3z" fill={NK.gold} />
-  <path d="M12.8 28v-5.6a3.2 3.2 0 016.4 0V28z" fill={NK.brown} />
-  <path d="M4.2 15.2L16 5.6l11.8 9.6" fill="none" stroke={NK.coral} strokeWidth="4.4" strokeLinecap="round" strokeLinejoin="round" />
-</>);
-/** Buscar: lupa celeste con mango oscuro y brillo. */
-export const IcNavSearch = filled(<>
-  <path d="M20.6 20.6l6 6" stroke={NK.ink} strokeWidth="5.2" strokeLinecap="round" />
-  <circle cx="13.5" cy="13.5" r="10" fill={NK.sky} />
-  <circle cx="13.5" cy="13.5" r="6.4" fill={NK.skyL} />
-  <path d="M9.6 12.2a4.3 4.3 0 013-3.1" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
-</>);
-/** Descubrir (el chat): brújula rosa con aguja coral. */
+/** Descubrir (el feed de recomendaciones, la home): brújula rosa con aguja coral. */
 export const IcNavDiscover = filled(<>
   <circle cx="16" cy="16" r="13.4" fill={NK.pink} />
   <circle cx="16" cy="16" r="9.4" fill={NK.pinkL} />
@@ -141,6 +118,19 @@ export const IcNavDiscover = filled(<>
   <path d="M21.6 10.4L17.9 17.9 14.1 14.1z" fill={NK.coral} />
   <path d="M10.4 21.6L14.1 14.1 17.9 17.9z" fill={NK.ink} />
   <circle cx="16" cy="16" r="1.5" fill="#fff" />
+</>);
+/** Buscar: lupa celeste con mango oscuro y brillo. */
+export const IcNavSearch = filled(<>
+  <path d="M20.6 20.6l6 6" stroke={NK.ink} strokeWidth="5.2" strokeLinecap="round" />
+  <circle cx="13.5" cy="13.5" r="10" fill={NK.sky} />
+  <circle cx="13.5" cy="13.5" r="6.4" fill={NK.skyL} />
+  <path d="M9.6 12.2a4.3 4.3 0 013-3.1" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
+</>);
+/** Chat: globo de diálogo verde con "escribiendo…" (el verde no lo usa ningún otro ícono del menú). */
+export const IcNavChat = filled(<>
+  <rect x="3" y="5" width="26" height="19" rx="7" fill={NK.green} />
+  <path d="M7.5 22l-1.3 6.8 7.8-5.2z" fill={NK.green} />
+  <circle cx="10" cy="14.5" r="2.1" fill="#fff" /><circle cx="16" cy="14.5" r="2.1" fill="#fff" /><circle cx="22" cy="14.5" r="2.1" fill="#fff" />
 </>);
 /** Mi espacio: la carpeta amarilla de siempre (colores de IcFolderWin) con un corazón: "lo mío". */
 export const IcNavSpace = filled(<>
@@ -209,7 +199,7 @@ export const IcNavTv = filled(<>
   <rect x="6.6" y="12" width="18.8" height="12" rx="2.2" fill={NK.skyL} />
   <path d="M14 14.8v6.4l5.6-3.2z" fill={NK.sky} />
 </>);
-/** Botón "Sonido de fondo" del pie del menú (el IcHeadphones de trazo sigue en Descubrir y Listas). */
+/** Botón "Sonido de fondo" del pie del menú (el IcHeadphones de trazo sigue en el reproductor y en Listas). */
 export const IcNavHeadphones = filled(<>
   <path d="M5.5 19v-3.5a10.5 10.5 0 0121 0V19" stroke={NK.ink} strokeWidth="3" strokeLinecap="round" fill="none" />
   <rect x="3.5" y="16.5" width="7.5" height="11.5" rx="3.4" fill={NK.sky} />

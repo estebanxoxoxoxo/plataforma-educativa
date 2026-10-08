@@ -4,6 +4,9 @@
   --body:"Nunito", "Segoe UI", system-ui, sans-serif;
   --ink:#1B2238; --ink-2:#47506B; --muted:#6A7390; --line:#E4E8F1; --card-line:#E7EAF2; --bg:#F6F7FB;
   --teal:#13A39A; --teal-d:#0B6B66; --blue:#3A5BD9; --blue-d:#2843A8; --orange:#F26B3A; --violet:#8A5CF5; --gold:#F2A81D;
+  /* Columna de contenido de TODAS las secciones (la aplica .view en shell.css): ancho máximo y aire lateral mínimo.
+     Medida en Descubrir (el feed, /), que es la referencia. */
+  --content-w:1040px; --view-px:40px;
 }
 *{box-sizing:border-box}
 html,body,#root{height:100%;margin:0}

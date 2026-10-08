@@ -3,7 +3,13 @@
 // — ver docs/VISION.md §7 "Competencia". Este módulo la simula (patrón feedFake.ts) manteniendo las formas de
 // src/api/types.ts, con UNA parte real: el puntaje de "Vos" es weekXp() de ./progress, el MISMO número en las
 // tres tablas (liga, zona y país). Si practica y suma, sube de puesto en vivo.
-//   GET /api/leagues/mine          → AssignedLeague (pos = su XP real ordenada contra los 11 NPCs)
+// CICLO SEMANAL (VISION §7, capa 4): la semana va de lunes a domingo, igual que ./progress (la XP vuelve a 0 el lunes).
+//   - closesInDays es REAL: los días que faltan para el cierre (fin del domingo) según la fecha del server; 0 = hoy.
+//   - lastWeek es SEED FAKE: la semana pasada Ian salió 2º → medalla de plata. Alimenta el estandarte de Ligas, la
+//     noticia del feed y la medallita del aside (feedFake la importa de acá: una sola fuente de verdad).
+//   El CIERRE REAL —congelar la tabla el domingo a la noche, repartir las medallas 1º/2º/3º (que salen en el feed de
+//   los amigos y dan prestigio) y re-asignar las ligas por resultados— es del backend futuro: este fake muestra el CICLO.
+//   GET /api/leagues/mine          → AssignedLeague (pos = su XP real ordenada contra los 11 NPCs + closesInDays + lastWeek)
 //   GET /api/leagues/standing?id=  → LeagueStanding (12 filas, "Vos" = XP real)
 //   GET /api/leagues/geo?scope=zona|pais → GeoRanking (top 10 FAKE + mi puesto por fórmula, me.xp = XP real)
 // Para conectar el backend real: reemplazar myLeague()/standing()/geoRanking() manteniendo las formas.
@@ -42,6 +48,32 @@ function weekRamp(d = new Date()): number {
   return Math.min(1, (dow + 1) / 4)
 }
 
+/* ---------- ciclo semanal: cierre (REAL) y medalla de la semana pasada (FAKE) ---------- */
+export type Medal = 'oro' | 'plata' | 'bronce'
+/** Solo el podio del cierre gana medalla. */
+export const medalFor = (pos: number): Medal | null => (pos === 1 ? 'oro' : pos === 2 ? 'plata' : pos === 3 ? 'bronce' : null)
+export const MEDAL_EMOJI: Record<Medal, string> = { oro: '🥇', plata: '🥈', bronce: '🥉' }
+
+/** REAL: días que faltan para el cierre (fin del domingo): lunes 6 … sábado 1, domingo 0 (= "¡cierra hoy!").
+ *  Misma semana lunes→domingo y misma hora local que ./progress (mondayOf/rollWeek). */
+export function closesInDays(d = new Date()): number {
+  return 6 - ((d.getDay() + 6) % 7)
+}
+
+/** Cuándo fue el último cierre, para fechar lo que reparte (medallas, ascensos): el lunes fue "anoche"; el domingo,
+ *  el de hoy todavía no pasó y el último es el de la semana anterior. */
+export function lastCloseLabel(d = new Date()): string {
+  const dow = (d.getDay() + 6) % 7 // 0 = lunes
+  return dow === 0 ? 'anoche' : dow === 6 ? 'el domingo pasado' : 'el domingo'
+}
+
+/** FAKE (seed del demo): cómo terminó Ian el cierre de la semana pasada. Con el backend real sale de la tabla
+ *  congelada de ese cierre (null = no compitió). */
+const LAST_WEEK_POS = 2
+export function lastWeek(): { pos: number; medal: Medal | null } | null {
+  return { pos: LAST_WEEK_POS, medal: medalFor(LAST_WEEK_POS) }
+}
+
 /* ---------- mi liga ---------- */
 interface Row { pos: number; nick: string; color: string; xp: number; me?: true }
 function standing(): Row[] {
@@ -54,7 +86,7 @@ function standing(): Row[] {
 }
 export function myLeague() {
   const pos = standing().findIndex(r => r.me) + 1
-  return { id: LEAGUE.id, name: LEAGUE.name, color: LEAGUE.color, pos, total: LEAGUE.total, closes: LEAGUE.closes, xp: weekXp() }
+  return { id: LEAGUE.id, name: LEAGUE.name, color: LEAGUE.color, pos, total: LEAGUE.total, closes: LEAGUE.closes, xp: weekXp(), closesInDays: closesInDays(), lastWeek: lastWeek() }
 }
 
 /* ---------- zona y país ---------- */
@@ -79,10 +111,11 @@ export function geoRanking(scope: Scope) {
   }
 }
 
-/** Lo que muestra la barra lateral del feed: los MISMOS números que la página de Ligas. */
+/** Lo que muestra la barra lateral del feed: los MISMOS números que la página de Ligas (y la MISMA medalla del cierre
+ *  pasado que su estandarte). */
 export function leagueSidebar() {
   const xp = weekXp(), l = myLeague()
-  return { name: l.name, pos: l.pos, total: l.total, zone: { name: GEO.zona.name, pos: geoPos('zona', xp) }, country: { name: GEO.pais.name, pos: geoPos('pais', xp) } }
+  return { name: l.name, pos: l.pos, total: l.total, zone: { name: GEO.zona.name, pos: geoPos('zona', xp) }, country: { name: GEO.pais.name, pos: geoPos('pais', xp) }, medal: l.lastWeek?.medal ?? null }
 }
 
 /* ---------- rutas ---------- */

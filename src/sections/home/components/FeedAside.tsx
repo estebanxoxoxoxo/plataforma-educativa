@@ -1,13 +1,15 @@
 import type { FeedSidebar } from '../../../api/types';
 import { IcArrowRight, IcTrophyLine } from '../../../shared/components/icons';
+import { MEDAL_INFO, lastWeekLabel } from '../../leagues/lib/cycle';
 
 const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 
-/** Panel auxiliar de la derecha: seguir practicando, tu liga y temas para explorar. */
+/** Panel auxiliar de la derecha: seguir practicando, tu liga (con la medallita del cierre pasado) y temas para explorar. */
 export function FeedAside({ s, onContinue, onLeague, onTopic }: {
   s: FeedSidebar; onContinue: (courseId: string) => void; onLeague: () => void; onTopic: (t: string) => void;
 }) {
   const pct = Math.round((s.continue.done / Math.max(1, s.continue.total)) * 100);
+  const medal = s.league.medal ? MEDAL_INFO[s.league.medal] : null;
   return (
     <aside className="faside">
       <section className="hcard">
@@ -21,7 +23,16 @@ export function FeedAside({ s, onContinue, onLeague, onTopic }: {
         <h4>Tu liga</h4>
         <div className="hleague">
           <span className="hcup"><IcTrophyLine /></span>
-          <div><b className="htitle">{s.league.name}</b><span className="hmeta">Asignada por tus resultados · {s.league.pos}º de {s.league.total}</span></div>
+          <div>
+            <span className="hlname">
+              <b className="htitle">{s.league.name}</b>
+              {medal && (
+                <span className="hmedal" data-medal={s.league.medal} role="img" title={lastWeekLabel(medal.pos)}
+                  aria-label={`${medal.name}: ${lastWeekLabel(medal.pos)}`}>{medal.emoji}</span>
+              )}
+            </span>
+            <span className="hmeta">Asignada por tus resultados · <span className="hpos">{s.league.pos}º de {s.league.total}</span></span>
+          </div>
         </div>
         <dl className="hranks">
           <div><dt>{s.league.zone.name}</dt><dd>#{s.league.zone.pos.toLocaleString('es-AR')}</dd></div>

@@ -1,5 +1,7 @@
-/* Amigos */
-.fwrap{display:grid;grid-template-columns:470px 1fr;gap:24px;margin-top:20px}
+/* Amigos (ancho y alineación: la columna estándar de .view, shell.css).
+   La lista cede ancho (hasta 470) para que el panel nunca baje de 340: con 470 fijos, en 1024 el perfil o la
+   conversación abiertos (≈323 de mínimo) empujaban la vista y aparecía scroll lateral. */
+.fwrap{display:grid;grid-template-columns:minmax(0,470px) minmax(340px,1fr);gap:24px;margin-top:20px}
 .flist{display:flex;flex-direction:column;gap:10px}
 .fr{display:flex;align-items:center;gap:14px;background:#fff;border:1.5px solid #E7EAF2;border-radius:8px;padding:10px 12px 10px 14px;transition:border-color .2s,box-shadow .2s}
 .fr.sel{border-color:#8A5CF5;box-shadow:0 0 0 3px #EFE8FE}

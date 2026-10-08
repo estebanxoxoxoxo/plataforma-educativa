@@ -53,8 +53,8 @@ export function FeedPage() {
     } catch { /* se mantiene lo optimista */ }
   };
 
-  // El contenido se abre en Descubrir, con "volver" al Inicio.
-  const back = { backTo: '/', backLabel: '‹ Inicio' };
+  // El contenido se abre en el lector / reproductor (/buscar/…), con "volver" al feed (Descubrir).
+  const back = { backTo: '/', backLabel: '‹ Descubrir' };
   const h = {
     video: (v: { id: string }) => go(`/buscar/video/${v.id}`, { state: back }),
     article: (url: string) => go(`/buscar/articulo/${encodeURIComponent(url)}`, { state: back }),

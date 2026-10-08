@@ -17,6 +17,8 @@ import { PlaylistPage } from './sections/space/containers/PlaylistPage';
 import { TrashPage } from './sections/space/containers/TrashPage';
 import { VideosPage } from './sections/space/containers/VideosPage';
 import { StorePage } from './sections/store/containers/StorePage';
+import { FeatureGate } from './sections/parent/containers/FeatureGate';
+import { ParentPage } from './sections/parent/containers/ParentPage';
 import { BgAudioHost } from './shared/audio/BgAudioHost';
 import { Sidebar } from './shared/components/Sidebar';
 import { UserProvider, useUser } from './hooks/user';
@@ -33,7 +35,8 @@ function Layout() {
   return (
     <div className="app">
       <Sidebar user={user} />
-      <main className="main"><Outlet /></main>
+      {/* FeatureGate: las secciones que el padre apagó (Tienda, Ligas, Amigos, Chat) no se abren ni por URL */}
+      <main className="main"><FeatureGate><Outlet /></FeatureGate></main>
       {/* iframe oculto del audio de fondo: vive acá para sobrevivir el cambio de sección */}
       <BgAudioHost />
     </div>
@@ -49,10 +52,12 @@ export default function App() {
           <Route path="buscar" element={<SearchPage />} />
           <Route path="buscar/articulo/:id" element={<ArticlePage />} />
           <Route path="buscar/video/:id" element={<VideoPage />} />
-          <Route path="descubrir" element={<ChatPage />} />
+          {/* El chat es otra puerta para encontrar cosas; "Descubrir" es el feed (la home, ruta /). */}
+          <Route path="chat" element={<ChatPage />} />
           {/* redirecciones de las rutas viejas (historial / marcadores) */}
+          <Route path="descubrir" element={<Navigate to="/chat" replace />} />
           <Route path="descubrir/busqueda" element={<Navigate to="/buscar" replace />} />
-          <Route path="descubrir/chat" element={<Navigate to="/descubrir" replace />} />
+          <Route path="descubrir/chat" element={<Navigate to="/chat" replace />} />
           <Route path="descubrir/articulo/:id" element={<OldArticle />} />
           <Route path="descubrir/video/:id" element={<OldVideo />} />
           <Route path="espacio" element={<Navigate to="/espacio/carpetas" replace />} />
@@ -75,6 +80,8 @@ export default function App() {
           <Route path="practicar/:id/ejercicio/:n" element={<ExercisePage />} />
           <Route path="amigos" element={<FriendsPage />} />
           <Route path="ligas" element={<LeaguesPage />} />
+          {/* Zona de padres: portón de adulto + funcionalidades, premios, actividad y protecciones */}
+          <Route path="padres/*" element={<ParentPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

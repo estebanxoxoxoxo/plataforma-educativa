@@ -1,6 +1,7 @@
 /* =================== Practicar · recorrido (mapa de estudio) =================== */
 #v-journey{background:linear-gradient(180deg,#FFFFFF 0,#F6F7FB 220px)}
-.pj{display:grid;grid-template-columns:minmax(0,1fr) 296px;gap:32px;max-width:1120px;margin:0 auto;align-items:start}
+/* ancho y alineación: la columna estándar de .view (shell.css); antes tenía su propio max-width de 1120 */
+.pj{display:grid;grid-template-columns:minmax(0,1fr) 296px;gap:32px;align-items:start}
 .pjmain{min-width:0}
 
 /* encabezado */
@@ -129,6 +130,7 @@
 
 /* =================== Practicar · ejercicio (ficha) =================== */
 #v-ex{display:grid;align-content:safe center;background:radial-gradient(1200px 380px at 50% -120px,var(--soft),transparent 70%),#F6F7FB}
+/* Excepción de la columna: pantalla concentrada de 780, centrada sobre el mismo eje (nunca más ancha que la columna). */
 .exwrap{width:100%}
 .exwrap{max-width:780px;margin:0 auto;display:grid;gap:18px}
 .extop{display:flex;align-items:center;gap:18px}

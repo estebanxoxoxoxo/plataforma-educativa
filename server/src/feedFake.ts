@@ -4,12 +4,15 @@
 // Este módulo lo simula para que la UI quede como esqueleto definitivo:
 //   - Los ítems de VIDEO salen del catálogo aprobado real (se pueden abrir y reproducir).
 //   - Las LECTURAS son URLs reales de sitios de la lista blanca (pasan por el lector moderado).
-//   - Los eventos de AMIGOS, la invitación a LIGA y las reacciones son datos de demo en memoria.
+//   - Los eventos de AMIGOS y las reacciones son datos de demo en memoria. Las medallas y ascensos de los amigos se
+//     fechan en el último cierre de liga (lastCloseLabel): se reparten el domingo, no a cualquier hora.
+//   - La noticia de MI LIGA cuenta el ciclo semanal: cómo me fue en el cierre pasado (lastWeek de leaguesFake, la MISMA
+//     medalla que el estandarte de Ligas y el aside) + dónde compito esta semana. Se arma al servir, no se duplica.
 //   - La barra lateral NO es demo: liga/zona/país salen de leaguesFake (con la XP real de ./progress) y "Seguí
 //     practicando" del progreso real + el recorrido real de Practicar: los MISMOS números que Ligas y Practicar.
 // Para conectar el backend real: reemplazar getFeed()/reactFeed() manteniendo las formas.
 import { whiteTopics } from './config'
-import { leagueSidebar } from './leaguesFake'
+import { lastCloseLabel, leagueSidebar, MEDAL_EMOJI, myLeague, type Medal } from './leaguesFake'
 import { practiceSummary } from './practice'
 import { summary } from './progress'
 import { searchVideos, toVideoResult, type CatalogVideo } from './videos'
@@ -24,7 +27,7 @@ export type FeedItem =
   | { kind: 'league'; id: string; time: string; name: string; desc: string }
 export interface FeedSidebar {
   /** Liga ASIGNADA por los resultados del chico + puestos por puntaje (zona y país). */
-  league: { name: string; pos: number; total: number; zone: { name: string; pos: number }; country: { name: string; pos: number } }
+  league: { name: string; pos: number; total: number; zone: { name: string; pos: number }; country: { name: string; pos: number }; medal?: Medal | null }
   continue: { courseId: string; title: string; done: number; total: number }
   topics: string[]
 }
@@ -58,7 +61,7 @@ const FRIEND_EVENTS: { f: number; text: string; icon: Extract<FeedItem, { kind: 
   { f: 3, text: 'subió a la Liga Estrella ⭐', icon: 'league' },
   { f: 4, text: 'terminó la unidad 1 de Fracciones', icon: 'badge' },
   { f: 2, text: 'completó 40 pasos este mes 💪', icon: 'streak' },
-  { f: 0, text: 'ganó la medalla de plata 🥈 en la Liga Cometa', icon: 'medal' },
+  { f: 0, text: 'ganó la medalla de bronce 🥉 en la Liga Cometa', icon: 'medal' }, // la plata de esa liga fue de Ian (lastWeek)
   { f: 1, text: 'compartió la ruta «Volcanes de Argentina»', icon: 'route' },
 ]
 // Lecturas: URLs reales de la lista blanca (verificadas con el lector moderado).
@@ -78,6 +81,17 @@ const ROUTES: Extract<FeedItem, { kind: 'route' }>['course'][] = [
   { id: 'frac', name: 'Fracciones', units: 7, img: 'c_fractions', bg: ['#F26B3A', '#B8431C'] },
 ]
 const timeOf = (i: number) => (i < 2 ? 'hace 1 h' : i < 4 ? 'hace 3 h' : i < 8 ? 'hoy' : i < 13 ? 'ayer' : i < 19 ? 'hace 2 días' : 'esta semana')
+
+/** La noticia de MI liga: el ciclo completo. Con medalla en el cierre pasado →
+ *  "🥈 ¡La semana pasada saliste 2º en la Liga Cometa! Esta semana competís con otros 11 chicos de tu nivel. Cierra el domingo." */
+function leagueNews(): { name: string; desc: string } {
+  const l = myLeague(), lw = l.lastWeek
+  const others = `competís con otros ${l.total - 1} chicos de tu nivel`
+  const closes = l.closesInDays === 0 ? '¡Cierra hoy!' : `Cierra ${l.closes}.`
+  if (lw?.medal) return { name: l.name, desc: `${MEDAL_EMOJI[lw.medal]} ¡La semana pasada saliste ${lw.pos}º en la ${l.name}! Esta semana ${others}. ${closes}` }
+  if (lw) return { name: l.name, desc: `La semana pasada saliste ${lw.pos}º en la ${l.name}. Esta semana ${others}. ${closes}` }
+  return { name: l.name, desc: `Por tus resultados, esta semana ${others}. ${closes}` }
+}
 
 /* ---------- armado (una vez por proceso) ---------- */
 let built: FeedItem[] | null = null
@@ -131,8 +145,9 @@ function build(): FeedItem[] {
         items.push({ kind, id: `ff-${idx.friend}`, time: timeOf(i), friend: { nick, color }, text: e.text, icon: e.icon, reactions: [] })
       } else if (kind === 'league' && idx.league === 0) {
         idx.league = 1
-        // La liga se ASIGNA por resultados: la noticia informa dónde competís esta semana, no invita a unirse.
-        items.push({ kind, id: 'fl-cometa', time: timeOf(i), name: 'Liga Cometa', desc: 'Por tus resultados, esta semana competís con otros 11 chicos de tu nivel. La liga cierra el domingo.' })
+        // La liga se ASIGNA por resultados: la noticia cuenta el ciclo (cierre pasado + dónde competís esta semana),
+        // no invita a unirse. El texto se vuelve a armar al servir (getFeed), así sigue al ciclo real.
+        items.push({ kind, id: 'fl-cometa', time: timeOf(i), ...leagueNews() })
       }
     }
   }
@@ -152,7 +167,13 @@ const PAGE = 9
 export function getFeed(after?: string | null): FeedResponse {
   const all = build()
   const off = Math.max(0, Number(after ?? 0) || 0)
-  const items = all.slice(off, off + PAGE).map(it => (it.kind === 'friend' ? { ...it, reactions: reactionsOf(it.id).map(r => ({ ...r })) } : it))
+  const items = all.slice(off, off + PAGE).map((it): FeedItem => {
+    if (it.kind === 'league') return { ...it, ...leagueNews(), time: lastCloseLabel() } // la liga se asignó en el cierre
+    if (it.kind !== 'friend') return it
+    // Medallas y ascensos salen del cierre semanal: van fechados en el último cierre, no "hace 1 h".
+    const atClose = it.icon === 'medal' || it.icon === 'league'
+    return { ...it, ...(atClose ? { time: lastCloseLabel() } : {}), reactions: reactionsOf(it.id).map(r => ({ ...r })) }
+  })
   const next = off + PAGE < all.length ? String(off + PAGE) : null
   if (off > 0) return { items, next }
   return {

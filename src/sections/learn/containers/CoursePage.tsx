@@ -10,7 +10,7 @@ export function CoursePage() {
   const go = useNavigate();
   const { data: c, error } = useAsync(() => api.course(id), [id]);
 
-  // El contenido se abre en Descubrir (lector moderado o reproductor) con un "volver" al curso.
+  // El contenido se abre en el lector moderado o el reproductor (/buscar/…) con un "volver" al curso.
   const back = { backTo: `/aprender/${id}`, backLabel: '‹ Volver al curso' };
   const open = (ch: Chapter) => (ch.target.type === 'video'
     ? go(`/buscar/video/${ch.target.id}`, { state: back })

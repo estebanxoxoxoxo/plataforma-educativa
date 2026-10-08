@@ -156,6 +156,17 @@ export function folderTree() {
   return { folders: liveFolders().sort((a, b) => a.name.localeCompare(b.name)).map(f => ({ id: f.id, name: f.name, parentId: f.parentId })) }
 }
 
+/** Zona de padres (SOLO LECTURA, tanda 4): todo lo guardado que el chico ve hoy (sin papelera y con la
+ *  misma re-moderación que el Drive), del más nuevo al más viejo, con la RUTA de su carpeta
+ *  ("Dinos", "General", "Dinos / Fósiles"): lo que DRIVE.md de la POC pedía mostrarle al padre. */
+export function allSavedForParent(): { title: string; type: SavedItem['type']; folder: string; createdAt: number }[] {
+  const live = liveFolders()
+  return store.items
+    .filter(i => !i.trashedAt && visible(i))
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .map(i => ({ title: i.title, type: i.type, folder: pathOf(live, i.folderId || ROOT).map(f => f.name).join(' / ') || '—', createdAt: i.createdAt }))
+}
+
 /* ---------- Drive: escritura ---------- */
 export function createFolder(name: string, parentId: number, color?: string, emoji?: string) {
   const f: Folder = { id: nextId(), name: name.trim().slice(0, 40) || 'Carpeta', parentId: parentId || ROOT, color, emoji, createdAt: Date.now() }

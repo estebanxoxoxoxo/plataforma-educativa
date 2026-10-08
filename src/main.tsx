@@ -12,6 +12,7 @@ import './sections/practice/practice.css';
 import './sections/friends/friends.css';
 import './sections/leagues/leagues.css';
 import './sections/store/store.css';
+import './sections/parent/parent.css';
 
 /** Modo "stage" (?stage al abrir): 1280×720 escalado como el prototipo, para comparar píxel a píxel. */
 function StageFrame({ children }: { children: ReactNode }) {

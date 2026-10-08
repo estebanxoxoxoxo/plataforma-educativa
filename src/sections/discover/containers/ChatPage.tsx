@@ -55,7 +55,7 @@ export function ChatPage() {
 
   return (
     <section className="view" id="v-chat">
-      <div><h2 className="h2">Descubrir</h2><p className="lede">Preguntá lo que quieras saber.</p></div>
+      <div><h2 className="h2">Chat</h2><p className="lede">Preguntá lo que quieras saber.</p></div>
       <div className="msgs" ref={list}>{msgs.map((m) => <ChatBubble key={m.id} m={m} h={h} />)}</div>
       <form className="cin" onSubmit={(e) => { e.preventDefault(); send(); }}>
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Escribí tu pregunta…" aria-label="Tu pregunta" maxLength={2000} />

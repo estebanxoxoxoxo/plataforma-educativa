@@ -1,19 +1,21 @@
 import type { ComponentType } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { User } from '../../api/types';
+import { featureAllows, useFeatures } from '../../sections/parent/lib/features';
 import { BrandMark } from './BrandMark';
 import { MiniPlayer } from './MiniPlayer';
 import {
-  IcNavDiscover, IcNavFolder, IcNavFriends, IcNavHome, IcNavLeagues, IcNavLearn,
+  IcNavChat, IcNavDiscover, IcNavFolder, IcNavFriends, IcNavLeagues, IcNavLearn,
   IcNavPractice, IcNavSearch, IcNavSpace, IcNavStore, IcNavTv,
 } from './icons';
 
-type Sec = 'home' | 'search' | 'discover' | 'space' | 'store' | 'learn' | 'practice' | 'friends' | 'leagues';
+type Sec = 'home' | 'search' | 'chat' | 'space' | 'store' | 'learn' | 'practice' | 'friends' | 'leagues';
 const NAV: { sec: Sec; label: string; to: string; Icon: ComponentType }[] = [
-  { sec: 'home', label: 'Inicio', to: '/', Icon: IcNavHome },
+  // Descubrir ES el feed de recomendaciones (la home, tipo YouTube/Instagram); su sec sigue siendo 'home'.
+  { sec: 'home', label: 'Descubrir', to: '/', Icon: IcNavDiscover },
   { sec: 'search', label: 'Buscar', to: '/buscar', Icon: IcNavSearch },
-  // Descubrir ES el chat (la forma conversacional de encontrar cosas). Sin submenús.
-  { sec: 'discover', label: 'Descubrir', to: '/descubrir', Icon: IcNavDiscover },
+  // El chat es otra puerta para encontrar cosas, conversando. Sin submenús.
+  { sec: 'chat', label: 'Chat', to: '/chat', Icon: IcNavChat },
   { sec: 'space', label: 'Mi espacio', to: '/espacio/carpetas', Icon: IcNavSpace },
   // Tienda: premios que publica el padre y se canjean con la Energy Coin cosechada practicando.
   { sec: 'store', label: 'Tienda', to: '/tienda', Icon: IcNavStore },
@@ -26,7 +28,7 @@ const NAV: { sec: Sec; label: string; to: string; Icon: ComponentType }[] = [
 function activeFrom(path: string): { sec?: Sec; sub?: string } {
   if (path === '/') return { sec: 'home' };
   if (path.startsWith('/buscar')) return { sec: 'search' }; // incluye artículo y video
-  if (path.startsWith('/descubrir')) return { sec: 'discover' };
+  if (path.startsWith('/chat')) return { sec: 'chat' };
   if (path.startsWith('/espacio')) {
     return { sec: 'space', sub: path.startsWith('/espacio/videos') ? 'videos' : 'folders' };
   }
@@ -44,8 +46,11 @@ export function Sidebar({ user }: { user?: User }) {
   const { pathname } = useLocation();
   const go = useNavigate();
   const { sec, sub } = activeFrom(pathname);
+  const features = useFeatures();
 
   const item = (n: (typeof NAV)[number]) => {
+    // Tienda, Ligas, Amigos y Chat los puede apagar el padre: apagados (o sin saber todavía) no existen.
+    if (!featureAllows(features, n.to)) return null;
     const on = sec === n.sec;
     // Con submenú abierto, la página actual la marca el sub-ítem; el padre queda como "parte de lo actual".
     const current = on ? (n.sec === 'space' ? 'true' : 'page') : undefined;
@@ -80,6 +85,8 @@ export function Sidebar({ user }: { user?: User }) {
         <span className="av">{user?.name[0] ?? ''}</span>
         <div><b>{user?.name ?? '…'}</b><small>{user ? `${user.age} años` : ''}</small></div>
       </div>
+      {/* Acceso discreto a la Zona de padres (no es parte del menú del chico; estilo en parent.css) */}
+      <Link className="pz-access" to="/padres">Zona de padres</Link>
     </aside>
   );
 }
