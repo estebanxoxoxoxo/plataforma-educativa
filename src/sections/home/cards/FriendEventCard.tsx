@@ -18,7 +18,7 @@ const ICONS: Record<It['icon'], { I: ComponentType; c: string; bg: string }> = {
 export function FriendEventCard({ it, onReact }: { it: It; onReact: (id: string, emoji: string) => void }) {
   const { I, c, bg } = ICONS[it.icon];
   return (
-    <article className="fcard ffriend">
+    <article className="fcard ffriend" data-icon={it.icon}>
       <Avatar name={it.friend.nick} color={it.friend.color} />
       <div className="fbody">
         <p className="fline"><b>{it.friend.nick}</b> {it.text}</p>

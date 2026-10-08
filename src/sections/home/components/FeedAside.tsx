@@ -4,9 +4,10 @@ import { MEDAL_INFO, lastWeekLabel } from '../../leagues/lib/cycle';
 
 const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 
-/** Panel auxiliar de la derecha: seguir practicando, tu liga (con la medallita del cierre pasado) y temas para explorar. */
-export function FeedAside({ s, onContinue, onLeague, onTopic }: {
-  s: FeedSidebar; onContinue: (courseId: string) => void; onLeague: () => void; onTopic: (t: string) => void;
+/** Panel auxiliar de la derecha: seguir practicando, tu liga (con la medallita del cierre pasado) y temas para explorar.
+ *  `showLeague` = las Ligas están prendidas por la familia (apagadas: ni la tarjeta ni la medallita). */
+export function FeedAside({ s, showLeague, onContinue, onLeague, onTopic }: {
+  s: FeedSidebar; showLeague: boolean; onContinue: (courseId: string) => void; onLeague: () => void; onTopic: (t: string) => void;
 }) {
   const pct = Math.round((s.continue.done / Math.max(1, s.continue.total)) * 100);
   const medal = s.league.medal ? MEDAL_INFO[s.league.medal] : null;
@@ -19,7 +20,7 @@ export function FeedAside({ s, onContinue, onLeague, onTopic }: {
         <span className="hmeta">{s.continue.done} de {s.continue.total} pasos</span>
         <button className="hbtn" onClick={() => onContinue(s.continue.courseId)}>Continuar<IcArrowRight /></button>
       </section>
-      <section className="hcard">
+      {showLeague && <section className="hcard">
         <h4>Tu liga</h4>
         <div className="hleague">
           <span className="hcup"><IcTrophyLine /></span>
@@ -39,7 +40,7 @@ export function FeedAside({ s, onContinue, onLeague, onTopic }: {
           <div><dt>{s.league.country.name}</dt><dd>#{s.league.country.pos.toLocaleString('es-AR')}</dd></div>
         </dl>
         <button className="hbtn ghost" onClick={onLeague}>Ver mi liga<IcArrowRight /></button>
-      </section>
+      </section>}
       {s.topics.length > 0 && (
         <section className="hcard">
           <h4>Temas para explorar</h4>

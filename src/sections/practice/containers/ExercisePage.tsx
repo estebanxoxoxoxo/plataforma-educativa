@@ -4,6 +4,7 @@ import { api } from '../../../api';
 import type { Answer, AnswerResult, Exercise } from '../../../api/types';
 import { useAsync } from '../../../hooks/useAsync';
 import { IcBolt } from '../../../shared/components/icons';
+import { useFeatures } from '../../parent/lib/features';
 import { Option, type OptState } from '../cards/Option';
 import { VFOption } from '../cards/VFOption';
 import { AiAnalysis } from '../components/AiAnalysis';
@@ -31,6 +32,9 @@ function Exercise_() {
   const [sel, setSel] = useState<string[]>([]);
   const [vf, setVf] = useState<boolean | null>(null);
   const [result, setResult] = useState<AnswerResult | null>(null);
+  // Con la Tienda apagada por el padre no se muestra la moneda (+N ⚡). Solo lo visual: la XP de la semana
+  // (ligas) se sigue sumando en el server igual. Sin datos todavía (null) tampoco se muestra (fail-closed).
+  const coinOn = useFeatures()?.tienda === true;
 
   useEffect(() => { if (ex) setLeft(ex.seconds); }, [ex]);
 
@@ -87,7 +91,7 @@ function Exercise_() {
             result={phase === 'result' ? (result?.correct ? 'good' : 'bad') : undefined}
             title={result?.title} detail={result?.detail} hint={hint}
             label={phase === 'result' ? (result?.correct ? 'Seguir' : 'Volver al recorrido') : phase === 'checking' ? (ex.type === 'open' ? 'Analizando…' : 'Revisando…') : ex.type === 'open' ? 'Enviar respuesta' : 'Comprobar'}
-            enabled={phase === 'answering' && ready} busy={phase === 'checking'} prize={phase === 'result' ? result?.xp : undefined}
+            enabled={phase === 'answering' && ready} busy={phase === 'checking'} prize={phase === 'result' && coinOn ? result?.xp : undefined}
             onClick={() => (phase === 'result' ? next() : ready && submit(answer()))}
           />
         </article>
