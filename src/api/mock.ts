@@ -2,10 +2,11 @@
 // lo que el prototipo no mostraba (otros temas, más ejercicios) es relleno coherente.
 import type {
   Course, Exercise, Friend, FriendMessage, JourneyItem,
-  LeagueResult, MyLeague, NodeType, User,
+  AssignedLeague, NodeType, User,
 } from './types';
 
-export const ME: User = { name: 'Sofi', age: 9, nick: 'SofiExplora' };
+// Solo para los fakes del navegador (ligas); el perfil real sale de GET /api/me.
+export const ME: User = { name: 'Ian', age: 9, nick: 'Ian' };
 
 /* ---------------- búsqueda ---------------- */
 export type Topic = 'dinosaurios' | 'volcanes' | 'planetas';
@@ -88,16 +89,9 @@ export const REPLIES = ['¡Dale! Te espero en Practicar.', '¡Buenísimo!', 'Jaj
 /* ---------------- ligas ---------------- */
 export const NICKS = ['NachoNova', 'EmiFósil', 'ValenOrbita', 'GuadaGalaxia', 'FeliTrex', 'AguMeteoro', 'PiliCometa', 'BautiLava', 'JoaquiSaturno', 'ZoeVolcan', 'FrancoPlaneta', 'MiliEclipse', 'LautiCrater', 'RenataLuna', 'SantiAsteroide', 'OliviaNebula'];
 export const COLS = ['#3A5BD9', '#13A39A', '#F26B3A', '#8A5CF5', '#E5487A', '#F2A81D', '#1C9BD6', '#18A957'];
-export const GEO = { zona: { off: 0, top: 4980, me: 37, xp: 1240 }, prov: { off: 3, top: 7420, me: 324, xp: 1240 }, pais: { off: 6, top: 12650, me: 4812, xp: 1240 } };
-export const ASSIGNED: MyLeague = { id: 'lg-cometa', name: 'Liga Cometa', desc: '30 chicos con un avance parecido al tuyo', color: '#F2A81D', tag: 'assigned', pos: 7, total: 30 };
-/** XP del primer puesto por liga (para fakear el ranking completo). */
+export const ASSIGNED: AssignedLeague = { id: 'lg-cometa', name: 'Liga Cometa', color: '#F2A81D', pos: 7, total: 30, closes: 'el domingo' };
 export const LEAGUE_TOP_XP: Record<string, number> = { 'lg-cometa': 1820 };
-export const ALL_LEAGUES: (Omit<LeagueResult, 'joined'> & { size: number })[] = [
-  { id: 'lg-dino', name: 'Exploradores de dinosaurios', desc: '128 chicos · Dinosaurios', color: '#13A39A', size: 128 },
-  { id: 'lg-paleo', name: 'Paleontólogos en acción', desc: '64 chicos · Dinosaurios y fósiles', color: '#F26B3A', size: 64 },
-  { id: 'lg-dquiz', name: 'Dino Quiz Club', desc: '212 chicos · Preguntas de dinosaurios', color: '#3A5BD9', size: 212 },
-  { id: 'lg-huellas', name: 'Huellas y fósiles', desc: '45 chicos · Fósiles', color: '#8A5CF5', size: 45 },
-  { id: 'lg-astro', name: 'Astronautas junior', desc: '156 chicos · El sistema solar', color: '#3A5BD9', size: 156 },
-  { id: 'lg-volc', name: 'Cazadores de volcanes', desc: '73 chicos · Volcanes', color: '#F26B3A', size: 73 },
-  { id: 'lg-frac', name: 'Reyes de las fracciones', desc: '98 chicos · Fracciones', color: '#E5487A', size: 98 },
-];
+export const GEO = {
+  zona: { name: 'Palermo', off: 0, top: 4980, me: 37, xp: 1240 },
+  pais: { name: 'Argentina', off: 6, top: 12650, me: 4812, xp: 1240 },
+};

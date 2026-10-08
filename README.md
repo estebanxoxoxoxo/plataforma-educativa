@@ -44,6 +44,7 @@ Node + TypeScript, reutiliza la lógica de la POC de Smarty. Las claves viven so
 | `POST /api/chat` | Pipeline de Smarty: juez de entrada en paralelo con el principal, crisis (guion fijo), redirección por lista negra, tools (videos, imágenes, artículos), veto por ítem, palabras bloqueadas, juez de salida con pelado de medios. Fail-closed, sin streaming | `pipeline.ts`, `prompts.ts`, `chatTools.ts` |
 | `GET /api/me` | Apodo del chico (de la configuración de Smarty) | — |
 | `GET /api/learn/course?id=&name=` | Aprender: temario del curso (fijo para los 5 cursos; generado por un modelo para los creados con "Generar curso") y **un contenido real por capítulo**: video del catálogo aprobado (1–20 min, sin repetir) o lectura de un sitio aprobado que ya pasó extracción + juez y está en español. Cacheado en `server/data/cache/courses/` | nuevo |
+| `GET /api/feed` · `POST /api/feed/react` | **FAKE (demo)**: el feed de la home (recomendaciones + noticias sociales + reacciones). El algoritmo real no existe todavía; `server/src/feedFake.ts` lo simula manteniendo las formas de respuesta — los videos y lecturas que recomienda son contenido real del catálogo/lista blanca, lo social es de demo | VISION.md §3 |
 
 Los links dentro de un artículo pasan por la misma ruta antes de abrirse. El reproductor usa YouTube nocookie contenido (sandbox, sin clics directos) con controles propios, como Smarty.
 
@@ -52,13 +53,14 @@ Prompts, reglas y constantes: se usa el override de la familia (del respaldo) o 
 ## Lo que sigue simulado
 
 Reemplazá el cuerpo de cada método restante de `src/api/index.ts` por una llamada al backend que devuelva el mismo tipo de `types.ts`. Los contenedores no cambian.
+El feed ya llama al server, pero contra `feedFake.ts`: para conectar el algoritmo real alcanza con reemplazar `getFeed()`/`reactFeed()` en el server.
 
 `api.chat` es un generador asíncrono (streaming): podés mapearlo a SSE o WebSocket emitiendo los mismos eventos (`token`, `share-checking`, `share`, `done`).
 
 ## Rutas
 
-`/` · `/descubrir/busqueda?q=&tab=` · `/descubrir/articulo/:id` · `/descubrir/video/:id` · `/descubrir/chat` ·
-`/aprender` · `/aprender/:id` · `/practicar` · `/practicar/:id` · `/practicar/:id/ejercicio/:n` · `/amigos` · `/ligas` · `/ligas/:id`
+`/` (feed) · `/descubrir/busqueda?q=&tab=` · `/descubrir/articulo/:id` · `/descubrir/video/:id` · `/descubrir/chat` ·
+`/aprender` · `/aprender/:id` · `/practicar` · `/practicar/:id` · `/practicar/:id/ejercicio/:n` · `/amigos` · `/ligas`
 
 ## Diferencias con el prototipo
 

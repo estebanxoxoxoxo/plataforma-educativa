@@ -67,3 +67,7 @@ export const IcBolt = svg(<path d="M13 2.5L5 13.5h6l-1 8 8-11h-6z" />, { fill: '
 export const IcBook = svg(<><path d="M4 5.5A1.5 1.5 0 015.5 4H11v15H5.5A1.5 1.5 0 014 17.5zM20 5.5A1.5 1.5 0 0018.5 4H13v15h5.5a1.5 1.5 0 001.5-1.5z" /></>, stroke(2.1, { strokeLinejoin: 'round' }));
 export const IcMedal = svg(<><path d="M12 2.8l7.8 4.5v9.4L12 21.2l-7.8-4.5V7.3z" fill="currentColor" /><path d="M12 7.6l1.4 2.9 3.1.4-2.3 2.2.6 3.1-2.8-1.5-2.8 1.5.6-3.1-2.3-2.2 3.1-.4z" fill="#fff" /></>, {});
 export const IcNone = svg(<><circle cx="12" cy="12" r="8.5" /><path d="M6 18L18 6" /></>, stroke(2.2, { strokeLinecap: 'round' }));
+
+// Feed / home
+export const IcHome = svg(<><path d="M4 10.6L12 3.8l8 6.8" /><path d="M6.2 9.4V20h11.6V9.4" /><path d="M10 20v-5.6h4V20" /></>, stroke(2.2, { strokeLinecap: 'round', strokeLinejoin: 'round' }));
+export const IcShare = svg(<><circle cx="6" cy="12" r="2.6" /><circle cx="17.5" cy="5.5" r="2.6" /><circle cx="17.5" cy="18.5" r="2.6" /><path d="M8.3 10.8l6.9-4M8.3 13.2l6.9 4" /></>, stroke(2, {}));

@@ -9,9 +9,8 @@ import { ExercisePage } from './sections/practice/containers/ExercisePage';
 import { JourneyPage } from './sections/practice/containers/JourneyPage';
 import { PracticePage } from './sections/practice/containers/PracticePage';
 import { FriendsPage } from './sections/friends/containers/FriendsPage';
-import { LeagueDetailPage } from './sections/leagues/containers/LeagueDetailPage';
 import { LeaguesPage } from './sections/leagues/containers/LeaguesPage';
-import { HomePage } from './sections/home/containers/HomePage';
+import { FeedPage } from './sections/home/containers/FeedPage';
 import { Sidebar } from './shared/components/Sidebar';
 import { UserProvider, useUser } from './hooks/user';
 
@@ -30,7 +29,7 @@ export default function App() {
     <UserProvider>
       <Routes>
         <Route element={<Layout />}>
-          <Route index element={<HomePage />} />
+          <Route index element={<FeedPage />} />
           <Route path="descubrir" element={<Navigate to="busqueda" replace />} />
           <Route path="descubrir/busqueda" element={<SearchPage />} />
           <Route path="descubrir/articulo/:id" element={<ArticlePage />} />
@@ -43,7 +42,6 @@ export default function App() {
           <Route path="practicar/:id/ejercicio/:n" element={<ExercisePage />} />
           <Route path="amigos" element={<FriendsPage />} />
           <Route path="ligas" element={<LeaguesPage />} />
-          <Route path="ligas/:id" element={<LeagueDetailPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

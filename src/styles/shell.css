@@ -6,6 +6,7 @@ nav{display:flex;flex-direction:column;gap:4px}
 .nav-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:7px;font-weight:800;font-size:17px;color:#47506B;transition:background .25s,color .25s;cursor:pointer}
 .nav-item svg{width:22px;height:22px;flex:none}
 .nav-item:hover{background:#F1F3F8}
+.nav-item[data-sec="home"].on{background:#ECEFF6;color:#1B2238}
 .nav-item[data-sec="discover"].on{background:#E2F5F3;color:#0B6B66}
 .nav-item[data-sec="learn"].on{background:#E7ECFD;color:#2843A8}
 .nav-item[data-sec="practice"].on{background:#FDEBE3;color:#B8431C}
@@ -23,10 +24,6 @@ nav{display:flex;flex-direction:column;gap:4px}
 
 .main{position:relative;overflow:hidden;min-width:0}
 .view{position:absolute;inset:0;padding:32px 40px;overflow-y:auto;animation:fadein .45s both}
-
-/* Home */
-#v-home{display:grid;place-content:center;text-align:center;gap:8px}
-#v-home .h2{font-size:44px}
 
 /* Modo "stage": 1280x720 escalado, para comparar contra el prototipo (?stage) */
 .stage-frame{position:relative;width:min(1180px,100%);aspect-ratio:16/9;margin:28px auto;border-radius:8px;overflow:hidden;border:1px solid #D3D9E6;box-shadow:0 18px 50px -20px rgba(20,26,44,.35)}

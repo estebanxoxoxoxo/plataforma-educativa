@@ -6,6 +6,7 @@
 //   GET /api/search/videos?q=...  → videos del catálogo aprobado
 //   GET /api/video?id=...         → un video aprobado + metadatos de YouTube
 //   POST /api/chat                → turno del chat con el pipeline de moderación de Smarty
+//   GET /api/feed?after=  ·  POST /api/feed/react   → FAKE (demo) hasta que exista el feed real
 //   GET /api/me                   → apodo del chico
 //   GET /api/learn/course?id=&name= → temario del curso con un contenido real por capítulo
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
@@ -16,6 +17,7 @@ import { searchImages } from './images'
 import { getVideo, loadVideoMeta, searchVideos, toVideoResult } from './videos'
 import { sendChildMessage } from './chat'
 import { getCourse, prewarmCourses } from './learn'
+import { getFeed, reactFeed } from './feedFake'
 import type { Msg } from './llm'
 
 const PORT = Number(process.env.PORT ?? 8787)
@@ -69,6 +71,16 @@ createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', 'http://localhost')
   const t0 = Date.now()
   try {
+    // --- FEED (FAKE): ver feedFake.ts ---
+    if (url.pathname === '/api/feed' && req.method === 'GET') {
+      return send(res, 200, getFeed(url.searchParams.get('after')))
+    }
+    if (url.pathname === '/api/feed/react' && req.method === 'POST') {
+      const b = await readJson<{ id?: string; emoji?: string }>(req)
+      if (!b.id || !b.emoji) return send(res, 400, { error: 'id/emoji' })
+      return send(res, 200, reactFeed(String(b.id), String(b.emoji)))
+    }
+
     if (req.method === 'POST' && url.pathname === '/api/chat') {
       const body = await readJson<{ history?: Msg[]; text?: string }>(req)
       const text = String(body.text ?? '').trim().slice(0, 2000) // límite de input de Smarty (RF-1.5)

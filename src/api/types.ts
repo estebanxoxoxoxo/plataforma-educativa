@@ -87,15 +87,15 @@ export type AnswerResult = {
 export type Friend = { id: string; nick: string; color: string; status: string; xp: string; streak: string; league: string; since: string; commonCourses: string[] };
 export type FriendMessage = { id: string; from: 'me' | 'them'; text: string };
 
-export type MyLeague = { id: string; name: string; desc: string; color: string; tag: 'assigned' | 'joined'; pos: number; total: number };
-/** Ranking completo de una liga (vista de detalle). */
+/** La liga del chico: ASIGNADA según sus resultados (no se elige). */
+export type AssignedLeague = { id: string; name: string; color: string; pos: number; total: number; closes: string };
+/** Tabla completa de una liga (todas las posiciones; `me` marca la propia). */
 export type LeagueStanding = {
   league: { id: string; name: string; color: string; total: number; pos: number };
   rows: { pos: number; nick: string; color: string; xp: number; me?: boolean }[];
 };
-export type GeoScope = 'zona' | 'prov' | 'pais';
-export type GeoRanking = { scope: GeoScope; top: { nick: string; color: string; xp: number }[]; me: { nick: string; pos: number; xp: number } };
-export type LeagueResult = { id: string; name: string; desc: string; color: string; joined: boolean };
+export type GeoScope = 'zona' | 'pais';
+export type GeoRanking = { scope: GeoScope; /** Palermo / Argentina */ name: string; top: { nick: string; color: string; xp: number }[]; me: { nick: string; pos: number; xp: number } };
 
 /** Lo que el chat muestra además del texto (ya resuelto y moderado por el backend). */
 export type ChatMedia = {
@@ -114,3 +114,19 @@ export type ChatReply = {
   media?: ChatMedia;
   /** Resumen de la decisión de moderación (DecisionTrace) */ trace: string;
 };
+
+/* ---------- Feed (home). El backend real no existe: lo sirve un server FAKE (server/src/feedFake.ts). ---------- */
+export type FeedReaction = { emoji: string; count: number; mine: boolean };
+export type FeedItem =
+  | { kind: 'video'; id: string; time: string; reason: string; video: VideoResult }
+  | { kind: 'article'; id: string; time: string; reason: string; title: string; url: string; source: string; snippet?: string }
+  | { kind: 'route'; id: string; time: string; reason: string; course: { id: string; name: string; units: number; img: string; bg: [string, string] } }
+  | { kind: 'friend'; id: string; time: string; friend: { nick: string; color: string }; text: string; icon: 'medal' | 'streak' | 'badge' | 'route' | 'league'; reactions: FeedReaction[] }
+  | { kind: 'league'; id: string; time: string; name: string; desc: string };
+export type FeedSidebar = {
+  /** Liga asignada por resultados + puestos por puntaje (zona y país). */
+  league: { name: string; pos: number; total: number; zone: { name: string; pos: number }; country: { name: string; pos: number } };
+  continue: { courseId: string; title: string; done: number; total: number };
+  topics: string[];
+};
+export type FeedResponse = { items: FeedItem[]; next: string | null; sidebar?: FeedSidebar };

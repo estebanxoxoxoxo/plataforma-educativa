@@ -3,8 +3,8 @@
 // en memoria. Cada llamada se loguea en la consola (→ / ←).
 import * as M from './mock';
 import type {
-  AnswerResult, Answer, ArticleResponse, ChatReply, ChatTurn, Course, CourseDetail, Exercise, Friend, FriendMessage,
-  GeoRanking, GeoScope, ImageResult, Journey, JourneyItem, LeagueResult, LeagueStanding, MyLeague, PageResult, SearchResponse,
+  AnswerResult, Answer, ArticleResponse, ChatReply, ChatTurn, Course, FeedReaction, FeedResponse, CourseDetail, Exercise, Friend, FriendMessage,
+  AssignedLeague, GeoRanking, GeoScope, ImageResult, Journey, JourneyItem, LeagueStanding, PageResult, SearchResponse,
   Tab, User, Video, VideoResult,
 } from './types';
 
@@ -41,7 +41,6 @@ async function call<T>(method: string, path: string, latency: number, fn: () => 
 const db = {
   generated: [] as Course[],
   progress: { solar: 2 } as Record<string, number>,
-  joined: [] as string[],
   threads: structuredClone(M.THREADS) as Record<string, FriendMessage[]>,
   pending: {} as Record<string, { text: string; at: number }[]>,
   seq: 100,
@@ -56,6 +55,10 @@ const findCourse = (id: string) => {
 /* ---------- endpoints ---------- */
 export const api = {
   me: () => http<User>('/api/me'),
+
+  /** Feed de la home (server FAKE hasta que exista el algoritmo real; misma forma de respuesta). */
+  feed: (after?: string) => http<FeedResponse>(`/api/feed${after ? `?after=${encodeURIComponent(after)}` : ''}`),
+  feedReact: (id: string, emoji: string) => http<{ id: string; reactions: FeedReaction[] }>('/api/feed/react', { id, emoji }),
 
   /** Una búsqueda vale para todas las solapas (backend real):
    *  páginas = Serper sobre la lista blanca · imágenes = Pixabay + Commons moderadas · videos = catálogo aprobado. */
@@ -162,22 +165,12 @@ export const api = {
   }),
 
   /* ligas */
-  myLeagues: () => call<MyLeague[]>('GET', '/leagues/mine', 500, () => [
-    M.ASSIGNED,
-    ...db.joined.map((id): MyLeague => {
-      const l = M.ALL_LEAGUES.find((x) => x.id === id)!;
-      return { id, name: l.name, desc: l.desc, color: l.color, tag: 'joined', pos: Math.round(l.size / 2), total: l.size };
-    }),
-  ]),
-  /** Ranking completo de una de mis ligas, con mi puesto marcado. */
+  /** La liga del chico (asignada por sus resultados; no hay "unirse"). */
+  myLeague: () => call<AssignedLeague>('GET', '/leagues/mine', 400, () => M.ASSIGNED),
+  /** Tabla completa de MI liga, con mi puesto marcado. */
   leagueStanding: (id: string) => call<LeagueStanding>('GET', `/leagues/${id}/standing`, 600, () => {
-    let info: { name: string; color: string; total: number; pos: number };
-    if (id === M.ASSIGNED.id) info = M.ASSIGNED;
-    else {
-      const l = M.ALL_LEAGUES.find((x) => x.id === id);
-      if (!l || !db.joined.includes(id)) throw new ApiError(404, 'No sos parte de esta liga');
-      info = { name: l.name, color: l.color, total: l.size, pos: Math.round(l.size / 2) };
-    }
+    if (id !== M.ASSIGNED.id) throw new ApiError(404, 'Esa liga no es tuya');
+    const info = M.ASSIGNED;
     const top = M.LEAGUE_TOP_XP[id] ?? 2600;
     const rows = Array.from({ length: info.total }, (_, i) => {
       const me = i + 1 === info.pos;
@@ -186,22 +179,13 @@ export const api = {
     });
     return { league: { id, name: info.name, color: info.color, total: info.total, pos: info.pos }, rows };
   }),
+  /** Puesto por puntaje en la zona o el país (top 10 + mi puesto). */
   geoRanking: (scope: GeoScope) => call<GeoRanking>('GET', `/leagues/geo/${scope}`, 450, () => {
     const G = M.GEO[scope];
     return {
-      scope,
+      scope, name: G.name,
       top: Array.from({ length: 10 }, (_, i) => ({ nick: M.NICKS[(i + G.off) % M.NICKS.length], color: M.COLS[(i + G.off) % M.COLS.length], xp: Math.round(G.top * (1 - i * 0.045)) })),
       me: { nick: M.ME.nick, pos: G.me, xp: G.xp },
     };
-  }),
-  searchLeagues: (q: string) => call<LeagueResult[]>('GET', `/leagues?q=${encodeURIComponent(q)}`, 500, () => {
-    const s = norm(q.trim());
-    if (!s) return [];
-    const list = M.topicOf(s) === 'dinosaurios' ? M.ALL_LEAGUES.slice(0, 4) : M.ALL_LEAGUES.filter((l) => norm(l.name + ' ' + l.desc).includes(s.slice(0, 5)));
-    return list.map(({ size: _size, ...l }) => ({ ...l, joined: db.joined.includes(l.id) }));
-  }),
-  joinLeague: (id: string) => call<{ ok: true }>('POST', `/leagues/${id}/join`, 500, () => {
-    if (!db.joined.includes(id)) db.joined.push(id);
-    return { ok: true };
   }),
 };
