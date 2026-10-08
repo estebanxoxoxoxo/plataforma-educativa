@@ -61,8 +61,16 @@ export type CourseDetail = Course & {
 
 export type ExType = 'open' | 'mc' | 'vf';
 export type NodeType = ExType | 'trophy' | 'skip';
-export type JourneyItem = { kind: 'div'; title: string } | { kind: 'node'; n: number; type: NodeType };
-export type Journey = { courseId: string; courseName: string; unitLabel: string; title: string; items: JourneyItem[]; done: number };
+export type JourneyItem =
+  | { kind: 'div'; title: string }
+  | { kind: 'node'; n: number; type: NodeType;
+      /** De qué trata (pregunta / afirmación) */ prompt?: string;
+      seconds?: number; xp: number;
+      /** Solo hitos: nombre de la insignia */ badge?: string };
+export type Journey = {
+  courseId: string; courseName: string; courseImg: string; courseBg: [string, string];
+  unitLabel: string; title: string; items: JourneyItem[]; done: number;
+};
 
 export type Exercise =
   | { n: number; type: 'open'; progress: number; seconds: number; question: string; placeholder: string }

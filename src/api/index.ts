@@ -4,7 +4,7 @@
 import * as M from './mock';
 import type {
   AnswerResult, Answer, ArticleResponse, ChatReply, ChatTurn, Course, CourseDetail, Exercise, Friend, FriendMessage,
-  GeoRanking, GeoScope, ImageResult, Journey, LeagueResult, LeagueStanding, MyLeague, PageResult, SearchResponse,
+  GeoRanking, GeoScope, ImageResult, Journey, JourneyItem, LeagueResult, LeagueStanding, MyLeague, PageResult, SearchResponse,
   Tab, User, Video, VideoResult,
 } from './types';
 
@@ -94,10 +94,17 @@ export const api = {
     const solar = courseId === 'solar';
     const done = db.progress[courseId] ?? Math.floor((c.progress / 100) * 8);
     db.progress[courseId] = done;
+    const XP = { open: 15, mc: 10, vf: 5, trophy: 30, skip: 0 } as const;
+    const items = M.JOURNEY_ITEMS(solar ? 'El Sol: nuestra estrella' : `${c.name}: parte 1`, solar ? 'Los planetas' : `${c.name}: parte 2`)
+      .map((it): JourneyItem => {
+        if (it.kind !== 'node') return it;
+        const ex = M.SOLAR_EXERCISES.find((e) => e.n === it.n);
+        const prompt = ex ? (ex.type === 'vf' ? ex.statement : ex.question) : undefined;
+        return { ...it, prompt, seconds: ex?.seconds, xp: XP[it.type], ...(it.type === 'trophy' ? { badge: solar ? 'Guardián del Sol' : `Experto en ${c.name}` } : {}) };
+      });
     return {
-      courseId, courseName: c.name, unitLabel: 'Unidad 1 · Sección 1', done,
-      title: solar ? 'El Sol: nuestra estrella' : `${c.name}: parte 1`,
-      items: M.JOURNEY_ITEMS(solar ? 'El Sol: nuestra estrella' : `${c.name}: parte 1`, solar ? 'Los planetas' : `${c.name}: parte 2`),
+      courseId, courseName: c.name, courseImg: c.img, courseBg: c.bg, unitLabel: 'Unidad 1', done,
+      title: solar ? 'El Sol y los planetas' : c.name, items,
     };
   }),
   exercise: (courseId: string, n: number) => call<Exercise>('GET', `/practice/${courseId}/exercises/${n}`, 450, () => {

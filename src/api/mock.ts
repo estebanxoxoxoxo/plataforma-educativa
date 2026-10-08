@@ -36,7 +36,7 @@ export const GEN_COURSE: Record<string, Pick<Course, 'img' | 'bg'>> = {
 export const JOURNEY_ITEMS = (sec1: string, sec2: string): JourneyItem[] => {
   const seq: (NodeType | { div: string })[] = [{ div: sec1 }, 'vf', 'mc', 'open', 'mc', 'vf', 'open', 'mc', 'vf', 'trophy', { div: sec2 }, 'vf', 'open', 'mc', 'vf'];
   let n = 0;
-  return seq.map((s): JourneyItem => (typeof s === 'string' ? { kind: 'node', n: n++, type: s } : { kind: 'div', title: s.div }));
+  return seq.map((s): JourneyItem => (typeof s === 'string' ? { kind: 'node', n: n++, type: s, xp: 0 } : { kind: 'div', title: s.div }));
 };
 
 export const SOLAR_EXERCISES: Exercise[] = [

@@ -3,15 +3,18 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../../api';
 import type { Answer, AnswerResult, Exercise } from '../../../api/types';
 import { useAsync } from '../../../hooks/useAsync';
+import { IcBolt } from '../../../shared/components/icons';
 import { Option, type OptState } from '../cards/Option';
 import { VFOption } from '../cards/VFOption';
 import { AiAnalysis } from '../components/AiAnalysis';
-import { ExTypeBadge } from '../components/ExTypeBadge';
-import { ExerciseBar } from '../components/ExerciseBar';
-import { ExerciseFooter } from '../components/ExerciseFooter';
+import { ExerciseTop } from '../components/ExerciseTop';
+import { ResultBar } from '../components/ResultBar';
 import { TYPES } from '../lib/exerciseTypes';
 
 type Phase = 'answering' | 'checking' | 'result';
+const XP = { open: 15, mc: 10, vf: 5 } as const;
+const LETTERS = 'ABCDEFGH';
+
 /** Se remonta por ejercicio: estado y temporizador limpios en cada uno. */
 export function ExercisePage() {
   const { id, n } = useParams();
@@ -63,41 +66,50 @@ function Exercise_() {
   };
   const toggle = (o: string) => setSel((s) => (o === '__none__' ? (s.includes(o) ? [] : [o]) : s.includes(o) ? s.filter((x) => x !== o) : [...s.filter((x) => x !== '__none__'), o]));
   const locked = phase !== 'answering';
+  const hint = ex.type === 'open' ? 'Respondé con tus palabras: no hay una única forma correcta.' : ex.type === 'mc' ? 'Marcá todas las que te parezcan correctas.' : 'Elegí si la afirmación es verdadera o falsa.';
 
   return (
     <section className="view" id="v-ex" style={{ '--c': T.c, '--d': T.d, '--soft': T.soft } as CSSProperties}>
-      <ExerciseBar progress={ex.progress} left={left ?? ex.seconds} total={ex.seconds} onClose={() => go(`/practicar/${id}`)} />
-      <div className="exbody">
-        <ExTypeBadge type={ex.type} />
-        {renderBody(ex)}
+      <div className="exwrap">
+        <ExerciseTop step={n + 1} progress={ex.progress} left={left ?? ex.seconds} total={ex.seconds} onClose={() => go(`/practicar/${id}`)} />
+        <article className="excard">
+          <div className="exhead">
+            <span className="extype"><T.G />{T.l}</span>
+            <span className="exxp"><IcBolt />+{XP[ex.type]} XP</span>
+          </div>
+          <div className="exbody">{renderBody(ex)}</div>
+          <ResultBar
+            result={phase === 'result' ? (result?.correct ? 'good' : 'bad') : undefined}
+            title={result?.title} detail={result?.detail} hint={hint}
+            label={phase === 'result' ? (result?.correct ? 'Seguir' : 'Volver al recorrido') : phase === 'checking' ? (ex.type === 'open' ? 'Analizando…' : 'Revisando…') : ex.type === 'open' ? 'Enviar respuesta' : 'Comprobar'}
+            enabled={phase === 'answering' && ready} busy={phase === 'checking'}
+            onClick={() => (phase === 'result' ? next() : ready && submit(answer()))}
+          />
+        </article>
       </div>
-      <ExerciseFooter
-        result={phase === 'result' ? (result?.correct ? 'good' : 'bad') : undefined}
-        title={result?.title} detail={result?.detail}
-        label={phase === 'result' ? 'Continuar' : phase === 'checking' ? (ex.type === 'open' ? 'Analizando…' : 'Comprobando…') : ex.type === 'open' ? 'Enviar' : 'Comprobar'}
-        enabled={phase === 'answering' && ready}
-        onClick={() => (phase === 'result' ? next() : ready && submit(answer()))}
-      />
     </section>
   );
 
   function renderBody(e: Exercise) {
     if (e.type === 'open') return <>
       <h3 className="exq">{e.question}</h3>
-      <textarea className="ta" value={text} onChange={(x) => setText(x.target.value)} placeholder={e.placeholder} readOnly={locked} rows={3} autoFocus />
+      <div className="tawrap">
+        <textarea className="ta" value={text} onChange={(x) => setText(x.target.value)} placeholder={e.placeholder} readOnly={locked} rows={4} maxLength={600} autoFocus />
+        <small className="tacount">{text.length}/600</small>
+      </div>
       {phase !== 'answering' && <AiAnalysis result={result?.ai && { ...result.ai, correct: result.correct }} />}
     </>;
     if (e.type === 'mc') return <>
       <h3 className="exq">{e.question}</h3>
-      <span className="hint">{e.hint}</span>
+      <p className="hint">{e.hint}</p>
       <div className="opts">
-        {e.options.map((o) => <Option key={o} label={o} state={optState(o, sel.includes(o))} disabled={locked} onClick={() => toggle(o)} />)}
+        {e.options.map((o, i) => <Option key={o} letter={LETTERS[i]} label={o} state={optState(o, sel.includes(o))} disabled={locked} onClick={() => toggle(o)} />)}
         <Option none label="Ninguna es correcta" state={optState('__none__', sel.includes('__none__'))} disabled={locked} onClick={() => toggle('__none__')} />
       </div>
     </>;
     return <>
       <h3 className="exq">¿Verdadero o falso?</h3>
-      <div className="stmt">{e.statement}</div>
+      <blockquote className="stmt">{e.statement}</blockquote>
       <div className="vf">
         <VFOption value state={optState('true', vf === true)} disabled={locked} onClick={() => setVf(true)} />
         <VFOption value={false} state={optState('false', vf === false)} disabled={locked} onClick={() => setVf(false)} />

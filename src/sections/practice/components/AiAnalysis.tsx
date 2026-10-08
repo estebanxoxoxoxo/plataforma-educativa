@@ -1,10 +1,14 @@
-import { GlyphOpen, IcCheck, IcX } from '../../../shared/components/icons';
+import { BrandMark } from '../../../shared/components/BrandMark';
+import { IcCheck, IcX } from '../../../shared/components/icons';
 
+/** Devolución de la IA sobre una respuesta abierta (esqueleto mientras analiza). */
 export const AiAnalysis = ({ result }: { result?: { verdict: string; feedback: string; correct: boolean } }) => (
   <div className="aic">
-    <span className="lbl"><GlyphOpen />Análisis de la IA</span>
+    <div className="aihead"><BrandMark /><b>Análisis de Innerith</b>
+      {result && <span className={`verdict ${result.correct ? 'y' : 'n'}`}>{result.correct ? <IcCheck /> : <IcX />}{result.verdict}</span>}
+    </div>
     {!result
-      ? <div className="aisk"><i style={{ width: '90%' }} /><i style={{ width: '70%' }} /><i style={{ width: '40%' }} /></div>
-      : <><div className="crit"><span className={result.correct ? 'y' : 'n'}>{result.correct ? <IcCheck /> : <IcX />}{result.verdict}</span></div><p>{result.feedback}</p></>}
+      ? <div className="aisk"><i style={{ width: '92%' }} /><i style={{ width: '74%' }} /><i style={{ width: '45%' }} /></div>
+      : <p>{result.feedback}</p>}
   </div>
 );
