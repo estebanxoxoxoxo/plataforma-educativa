@@ -32,6 +32,7 @@
 .nav-item[data-sec="store"]{--sec-bg:#EAF7DC;--sec-bd:#7DC447;--sec-fg:#3B6E12}
 .nav-item[data-sec="learn"]{--sec-bg:#E8EDFE;--sec-bd:#7B93F0;--sec-fg:#2843A8}
 .nav-item[data-sec="practice"]{--sec-bg:#FEEDE5;--sec-bd:#F58A5E;--sec-fg:#B03F18}
+.nav-item[data-sec="recall"]{--sec-bg:#DFF5EC;--sec-bd:#3FBF8E;--sec-fg:#116947}
 .nav-item[data-sec="friends"]{--sec-bg:#F1EAFE;--sec-bd:#A88AF7;--sec-fg:#5431B3}
 .nav-item[data-sec="leagues"]{--sec-bg:#FFF3D9;--sec-bd:#F4B740;--sec-fg:#7F5300}
 

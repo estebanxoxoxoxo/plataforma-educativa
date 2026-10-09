@@ -221,3 +221,63 @@ export type FeedSidebar = {
   topics: string[];
 };
 export type FeedResponse = { items: FeedItem[]; next: string | null; sidebar?: FeedSidebar };
+
+/* ---------- Repasar (nombre interno: Active Recall; visión audio 17) ----------
+   El server contabiliza la fuerza de cada FACT (lo que el chico sabe de cada dato puntual que practicó)
+   y arma una sesión diaria de cartas con lo que tiene flojo, mezclando cursos. El ledger del demo vive
+   en RAM (seed rico + resultados reales de Practicar en vivo) y vuelve al seed con cada carga. */
+export type RecallLevel = 'floja' | 'mejorando' | 'firme';
+export type RecallCourseState = {
+  courseId: string; name: string;
+  /** Facts por reforzar (flojas + mejorando) / total del curso */ weak: number; total: number;
+  /** Fuerza media 0-100 */ avg: number;
+};
+export type RecallSummary = {
+  /** La sesión de hoy: pendiente | hecha (ya la completó) | sin-material (nunca practicó nada) */
+  today: { state: 'pendiente' | 'hecha' | 'sin-material'; cards: number; courses: string[] };
+  weak: number; improving: number; firm: number; total: number;
+  perCourse: RecallCourseState[];
+  /** Días seguidos repasando (seed demo) */ streakDays: number;
+};
+/** Una carta de la sesión: un ejercicio (misma forma que Practicar) + de qué curso y fact viene. */
+export type RecallCard = {
+  id: number; factId: number;
+  course: { id: string; name: string };
+  ex: Exercise;
+};
+export type RecallSession = { id: number; cards: RecallCard[]; total: number };
+/** Resultado de una carta: la corrección de siempre + cómo quedó la fuerza del fact (y la cita
+ *  textual del material de donde sale, regla de oro). */
+export type RecallAnswerResult = AnswerResult & {
+  cite: string;
+  fact: { id: number; level: RecallLevel; strength: number; delta: number };
+};
+export type RecallFinish = {
+  correct: number; total: number;
+  /** Facts que subieron de nivel en esta sesión */ improved: number;
+  xpSession: number;
+  facts: { id: number; statement: string; course: string; level: RecallLevel }[];
+};
+
+/* ---------- Identidad (avatar propio; visión audios 26, 32, 41-42) ----------
+   Avatar dibujado determinístico (sin assets externos). `null` = el default típico: la inicial
+   sobre un color. En el demo el 80% de los usuarios se ve con avatar dibujado y el 20% con iniciales. */
+export type AvatarLook = { variant: number; color: string } | null;
+export type Identity = { nick: string; look: AvatarLook };
+
+/* ---------- Zona del padre v2: la configuración viva (visión audios 8, 34-35, 56, 66; POC Smarty) ---------- */
+/** Temas: los blancos se promueven (sugerencias del padre), los negros se filtran en serio. */
+export type ParentTopics = { white: string[]; black: string[] };
+/** Palabras bloqueadas: las de la familia (editables) se SUMAN a las de fábrica de Smarty. */
+export type ParentWords = { extra: string[]; builtin: number };
+/** Topes de volumen (0-100) que la música y el ruido de fondo del chico no pueden superar. */
+export type ParentVolume = { maxMusic: number; maxNoise: number };
+export type ParentAlert = {
+  id: number; ts: number;
+  kind: 'crisis' | 'contacto' | 'bloqueos';
+  /** Qué pasó, SIN el texto del chico si es crisis (cuarentena) */ text: string;
+  /** De dónde salió (chat, un hilo de Amigos…) */ source: string;
+  seen: boolean;
+};
+export type ParentPreset = { id: string; name: string; desc: string };
+export type ParentConfig = { topics: ParentTopics; words: ParentWords; volume: ParentVolume; preset: string | null };

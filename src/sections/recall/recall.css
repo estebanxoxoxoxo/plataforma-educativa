@@ -1,0 +1,4 @@
+/* Repasar — prefijo de sección: rc- (regla 5 de AGENTS: grepear toda clase nueva antes de usarla).
+   El ancho de página lo da .view (tokens --content-w/--view-px): esta sección NO define max-width propio.
+   La vista de carta en juego puede centrarse más angosta (como el ejercicio de Practicar: 780px) SIEMPRE
+   en el mismo eje. La tanda R escribe acá todos sus estilos. */

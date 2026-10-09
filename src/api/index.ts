@@ -4,11 +4,11 @@
 // (lista/generación). Cada llamada se loguea en la consola (→ / ←).
 import * as M from './mock';
 import type {
-  AnswerResult, Answer, ArticleResponse, ChannelDetail, Channel, ChatReply, ChatTurn, Course, DriveFolder, DriveItem, DriveView,
-  EcTx, FeedReaction, FeedResponse, FolderNode, FriendThread, CourseDetail, Exercise, Friend, FriendRequest, NewMarketItem, SendMessageResult,
-  ParentActivity, ParentFeatures, ParentItemPatch,
+  AnswerResult, Answer, ArticleResponse, AvatarLook, ChannelDetail, Channel, ChatReply, ChatTurn, Course, DriveFolder, DriveItem, DriveView,
+  EcTx, FeedReaction, FeedResponse, FolderNode, FriendThread, CourseDetail, Exercise, Friend, FriendRequest, Identity, NewMarketItem, SendMessageResult,
+  ParentActivity, ParentAlert, ParentConfig, ParentFeatures, ParentItemPatch, ParentPreset, ParentTopics, ParentVolume, ParentWords,
   AssignedLeague, GeoRanking, GeoScope, ImageResult, Journey, LeagueStanding, MarketItem, PageResult, Playlist, PlaylistDetail,
-  ProgressSummary, Redemption, SavePayload, SearchResponse, Tab, TrashView, User, Video, VideoResult,
+  ProgressSummary, RecallAnswerResult, RecallFinish, RecallSession, RecallSummary, Redemption, SavePayload, SearchResponse, Tab, TrashView, User, Video, VideoResult,
 } from './types';
 
 export type { FriendThread } from './types';
@@ -24,11 +24,21 @@ export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
 
+/** Sesión de la Zona de padres: el token lo da POST /api/parent/unlock (va por fetch directo en
+ *  sections/parent/lib/adultGate.ts: http() loguea los cuerpos y el PIN no debe pasar por acá).
+ *  Vive solo en memoria: recargar la página vuelve a pedir el PIN. */
+let parentToken: string | null = null;
+export const setParentToken = (t: string | null) => { parentToken = t; };
+
 /** Llamada al backend real (server/). Los errores de red se tratan como fallas (fail-closed en la UI). */
 async function http<T>(path: string, body?: unknown): Promise<T> {
   const method = body === undefined ? 'GET' : 'POST';
   console.debug(`%c[api] → ${method} ${path} (backend)`, 'color:#C24B1F;font-weight:bold', body ?? '');
-  const r = await fetch(path, body === undefined ? undefined : { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const headers: Record<string, string> = {};
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  // Las rutas del padre van con la sesión abierta por el PIN (menos las dos públicas que lee el chico).
+  if (parentToken && path.startsWith('/api/parent/')) headers['X-Parent-Token'] = parentToken;
+  const r = await fetch(path, { method, headers, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
   if (!r.ok) throw new ApiError(r.status, `HTTP ${r.status}`);
   const data = (await r.json()) as T;
   console.debug(`%c[api] ← ${method} ${path}`, 'color:#3A5BD9', data);
@@ -57,6 +67,10 @@ const findCourse = (id: string) => {
 /* ---------- endpoints ---------- */
 export const api = {
   me: () => http<User>('/api/me'),
+
+  /* ---- Identidad (avatar propio; server/src/identity.ts, persiste en server/data/identity.json) ---- */
+  identity: () => http<Identity>('/api/identity'),
+  setIdentity: (look: AvatarLook) => http<Identity>('/api/identity', { look }),
 
   /** Feed de la home (server FAKE hasta que exista el algoritmo real; misma forma de respuesta). */
   feed: (after?: string) => http<FeedResponse>(`/api/feed${after ? `?after=${encodeURIComponent(after)}` : ''}`),
@@ -90,6 +104,20 @@ export const api = {
   parentItemUpdate: (id: number, patch: ParentItemPatch) => http<{ ok: boolean }>('/api/parent/items/update', { id, ...patch }),
   parentItemArchive: (id: number) => http<{ ok: boolean }>('/api/parent/items/archive', { id }),
   deliverRedemption: (id: number) => http<{ ok: boolean }>('/api/parent/deliver', { id }),
+
+  /* ---- Zona del padre v2: configuración viva (tanda P). CONTRATO CONGELADO; server/src/parent.ts.
+         Todo esto viaja con X-Parent-Token (setParentToken tras el unlock); GET features y GET limits
+         son públicos porque los lee la UI del chico. ---- */
+  parentConfig: () => http<ParentConfig>('/api/parent/config'),
+  parentTopics: (patch: Partial<ParentTopics>) => http<ParentTopics>('/api/parent/topics', patch),
+  parentWords: (extra: string[]) => http<ParentWords>('/api/parent/words', { extra }),
+  parentVolume: (patch: Partial<ParentVolume>) => http<ParentVolume>('/api/parent/volume', patch),
+  parentAlerts: () => http<{ alerts: ParentAlert[] }>('/api/parent/alerts'),
+  parentAlertSeen: (id: number) => http<{ ok: boolean }>('/api/parent/alerts/seen', { id }),
+  parentPresets: () => http<{ presets: ParentPreset[]; current: string | null }>('/api/parent/presets'),
+  applyPreset: (id: string) => http<{ ok: boolean; config: ParentConfig; features: ParentFeatures }>('/api/parent/presets/apply', { id }),
+  /** Lo que la UI del chico necesita saber de la config del padre (público): topes de volumen. */
+  limits: () => http<ParentVolume>('/api/parent/limits'),
 
   /* ---- Mi espacio (backend real: server/src/space.ts, persistido en server/data/space.json) ---- */
   drive: (folder = 0) => http<DriveView>(`/api/space/drive?folder=${folder}`),
@@ -153,6 +181,13 @@ export const api = {
   /** Corrige en el servidor (la abierta la analiza un modelo). Si acierta el paso que toca, trae el premio (xp/xpWeek/ec). */
   submit: (courseId: string, n: number, a: Answer) => http<AnswerResult>('/api/practice/answer', { course: courseId, n, answer: a }),
   completeNode: (courseId: string, n: number) => http<{ done: number }>('/api/practice/complete', { course: courseId, n }),
+
+  /* ---- Repasar (Active Recall es el nombre interno) — server/src/recall.ts: el ledger por fact (RAM,
+         seed + resultados reales de Practicar) arma la sesión diaria de cartas; los aciertos suman XP real. ---- */
+  recall: () => http<RecallSummary>('/api/recall/summary'),
+  recallSession: (extra?: boolean) => http<RecallSession>('/api/recall/session', { extra: !!extra }),
+  recallAnswer: (sessionId: number, cardId: number, a: Answer) => http<RecallAnswerResult>('/api/recall/answer', { sessionId, cardId, answer: a }),
+  recallFinish: (sessionId: number) => http<RecallFinish>('/api/recall/finish', { sessionId }),
 
   /** Turno del chat: el backend corre el pipeline de moderación de Smarty (sin streaming: nada se
    *  muestra antes del juez de salida). `history` es el contexto ya "en cuarentena". */

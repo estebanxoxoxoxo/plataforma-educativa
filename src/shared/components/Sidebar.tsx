@@ -6,10 +6,10 @@ import { BrandMark } from './BrandMark';
 import { MiniPlayer } from './MiniPlayer';
 import {
   IcNavChat, IcNavDiscover, IcNavFolder, IcNavFriends, IcNavLeagues, IcNavLearn,
-  IcNavPractice, IcNavSearch, IcNavSpace, IcNavStore, IcNavTv,
+  IcNavPractice, IcNavRecall, IcNavSearch, IcNavSpace, IcNavStore, IcNavTv,
 } from './icons';
 
-type Sec = 'home' | 'search' | 'chat' | 'space' | 'store' | 'learn' | 'practice' | 'friends' | 'leagues';
+type Sec = 'home' | 'search' | 'chat' | 'space' | 'store' | 'learn' | 'practice' | 'recall' | 'friends' | 'leagues';
 // Orden definido por Esteban (9-oct-2026). El submenú de Mi espacio se engancha por sec, no por posición.
 const NAV: { sec: Sec; label: string; to: string; Icon: ComponentType }[] = [
   { sec: 'space', label: 'Mi espacio', to: '/espacio/carpetas', Icon: IcNavSpace },
@@ -20,6 +20,8 @@ const NAV: { sec: Sec; label: string; to: string; Icon: ComponentType }[] = [
   { sec: 'chat', label: 'Chat', to: '/chat', Icon: IcNavChat },
   { sec: 'learn', label: 'Aprender', to: '/aprender', Icon: IcNavLearn },
   { sec: 'practice', label: 'Practicar', to: '/practicar', Icon: IcNavPractice },
+  // Repasar = las cartas diarias del Active Recall (visión, audio 17): refresca lo que quedó flojo.
+  { sec: 'recall', label: 'Repasar', to: '/repasar', Icon: IcNavRecall },
   // Tienda: premios que publica el padre y se canjean con la Energy Coin cosechada practicando.
   { sec: 'store', label: 'Tienda', to: '/tienda', Icon: IcNavStore },
   { sec: 'friends', label: 'Amigos', to: '/amigos', Icon: IcNavFriends },
@@ -36,6 +38,7 @@ function activeFrom(path: string): { sec?: Sec; sub?: string } {
   if (path.startsWith('/tienda')) return { sec: 'store' };
   if (path.startsWith('/aprender')) return { sec: 'learn' };
   if (path.startsWith('/practicar')) return { sec: 'practice' };
+  if (path.startsWith('/repasar')) return { sec: 'recall' };
   if (path.startsWith('/amigos')) return { sec: 'friends' };
   if (path.startsWith('/ligas')) return { sec: 'leagues' };
   return {};

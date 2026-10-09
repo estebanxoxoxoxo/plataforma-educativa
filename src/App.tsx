@@ -8,6 +8,8 @@ import { LearnPage } from './sections/learn/containers/LearnPage';
 import { ExercisePage } from './sections/practice/containers/ExercisePage';
 import { JourneyPage } from './sections/practice/containers/JourneyPage';
 import { PracticePage } from './sections/practice/containers/PracticePage';
+import { RecallPage } from './sections/recall/containers/RecallPage';
+import { RecallSessionPage } from './sections/recall/containers/RecallSessionPage';
 import { FriendsPage } from './sections/friends/containers/FriendsPage';
 import { LeaguesPage } from './sections/leagues/containers/LeaguesPage';
 import { FeedPage } from './sections/home/containers/FeedPage';
@@ -78,6 +80,9 @@ export default function App() {
           <Route path="practicar" element={<PracticePage />} />
           <Route path="practicar/:id" element={<JourneyPage />} />
           <Route path="practicar/:id/ejercicio/:n" element={<ExercisePage />} />
+          {/* Repasar: las cartas diarias (Active Recall es solo el nombre interno) */}
+          <Route path="repasar" element={<RecallPage />} />
+          <Route path="repasar/sesion" element={<RecallSessionPage />} />
           <Route path="amigos" element={<FriendsPage />} />
           <Route path="ligas" element={<LeaguesPage />} />
           {/* Zona de padres: portón de adulto + funcionalidades, premios, actividad y protecciones */}

@@ -27,6 +27,8 @@ import { progressRoutes, resetProgress } from './progress'
 import * as market from './market'
 import { leaguesRoutes } from './leaguesFake'
 import { featureOn, parentRoutes, resetUnlockAttempts } from './parent'
+import { recallRoutes, resetRecall } from './recall'
+import { identityRoutes } from './identity'
 import { readJson, send } from './web'
 import type { Msg } from './llm'
 
@@ -76,10 +78,13 @@ createServer(async (req, res) => {
       resetUnlockAttempts()
       ;(market as { resetMarket?: () => void }).resetMarket?.()
       resetFriends() // el grafo social del demo (amigos aceptados, solicitudes, hilos) también vuelve al seed
+      resetRecall() // el ledger de Repasar (fuerza por fact) también es RAM: vuelve al seed
       return send(res, 200, { ok: true })
     }
 
     // --- Dominios con módulo propio (cada uno maneja sus subrutas y métodos) ---
+    if (url.pathname.startsWith('/api/recall/')) return await recallRoutes(req, res, url)
+    if (url.pathname === '/api/identity') return await identityRoutes(req, res, url)
     if (url.pathname.startsWith('/api/practice/')) return await practiceRoutes(req, res, url)
     if (url.pathname.startsWith('/api/progress/')) return progressRoutes(req, res, url)
     if (url.pathname.startsWith('/api/market')) return await market.marketRoutes(req, res, url)

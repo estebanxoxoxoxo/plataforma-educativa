@@ -9,6 +9,8 @@ import './sections/discover/discover.css';
 import './sections/space/space.css';
 import './sections/learn/learn.css';
 import './sections/practice/practice.css';
+import './sections/recall/recall.css';
+import './shared/components/avatar.css';
 import './sections/friends/friends.css';
 import './sections/leagues/leagues.css';
 import './sections/store/store.css';

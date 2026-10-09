@@ -166,6 +166,16 @@ export const IcNavPractice = filled(<g transform="rotate(-40 16 16)">
   <rect x="7" y="7.4" width="5.6" height="17.2" rx="2.8" fill={NK.orange} />
   <rect x="19.4" y="7.4" width="5.6" height="17.2" rx="2.8" fill={NK.orange} />
 </g>);
+/** Repasar: dos tarjetas de memoria (la verde asoma inclinada atrás) con el tilde de "esta ya la sé". */
+export const IcNavRecall = filled(<>
+  <g transform="rotate(10 20 10)"><rect x="10" y="3.6" width="18.5" height="13.5" rx="2.4" fill={NK.green} /></g>
+  <rect x="3.2" y="9.8" width="21.5" height="16" rx="2.6" fill="#fff" />
+  <rect x="4.9" y="11.5" width="18.1" height="12.6" rx="1.8" fill="#E9FAF2" />
+  <circle cx="10" cy="16" r="2.9" fill={NK.green} />
+  <path d="M8.7 16l1 1 1.7-1.9" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+  <path d="M14.8 14.6h6M14.8 17.6h4.5" stroke="#9BD9BE" strokeWidth="1.7" strokeLinecap="round" />
+  <path d="M7.4 21.4h12" stroke="#BFE9D6" strokeWidth="1.7" strokeLinecap="round" />
+</>);
 /** Amigos: dos caritas (violeta atrás, dorada adelante con aro blanco que las separa). */
 export const IcNavFriends = filled(<>
   <circle cx="21.4" cy="10.8" r="8.8" fill={NK.violet} />
