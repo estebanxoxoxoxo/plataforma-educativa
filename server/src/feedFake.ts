@@ -12,10 +12,17 @@
 //     medalla que el estandarte de Ligas y el aside) + dónde compito esta semana. Se arma al servir, no se duplica.
 //   - La barra lateral NO es demo: liga/zona/país salen de leaguesFake (con la XP real de ./progress) y "Seguí
 //     practicando" del progreso real + el recorrido real de Practicar: los MISMOS números que Ligas y Practicar.
+//   - Los TEMAS DE LA FAMILIA (Zona del padre v2) se aplican acá EN SERIO: lo que pega con un tema NEGRO no se sirve
+//     (videos, lecturas, rutas, noticias de amigos y temas del costado). Los BLANCOS son "las sugerencias del padre"
+//     (audio 8: guían, no dirigen): uno de cada tres videos sale de ellos (el primero incluido, como mucho 2 por tema) y
+//     lo que pega con alguno en el título dice "Porque a tu familia le interesa: …". Las PALABRAS de la familia también
+//     sacan lo que las trae. El armado se rehace cuando cambian esos temas o palabras.
 // Para conectar el backend real: reemplazar getFeed()/reactFeed() manteniendo las formas.
 import { whiteTopics } from './config'
 import { friendNews } from './friendsFake'
 import { lastCloseLabel, leagueSidebar, MEDAL_EMOJI, myLeague, type Medal } from './leaguesFake'
+import { matchBlockedWord } from './filters'
+import { familyBlockedTerms, familyTopics, topicHit } from './parent'
 import { practiceSummary } from './practice'
 import { summary } from './progress'
 import { searchVideos, toVideoResult, type CatalogVideo } from './videos'
@@ -84,11 +91,41 @@ function leagueNews(): { name: string; desc: string } {
   return { name: l.name, desc: `Por tus resultados, esta semana ${others}. ${closes}` }
 }
 
-/* ---------- armado (una vez por proceso) ---------- */
+/* ---------- armado (una vez por proceso y cada vez que la familia cambia sus temas) ---------- */
 let built: FeedItem[] | null = null
+let builtFor = ''
 let topicsUsed: string[] = []
+/** El motivo de una sugerencia de la familia (tema blanco de la Zona de padres). */
+const familyReason = (t: string) => `Porque a tu familia le interesa: ${t}`
 function build(): FeedItem[] {
-  if (built) return built
+  const fam = familyTopics()
+  const famTerms = familyBlockedTerms()
+  const key = JSON.stringify([fam, famTerms])
+  if (built && builtFor === key) return built
+  builtFor = key
+  // Temas de la familia: lo que pega con uno NEGRO (o trae una palabra bloqueada de la familia) no se sirve (título,
+  // canal, tags y descripción: fail-closed); lo que pega con uno BLANCO en su TÍTULO lleva el motivo de la familia (solo
+  // coincidencias fuertes: si no, media home diría "Porque a tu familia…" y dejaría de guiar para dirigir).
+  const blocked = (text: string) => topicHit(text, fam.black) !== null || matchBlockedWord(text, famTerms) !== null
+  const why = (title: string, base: string) => { const w = topicHit(title, fam.white); return w ? familyReason(w) : base }
+  const videoText = (v: CatalogVideo) => `${v.title} ${v.channelTitle} ${v.tags.join(' ')} ${v.description.slice(0, 300)}`
+  const seen = new Set<string>()
+  const pickVideo = (q: string) => (searchVideos(q, 8) as CatalogVideo[]).find(h => !seen.has(h.videoId) && h.duration >= 60 && h.duration <= 1500 && !blocked(videoText(h)))
+  const okTopics: string[] = []
+  // Sugerencias de la familia (temas blancos de la Zona de padres): hasta 2 videos por tema y 5 en total.
+  const famQs = fam.white.filter(q => !blocked(q))
+  const famMax = Math.min(5, famQs.length * 2)
+  const famVids: { video: VideoCard; reason: string }[] = []
+  for (let round = 0; round < 2 && famVids.length < famMax; round++) {
+    for (const q of famQs) {
+      if (famVids.length >= famMax) break
+      const hit = pickVideo(q)
+      if (!hit) continue
+      seen.add(hit.videoId)
+      famVids.push({ video: toVideoResult(hit), reason: familyReason(q) })
+      if (!okTopics.includes(q)) okTopics.push(q)
+    }
+  }
   // Videos del catálogo aprobado. Temas blancos del padre INTERCALADOS con temas generales
   // (si no, un tema de la config domina toda la home) — 1 video por tema por ronda.
   const white = whiteTopics().map(t => t.name)
@@ -98,24 +135,33 @@ function build(): FeedItem[] {
     if (white[i]) queries.push(white[i])
     if (fallback[i]) queries.push(fallback[i])
   }
-  const qs = [...new Set(queries)]
-  const vids: { video: VideoCard; reason: string }[] = []
-  const seen = new Set<string>()
-  const okTopics: string[] = []
-  for (let round = 0; round < 2 && vids.length < 14; round++) {
+  const qs = [...new Set(queries)].filter(q => !blocked(q))
+  const baseVids: { video: VideoCard; reason: string }[] = []
+  for (let round = 0; round < 2 && baseVids.length + famVids.length < 14; round++) {
     for (const q of qs) {
-      if (vids.length >= 14) break
-      const hit = (searchVideos(q, 8) as CatalogVideo[]).find(h => !seen.has(h.videoId) && h.duration >= 60 && h.duration <= 1500)
+      if (baseVids.length + famVids.length >= 14) break
+      const hit = pickVideo(q)
       if (!hit) continue
       seen.add(hit.videoId)
-      vids.push({ video: toVideoResult(hit), reason: q })
+      baseVids.push({ video: toVideoResult(hit), reason: why(hit.title, q) })
       if (!okTopics.includes(q)) okTopics.push(q)
     }
   }
+  // Las sugerencias de la familia GUÍAN sin dirigir: uno de cada tres videos, empezando por el primero.
+  const vids: { video: VideoCard; reason: string }[] = []
+  while (famVids.length || baseVids.length) {
+    const next = (vids.length % 3 === 0 ? famVids.shift() : baseVids.shift()) ?? famVids.shift() ?? baseVids.shift()
+    if (next) vids.push(next)
+  }
   topicsUsed = okTopics
 
+  // Lecturas, rutas y noticias sin lo que pega con un tema negro. Los ids conservan el lugar en su pool (las
+  // reacciones de las noticias van por id: no se corren cuando se filtra una).
+  const arts = ARTICLES.map((a, i) => ({ ...a, n: i + 1 })).filter(a => !blocked(`${a.title} ${a.snippet} ${a.reason}`))
+  const routes = ROUTES.filter(c => !blocked(c.name))
+  const news = friendNews().map((e, i) => ({ ...e, n: i + 1 })).filter(e => !blocked(e.text))
+
   // Intercalado: social → video → lectura → video → ruta/liga → …
-  const news = friendNews()
   const pattern = ['friend', 'video', 'article', 'video', 'route', 'friend', 'video', 'article', 'league'] as const
   const idx = { friend: 0, video: 0, article: 0, route: 0, league: 0 }
   const items: FeedItem[] = []
@@ -125,15 +171,15 @@ function build(): FeedItem[] {
       if (kind === 'video' && idx.video < vids.length) {
         const v = vids[idx.video++]
         items.push({ kind, id: `fv-${v.video.id}`, time: timeOf(i), reason: v.reason, video: v.video })
-      } else if (kind === 'article' && idx.article < ARTICLES.length) {
-        const a = ARTICLES[idx.article++]
-        items.push({ kind, id: `fa-${idx.article}`, time: timeOf(i), ...a })
-      } else if (kind === 'route' && idx.route < ROUTES.length) {
-        const c = ROUTES[idx.route++]
-        items.push({ kind, id: `fr-${c.id}`, time: timeOf(i), reason: 'Por tus temas de interés', course: c })
+      } else if (kind === 'article' && idx.article < arts.length) {
+        const { n, ...a } = arts[idx.article++]
+        items.push({ kind, id: `fa-${n}`, time: timeOf(i), ...a, reason: why(a.title, a.reason) })
+      } else if (kind === 'route' && idx.route < routes.length) {
+        const c = routes[idx.route++]
+        items.push({ kind, id: `fr-${c.id}`, time: timeOf(i), reason: why(c.name, 'Por tus temas de interés'), course: c })
       } else if (kind === 'friend' && idx.friend < news.length) {
         const e = news[idx.friend++]
-        items.push({ kind, id: `ff-${idx.friend}`, time: timeOf(i), friend: e.friend, text: e.text, icon: e.icon, reactions: [] })
+        items.push({ kind, id: `ff-${e.n}`, time: timeOf(i), friend: e.friend, text: e.text, icon: e.icon, reactions: [] })
       } else if (kind === 'league' && idx.league === 0) {
         idx.league = 1
         // La liga se ASIGNA por resultados: la noticia cuenta el ciclo (cierre pasado + dónde competís esta semana),

@@ -5,6 +5,7 @@ import {
   seekMusic, setAmbientVolume, setMusicVolume, stopMusic, toggleAmbient, useBgAudio,
 } from '../audio/bgAudio';
 import { AMBIENTS } from '../audio/ambientNoise';
+import { refreshLimits, useLimits } from '../../sections/parent/lib/limits';
 import { IcClose, IcNavHeadphones, IcPause, IcPlay, IcRepeat, IcSkipNext, IcSkipPrev } from './icons';
 
 const fmtT = (s: number) => { const m = Math.floor(s / 60); const sec = Math.floor(s % 60); return `${m}:${String(sec).padStart(2, '0')}`; };
@@ -14,9 +15,11 @@ const fmtT = (s: number) => { const m = Math.floor(s / 60); const sec = Math.flo
  *  cada uno con su propio volumen. Lee/controla el singleton bgAudio. */
 export function MiniPlayer() {
   const bg = useBgAudio();
+  const caps = useLimits(); // topes de volumen de la familia (Zona de padres): los sliders no pasan de ahí
   const go = useNavigate();
   const [open, setOpen] = useState(false);
   const panel = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (open) void refreshLimits(); }, [open]);
 
   // Cerrar al clickear fuera (incluye tocar una sección del menú).
   useEffect(() => {
@@ -83,13 +86,14 @@ export function MiniPlayer() {
               )}
               <div className="mp-vol">
                 <span className="mp-vlbl">Vol</span>
-                <input type="range" min={0} max={100} value={bg.volume} onChange={(e) => setMusicVolume(Number(e.target.value))} aria-label="Volumen de la música" />
+                <input type="range" min={0} max={caps.maxMusic} value={Math.min(bg.volume, caps.maxMusic)} onChange={(e) => setMusicVolume(Number(e.target.value))} aria-label="Volumen de la música" />
+                {caps.maxMusic < 100 && <small className="pz-cap" title="Volumen máximo que eligió tu familia">máx. {caps.maxMusic}</small>}
               </div>
             </div>
           )}
 
           <div className={`mp-amb${bg.video ? ' sep' : ''}`}>
-            <p className="mp-sub">Ruidos para concentrarte</p>
+            <p className="mp-sub">Ruidos para concentrarte{caps.maxNoise < 100 && <span className="pz-cap" title="Volumen máximo que eligió tu familia"> · máx. {caps.maxNoise}</span>}</p>
             {AMBIENTS.map((a) => {
               const st = bg.ambient[a.key];
               return (
@@ -97,7 +101,7 @@ export function MiniPlayer() {
                   <button className={`mp-achip${st.on ? ' on' : ''}`} aria-pressed={st.on} onClick={() => toggleAmbient(a.key)}>
                     <span>{a.emoji}</span>{a.label.replace('Ruido ', '')}
                   </button>
-                  <input type="range" min={0} max={100} step={1} value={st.volume} onChange={(e) => setAmbientVolume(a.key, Number(e.target.value))}
+                  <input type="range" min={0} max={caps.maxNoise} step={1} value={Math.min(st.volume, caps.maxNoise)} onChange={(e) => setAmbientVolume(a.key, Number(e.target.value))}
                     className={st.on ? '' : 'off'} aria-label={`Volumen ${a.label}`} />
                 </div>
               );

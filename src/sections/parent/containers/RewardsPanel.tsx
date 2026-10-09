@@ -6,6 +6,7 @@ import { DeliveryRow } from '../cards/DeliveryRow';
 import { RewardRow } from '../cards/RewardRow';
 import { PanelState } from '../components/PanelState';
 import { RewardForm } from '../components/RewardForm';
+import { parentCall } from '../lib/adultGate';
 import { useFeatures } from '../lib/features';
 import { patchFrom } from '../lib/rewardDraft';
 import type { ParentDashboard, ParentItemPatch, ParentItemView } from '../lib/types';
@@ -71,7 +72,7 @@ export function RewardsPanel({ kid, dash, failed, reload }: { kid: string; dash:
     setFormError(null);
     try {
       if (form.mode === 'new') {
-        const it = await api.parentItemAdd(v);
+        const it = await parentCall(api.parentItemAdd(v));
         await reload();
         if (!alive.current) return;
         setForm(null);
@@ -80,7 +81,7 @@ export function RewardsPanel({ kid, dash, failed, reload }: { kid: string; dash:
       } else {
         const patch = patchFrom(form.item, v);
         if (Object.keys(patch).length) {
-          const r = await api.parentItemUpdate(form.item.id, patch);
+          const r = await parentCall(api.parentItemUpdate(form.item.id, patch));
           if (!r.ok) { if (alive.current) setFormError('Ese premio ya no existe.'); await reload(); return; }
           await reload();
         }
@@ -98,7 +99,7 @@ export function RewardsPanel({ kid, dash, failed, reload }: { kid: string; dash:
 
   const restore = (it: ParentItemView) => run(`item:${it.id}`, async () => {
     const reactivate: ParentItemPatch = { archived: false };
-    const r = await api.parentItemUpdate(it.id, reactivate);
+    const r = await parentCall(api.parentItemUpdate(it.id, reactivate));
     await reload();
     if (!alive.current) return;
     if (!r.ok) { setNotice({ text: 'Ese premio ya no existe.', err: true }); return; }
@@ -107,14 +108,14 @@ export function RewardsPanel({ kid, dash, failed, reload }: { kid: string; dash:
   });
   const archive = (it: ParentItemView) => run(`item:${it.id}`, async () => {
     if (form?.mode === 'edit' && form.item.id === it.id) closeForm();
-    const r = await api.parentItemArchive(it.id);
+    const r = await parentCall(api.parentItemArchive(it.id));
     await reload();
     if (!alive.current) return;
     if (!r.ok) { setNotice({ text: 'Ese premio ya no existe.', err: true }); return; }
     setNotice({ text: `Archivado: “${it.title}”. ${kid} ya no lo ve en la Tienda.`, undo: () => void restore(it) });
   });
   const deliver = (r: Redemption) => run(`red:${r.id}`, async () => {
-    const res = await api.deliverRedemption(r.id);
+    const res = await parentCall(api.deliverRedemption(r.id));
     await reload();
     if (!alive.current) return;
     setNotice(res.ok ? { text: `Marcado como entregado: “${r.title}”.` } : { text: 'Ese canje ya no existe (la demo se reinició al recargar).', err: true });

@@ -43,7 +43,11 @@ framework en `server/` (puerto 8787, proxy `/api` de Vite). El usuario demo es I
 9. **La economía del demo vive en RAM** (pedido de Esteban): XP/Energy Coin/canjes NO se persisten
    a disco; cada carga de página hace POST /api/demo/reset (ver src/hooks/user.tsx) y todo vuelve a
    los valores iniciales (seed). Si tu módulo guarda estado económico, exponé un reset() y
-   registralo en ese endpoint. SÍ persisten los activos/preferencias del chico (space.json, wishlist.json) y la CONFIG del padre (parent.json: on-off de funcionalidades y premios de la Tienda).
+   registralo en ese endpoint. SÍ persisten los activos/preferencias del chico (space.json,
+   wishlist.json, identity.json: el avatar) y la CONFIG del padre (parent.json v2: on-off de
+   funcionalidades, premios de la Tienda, temas blancos/negros, palabras de la familia, topes de
+   volumen y preset aplicado). Los AVISOS al padre (crisis/contacto/bloqueos) viven en RAM y hoy
+   NO se registran en el reset del demo.
 10. **Watcher de Vite/tsx en Windows**: a veces pierde la segunda de dos ediciones seguidas del
    mismo archivo y sirve un módulo viejo. Si el navegador no refleja tu cambio, verificá el módulo
    servido y hacé un `touch` del archivo para forzar la recarga.

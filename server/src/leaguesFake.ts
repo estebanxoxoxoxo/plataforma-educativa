@@ -15,6 +15,7 @@
 // Para conectar el backend real: reemplazar myLeague()/standing()/geoRanking() manteniendo las formas.
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { config } from './config'
+import { featureOn } from './parent'
 import { weekXp } from './progress'
 import { send } from './web'
 
@@ -120,6 +121,8 @@ export function leagueSidebar() {
 
 /* ---------- rutas ---------- */
 export function leaguesRoutes(req: IncomingMessage, res: ServerResponse, url: URL): void {
+  // Ligas apagadas por el padre: no existen, ni por URL (fail-closed, antes que nada; mismo patrón que market/amigos).
+  if (!featureOn('ligas')) return send(res, 403, { error: 'Las ligas están apagadas por tu familia' })
   if (req.method !== 'GET') return send(res, 405, { error: 'method' })
   if (url.pathname === '/api/leagues/mine') return send(res, 200, myLeague())
   if (url.pathname === '/api/leagues/standing') {

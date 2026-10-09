@@ -12,6 +12,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { api } from '../../../api';
 import type { ParentFeatures } from '../../../api/types';
+import { parentCall } from './adultGate';
 
 export type FeatureKey = keyof ParentFeatures;
 export const FEATURE_KEYS: FeatureKey[] = ['tienda', 'ligas', 'amigos', 'chat'];
@@ -125,12 +126,19 @@ export function useFeatureGate(path: string): GateState {
   return s.features![key] ? 'on' : 'off';
 }
 
-/** El padre prende/apaga: guarda en el server y aplica la respuesta acá y en las otras pestañas. */
+/** El padre prende/apaga: guarda en el server (con la sesión del PIN) y aplica la respuesta acá y en las otras pestañas. */
 export async function saveFeature(key: FeatureKey, on: boolean): Promise<ParentFeatures> {
-  const f = await api.setFeature(key, on);
+  const f = await parentCall(api.setFeature(key, on));
   if (!isFeatures(f)) throw new Error('respuesta inválida');
+  adoptFeatures(f);
+  return f;
+}
+
+/** Aplica on-off que ya guardó el server (un guardado o un PRESET de la Zona de padres): el menú y las páginas del
+ *  chico cambian al instante en esta pestaña y en las otras del navegador. */
+export function adoptFeatures(f: ParentFeatures) {
+  if (!isFeatures(f)) return;
   publish(f);
   openChannel();
   try { bc?.postMessage(f); } catch { /* sin canal: las otras pestañas se enteran al volver el foco */ }
-  return f;
 }

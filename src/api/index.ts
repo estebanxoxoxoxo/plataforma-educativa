@@ -115,6 +115,8 @@ export const api = {
   parentAlerts: () => http<{ alerts: ParentAlert[] }>('/api/parent/alerts'),
   parentAlertSeen: (id: number) => http<{ ok: boolean }>('/api/parent/alerts/seen', { id }),
   parentPresets: () => http<{ presets: ParentPreset[]; current: string | null }>('/api/parent/presets'),
+  /** Cierra la sesión del padre en el server ("Cerrar zona de padres"); el portón vuelve a pedir PIN. */
+  parentLock: () => http<{ ok: boolean }>('/api/parent/lock', {}),
   applyPreset: (id: string) => http<{ ok: boolean; config: ParentConfig; features: ParentFeatures }>('/api/parent/presets/apply', { id }),
   /** Lo que la UI del chico necesita saber de la config del padre (público): topes de volumen. */
   limits: () => http<ParentVolume>('/api/parent/limits'),

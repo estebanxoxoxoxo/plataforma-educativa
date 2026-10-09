@@ -1,5 +1,8 @@
 // Port de smarty-poc/app/src/lib/domainFilter.ts, articleAccess.ts y wordFilter.ts.
 import { articleBlacklist, blockedSiteDomains, config, whitelistSites } from './config'
+// Zona del padre v2: lo que la familia suma a las palabras de fábrica. Import cruzado (parent → space/videos → filters):
+// seguro mientras nadie llame a estos módulos en su nivel superior (regla en la cabecera de parent.ts).
+import { familyBlockedTerms } from './parent'
 
 const hostOf = (url: string) => { try { return new URL(url).hostname.toLowerCase() } catch { return url.toLowerCase() } }
 const hostPathOf = (url: string) => { try { const u = new URL(url); return (u.hostname + u.pathname + u.search).toLowerCase() } catch { return url.toLowerCase() } }
@@ -45,10 +48,11 @@ export function isAllowedArticleSite(url: string): boolean {
   return !inBlacklist(url, articleBlacklist())
 }
 
-/* Palabras bloqueadas, por palabra/frase entera e insensible a tildes (wordFilter.ts). */
+/* Palabras bloqueadas, por palabra/frase entera e insensible a tildes (wordFilter.ts). Por defecto: las de fábrica +
+   las de la familia (palabras y nombres de sus temas negros, editables en la Zona de padres): vale en el acto. */
 const normalize = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ')
 const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-export function matchBlockedWord(text: string, words: string[] = config.blockedWords): string | null {
+export function matchBlockedWord(text: string, words: string[] = [...config.blockedWords, ...familyBlockedTerms()]): string | null {
   if (!text || !words.length) return null
   const haystack = normalize(text)
   for (const w of words) {

@@ -4,8 +4,11 @@
 // COLA + ÍNDICE: `queue`+`index` con `video = queue[index]` como campo concreto; un track suelto es
 // una cola de 1. Al terminar cada track avanza según `repeat`. Un video en PRIMER PLANO pausa la
 // música (duck) y al salir la reanuda — decisión A de REPRODUCCION.md.
-// Pendiente (requiere panel del padre): topes parentales de volumen (settings.maxVol* de Smarty).
+// TOPES PARENTALES (Zona del padre v2; settings.maxVol* de Smarty): son techos — el volumen efectivo es min(lo que eligió
+// el chico, tope), los sliders del MiniPlayer no pasan del tope y si el padre lo baja, lo que suena baja en el acto. Lo
+// elegido por el chico se conserva: si el padre después sube el tope, vuelve a su volumen.
 import { useSyncExternalStore } from 'react';
+import { getLimits, subscribeLimits } from '../../sections/parent/lib/limits';
 import { ytCommand, ytSubscribe, parseYtMessage } from '../lib/ytBridge';
 import { ambientStart, ambientStop, ambientStopAll, ambientSetVolume, AMBIENTS, type AmbientKey } from './ambientNoise';
 
@@ -70,6 +73,15 @@ export function useBgAudio(): BgAudioState {
   return useSyncExternalStore(subscribe, snapshot, snapshot);
 }
 
+/* ---- topes parentales: volumen efectivo y re-aplicación cuando el padre los cambia ---- */
+const capMusic = (v: number) => Math.min(v, getLimits().maxMusic);
+const capNoise = (v: number) => Math.min(v, getLimits().maxNoise);
+subscribeLimits(() => {
+  if (state.video) ytCommand(iframe, 'setVolume', [capMusic(state.volume)]);
+  for (const a of AMBIENTS) if (state.ambient[a.key].on) ambientSetVolume(a.key, capNoise(state.ambient[a.key].volume));
+  emit();
+});
+
 /* ---- enganche del host (BgAudioHost) ---- */
 
 export function setBgIframe(el: HTMLIFrameElement | null) { iframe = el; }
@@ -78,7 +90,7 @@ export function bgStartAt() { return startAt; }
 /* onLoad del iframe: suscribir al bus + fijar volumen; si el estado dice pausado, pausar el autoplay. */
 export function bgOnIframeLoad() {
   ytSubscribe(iframe);
-  ytCommand(iframe, 'setVolume', [state.volume]);
+  ytCommand(iframe, 'setVolume', [capMusic(state.volume)]); // respeta el tope parental
   if (!state.playing) ytCommand(iframe, 'pauseVideo');
 }
 
@@ -146,7 +158,7 @@ export function seekMusic(seconds: number) {
 export function stopMusic() { startAt = 0; state = { ...state, video: null, queue: [], index: 0, playing: false, ducked: false, currentTime: 0, duration: 0 }; emit(); }
 
 export function setMusicVolume(v: number) {
-  const vol = Math.max(0, Math.min(100, Math.round(v)));
+  const vol = Math.max(0, Math.min(getLimits().maxMusic, Math.round(v))); // tope parental de la música
   ytCommand(iframe, 'setVolume', [vol]);
   localStorage.setItem(VOL_KEY, String(vol));
   state = { ...state, volume: vol }; emit();
@@ -161,12 +173,12 @@ export function cycleRepeat() {
 /* ---- Ambientes (ruido sintetizado; en paralelo con la música, no se duckean) ---- */
 export function toggleAmbient(key: AmbientKey) {
   const cur = state.ambient[key];
-  if (cur.on) ambientStop(key); else ambientStart(key, cur.volume);
+  if (cur.on) ambientStop(key); else ambientStart(key, capNoise(cur.volume)); // tope parental de los ruidos
   state = { ...state, ambient: { ...state.ambient, [key]: { ...cur, on: !cur.on } } };
   emit();
 }
 export function setAmbientVolume(key: AmbientKey, v: number) {
-  const vol = Math.max(0, Math.min(100, v));
+  const vol = Math.max(0, Math.min(getLimits().maxNoise, v)); // tope parental de los ruidos
   ambientSetVolume(key, vol);
   state = { ...state, ambient: { ...state.ambient, [key]: { ...state.ambient[key], volume: vol } } };
   persistAmbientVol(); emit();

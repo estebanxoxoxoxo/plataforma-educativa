@@ -32,11 +32,11 @@
 // Para conectar el backend real: reemplazar el estado en RAM y los NPCs manteniendo las formas.
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { guionCrisis } from './chat'
-import { MODELS, blackTopics, fill, ov } from './config'
+import { MODELS, fill, ov } from './config'
 import { matchBlockedWord } from './filters'
 import { judgeOutput } from './judge'
 import { complete, parseJudgeJson, spotlight } from './llm'
-import { featureOn } from './parent'
+import { blackTopicsAll, featureOn, notifyParent } from './parent'
 import { readJson, send } from './web'
 
 /* ---------- formas (las de src/api/types.ts) ---------- */
@@ -238,7 +238,7 @@ const transcript = (n: Npc, lines: FriendMessage[], chars = Infinity) =>
 /** Juez de entrada para mensajes entre chicos: mismo modelo, lista negra (con [CRITICO]), categorías de crisis y knobs
  *  (const.juezInput*) que el juez del chat. Fail-closed: si falla o responde fuera de esquema, tira error. */
 async function judgeDm(n: Npc, recent: FriendMessage[], text: string): Promise<DmVerdict> {
-  const temas = blackTopics().map(t => `- ${t.name}: ${t.description}${t.critical ? ' [CRITICO]' : ''}`).join('\n') || '(lista vacía)'
+  const temas = blackTopicsAll().map(t => `- ${t.name}: ${t.description}${t.critical ? ' [CRITICO]' : ''}`).join('\n') || '(lista vacía)'
   const ctx = transcript(n, recent.slice(-ov.num('const.juezInputTurnos')), ov.num('const.juezInputChars'))
   const mensajes = `Contexto reciente:\n${spotlight(ctx || '(inicio de la conversación)')}\n\nÚLTIMO MENSAJE DE IAN PARA ${n.nick}:\n${spotlight(text)}`
   const res = await complete({
@@ -263,7 +263,7 @@ async function moderate(n: Npc, text: string, recent: FriendMessage[]): Promise<
   if (v.veredicto === 'aprobado' && (!cat || cat === 'ninguna')) return { ok: true, trace: 'juez de mensajes: aprobado' }
   // Bloqueado, o "aprobado" con una categoría de bloqueo (contradicción → fail-closed).
   const category: Category = (JUDGE_CATEGORIES as readonly string[]).includes(cat) ? (cat as Category) : 'inapropiado'
-  const crit = category === 'tema' && blackTopics().some(t => t.critical && t.name === v.tema) ? ' [CRÍTICO]' : ''
+  const crit = category === 'tema' && blackTopicsAll().some(t => t.critical && t.name === v.tema) ? ' [CRÍTICO]' : ''
   return { ok: false, category, trace: `juez de mensajes: ${category}${category === 'tema' ? ` «${v.tema ?? '?'}»${crit}` : ''}` }
 }
 
@@ -410,7 +410,10 @@ async function sendMessage(n: Npc, text: string): Promise<SendMessageResult> {
   const g = await moderate(n, text, chatOf(n.id).messages)
   log(`Ian → ${n.nick} «${text.slice(0, 60)}» → ${g.ok ? 'ok' : `BLOQUEADO (${g.category})`} · ${g.trace} (${Date.now() - t0} ms)`)
   if (!g.ok) {
-    if (g.category === 'crisis') log(`CRISIS en un mensaje de Ian para ${n.nick}: se le mostró el guion fijo de contención (a futuro: aviso al padre).`)
+    if (g.category === 'crisis') log(`CRISIS en un mensaje de Ian para ${n.nick}: se le mostró el guion fijo de contención (aviso al padre en la Zona de padres).`)
+    // Aviso al padre (Zona del padre v2): crisis en cuarentena (sin el texto), contacto/salir de la plataforma, y los demás
+    // bloqueos suman para el aviso de "insistió". Una falla del juez no es culpa del chico: no avisa.
+    if (g.category !== 'falla') notifyParent(g.category === 'crisis' ? 'crisis' : ['contacto', 'datos_personales', 'fuera_de_plataforma'].includes(g.category) ? 'contacto' : 'bloqueos', g.category === 'crisis' ? '' : text, `la conversación con ${n.nick} (Amigos)`)
     return { status: 'blocked', notice: noticeFor(g.category, n.nick) }
   }
   const msg: FriendMessage = { id: nextId(), from: 'me', text }

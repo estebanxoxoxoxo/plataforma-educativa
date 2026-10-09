@@ -1,6 +1,23 @@
 // Formatos del panel del padre (es-AR, registro adulto): números, fechas, etiquetas y stock.
-import type { DriveItem } from '../../../api/types';
+import type { DriveItem, ParentAlert, ParentFeatures } from '../../../api/types';
 import type { ParentItemView, ParentProtections } from './types';
+
+/** Nombre corto de cada gran on-off (tarjetas de presets, avisos de qué cambia). */
+export const FEATURE_LABEL: Record<keyof ParentFeatures, string> = { chat: 'Chat', amigos: 'Amigos', ligas: 'Ligas', tienda: 'Tienda' };
+/** Orden en que se listan (el del menú del chico). */
+export const FEATURE_ORDER: (keyof ParentFeatures)[] = ['chat', 'tienda', 'amigos', 'ligas'];
+/** Título de cada tipo de aviso. */
+export const ALERT_TITLE: Record<ParentAlert['kind'], string> = {
+  crisis: 'Mensaje de crisis',
+  contacto: 'Intento de contacto',
+  bloqueos: 'Insistió con mensajes frenados',
+};
+/** "el chat con el asistente" → "El chat con el asistente" (los orígenes vienen en minúscula para ir en una oración). */
+export const capFirst = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
+/** "Chat, Amigos y Ligas". */
+export const listEs = (xs: string[]) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} y ${xs[xs.length - 1]}`);
+/** «a», «b» y «c» */
+export const quoted = (xs: string[]) => listEs(xs.map((x) => `«${x}»`));
 
 /** 1.240 */
 export const fmtNum = (n: number) => Math.round(n).toLocaleString('es-AR');

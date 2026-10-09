@@ -1,9 +1,12 @@
 // Chat del niño. Port de sendChildMessage (smarty-poc/app/src/lib/pipeline.ts) + buildSystemPrompt (prompts.ts)
 // + tools show_videos / search_images / search_articles / show_articles.
 // Sin estado en el servidor: el cliente manda el historial (ya en su versión "de contexto") en cada turno.
-// Fuera por ahora: tools de estilo/música/archivo, sondeo de redirecciones y log de eventos al padre.
-import { MODELS, config, fill, ov, blackTopics, whiteTopics } from './config'
+// Fuera por ahora: tools de estilo/música/archivo, sondeo de redirecciones y log de eventos al padre (salvo crisis:
+// notifyParent, Zona del padre v2).
+import { MODELS, config, fill, ov } from './config'
 import { matchBlockedWord } from './filters'
+// Zona del padre v2: temas y palabras de fábrica + los de la familia, y el aviso de crisis al padre.
+import { blackTopicsAll, familyWords, notifyParent, whiteTopicsAll } from './parent'
 import { completeWithTools, spotlight, tool, type Msg } from './llm'
 import { judgeInput, judgeOutput, type InputVerdict, type Verdict } from './judge'
 import { searchPages } from './search'
@@ -28,7 +31,7 @@ export interface ChatReply {
 
 const pick = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)]
 const pickRedireccion = () => {
-  const blancos = whiteTopics()
+  const blancos = whiteTopicsAll()
   const tema = blancos.length ? pick(blancos).name : 'algo que te guste'
   const arr = ov.lines('redirecciones')
   return fill(arr.length ? pick(arr) : '', { tema })
@@ -37,7 +40,7 @@ const guionCrisis = () => fill(ov.text('crisis.guion'), { helpline: config.helpl
 const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ')
 
 function buildSystemPrompt(): string {
-  const temasBlancos = whiteTopics().map(t => `- ${t.name}: ${t.description}`).join('\n') || '(sin temas configurados aún)'
+  const temasBlancos = whiteTopicsAll().map(t => `- ${t.name}: ${t.description}`).join('\n') || '(sin temas configurados aún)'
   const fichaTxt = config.ficha.length ? config.ficha.map(f => `- [${f.category}] ${f.text}`).join('\n') : '(vacía)'
   const fuentesTxt = config.ytEntries.map(e => `«${e.title}»`).join(' · ')
   const parts = [
@@ -118,7 +121,7 @@ function filterUis(uis: Ui[], veta: (label: string) => boolean): Ui[] {
 }
 
 function vetarItemsDeMedios(uis: Ui[]): { uis: Ui[]; vetados: string[] } {
-  const terms = [...config.blockedWords, ...blackTopics().map(t => t.name)].filter(Boolean)
+  const terms = [...config.blockedWords, ...familyWords(), ...blackTopicsAll().map(t => t.name)].filter(Boolean)
   const vetados: string[] = []
   const out = filterUis(uis, label => { const hit = label ? matchBlockedWord(label, terms) : null; if (hit) vetados.push(`«${label}» (regla: ${hit})`); return !!hit })
   return { uis: out, vetados }
@@ -222,6 +225,7 @@ export async function sendChildMessage(history: Msg[], childText: string): Promi
   // 2) Crisis: guion fijo, no generativo.
   if (verdict.es_crisis) {
     controller.abort(); principalPromise.catch(() => {})
+    notifyParent('crisis', '', 'el chat con el asistente') // aviso al padre, en cuarentena: sin el texto del chico
     const t = guionCrisis()
     return { kind: 'crisis', text: t, contextText: t, childContextText: '[mensaje sensible — atendido con protocolo de contención]', trace: 'Crisis detectada: guion fijo de contención.' }
   }

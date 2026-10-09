@@ -1,4 +1,4 @@
-/* =================== Zona de padres (v1): portón de adulto + panel de control =================== */
+/* =================== Zona de padres (v1 + v2): portón de adulto + panel de control =================== */
 /* Todo con prefijo pz- (grepeado en todos los .css de src: sin choques). Estética SOBRIA de adulto: misma
    familia tipográfica que la app (Nunito; Baloo solo en títulos grandes), neutros de la paleta y UN acento
    (#2843A8, el azul de la app) para lo accionable. Sin píldoras de colores ni emojis grandes. */
@@ -72,6 +72,7 @@
 .pz-foot{margin:0;padding-top:2px;font-size:13px;font-weight:600;color:#6A7390}
 .pz-warn{margin:0;padding:10px 14px;border-radius:8px;background:#FFF8E6;border:1px solid #F1DDB0;color:#5E4300;font-size:13.5px;font-weight:700;line-height:1.45}
 .pz-inline{margin-left:4px;color:#2843A8;font-weight:800;text-decoration:underline}
+.pz-inline--tight{margin-left:0} /* link dentro de una oración (ya tiene su espacio) */
 .pz-notice{margin:0;display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;font-size:13.5px;font-weight:700;line-height:1.4;color:#25734A}
 .pz-notice.is-err{color:#B32D33}
 .pz-notice.is-empty{margin-top:-16px} /* vacío: no suma el gap del panel (sigue en el DOM para anunciar) */
@@ -206,7 +207,125 @@
 .pz-prot-v{grid-area:v;margin:0;text-align:right;font-weight:800;font-size:15px;color:#1B2238;font-variant-numeric:tabular-nums}
 .pz-prot-d{grid-area:d;margin:0;max-width:660px;font-size:13px;font-weight:600;line-height:1.45;color:#6A7390}
 
+/* =================== Zona del padre v2: la configuración viva =================== */
+/* Mismo lenguaje: neutros + UN acento (#2843A8). Colores con significado solo donde lo hay (crisis = rojo apagado,
+   contacto = ámbar), siempre acompañados de texto o ícono. */
+
+/* ---- portón: motivo de un cierre por sesión vencida ---- */
+.pz-gate-notice{margin:0;width:100%;padding:9px 12px;border-radius:8px;background:#FFF8E6;border:1px solid #F1DDB0;color:#5E4300;font-size:13px;font-weight:700;line-height:1.45}
+
+/* ---- cabecera: contador de avisos y franja de crisis ---- */
+.pz-count.is-alert{background:#B32D33}
+.pz-crisis-bar{margin:0;display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;padding:10px 14px;border-radius:10px;background:#FDF1F1;border:1px solid #F3C7C9;color:#8E2328;font-size:14px;font-weight:800;line-height:1.4}
+.pz-crisis-bar svg{flex:none;width:18px;height:18px}
+.pz-crisis-bar .pz-inline{margin-left:0;color:#8E2328}
+
+/* ---- presets ---- */
+.pz-preset-now{margin:-4px 0 0;font-size:13.5px;font-weight:600;color:#5A6380}
+.pz-preset-now b{font-weight:800;color:#1B2238}
+.pz-presets{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,262px),1fr));gap:12px}
+.pz-preset{display:grid;grid-template-rows:auto auto 1fr auto;gap:10px;min-width:0;padding:16px 16px 14px;border:1px solid #E4E8F1;border-radius:10px;background:#fff;transition:border-color .2s,box-shadow .2s}
+.pz-preset.is-on{border-color:#2843A8;box-shadow:0 0 0 1px #2843A8 inset;background:#FBFCFF}
+.pz-preset.is-confirming{border-color:#C3CADA}
+.pz-preset-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.pz-preset-name{margin:0;font-size:15.5px;font-weight:800;line-height:1.3;color:#1B2238}
+.pz-preset-badge{flex:none;display:inline-flex;align-items:center;gap:4px;padding:3px 8px 3px 6px;border-radius:6px;background:#EEF2FD;color:#1F3487;font-size:12px;font-weight:800;white-space:nowrap}
+.pz-preset-badge svg{width:13px;height:13px}
+.pz-preset-desc{margin:0;font-size:13.5px;font-weight:600;line-height:1.5;color:#5A6380}
+.pz-preset-spec{margin:0;display:grid;gap:8px;align-content:start;padding-top:10px;border-top:1px solid #EDF0F5}
+.pz-preset-spec > div{display:grid;gap:3px}
+.pz-preset-spec dt{font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#6A7390}
+.pz-preset-spec dd{margin:0;display:grid;gap:2px;font-size:13px;font-weight:700;line-height:1.45;color:#1B2238}
+.pz-pfs{display:flex!important;flex-wrap:wrap;gap:4px!important}
+.pz-pf{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;background:#F1F3F8;color:#6A7390;font-size:12.5px;font-weight:800;text-decoration:line-through;text-decoration-color:rgba(106,115,144,.55)}
+.pz-pf.is-on{background:#EEF2FD;color:#1F3487;text-decoration:none}
+.pz-preset-line{display:block}
+.pz-preset-go{justify-self:start}
+.pz-preset-confirm{display:grid;gap:8px;padding:12px;border-radius:8px;background:#F8F9FC;border:1px solid #E4E8F1}
+.pz-preset-confirm-t{margin:0;font-size:13px;font-weight:800;color:#1B2238}
+.pz-preset-confirm ul{margin:0;padding-left:18px;display:grid;gap:3px;font-size:13px;font-weight:600;line-height:1.45;color:#47506B}
+
+/* ---- temas y palabras: listas editables como chips ---- */
+.pz-terms-grid{display:grid;gap:14px}
+.pz-terms{display:grid;gap:10px;min-width:0;padding:16px 16px 12px;border:1px solid #E4E8F1;border-radius:10px;background:#fff}
+.pz-terms-head{display:grid;gap:4px}
+.pz-terms-help{margin:0;max-width:720px;font-size:13px;font-weight:600;line-height:1.5;color:#5A6380}
+.pz-terms-empty{font-size:13.5px}
+.pz-chips{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.pz-chip{display:inline-flex;align-items:center;gap:2px;max-width:100%;min-height:32px;padding:3px 3px 3px 11px;border-radius:8px;border:1px solid #D9DFEA;background:#F6F7FB;color:#1B2238;font-size:13.5px;font-weight:800;line-height:1.25}
+.pz-terms--white .pz-chip{background:#EEF2FD;border-color:#CBD6F6;color:#1F3487}
+.pz-terms--black .pz-chip{background:#FDF3F3;border-color:#F0D0D2;color:#7E2227}
+.pz-chip-t{min-width:0;overflow-wrap:anywhere}
+.pz-chip-x{flex:none;width:26px;height:26px;display:grid;place-items:center;border-radius:6px;color:inherit;opacity:.7;cursor:pointer;transition:background-color .15s,opacity .15s}
+.pz-chip-x svg{width:14px;height:14px}
+.pz-chip-x:hover:not(:disabled){opacity:1;background:rgba(27,34,56,.08)}
+.pz-chip-x:disabled{cursor:default;opacity:.35}
+.pz-terms-add{display:flex;gap:8px;max-width:560px}
+.pz-terms-add .pz-input{flex:1;min-width:0;min-height:36px;padding:6px 11px;font-size:14px}
+.pz-terms .pz-notice{min-height:0}
+.pz-terms .pz-notice.is-empty{margin-top:-10px}
+.pz-skel--chips{display:flex;gap:6px}
+.pz-skel--chips i{width:96px;height:32px}
+
+/* ---- límites de volumen ---- */
+.pz-lims{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.pz-lim{display:grid;gap:8px;min-width:0;padding:16px 18px 10px;border:1px solid #E4E8F1;border-radius:10px;background:#fff}
+.pz-lim-top{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.pz-lim-name{font-size:15.5px;font-weight:800;color:#1B2238}
+.pz-lim-val{font-size:15px;font-weight:800;color:#1B2238;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pz-lim-desc{margin:-4px 0 0;font-size:13px;font-weight:600;line-height:1.45;color:#6A7390}
+.pz-lim-msg{margin:0;min-height:18px;font-size:12.5px;font-weight:700;color:#25734A}
+.pz-lim-msg.is-err{color:#B32D33}
+/* slider propio: pista rellena hasta el valor (la variable --pz-fill la pone el contenedor) */
+.pz-range{-webkit-appearance:none;appearance:none;width:100%;max-width:560px;height:24px;margin:0;background:transparent;cursor:pointer}
+.pz-range::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:linear-gradient(to right,#2843A8 var(--pz-fill,100%),#DDE2EC var(--pz-fill,100%))}
+.pz-range::-moz-range-track{height:6px;border-radius:3px;background:#DDE2EC}
+.pz-range::-moz-range-progress{height:6px;border-radius:3px;background:#2843A8}
+.pz-range::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;margin-top:-7px;border-radius:50%;background:#fff;border:2px solid #2843A8;box-shadow:0 1px 3px rgba(27,34,56,.25)}
+.pz-range::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid #2843A8}
+.pz-range:focus-visible{outline:none}
+.pz-range:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px rgba(40,67,168,.22)}
+/* vista previa: lo que puede usar el chico (pista del MiniPlayer) y lo bloqueado, rayado con candado en el tope */
+.pz-vp{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:6px 12px;max-width:560px;padding:10px 12px;border-radius:8px;background:#F8F9FC;border:1px dashed #D9DFEA}
+.pz-vp-k{font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#6A7390;white-space:nowrap}
+.pz-vp-bar{position:relative;height:8px;border-radius:4px;background:#DDE2EC}
+.pz-vp-on{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:#13A39A}
+.pz-vp-off{position:absolute;right:0;top:0;bottom:0;border-radius:0 4px 4px 0;background:repeating-linear-gradient(135deg,#C9CFDC 0 4px,#E6E9F0 4px 8px)}
+.pz-vp-knob{position:absolute;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;display:grid;place-items:center;border-radius:50%;background:#fff;border:2px solid #13A39A;color:#5A6380;box-shadow:0 1px 3px rgba(27,34,56,.2)}
+.pz-vp-knob svg{width:12px;height:12px}
+.pz-vp-t{grid-column:1 / -1;font-size:12.5px;font-weight:700;line-height:1.45;color:#47506B}
+/* el aviso chiquito del MiniPlayer del chico ("máx. 40"): lo pone el tope que eligió la familia */
+.pz-cap{flex:none;font-size:10.5px;font-weight:800;color:#6A7390;white-space:nowrap;letter-spacing:0;text-transform:none}
+
+/* ---- avisos ---- */
+.pz-alerts{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.pz-alert{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:start;gap:12px 14px;padding:14px 16px;border:1px solid #E4E8F1;border-left-width:4px;border-radius:10px;background:#fff}
+.pz-alert--crisis{border-left-color:#B32D33;background:#FFFBFB}
+.pz-alert--contacto{border-left-color:#C98A12}
+.pz-alert--bloqueos{border-left-color:#6A7390}
+.pz-alert.is-seen{background:#FAFBFD;border-left-color:#D3D9E6}
+.pz-alert-ic{width:34px;height:34px;display:grid;place-items:center;border-radius:8px;background:#F1F3F8;color:#47506B}
+.pz-alert--crisis .pz-alert-ic{background:#FDECEC;color:#B32D33}
+.pz-alert--contacto .pz-alert-ic{background:#FFF3D6;color:#7A4F00}
+.pz-alert.is-seen .pz-alert-ic{background:#F1F3F8;color:#8A93AD}
+.pz-alert-ic svg{width:19px;height:19px}
+.pz-alert-main{display:grid;gap:3px;min-width:0}
+.pz-alert-t{margin:0;display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:14.5px;font-weight:800;color:#1B2238}
+.pz-alert-new{padding:1px 7px;border-radius:5px;background:#1B2238;color:#fff;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.pz-alert--crisis .pz-alert-new{background:#B32D33}
+.pz-alert-text{margin:0;max-width:720px;font-size:13.5px;font-weight:600;line-height:1.5;color:#47506B;overflow-wrap:anywhere}
+.pz-alert.is-seen .pz-alert-text{color:#6A7390}
+.pz-alert-meta{margin:2px 0 0;font-size:12.5px;font-weight:700;color:#6A7390}
+.pz-alert-act{display:flex;align-items:center}
+.pz-alert-seen{font-size:12.5px;font-weight:800;color:#8A93AD}
+.pz-alerts-empty{padding:16px;border:1px dashed #D9DFEA;border-radius:10px;background:#FAFBFD}
+
+@media (max-width: 760px){
+  .pz-alert{grid-template-columns:auto minmax(0,1fr)}
+  .pz-alert-act{grid-column:2}
+}
+
 @media (prefers-reduced-motion: reduce){
-  .pz-switch,.pz-knob,.pz-tab,.pz-feat{transition:none!important}
+  .pz-switch,.pz-knob,.pz-tab,.pz-feat,.pz-preset,.pz-chip-x{transition:none!important}
   .pz-tr.is-fresh td,.pz-skel i,.pz-pin.is-shake{animation:none}
 }

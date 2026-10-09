@@ -1,20 +1,21 @@
+import { Link } from 'react-router-dom';
 import { DOMAIN_MODE, fmtNum } from '../lib/format';
 import type { ParentDashboard } from '../lib/types';
 import { PanelState } from './PanelState';
 
-/** "Protecciones" (solo lectura en la v1): lo que el backend real YA filtra siempre, sin interruptor.
- *  TODO(panel completo, audios 56 y 66): presets por familia y un wizard inicial (quiénes son, qué creen,
- *  edad del chico → todo configurado) en vez de editar listas a mano; después, edición fina de temas
- *  blancos/negros, palabras y sitios. Hoy la config real se importa del respaldo de Smarty. Pura. */
+/** "Protecciones" (solo lectura): lo que el backend real filtra SIEMPRE, sin interruptor. Las palabras y los temas
+ *  cuentan lo de fábrica (Smarty) + lo que sumó la familia en "Temas y palabras". Sitios y catálogo se importan del
+ *  respaldo de Smarty (su edición fina —sitios, reglas de dominio, prompts— sigue en el "motor intermedio" de la POC).
+ *  Pura. */
 export function ProtectionsPanel({ kid, dash, failed, onRetry }: { kid: string; dash: ParentDashboard | null; failed: boolean; onRetry: () => void }) {
   const p = dash?.protections;
   const rows = p ? [
     { k: 'Sitios aprobados para leer', v: fmtNum(p.sites), d: 'Los artículos solo se abren desde estos sitios, y cada página pasa además por un revisor automático.' },
     { k: 'Videos aprobados', v: fmtNum(p.videos), d: 'El buscador, el chat, Aprender y Mi espacio muestran solo videos de este catálogo.' },
-    { k: 'Palabras bloqueadas', v: fmtNum(p.blockedWords), d: 'Se filtran en búsquedas, títulos, respuestas del chat y ejercicios.' },
-    { k: 'Temas bloqueados', v: fmtNum(p.blockedTopics), d: 'El revisor automático rechaza lecturas y respuestas del chat sobre estos temas.' },
+    { k: 'Palabras bloqueadas', v: fmtNum(p.blockedWords), d: 'Las de fábrica más las de la familia. Se frenan en búsquedas, títulos, respuestas del chat, mensajes a amigos y ejercicios.' },
+    { k: 'Temas bloqueados', v: fmtNum(p.blockedTopics), d: 'Los de fábrica más los de la familia. El revisor automático rechaza lecturas, respuestas del chat y mensajes entre amigos sobre estos temas.' },
     { k: 'Modo de dominios', v: DOMAIN_MODE[p.domainMode] ?? p.domainMode, d: p.domainMode === 'blanca' ? 'Un sitio que no está en la lista no se abre.' : 'Se aplican las reglas de dominios configuradas.' },
-    { k: 'Versión de la política', v: String(p.policyVersion), d: 'Cambia cada vez que se actualizan las listas.' },
+    { k: 'Versión de la política', v: String(p.policyVersion), d: 'Cambia cada vez que se actualizan las listas de fábrica.' },
   ] : [];
   return (
     <section className="pz-panel" aria-labelledby="pz-prot-h">
@@ -35,7 +36,9 @@ export function ProtectionsPanel({ kid, dash, failed, onRetry }: { kid: string; 
           ))}
         </dl>
       )}
-      <p className="pz-foot">La edición fina de temas y listas llega con el panel completo.</p>
+      <p className="pz-foot">
+        Para sumar temas o palabras de la familia, andá a <Link to="/padres/temas" className="pz-inline pz-inline--tight">Temas y palabras</Link>; los topes de volumen están en <Link to="/padres/limites" className="pz-inline pz-inline--tight">Límites</Link>.
+      </p>
     </section>
   );
 }

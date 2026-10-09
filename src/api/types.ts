@@ -279,5 +279,9 @@ export type ParentAlert = {
   /** De dónde salió (chat, un hilo de Amigos…) */ source: string;
   seen: boolean;
 };
-export type ParentPreset = { id: string; name: string; desc: string };
+export type ParentPreset = {
+  id: string; name: string; desc: string;
+  /** Qué deja configurado al aplicarlo (la tarjeta lo muestra antes de confirmar). */
+  spec: { features: ParentFeatures; topics: ParentTopics; words: string[]; volume: ParentVolume };
+};
 export type ParentConfig = { topics: ParentTopics; words: ParentWords; volume: ParentVolume; preset: string | null };

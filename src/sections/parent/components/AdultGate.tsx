@@ -13,8 +13,9 @@ const seconds = (n: number) => (n === 1 ? '1 segundo' : `${n} segundos`);
 /** Portón de la Zona de padres: PIN de la familia (6 dígitos) que valida el server. "Entrar" o Enter envían;
  *  pegar deja solo los dígitos. Incorrecto → "PIN incorrecto." con una sacudida suave (sin movimiento si
  *  el sistema pide reducirlo) y el campo vacío. Demasiados intentos → cuenta regresiva con el campo
- *  deshabilitado. Pura: la verificación y el desbloqueo los resuelve el contenedor (onSubmit). */
-export function AdultGate({ kid, onSubmit }: { kid: string; onSubmit: (pin: string) => Promise<UnlockResult> }) {
+ *  deshabilitado. `notice` = por qué se cerró sola la zona (sesión vencida). Pura: la verificación y el
+ *  desbloqueo los resuelve el contenedor (onSubmit). */
+export function AdultGate({ kid, notice, onSubmit }: { kid: string; notice?: string | null; onSubmit: (pin: string) => Promise<UnlockResult> }) {
   const [pin, setPin] = useState('');
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
   const [shaking, setShaking] = useState(false);
@@ -80,9 +81,10 @@ export function AdultGate({ kid, onSubmit }: { kid: string; onSubmit: (pin: stri
         </span>
         <h2 className="pz-gate-title">Zona de padres</h2>
         <p className="pz-gate-text">
-          Es para los adultos de la familia: desde acá se elige qué partes de Innerith puede usar {kid}, se publican sus
-          premios y se ve su actividad.
+          Es para los adultos de la familia: desde acá se elige qué partes de Innerith puede usar {kid} y qué temas ve,
+          se ponen límites, se publican sus premios y se ven su actividad y los avisos.
         </p>
+        {notice && <p className="pz-gate-notice" role="status">{notice}</p>}
         <form className="pz-pin-form" onSubmit={(e) => void submit(e)} noValidate>
           <label className="pz-pin-label" htmlFor="pz-pin">Ingresá el PIN de la familia para entrar.</label>
           <input
