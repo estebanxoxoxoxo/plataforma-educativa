@@ -10,6 +10,7 @@
 //   GET /api/me                   → apodo del chico
 //   GET /api/learn/course?id=&name= → temario del curso con un contenido real por capítulo
 //   /api/space/*                  → Mi espacio: Drive (carpetas+papelera), listas, canales seguidos (space.ts)
+//   /api/friends*                 → FAKE (demo): amigos NPC con moderación REAL y respuestas del modelo (friendsFake.ts)
 import { createServer } from 'node:http'
 import { config } from './config'
 import { getArticle } from './articles'
@@ -19,12 +20,13 @@ import { allChannels, getVideo, loadChannelMeta, loadVideoMeta, searchVideos, to
 import { sendChildMessage } from './chat'
 import { getCourse, prewarmCourses } from './learn'
 import { getFeed, reactFeed } from './feedFake'
+import { friendsRoutes, resetFriends } from './friendsFake'
 import * as space from './space'
 import { practiceRoutes } from './practice'
 import { progressRoutes, resetProgress } from './progress'
 import * as market from './market'
 import { leaguesRoutes } from './leaguesFake'
-import { featureOn, parentRoutes } from './parent'
+import { featureOn, parentRoutes, resetUnlockAttempts } from './parent'
 import { readJson, send } from './web'
 import type { Msg } from './llm'
 
@@ -71,7 +73,9 @@ createServer(async (req, res) => {
     // --- DEMO: cada carga de página vuelve a los valores iniciales (la economía vive en RAM). ---
     if (url.pathname === '/api/demo/reset' && req.method === 'POST') {
       resetProgress()
+      resetUnlockAttempts()
       ;(market as { resetMarket?: () => void }).resetMarket?.()
+      resetFriends() // el grafo social del demo (amigos aceptados, solicitudes, hilos) también vuelve al seed
       return send(res, 200, { ok: true })
     }
 
@@ -81,6 +85,7 @@ createServer(async (req, res) => {
     if (url.pathname.startsWith('/api/market')) return await market.marketRoutes(req, res, url)
     if (url.pathname.startsWith('/api/leagues/')) return await leaguesRoutes(req, res, url)
     if (url.pathname.startsWith('/api/parent/')) return await parentRoutes(req, res, url)
+    if (url.pathname === '/api/friends' || url.pathname.startsWith('/api/friends/')) return await friendsRoutes(req, res, url)
 
     // --- FEED (FAKE): ver feedFake.ts ---
     if (url.pathname === '/api/feed' && req.method === 'GET') {

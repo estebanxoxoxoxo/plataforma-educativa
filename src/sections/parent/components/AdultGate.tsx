@@ -1,80 +1,72 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
-import { HOLD_MS } from '../lib/adultGate';
+import { useEffect, useRef, useState, type ClipboardEvent, type FormEvent } from 'react';
+import type { UnlockResult } from '../lib/adultGate';
 
-type Phase = 'idle' | 'holding' | 'early';
+type Status = { kind: 'idle' } | { kind: 'busy' } | { kind: 'wrong' } | { kind: 'error' } | { kind: 'wait'; until: number };
 
-/** Portón de adulto: "Mantené apretado 3 segundos para entrar" con barra de progreso real; soltar antes
- *  (o salir del botón) la reinicia. Mouse, touch y teclado (Espacio/Enter sostenidos).
- *  Lo que decide es el TIEMPO REAL apretado (reloj + timer + chequeo al soltar), no los cuadros de
- *  animación: con la pestaña estrangulada (segundo plano, ahorro de energía) la barra puede ir a los
- *  saltos, pero 3 s apretado siempre entra y menos nunca.
- *  TODO(PIN parental): reemplazar por el PIN real validado en el server (ver lib/adultGate.ts).
- *  Pura: el desbloqueo lo resuelve quien la usa (onUnlock). */
-export function AdultGate({ kid, onUnlock }: { kid: string; onUnlock: () => void }) {
-  const [phase, setPhase] = useState<Phase>('idle');
-  const bar = useRef<HTMLSpanElement>(null);
-  const raf = useRef(0);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const t0 = useRef(0);
-  const holding = useRef(false);
-  const done = useRef(false);
+const PIN_LEN = 6;
+/** Puntos sin <input type=password> donde el navegador lo soporta (-webkit-text-security): así no ofrece
+ *  "guardar contraseña" en un dispositivo que también usa el chico. Si no, password común. */
+const MASK = typeof CSS !== 'undefined' && typeof CSS.supports === 'function' && CSS.supports('-webkit-text-security', 'disc');
+const onlyDigits = (s: string) => s.replace(/\D/g, '').slice(0, PIN_LEN);
+const seconds = (n: number) => (n === 1 ? '1 segundo' : `${n} segundos`);
 
-  const clearClock = () => {
-    cancelAnimationFrame(raf.current);
-    if (timer.current) { clearTimeout(timer.current); timer.current = null; }
-  };
-  useEffect(() => clearClock, []);
+/** Portón de la Zona de padres: PIN de la familia (6 dígitos) que valida el server. "Entrar" o Enter envían;
+ *  pegar deja solo los dígitos. Incorrecto → "PIN incorrecto." con una sacudida suave (sin movimiento si
+ *  el sistema pide reducirlo) y el campo vacío. Demasiados intentos → cuenta regresiva con el campo
+ *  deshabilitado. Pura: la verificación y el desbloqueo los resuelve el contenedor (onSubmit). */
+export function AdultGate({ kid, onSubmit }: { kid: string; onSubmit: (pin: string) => Promise<UnlockResult> }) {
+  const [pin, setPin] = useState('');
+  const [status, setStatus] = useState<Status>({ kind: 'idle' });
+  const [shaking, setShaking] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  const input = useRef<HTMLInputElement>(null);
+  const alive = useRef(true);
 
-  /** Pinta la barra (0–1). `ease` = volver suave a cero al soltar; mientras se aprieta sigue al reloj. */
-  const paint = (p: number, ease = false) => {
-    if (!bar.current) return;
-    bar.current.style.transition = ease ? 'transform .25s ease' : 'none';
-    bar.current.style.transform = `scaleX(${p})`;
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+
+  const busy = status.kind === 'busy';
+  const waiting = status.kind === 'wait';
+  const left = status.kind === 'wait' ? Math.max(0, Math.ceil((status.until - now) / 1000)) : 0;
+  // Cuenta regresiva de la espera; al llegar a cero, el campo vuelve.
+  useEffect(() => {
+    if (status.kind !== 'wait') return;
+    const t = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(t);
+  }, [status]);
+  useEffect(() => { if (waiting && left === 0) setStatus({ kind: 'idle' }); }, [waiting, left]);
+  // El campo recupera el foco cada vez que vuelve a estar disponible (también al abrir).
+  useEffect(() => { if (status.kind !== 'busy' && status.kind !== 'wait') input.current?.focus(); }, [status.kind]);
+
+  const type = (v: string) => {
+    setPin(onlyDigits(v));
+    if (status.kind === 'wrong' || status.kind === 'error') setStatus({ kind: 'idle' });
   };
-  const elapsed = () => performance.now() - t0.current;
-  const complete = () => {
-    if (done.current) return;
-    done.current = true;
-    holding.current = false;
-    clearClock();
-    paint(1);
-    onUnlock();
-  };
-  const tick = () => {
-    const p = Math.min(1, elapsed() / HOLD_MS);
-    paint(p);
-    if (p >= 1) { complete(); return; }
-    raf.current = requestAnimationFrame(tick);
-  };
-  const start = () => {
-    if (holding.current || done.current) return;
-    holding.current = true;
-    t0.current = performance.now();
-    setPhase('holding');
-    raf.current = requestAnimationFrame(tick);
-    timer.current = setTimeout(() => { if (holding.current && elapsed() >= HOLD_MS) complete(); }, HOLD_MS + 20);
-  };
-  const stop = () => {
-    if (!holding.current || done.current) return;
-    if (elapsed() >= HOLD_MS) { complete(); return; } // llegó a los 3 s aunque no se haya pintado el último cuadro
-    holding.current = false;
-    clearClock();
-    paint(0, true);
-    setPhase('early');
+  const paste = (e: ClipboardEvent<HTMLInputElement>) => { e.preventDefault(); type(e.clipboardData.getData('text')); };
+  const submit = async (e?: FormEvent) => {
+    e?.preventDefault();
+    if (pin.length !== PIN_LEN || busy || waiting) return;
+    setStatus({ kind: 'busy' });
+    let r: UnlockResult;
+    try { r = await onSubmit(pin); } catch {
+      if (alive.current) { setPin(''); setStatus({ kind: 'error' }); }
+      return;
+    }
+    if (!alive.current || r.ok) return; // al acertar, el contenedor abre la zona y este portón se desmonta
+    setPin('');
+    if (r.waitSeconds) {
+      const t = Date.now();
+      setNow(t);
+      setStatus({ kind: 'wait', until: t + r.waitSeconds * 1000 });
+    } else {
+      setStatus({ kind: 'wrong' });
+      setShaking(true);
+    }
   };
 
-  const onPointerDown = (e: PointerEvent<HTMLButtonElement>) => {
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
-    start();
-  };
-  const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
-    if (e.key !== ' ' && e.key !== 'Enter') return;
-    e.preventDefault();
-    if (!e.repeat) start();
-  };
-  const onKeyUp = (e: KeyboardEvent<HTMLButtonElement>) => {
-    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); stop(); }
-  };
+  const msg = status.kind === 'wrong' ? 'PIN incorrecto.'
+    : status.kind === 'error' ? 'No pude verificar el PIN. Probá de nuevo.'
+    : status.kind === 'wait' ? `Demasiados intentos. Esperá ${seconds(left)}.`
+    : '';
 
   return (
     <section className="view pz-gate-view" id="v-parent">
@@ -88,29 +80,38 @@ export function AdultGate({ kid, onUnlock }: { kid: string; onUnlock: () => void
         </span>
         <h2 className="pz-gate-title">Zona de padres</h2>
         <p className="pz-gate-text">
-          Este espacio es para los adultos de la familia. Desde acá se elige qué partes de Innerith puede usar {kid},
-          se publican sus premios y se ve su actividad.
+          Es para los adultos de la familia: desde acá se elige qué partes de Innerith puede usar {kid}, se publican sus
+          premios y se ve su actividad.
         </p>
-        <button
-          type="button"
-          className={`pz-hold${phase === 'holding' ? ' is-holding' : ''}`}
-          aria-describedby="pz-hold-hint"
-          onPointerDown={onPointerDown}
-          onPointerUp={stop}
-          onPointerLeave={stop}
-          onPointerCancel={stop}
-          onKeyDown={onKeyDown}
-          onKeyUp={onKeyUp}
-          onBlur={stop}
-          onContextMenu={(e) => e.preventDefault()}
-        >
-          <span className="pz-hold-fill" ref={bar} aria-hidden="true" />
-          <span className="pz-hold-label">{phase === 'holding' ? 'Seguí apretando…' : 'Mantené apretado 3 segundos para entrar'}</span>
-        </button>
-        <p className={`pz-gate-hint${phase === 'early' ? ' is-warn' : ''}`} id="pz-hold-hint" role="status">
-          {phase === 'early'
-            ? 'Soltaste antes de tiempo. Mantené apretado hasta que la barra se complete.'
-            : 'Con el mouse, el dedo o la barra espaciadora.'}
+        <form className="pz-pin-form" onSubmit={(e) => void submit(e)} noValidate>
+          <label className="pz-pin-label" htmlFor="pz-pin">Ingresá el PIN de la familia para entrar.</label>
+          <input
+            id="pz-pin"
+            ref={input}
+            className={`pz-pin${MASK ? ' is-masked' : ''}${shaking ? ' is-shake' : ''}`}
+            type={MASK ? 'text' : 'password'}
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={PIN_LEN}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            placeholder="••••••"
+            value={pin}
+            disabled={busy || waiting}
+            aria-invalid={status.kind === 'wrong' ? true : undefined}
+            aria-describedby="pz-pin-msg"
+            onChange={(e) => type(e.target.value)}
+            onPaste={paste}
+            onAnimationEnd={() => setShaking(false)}
+          />
+          <button type="submit" className="pz-btn pz-pin-go" disabled={pin.length !== PIN_LEN || busy || waiting}>
+            {busy ? 'Verificando…' : 'Entrar'}
+          </button>
+        </form>
+        <p className={`pz-gate-msg${status.kind === 'wrong' || status.kind === 'error' ? ' is-err' : waiting ? ' is-wait' : ''}`} id="pz-pin-msg" role="status">
+          {msg}
         </p>
       </div>
     </section>

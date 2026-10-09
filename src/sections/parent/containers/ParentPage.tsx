@@ -6,18 +6,23 @@ import { ActivityPanel } from '../components/ActivityPanel';
 import { AdultGate } from '../components/AdultGate';
 import { ParentHeader } from '../components/ParentHeader';
 import { ProtectionsPanel } from '../components/ProtectionsPanel';
-import { lockAdult, unlockAdult, useAdultUnlocked } from '../lib/adultGate';
+import { lockAdult, unlockAdult, unlockWithPin, useAdultUnlocked } from '../lib/adultGate';
 import type { ParentDashboard } from '../lib/types';
 import { FeaturesPanel } from './FeaturesPanel';
 import { RewardsPanel } from './RewardsPanel';
 
-/** Zona de padres (/padres/*): primero el portón de adulto; pasado, la configuración de la cuenta del
- *  chico en cuatro secciones con URL propia — /padres (Funcionalidades), /padres/premios,
- *  /padres/actividad y /padres/protecciones. Estética sobria de adulto (parent.css, prefijo pz-). */
+/** Zona de padres (/padres/*): primero el portón (PIN de la familia, lo valida el server); pasado, la
+ *  configuración de la cuenta del chico en cuatro secciones con URL propia — /padres (Funcionalidades),
+ *  /padres/premios, /padres/actividad y /padres/protecciones. Estética sobria de adulto (parent.css, pz-). */
 export function ParentPage() {
   const unlocked = useAdultUnlocked();
   const kid = useUser()?.name ?? 'tu hijo';
-  return unlocked ? <ParentZone kid={kid} /> : <AdultGate kid={kid} onUnlock={unlockAdult} />;
+  const tryPin = async (pin: string) => {
+    const r = await unlockWithPin(pin);
+    if (r.ok) unlockAdult();
+    return r;
+  };
+  return unlocked ? <ParentZone kid={kid} /> : <AdultGate kid={kid} onSubmit={tryPin} />;
 }
 
 function ParentZone({ kid }: { kid: string }) {

@@ -10,17 +10,18 @@ import {
 } from './icons';
 
 type Sec = 'home' | 'search' | 'chat' | 'space' | 'store' | 'learn' | 'practice' | 'friends' | 'leagues';
+// Orden definido por Esteban (9-oct-2026). El submenú de Mi espacio se engancha por sec, no por posición.
 const NAV: { sec: Sec; label: string; to: string; Icon: ComponentType }[] = [
+  { sec: 'space', label: 'Mi espacio', to: '/espacio/carpetas', Icon: IcNavSpace },
   // Descubrir ES el feed de recomendaciones (la home, tipo YouTube/Instagram); su sec sigue siendo 'home'.
   { sec: 'home', label: 'Descubrir', to: '/', Icon: IcNavDiscover },
   { sec: 'search', label: 'Buscar', to: '/buscar', Icon: IcNavSearch },
   // El chat es otra puerta para encontrar cosas, conversando. Sin submenús.
   { sec: 'chat', label: 'Chat', to: '/chat', Icon: IcNavChat },
-  { sec: 'space', label: 'Mi espacio', to: '/espacio/carpetas', Icon: IcNavSpace },
-  // Tienda: premios que publica el padre y se canjean con la Energy Coin cosechada practicando.
-  { sec: 'store', label: 'Tienda', to: '/tienda', Icon: IcNavStore },
   { sec: 'learn', label: 'Aprender', to: '/aprender', Icon: IcNavLearn },
   { sec: 'practice', label: 'Practicar', to: '/practicar', Icon: IcNavPractice },
+  // Tienda: premios que publica el padre y se canjean con la Energy Coin cosechada practicando.
+  { sec: 'store', label: 'Tienda', to: '/tienda', Icon: IcNavStore },
   { sec: 'friends', label: 'Amigos', to: '/amigos', Icon: IcNavFriends },
   { sec: 'leagues', label: 'Ligas', to: '/ligas', Icon: IcNavLeagues },
 ];
@@ -70,15 +71,21 @@ export function Sidebar({ user }: { user?: User }) {
     <aside className="side">
       <button className="brand" onClick={() => go('/')}><BrandMark />Innerith</button>
       <nav aria-label="Secciones">
-        {NAV.slice(0, 4).map(item)}
-        {/* .sub anima la altura (0fr → 1fr) y .sub-in recorta; cerrado queda fuera del orden de tabulación. */}
-        <div className={`sub${sec === 'space' ? ' open' : ''}`}>
-          <div className="sub-in">
-            {subItem('folders', 'Carpetas', '/espacio/carpetas', IcNavFolder)}
-            {subItem('videos', 'Videos', '/espacio/videos', IcNavTv)}
+        {NAV.map((n) => (
+          <div key={n.sec} className="nav-slot">
+            {item(n)}
+            {/* El submenú va pegado a SU ítem, independiente del orden del menú.
+                .sub anima la altura (0fr → 1fr) y .sub-in recorta; cerrado queda fuera del orden de tabulación. */}
+            {n.sec === 'space' && (
+              <div className={`sub${sec === 'space' ? ' open' : ''}`}>
+                <div className="sub-in">
+                  {subItem('folders', 'Carpetas', '/espacio/carpetas', IcNavFolder)}
+                  {subItem('videos', 'Videos', '/espacio/videos', IcNavTv)}
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-        {NAV.slice(4).map(item)}
+        ))}
       </nav>
       <MiniPlayer />
       <div className="profile">

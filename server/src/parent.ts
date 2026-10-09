@@ -8,6 +8,7 @@
 //   POST /api/parent/items/update {id,...patch}   → {ok}
 //   POST /api/parent/items/archive {id}           → {ok}
 //   POST /api/parent/deliver {id}                 → {ok} (marcar canje entregado; {ok:false} si no existe)
+//   POST /api/parent/unlock {pin}                 → {ok, waitSeconds?} (portón de la Zona de padres; ver PIN abajo)
 // EXTENSIONES ADITIVAS (no rompen el contrato; pendientes de formalizar en types.ts por el coordinador):
 //   · GET /api/parent/activity suma `items` (TODOS los premios del padre, archivados incluidos, con
 //     `left` = lo que queda para canjear y `redeemed` = canjes de esta demo) y `protections` (lo que ya
@@ -27,9 +28,17 @@
 // /api/market* responde 403 (market.ts). chat/ligas/amigos: por ahora el portón es del cliente (menú y
 // rutas); el 403 de POST /api/chat necesita un toque en index.ts (pendiente del coordinador).
 //
+// PIN DE LA ZONA DE PADRES: en parent.json va SOLO su hash (sha256 hex), nunca el texto. POST
+// /api/parent/unlock compara en tiempo constante y responde IGUAL (200 {ok:false}) para un PIN mal formado
+// o incorrecto. Rate-limit suave en RAM: 5 fallidos seguidos → 30 s de espera ({ok:false, waitSeconds});
+// se resetea con un acierto, con el reinicio del server o con resetUnlockAttempts() (para registrarlo en
+// POST /api/demo/reset hace falta un toque en index.ts: pendiente del coordinador). El desbloqueo vive en
+// la UI por carga de página: las demás rutas /api/parent/* no piden sesión todavía (demo).
+//
 // IMPORTS CRUZADOS parent ↔ market: market.ts lee de acá los premios y featureOn(); acá se leen de
 // market.ts los canjes (RAM). Es seguro porque NINGUNO de los dos llama al otro en el nivel superior
 // del módulo (solo dentro de funciones): el orden de evaluación da igual. Mantener esa regla.
+import { createHash, timingSafeEqual } from 'node:crypto'
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
@@ -51,10 +60,17 @@ export interface ParentItem {
   id: number; emoji: string; title: string; desc?: string; price: number; stock: number | null
   archived: boolean; createdAt: number; updatedAt?: number
 }
-interface ParentStore { version: 1; seq: number; features: ParentFeatures; items: ParentItem[] }
+interface ParentStore { version: 1; seq: number; features: ParentFeatures; items: ParentItem[]; /** sha256 hex del PIN */ pinHash: string }
 
 const FILE = join(SERVER_ROOT, 'data', 'parent.json')
 const LIMITS = { title: 60, desc: 140, price: 100_000, stock: 9_999 } as const
+
+/* PIN del demo: 123456 — default PÚBLICO tipo admin/admin, elegido y dicho abiertamente por Esteban para
+   la demo (NO tiene nada que ver con el PIN del respaldo de Smarty, que no se guarda ni se menciona).
+   Es el seed de parent.json y la migración de un parent.json viejo sin pinHash. Acá y en disco va solo
+   el hash. TODO (versión futura): cambiar el PIN desde el panel. */
+const DEMO_PIN_HASH = '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92' // = sha256 del PIN del demo
+const isPinHash = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{64}$/.test(v)
 
 /* Seed DEMO "del padre" (se escribe la PRIMERA vez que no hay parent.json; antes vivía en market.ts).
    Es lo que el papá de Ian publicaría para arrancar. Precios calibrados a una cosecha semanal de
@@ -73,7 +89,7 @@ const SEED_ITEMS: Pick<ParentItem, 'emoji' | 'title' | 'desc' | 'price' | 'stock
 const allFeatures = (on: boolean): ParentFeatures => ({ tienda: on, ligas: on, amigos: on, chat: on })
 function seed(): ParentStore {
   const now = Date.now()
-  return { version: 1, seq: SEED_ITEMS.length + 1, features: allFeatures(true), items: SEED_ITEMS.map((s, i) => ({ id: i + 1, ...s, archived: false, createdAt: now })) }
+  return { version: 1, seq: SEED_ITEMS.length + 1, features: allFeatures(true), items: SEED_ITEMS.map((s, i) => ({ id: i + 1, ...s, archived: false, createdAt: now })), pinHash: DEMO_PIN_HASH }
 }
 
 /* ---------- validación (compartida por el archivo leído de disco y por la API) ---------- */
@@ -140,21 +156,30 @@ function sanitize(raw: unknown): ParentStore {
     })
   }
   const seq = Math.max(toInt(r.seq) ?? 1, ...items.map(i => i.id + 1), 1)
-  return { version: 1, seq, features, items }
+  // Sin pinHash válido (parent.json de antes del PIN) → el del PIN del demo; load() lo deja escrito.
+  return { version: 1, seq, features, items, pinHash: isPinHash(r.pinHash) ? r.pinHash : DEMO_PIN_HASH }
 }
 function load(): ParentStore {
   if (!existsSync(FILE)) {
     const s = seed()
     writeAtomic(s) // primera vez: queda escrito ya, no espera a un cambio
-    console.log('[parent] parent.json creado: funcionalidades prendidas + premios demo del padre')
+    console.log('[parent] parent.json creado: funcionalidades prendidas + premios demo del padre + PIN del demo (hash)')
     return s
   }
-  try { return sanitize(JSON.parse(readFileSync(FILE, 'utf8'))) }
-  catch (e) {
-    // Fail-closed: sin la config del padre no se prende nada opcional. Se guarda copia del roto.
+  try {
+    const raw: unknown = JSON.parse(readFileSync(FILE, 'utf8'))
+    const s = sanitize(raw)
+    if (!isPinHash((raw as Record<string, unknown> | null)?.pinHash)) {
+      writeAtomic(s)
+      console.log('[parent] parent.json sin pinHash: migrado al hash del PIN del demo')
+    }
+    return s
+  } catch (e) {
+    // Fail-closed: sin la config del padre no se prende nada opcional. Se guarda copia del roto. El PIN
+    // vuelve al del demo (si no, nadie podría entrar a la Zona de padres a prender las cosas de nuevo).
     console.error('[parent] parent.json ilegible → arranco CERRADO (todo apagado, sin premios); copia en .roto-*:', e)
     try { renameSync(FILE, `${FILE}.roto-${Date.now()}`) } catch { /* sin copia: seguimos igual */ }
-    const s: ParentStore = { version: 1, seq: 1, features: allFeatures(false), items: [] }
+    const s: ParentStore = { version: 1, seq: 1, features: allFeatures(false), items: [], pinHash: DEMO_PIN_HASH }
     writeAtomic(s) // si no, el próximo arranque vería "sin archivo" y sembraría todo prendido
     return s
   }
@@ -171,6 +196,28 @@ export const parentItems = (): ParentItem[] => store.items.map(i => ({ ...i }))
 export function parentItem(id: number): ParentItem | undefined {
   const it = store.items.find(i => i.id === id)
   return it ? { ...it } : undefined
+}
+
+/* ---------- PIN de la Zona de padres ---------- */
+const MAX_FAILS = 5
+const WAIT_MS = 30_000
+let fails = 0 // fallidos seguidos (RAM)
+let waitUntil = 0
+/** Vuelve a cero el rate-limit del PIN (lo llama un acierto; pensado también para POST /api/demo/reset). */
+export function resetUnlockAttempts() { fails = 0; waitUntil = 0 }
+const sha256 = (s: string) => createHash('sha256').update(s, 'utf8').digest()
+/** Mismo camino para TODO lo que no sea el PIN (mal formado, vacío, otro tipo o incorrecto): hash +
+ *  comparación en tiempo constante, y la misma respuesta. Nunca se loguea lo que vino. */
+function tryUnlock(pin: unknown): { ok: boolean; waitSeconds?: number } {
+  const now = Date.now()
+  if (now < waitUntil) return { ok: false, waitSeconds: Math.ceil((waitUntil - now) / 1000) }
+  const ok = timingSafeEqual(sha256(typeof pin === 'string' ? pin.slice(0, 64) : ''), Buffer.from(store.pinHash, 'hex'))
+  if (ok) { resetUnlockAttempts(); return { ok: true } }
+  if (++fails < MAX_FAILS) return { ok: false }
+  fails = 0
+  waitUntil = now + WAIT_MS
+  console.warn(`[parent] ${MAX_FAILS} PIN incorrectos seguidos: espera de ${WAIT_MS / 1000} s`)
+  return { ok: false, waitSeconds: WAIT_MS / 1000 }
 }
 
 /* ---------- lógica ---------- */
@@ -244,7 +291,7 @@ function activity() {
 const parseId = (b: Input): number | null => { const n = toInt(b.id); return n !== null && n > 0 ? n : null }
 
 /* ---------- rutas ---------- */
-const KNOWN = new Set(['/api/parent/features', '/api/parent/activity', '/api/parent/items', '/api/parent/items/update', '/api/parent/items/archive', '/api/parent/deliver'])
+const KNOWN = new Set(['/api/parent/features', '/api/parent/activity', '/api/parent/items', '/api/parent/items/update', '/api/parent/items/archive', '/api/parent/deliver', '/api/parent/unlock'])
 
 export async function parentRoutes(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
   const path = url.pathname.replace(/\/+$/, '')
@@ -257,6 +304,13 @@ export async function parentRoutes(req: IncomingMessage, res: ServerResponse, ur
     return send(res, 405, { error: 'Método no permitido: usá POST.' })
   }
   if (method !== 'POST' || path === '/api/parent/activity') return send(res, 405, { error: 'Método no permitido.' })
+
+  if (path === '/api/parent/unlock') {
+    // Un cuerpo ilegible es un PIN mal formado más: mismo camino, misma respuesta (200 {ok:false}).
+    let pin: unknown
+    try { pin = (await readJson<Record<string, unknown> | null>(req))?.pin } catch { pin = undefined }
+    return send(res, 200, tryUnlock(pin))
+  }
 
   let b: Input
   try {
