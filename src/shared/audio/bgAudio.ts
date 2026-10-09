@@ -36,7 +36,9 @@ const REPEAT_KEY = 'innerith.bgRepeat';
 const AMB_VOL_KEY = 'innerith.bgAmbientVol';
 
 function initVolume(): number {
-  const v = Number(localStorage.getItem(VOL_KEY));
+  const raw = localStorage.getItem(VOL_KEY);
+  if (raw === null || raw === '') return 60; // sin clave guardada: Number(null) es 0 y el perfil nuevo arrancaba MUDO
+  const v = Number(raw);
   return Number.isFinite(v) && v >= 0 && v <= 100 ? v : 60;
 }
 function initRepeat(): RepeatMode {

@@ -7,12 +7,20 @@ import { SERVER_ROOT, config } from './config'
 import { extractArticle, type Extracted } from './extract'
 import { isAllowedArticleSite } from './filters'
 import { judgeText, type Verdict } from './judge'
+import { familyTopics } from './parent'
+
+/* Los temas negros de la familia entran al juez (judge.ts): esta huella hace que cambiarlos
+   invalide el veredicto cacheado, igual que policyVersion con la política de fábrica. */
+const familySalt = () => [...familyTopics().black].sort().join('|')
 
 const TTL_MS = 7 * 24 * 60 * 60 * 1000
 const CACHE_DIR = join(SERVER_ROOT, 'data', 'cache', 'articles')
 mkdirSync(CACHE_DIR, { recursive: true })
 
-interface Snapshot extends Extracted { url: string; fetchedAt: number; verdict: Verdict; policyVersion: number }
+interface Snapshot extends Extracted { url: string; fetchedAt: number; verdict: Verdict; policyVersion: number;
+  /** Huella de los temas NEGROS de la familia al juzgar: si el padre cambia los temas, se re-juzga (los
+   *  blancos no afectan el veredicto). Un snapshot viejo (sin huella) se re-juzga una vez y queda al día. */
+  familySalt?: string }
 const cacheFile = (url: string) => join(CACHE_DIR, createHash('sha1').update(url).digest('hex') + '.json')
 const readCache = (url: string): Snapshot | null => { try { return existsSync(cacheFile(url)) ? JSON.parse(readFileSync(cacheFile(url), 'utf8')) : null } catch { return null } }
 const writeCache = (s: Snapshot) => writeFileSync(cacheFile(s.url), JSON.stringify(s))
@@ -37,10 +45,12 @@ export async function getArticle(url: string): Promise<ArticleResult> {
     snap = { ...ex, url, fetchedAt: Date.now(), verdict: { veredicto: 'bloqueado' }, policyVersion: -1 }
   }
 
-  // 3) Juez (solo si cambió la política o es nuevo). Fail-closed: si el juez falla, no se muestra.
-  if (snap.policyVersion !== config.policyVersion) {
+  // 3) Juez (solo si cambió la política —de fábrica o de la familia— o es nuevo). Fail-closed.
+  const salt = familySalt()
+  if (snap.policyVersion !== config.policyVersion || snap.familySalt !== salt) {
     try { snap.verdict = await judgeText(snap.text) } catch { return { status: 'error', reason: 'judge' } }
     snap.policyVersion = config.policyVersion
+    snap.familySalt = salt
     writeCache(snap)
   }
 
