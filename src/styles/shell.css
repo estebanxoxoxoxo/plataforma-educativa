@@ -13,6 +13,8 @@
 .side nav{display:flex;flex-direction:column;gap:var(--ni-gap);margin-bottom:var(--ft-gap)}
 /* Cada ítem con su posible submenú debajo (el orden del menú no afecta al submenú). */
 .nav-slot{display:flex;flex-direction:column;gap:var(--ni-gap)}
+/* Un ítem que el padre apagó deja su slot vacío: fuera del flujo, si no el gap del nav se suma dos veces. */
+.nav-slot:empty{display:none}
 .nav-item{flex:none;display:flex;align-items:center;gap:var(--ni-tx);height:var(--ni-h);padding:0 var(--ni-px);border:2px solid transparent;border-radius:14px;
   font-family:var(--display);font-weight:800;font-size:var(--ni-fs);line-height:1;letter-spacing:.06em;text-transform:uppercase;color:#6A7390;
   transition:background-color .2s ease,border-color .2s ease,color .2s ease;cursor:pointer}
@@ -33,15 +35,19 @@
 .nav-item[data-sec="friends"]{--sec-bg:#F1EAFE;--sec-bd:#A88AF7;--sec-fg:#5431B3}
 .nav-item[data-sec="leagues"]{--sec-bg:#FFF3D9;--sec-bd:#F4B740;--sec-fg:#7F5300}
 
-/* Submenú de Mi espacio: se despliega hacia abajo (filas 0fr → 1fr) alineado con la columna del TEXTO del padre
-   (cada fila arranca donde arranca "MI ESPACIO"). Cerrado queda visibility:hidden al terminar la animación,
-   así el teclado no entra a ítems invisibles. Los márgenes internos dejan lugar al anillo de foco (.sub-in recorta). */
+/* Submenú de Mi espacio: se despliega hacia abajo (filas 0fr → 1fr). Cerrado queda visibility:hidden al terminar
+   la animación, así el teclado no entra a ítems invisibles. .sub-in recorta: su padding de 6px por lado deja lugar
+   al anillo de foco (el margen negativo lo compensa, las filas no se corren). */
 .sub{display:grid;grid-template-rows:0fr;margin-top:calc(var(--ni-gap) * -1);visibility:hidden;transition:grid-template-rows .3s ease,visibility 0s linear .3s}
 .sub.open{grid-template-rows:1fr;visibility:visible;transition:grid-template-rows .3s ease,visibility 0s}
-.sub-in{min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:2px;margin-right:-6px;padding:0 6px 0 calc(2px + var(--ni-px) + var(--ni-ic) + var(--ni-tx))}
-/* Todas las filas con la MISMA caja: de la columna del texto del padre al borde derecho de su píldora (width:100%
-   explícito: un <button> con width:auto se encoge a su contenido fuera del estirado del flex). */
-.sub-item{flex:none;align-self:stretch;width:100%;display:flex;align-items:center;gap:10px;height:var(--si-h);padding:0 10px;border-radius:10px;
+.sub-in{min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:2px;margin:0 -6px;padding:0 6px}
+/* Cada fila tiene la MISMA caja que el .nav-item padre (mismos bordes izquierdo y derecho; width:100% explícito
+   porque un <button> con width:auto se encoge a su contenido). Adentro, el mini-ícono va CENTRADO en la columna
+   de íconos del menú y la etiqueta arranca en la columna de texto: padding y gap salen de las mismas variables
+   de densidad que el .nav-item (sus 2px de borde incluidos), así se alinean en las tres densidades. */
+.sub-item{flex:none;align-self:stretch;width:100%;display:flex;align-items:center;height:var(--si-h);border-radius:10px;
+  gap:calc(var(--ni-tx) + (var(--ni-ic) - var(--si-ic)) / 2);
+  padding:0 calc(2px + var(--ni-px)) 0 calc(2px + var(--ni-px) + (var(--ni-ic) - var(--si-ic)) / 2);
   font-family:var(--display);font-weight:800;font-size:12px;line-height:1;letter-spacing:.06em;text-transform:uppercase;color:#6A7390;
   transition:background-color .2s ease,color .2s ease;cursor:pointer}
 .sub-item:first-child{margin-top:var(--si-m)}
