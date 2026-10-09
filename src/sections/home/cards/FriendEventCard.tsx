@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react';
 import type { FeedItem } from '../../../api/types';
-import { Avatar } from '../../../shared/components/Avatar';
+import { Avatar, lookFor } from '../../../shared/components/Avatar';
 import { IcBolt, IcBook, IcMedal, IcTrophyLine } from '../../../shared/components/icons';
 import { ReactionBar } from '../components/ReactionBar';
 
@@ -19,7 +19,7 @@ export function FriendEventCard({ it, onReact }: { it: It; onReact: (id: string,
   const { I, c, bg } = ICONS[it.icon];
   return (
     <article className="fcard ffriend" data-icon={it.icon}>
-      <Avatar name={it.friend.nick} color={it.friend.color} />
+      <Avatar name={it.friend.nick} color={it.friend.color} look={lookFor(it.friend.nick)} />
       <div className="fbody">
         <p className="fline"><b>{it.friend.nick}</b> {it.text}</p>
         <span className="fmeta">{it.time}</span>

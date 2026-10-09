@@ -1,6 +1,6 @@
 import type { MouseEvent } from 'react';
 import type { Friend } from '../../../api/types';
-import { Avatar } from '../../../shared/components/Avatar';
+import { Avatar, lookFor } from '../../../shared/components/Avatar';
 import { IcChat, IcInfo } from '../../../shared/components/icons';
 
 /** Fila de un amigo. ⓘ abre/cierra su detalle (panel de la derecha); el globo abre la ventana de chat flotante.
@@ -13,7 +13,7 @@ export const FriendRow = ({ f, infoOpen, chatOpen, fresh, onInfo, onMsg }: {
   const only = (fn: () => void) => (e: MouseEvent) => { e.stopPropagation(); fn(); };
   return (
     <div className={`fr${infoOpen ? ' sel' : ''}${fresh ? ' fresh' : ''}`} onClick={onInfo}>
-      <Avatar name={f.nick} color={f.color} />
+      <Avatar name={f.nick} color={f.color} look={lookFor(f.nick)} />
       <div className="grow"><b>{f.nick}</b><small>{f.status}</small></div>
       <button className={`ib info${infoOpen ? ' active' : ''}`} title={infoOpen ? 'Cerrar información' : 'Ver información'}
         aria-label={`${infoOpen ? 'Cerrar' : 'Ver'} información de ${f.nick}`} aria-expanded={infoOpen} onClick={only(onInfo)}><IcInfo /></button>

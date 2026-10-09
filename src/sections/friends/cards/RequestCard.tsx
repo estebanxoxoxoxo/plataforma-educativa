@@ -1,5 +1,5 @@
 import type { FriendRequest } from '../../../api/types';
-import { Avatar } from '../../../shared/components/Avatar';
+import { Avatar, lookFor } from '../../../shared/components/Avatar';
 
 /** Solicitud de amistad entrante: avatar, nick y la nota del que la manda + Aceptar / Ahora no.
  *  `leaving` = se está plegando (ya se aceptó o se rechazó). */
@@ -9,7 +9,7 @@ export const RequestCard = ({ r, busy, leaving, onAccept, onDecline }: {
   <div className={`freq${leaving ? ' out' : ''}`}>
     <div className="freq-clip">
       <div className="freq-card">
-        <Avatar name={r.nick} color={r.color} />
+        <Avatar name={r.nick} color={r.color} look={lookFor(r.nick)} />
         <div className="grow">
           <p className="freq-line"><b>{r.nick}</b> te mandó una solicitud de amistad</p>
           {r.note && <p className="freq-note">“{r.note}”</p>}

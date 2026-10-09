@@ -1,3 +1,74 @@
 /* Identidad / Avatar — prefijo: idav- (la clase .av3 vieja de iniciales sigue viva donde ya se usa).
    Estilos del avatar dibujado (80% de los usuarios del demo) + el picker del propio look.
    La tanda I escribe acá todos sus estilos; nada de tocar shell.css. */
+
+/* ---- el avatar dibujado: misma caja que .av3 (el tamaño lo pone cada sección: .fr .av3, .rk .av3…) ---- */
+.idav{overflow:hidden}
+.idav svg{display:block;width:100%;height:100%}
+/* círculo neutro mientras llega el look de Ian (evita el salto iniciales → personaje) */
+.idav-ph{background:#EEF0F5}
+
+/* ---- perfil del pie de la barra (Sidebar → ProfileCard): la tarjeta .profile de shell.css, ahora es un botón ---- */
+.idav-prof{width:100%;text-align:left;transition:background-color .2s ease,border-color .2s ease}
+.idav-prof:hover{background:#F6F7FB;border-color:#D3D9E6}
+.idav-pav{position:relative;flex:none;display:grid}
+.idav-prof .av3{width:36px;height:36px;font-size:18px;line-height:1}
+.idav-pen{position:absolute;right:-5px;bottom:-4px;width:18px;height:18px;border-radius:50%;background:#fff;border:1.5px solid #E4E8F1;
+  display:grid;place-items:center;color:#47506B;transition:color .2s ease,border-color .2s ease}
+.idav-pen svg{width:10px;height:10px}
+.idav-prof:hover .idav-pen{color:#2843A8;border-color:#A9BBF6}
+.idav-pav[data-pop] .av3{animation:idav-pop .5s cubic-bezier(.2,1.5,.4,1) both}
+/* misma densidad que la barra (shell.css: .profile .av pasaba a 32px con la barra compacta) */
+@container side (max-height:783px){
+  .idav-prof .av3{width:32px;height:32px;font-size:16px}
+}
+
+/* ---- hoja "Tu avatar" (sobre el patrón global .shov/.shcard de space.css) ---- */
+.idav-ov{animation:fadein .2s both}
+/* 560 de ancho: los 17 (16 personajes + Iniciales) entran en dos filas de 9 */
+.idav-sheet{width:min(560px,94vw);gap:16px;padding:22px 22px 20px;animation:idav-in .24s ease both}
+.idav-top{display:flex;align-items:center;gap:16px}
+.idav-prev{flex:none;display:grid;border-radius:50%;box-shadow:0 0 0 4px #fff,0 0 0 6px #E4E8F1;animation:idav-pop .45s cubic-bezier(.2,1.5,.4,1) both}
+.idav-head{flex:1;min-width:0}
+.idav-t{margin:0;font-family:var(--display);font-weight:800;font-size:24px;line-height:1.1}
+.idav-d{margin:2px 0 0;font-size:14px;font-weight:700;color:#6A7390}
+.idav-cap{display:inline-block;margin:8px 0 0;padding:3px 10px;border-radius:999px;background:#F1F3F8;font-size:13px;font-weight:800;color:#2E3650}
+.idav-x{flex:none;align-self:flex-start;width:34px;height:34px;border-radius:7px;display:grid;place-items:center;color:#6A7390;transition:background .2s,color .2s}
+.idav-x:hover:not(:disabled){background:#F1F3F8;color:#47506B}
+.idav-x svg{width:18px;height:18px}
+.idav-set{margin:0;padding:0;border:0;min-width:0}
+.idav-set legend{padding:0;margin-bottom:8px}
+.idav-note{text-transform:none;letter-spacing:0;font-weight:700}
+.idav-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(50px,1fr));gap:6px}
+.idav-opt{position:relative;display:grid;place-items:center;padding:3px;border:2px solid transparent;border-radius:12px;cursor:pointer;transition:background-color .15s,border-color .15s}
+.idav-opt:hover{background:#F1F3F8}
+.idav-opt:has(input:checked){border-color:#3A5BD9;background:#EEF2FF}
+.idav-opt:has(input:focus-visible){outline:3px solid var(--blue);outline-offset:2px}
+.idav-set:disabled .idav-opt{cursor:default}
+.idav-opt input,.idav-sw input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.idav-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.idav-colors{display:flex;flex-wrap:wrap;gap:10px}
+.idav-sw{position:relative;width:32px;height:32px;border-radius:50%;cursor:pointer;transition:transform .15s,box-shadow .15s,opacity .15s}
+.idav-sw:hover{transform:scale(1.08)}
+.idav-sw:has(input:checked){box-shadow:0 0 0 3px #fff,0 0 0 5px #1B2238}
+.idav-sw:has(input:focus-visible){outline:3px solid var(--blue);outline-offset:5px}
+.idav-set:disabled .idav-sw{opacity:.35;cursor:default;transform:none}
+.idav-err{margin:0;font-weight:800;font-size:14px;color:#B32D33}
+.idav-btns{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:10px}
+.idav-btn{display:inline-flex;align-items:center;justify-content:center;min-width:120px;min-height:42px;padding:10px 18px;border-radius:9px;
+  background:#3A5BD9;color:#fff;font-weight:800;font-size:15px;line-height:1.2;box-shadow:0 3px 0 #2843A8;transition:background .2s,box-shadow .12s,transform .12s}
+.idav-btn:hover:not(:disabled){background:#2F4FCB}
+.idav-btn:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 #2843A8}
+.idav-btn:disabled{cursor:not-allowed;box-shadow:none;background:#EEF0F5;color:#5A6380}
+.idav-btn[aria-busy="true"]:disabled{background:#3A5BD9;color:#fff;opacity:.85;cursor:progress}
+.idav-btn--ghost{background:#fff;color:#47506B;border:1.5px solid #D3D9E6;box-shadow:none}
+.idav-btn--ghost:hover:not(:disabled){background:#F1F3F8}
+.idav-btn--ghost:active:not(:disabled){transform:none;box-shadow:none}
+.idav-btn--ghost:disabled{background:#fff;color:#A5ACBD}
+
+@keyframes idav-pop{from{transform:scale(.6)}to{transform:none}}
+@keyframes idav-in{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){
+  .idav-pav[data-pop] .av3,.idav-prev,.idav-ov,.idav-sheet{animation:none}
+  .idav-sw:hover{transform:none}
+}

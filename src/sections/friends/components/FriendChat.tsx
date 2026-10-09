@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { Friend, FriendMessage } from '../../../api/types';
-import { Avatar } from '../../../shared/components/Avatar';
+import { Avatar, lookFor } from '../../../shared/components/Avatar';
 import { IcArrowRight, IcChev, IcClose, IcShield, IcShieldOkBold, IcUpSm } from '../../../shared/components/icons';
 import { TypingDots } from '../../discover/components/TypingDots';
 
@@ -43,7 +43,7 @@ export function FriendChat({ f, entries, typing, sending, minimized, unread, onS
   return (
     <div className={`fcw${minimized ? ' min' : ''}`} role="dialog" aria-label={`Conversación con ${f.nick}`} onKeyDown={onKey}>
       <header className="fcw-head" onClick={onToggleMin}>
-        <Avatar name={f.nick} color={f.color} />
+        <Avatar name={f.nick} color={f.color} look={lookFor(f.nick)} />
         <div className="fcw-who">
           <b>{f.nick}</b>
           <small className={typing ? 'typing' : undefined}>{typing ? 'escribiendo…' : f.status}</small>
