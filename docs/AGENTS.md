@@ -34,7 +34,7 @@ framework en `server/` (puerto 8787, proxy `/api` de Vite). El usuario demo es I
    lastWeek/medalla) tiene UNA sola fuente: server/src/leaguesFake.ts — no lo dupliques.
 8. Menú actual: Descubrir (= el FEED, es la home en `/`) · Buscar (`/buscar/*`) · Chat (`/chat`) ·
    Mi espacio (`/espacio/carpetas`, `/espacio/videos` con solapas Canales|Mis listas) · Tienda
-   (`/tienda`) · Aprender · Practicar · Amigos · Ligas. "Descubrir" es el feed de recomendaciones
+   (`/tienda`) · Aprender · Practicar · Amigos · Ligas (solapas Mi liga|Tu zona|País con ?tab=). "Descubrir" es el feed de recomendaciones
    (así lo define la visión), NO el chat. Si cambiás rutas, dejá redirecciones de las viejas.
 9. **La economía del demo vive en RAM** (pedido de Esteban): XP/Energy Coin/canjes NO se persisten
    a disco; cada carga de página hace POST /api/demo/reset (ver src/hooks/user.tsx) y todo vuelve a

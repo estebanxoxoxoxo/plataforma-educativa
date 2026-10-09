@@ -69,7 +69,7 @@ Reemplazá el cuerpo de cada método restante de `src/api/index.ts` por una llam
 
 `/` (**Descubrir**: el feed de recomendaciones ES el descubrir de la visión, y es la home) · `/buscar?q=&tab=` · `/buscar/articulo/:id` · `/buscar/video/:id` · `/chat` (el chat seguro; redirecciones desde las rutas viejas `/descubrir*`) ·
 `/espacio/carpetas[/:folderId]` · `/espacio/papelera` · `/espacio/videos` (solapas Canales | Mis listas; detalle en `/espacio/videos/canal/:id` y `/espacio/videos/lista/:id`) · `/tienda` (y `/tienda?vista=deseos`, la lista de deseos) · `/padres` (+ `/padres/{premios,actividad,protecciones}`, con portón de adulto; acceso discreto bajo el perfil) ·
-`/aprender` · `/aprender/:id` · `/practicar` · `/practicar/:id` · `/practicar/:id/ejercicio/:n` · `/amigos` · `/ligas`
+`/aprender` · `/aprender/:id` · `/practicar` · `/practicar/:id` · `/practicar/:id/ejercicio/:n` · `/amigos` · `/ligas` (solapas Mi liga | Tu zona | País, con `?tab=zona|pais`)
 
 **Audio de fondo**: `src/shared/audio/` (port de `backgroundAudio.ts` + `ambientNoise.ts` de Smarty) — cola con repeat
 off/one/all, handoff desde el player ("Escuchar de fondo" sigue desde la misma posición y manda la cola entera si venías

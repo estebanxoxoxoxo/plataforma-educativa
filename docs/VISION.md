@@ -204,7 +204,7 @@ costo a casi nada.
 | Matemática determinista | ✖ | ✖ |
 | Música adaptativa | ✔ prototipo (`audio-lab`) | ✖ |
 | Energy Coin + billetera + marketplace | ✖ | ✔ real en demo ("Tienda": billetera en RAM con reset por carga de página, premios del padre, canjes pendientes de entrega, lista de deseos persistida; faltan los ítems de plataforma) |
-| Ligas semanales por coin + equipos | ✖ | parcial-fuerte (liga asignada con XP real, cuenta regresiva real al cierre del domingo y medalla de la semana pasada visible en Ligas, feed y aside; falta el cierre real y los equipos) |
+| Ligas semanales por coin + equipos | ✖ | parcial-fuerte (liga asignada con XP real, solapas Mi liga/Tu zona/País, cuenta regresiva real al cierre del domingo y medalla de la semana pasada visible en Ligas, feed y aside; falta el cierre real y los equipos) |
 | Amigos + feed de logros + DMs moderados | ✖ | maqueta (la moderación en tiempo real ya existe en el backend) |
 | Avatar + guardarropas | prototipo (`avatar-lab`, `voice-server`) | ✖ |
 | Admin parental (listas, reglas, modo prueba) | ✔ completo (el "motor intermedio") | parcial (Zona de padres v1: portón de adulto, grandes on-off con enforcement, premios del marketplace, canjes "ya se lo di", actividad del chico y protecciones en lectura; falta la edición fina de listas/temas, presets y wizard) |

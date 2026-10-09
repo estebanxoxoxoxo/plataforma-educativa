@@ -1,14 +1,29 @@
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../../../api';
 import { useAsync } from '../../../hooks/useAsync';
+import { UnderlineTabs } from '../../../shared/components/UnderlineTabs';
 import { FullRanking } from '../components/FullRanking';
 import { LeagueCycle } from '../components/LeagueCycle';
 import { LeagueIcon } from '../components/LeagueIcon';
+import { LeaguePanel } from '../components/LeaguePanel';
 import { Ranking } from '../components/Ranking';
+import { useFontReady } from '../lib/useFontReady';
 
-/** Ligas, sin solapas: la tabla de MI liga (asignada por resultados) con su ciclo semanal (cuánto falta para el
- *  cierre + la medalla de la semana pasada) y, debajo, las tablas por puntaje de la zona y del país.
- *  Contenedor puro: todo sale de la API. */
+type LTab = 'liga' | 'zona' | 'pais';
+const TABS: { id: LTab; label: string }[] = [
+  { id: 'liga', label: 'Mi liga' },
+  { id: 'zona', label: 'Tu zona' },
+  { id: 'pais', label: 'País' },
+];
+
+/** Ligas: el hero de MI liga (asignada por resultados, con su ciclo semanal: cierre + medalla de la semana pasada)
+ *  siempre visible y, debajo, tres solapas deep-linkeables (?tab=, patrón de /espacio/videos): Mi liga (default,
+ *  sin parámetro) · Tu zona · País, cada una con SOLO su tabla. Contenedor puro: todo sale de la API. */
 export function LeaguesPage() {
+  const [params, setParams] = useSearchParams();
+  const q = params.get('tab');
+  const tab: LTab = q === 'zona' || q === 'pais' ? q : 'liga';
+  const fontReady = useFontReady('800 14.5px Nunito', TABS.map((t) => t.label).join(' '));
   const { data, error } = useAsync(async () => {
     const league = await api.myLeague();
     const [standing, zona, pais] = await Promise.all([
@@ -33,13 +48,15 @@ export function LeaguesPage() {
             <LeagueCycle league={data.league} />
           </div>
         </div>
-        <FullRanking rows={data.standing.rows} />
-
-        <div className="lsec"><h3>Tu zona</h3><small>{data.zona.name}</small></div>
-        <Ranking r={data.zona} />
-
-        <div className="lsec"><h3>País</h3><small>{data.pais.name}</small></div>
-        <Ranking r={data.pais} />
+        <UnderlineTabs key={fontReady ? 'font' : 'fallback'} tabs={TABS} value={tab} onChange={(t) => setParams(t === 'liga' ? {} : { tab: t })}
+          className="ltabs" tabClass="ltab" inkClass="ltink" />
+        <div className="lpanels">
+          <LeaguePanel on={tab === 'liga'} label="Mi liga" caption={`${data.league.name} · ${data.league.total} chicos`}>
+            <FullRanking rows={data.standing.rows} />
+          </LeaguePanel>
+          <LeaguePanel on={tab === 'zona'} label="Tu zona" caption={data.zona.name}><Ranking r={data.zona} /></LeaguePanel>
+          <LeaguePanel on={tab === 'pais'} label="País" caption={data.pais.name}><Ranking r={data.pais} /></LeaguePanel>
+        </div>
       </>}
     </section>
   );

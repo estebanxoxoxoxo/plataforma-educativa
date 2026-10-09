@@ -1,4 +1,4 @@
-/* =================== Ligas: mi liga (asignada) + zona + país, sin solapas =================== */
+/* =================== Ligas: hero de mi liga (asignada) + solapas Mi liga · Tu zona · País =================== */
 /* ancho y alineación: la columna estándar de .view (shell.css); antes cada bloque tenía su propio max-width de 780 */
 #v-leagues{background:linear-gradient(180deg,#FFFFFF 0,#F6F7FB 200px)}
 
@@ -21,10 +21,22 @@
 .lmedal[data-medal="plata"]{--lmd:#9AA3B5;--lmd-bg:#E9EDF3;--lmd-fg:#3E4760}
 .lmedal[data-medal="bronce"]{--lmd:#C07A43;--lmd-bg:#FBEADB;--lmd-fg:#7A3F12}
 
-/* separadores de sección (zona / país) */
-.lsec{display:flex;align-items:baseline;gap:10px;margin:28px 0 12px}
-.lsec h3{margin:0;font-family:var(--display);font-weight:800;font-size:20px}
-.lsec small{font-size:13px;font-weight:800;color:#8A93AD;text-transform:uppercase;letter-spacing:.05em}
+/* solapas (?tab=): el mismo subrayado que las de Videos (.sptabs), con el dorado de Ligas (#7F5300 = 6.9:1 sobre blanco) */
+.ltabs{position:relative;display:flex;gap:26px;margin:4px 0 0;padding-left:2px;border-bottom:1px solid var(--line)}
+.ltab{padding:8px 2px 10px;font-weight:800;font-size:14.5px;color:#6A7390;transition:color .25s;cursor:pointer}
+.ltab:hover{color:#47506B}
+.ltab.on{color:#7F5300}
+.ltink{position:absolute;bottom:-1px;height:3px;border-radius:1.5px 1.5px 0 0;background:#F2A81D;transition:left .35s,width .35s}
+
+/* paneles: los tres apilados en la MISMA celda; la caja mide lo que el más alto, así cambiar de solapa no mueve el hero
+   ni el scroll. El inactivo se oculta al instante y el activo entra con un fade corto. */
+.lpanels{display:grid;grid-template-columns:minmax(0,1fr);margin-top:14px}
+.lpanel{grid-area:1/1;min-width:0;visibility:hidden;opacity:0}
+.lpanel.on{visibility:visible;opacity:1;transition:opacity .22s ease}
+.lcap{margin:0 0 10px 2px;font-size:13px;font-weight:800;color:#8A93AD;text-transform:uppercase;letter-spacing:.05em}
+@media (prefers-reduced-motion: reduce){
+  .lpanel.on,.ltink{transition:none}
+}
 
 /* tablas */
 .rank{background:#fff;border:1px solid #E6E9F1;border-radius:10px;padding:6px;transition:opacity .2s}
