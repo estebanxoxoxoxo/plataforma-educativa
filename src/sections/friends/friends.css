@@ -1,10 +1,45 @@
 /* Amigos (ancho y alineación: la columna estándar de .view, shell.css).
-   La lista cede ancho (hasta 470) para que el panel nunca baje de 340: con 470 fijos, en 1024 el perfil o la
-   conversación abiertos (≈323 de mínimo) empujaban la vista y aparecía scroll lateral. */
-.fwrap{display:grid;grid-template-columns:minmax(0,470px) minmax(340px,1fr);gap:24px;margin-top:20px}
-.flist{display:flex;flex-direction:column;gap:10px}
-.fr{display:flex;align-items:center;gap:14px;background:#fff;border:1.5px solid #E7EAF2;border-radius:8px;padding:10px 12px 10px 14px;transition:border-color .2s,box-shadow .2s}
+   Por defecto la lista ocupa TODO el ancho de la columna. El detalle de un amigo (ⓘ) entra con transición: la lista se
+   achica animada hasta la mitad (.3s sobre su ancho y el hueco) y recién ahí aparece el panel de la derecha; cerrar lo
+   invierte (el panel se va → la lista se expande). Con una columna angosta (≤ 703 px, ventanas de ~1024) la lista cede
+   ancho para que el panel nunca baje de 340 — el mismo fix del viejo minmax, ahora como container query.
+   La mensajería vive en una ventana FLOTANTE abajo a la derecha (estilo LinkedIn), fija sobre el contenido: por encima
+   de todo lo de la vista y por debajo de las hojas .shov (80) y del toast de la Tienda (70). */
+
+/* ---- solicitudes de amistad: arriba, a ancho completo; se pliegan (filas 1fr → 0fr) al aceptar/rechazar ---- */
+.freqs{display:grid;grid-template-rows:1fr;margin-top:20px;transition:grid-template-rows .3s ease,opacity .25s ease,margin-top .3s ease}
+.freqs.out{grid-template-rows:0fr;opacity:0;margin-top:0}
+.freqs-clip{min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:10px}
+.freqs .lbl{margin:0}
+.freq{display:grid;grid-template-rows:1fr;transition:grid-template-rows .3s ease,opacity .25s ease}
+.freq.out{grid-template-rows:0fr;opacity:0}
+.freq-clip{min-height:0;overflow:hidden}
+.freq-card{display:flex;align-items:center;gap:14px;background:#FBF9FF;border:1.5px solid #E3D9FD;border-radius:8px;padding:12px 14px}
+.freq-card .av3{width:44px;height:44px;font-size:19px}
+.freq-card .grow{flex:1;min-width:0}
+.freq-line{margin:0;font-size:15px;font-weight:700;color:#2E3650}
+.freq-line b{color:#1B2238}
+.freq-note{margin:3px 0 0;font-size:14px;font-weight:600;color:#47506B;line-height:1.4}
+.freq-acts{flex:none;display:flex;gap:8px}
+.freq-ok,.freq-no{height:38px;padding:0 16px;border-radius:7px;font-weight:800;font-size:14px;transition:background .2s,border-color .2s,color .2s}
+.freq-ok{background:#8A5CF5;color:#fff}
+.freq-ok:hover{background:#7748EE}
+.freq-no{background:#fff;border:1.5px solid #D9DEEA;color:#47506B}
+.freq-no:hover{border-color:#A88AF7;color:#5431B3}
+.freq-ok:disabled,.freq-no:disabled{opacity:.55;cursor:default}
+
+/* ---- lista + detalle ---- */
+.fwrap{container-type:inline-size;display:flex;align-items:flex-start;gap:0;margin-top:20px;transition:gap .3s ease}
+.fwrap.split{gap:24px}
+.flist{flex:none;width:100%;min-width:0;display:flex;flex-direction:column;gap:10px;transition:width .3s ease}
+.fwrap.split .flist{width:calc(50% - 12px)}
+@container (max-width:703px){
+  .fwrap.split .flist{width:calc(100% - 364px)}
+}
+.fr{display:flex;align-items:center;gap:14px;background:#fff;border:1.5px solid #E7EAF2;border-radius:8px;padding:10px 12px 10px 14px;cursor:pointer;transition:border-color .2s,box-shadow .2s}
+.fr:hover{border-color:#D9CCFB}
 .fr.sel{border-color:#8A5CF5;box-shadow:0 0 0 3px #EFE8FE}
+.fr.fresh{animation:fr-in .45s ease,fr-glow 2s ease .45s backwards}
 .fr .av3{width:44px;height:44px;font-size:19px}
 .fr .grow{flex:1;min-width:0}
 .fr b{display:block;font-size:16px}
@@ -12,28 +47,76 @@
 .ib{flex:none;width:40px;height:40px;border-radius:6px;display:grid;place-items:center;background:#F1F3F8;color:#47506B;transition:background .2s,color .2s}
 .ib svg{width:20px;height:20px}
 .ib:hover,.ib.active{background:#EFE8FE;color:#5431B3}
-.fpanel{background:#fff;border:1.5px solid #E7EAF2;border-radius:10px;padding:22px 24px;min-height:470px;display:flex;flex-direction:column;gap:16px}
-.fempty{margin:auto;text-align:center;color:#A5ACBD;font-weight:800;max-width:260px;line-height:1.45}
-.fprof{display:flex;align-items:center;gap:16px}
+.fretry{margin-top:12px;padding:9px 16px;border-radius:8px;border:1.5px solid #D9DEEA;background:#fff;font-weight:800;font-size:14px;color:#5431B3}
+
+/* el panel aparece DESPUÉS de que la lista se achicó (delay .3s) y se va antes de que se expanda */
+.fpanel{position:relative;flex:1 1 0;min-width:0;background:#fff;border:1.5px solid #E7EAF2;border-radius:10px;padding:22px 24px;animation:fp-in .28s ease .3s both}
+.fpanel.out{animation:fp-out .2s ease both}
+.fpbody{display:flex;flex-direction:column;gap:16px;animation:fadein .25s ease}
+.fpx{position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:7px;display:grid;place-items:center;color:#6A7390;transition:background .2s,color .2s}
+.fpx:hover{background:#F1F3F8;color:#47506B}
+.fpx svg{width:18px;height:18px}
+.fprof{display:flex;align-items:center;gap:16px;padding-right:36px}
 .fprof .av3{width:76px;height:76px;font-size:32px}
-.fprof.small .av3{width:44px;height:44px;font-size:19px}
 .fprof h3{margin:0;font-family:var(--display);font-weight:800;font-size:26px;line-height:1}
-.fprof.small h3{font-size:21px}
 .fprof small{color:#6A7390;font-weight:700}
-.fstats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.fstats div{background:#F6F7FB;border-radius:7px;padding:12px 14px}
+.fstats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.fstats div{background:#F6F7FB;border-radius:7px;padding:12px 14px;min-width:0}
 .fstats b{display:block;font-family:var(--display);font-size:22px;line-height:1.1}
 .fstats span{font-size:12.5px;font-weight:800;color:#6A7390}
 .fchips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 .fchips span{font-size:13px;font-weight:800;background:#E7ECFD;color:#2843A8;padding:6px 12px;border-radius:999px}
-.fthread{flex:1;min-height:0;max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+.fpmsg{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border-radius:8px;background:#8A5CF5;color:#fff;font-weight:800;font-size:14px;transition:background .2s}
+.fpmsg:hover{background:#7748EE}
+.fpmsg svg{width:17px;height:17px}
+
+/* ---- ventana de chat flotante (abajo a la derecha, pegada al borde inferior como en LinkedIn) ---- */
+.fcw{position:fixed;right:24px;bottom:0;z-index:55;width:min(360px,calc(100vw - 32px));height:min(480px,calc(100vh - 96px));display:flex;flex-direction:column;background:#fff;border:1.5px solid #E1E5EE;border-bottom:0;border-radius:12px 12px 0 0;box-shadow:0 -4px 36px -12px rgba(27,34,56,.38);animation:fcw-in .25s ease both}
+.fcw.min{height:auto}
+.fcw-head{flex:none;display:flex;align-items:center;gap:10px;padding:9px 8px 9px 12px;border-bottom:1px solid #EEF0F5;cursor:pointer;user-select:none}
+.fcw.min .fcw-head{border-bottom:0}
+.fcw-head .av3{width:36px;height:36px;font-size:16px}
+.fcw-who{flex:1;min-width:0}
+.fcw-who b{display:block;font-size:15.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fcw-who small{display:block;font-size:12.5px;font-weight:700;color:#6A7390;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fcw-who small.typing{color:#5431B3}
+.fcw-badge{flex:none;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:#E5487A;color:#fff;font-size:11.5px;font-weight:800;display:grid;place-items:center}
+.fcw-b{flex:none;width:32px;height:32px;border-radius:7px;display:grid;place-items:center;color:#47506B;transition:background .2s}
+.fcw-b:hover{background:#F1F3F8}
+.fcw-b svg{width:18px;height:18px}
+.fthread{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:14px 14px 10px;scrollbar-width:thin}
 .fthread > :first-child{margin-top:auto}
-.fm{max-width:78%;padding:10px 14px;border-radius:8px;font-weight:700;font-size:15px;line-height:1.4;animation:popin .3s ease both}
+.fm{max-width:84%;padding:9px 13px;border-radius:8px;font-weight:700;font-size:14.5px;line-height:1.4;overflow-wrap:anywhere;animation:popin .3s ease both}
 .fm.them{align-self:flex-start;background:#F1F3F8;border-radius:8px 8px 8px 2.5px}
 .fm.me{align-self:flex-end;background:#8A5CF5;color:#fff;border-radius:8px 8px 2.5px 8px}
-.fin{height:50px;flex:none;border-radius:25px;border:2px solid #DDE2EC;display:flex;align-items:center;gap:10px;padding:0 6px 0 18px;font-weight:700;transition:border-color .25s}
+.ftyping{padding:8px 13px}
+.ftyping .dots{padding:3px 0}
+/* el moderador: burbuja propia (escudito, verde-agua de "seguro"), al ancho del hilo; nunca es un mensaje del hilo */
+.fmod{display:flex;gap:10px;align-items:flex-start;background:#E9F7F5;border:1.5px solid #BFE6E1;border-radius:10px;padding:10px 12px;animation:popin .3s ease both}
+.fmod svg{flex:none;width:20px;height:20px;color:#0B6B66;margin-top:1px}
+.fmod p{margin:0;font-size:14px;font-weight:700;line-height:1.45;color:#1B2238}
+.fmod b{display:block;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:#0B6B66;margin-bottom:2px}
+.fsys{align-self:center;margin:0;font-size:12.5px;font-weight:700;color:#8A93AD;text-align:center}
+.fin{height:50px;flex:none;margin:0 12px;border-radius:25px;border:2px solid #DDE2EC;display:flex;align-items:center;gap:10px;padding:0 6px 0 18px;font-weight:700;transition:border-color .25s}
 .fin:focus-within{border-color:#8A5CF5}
 .fin input::placeholder{color:#A5ACBD}
+.fin input[readonly]{color:#8A93AD}
 .fin .send{width:38px;height:38px;background:#8A5CF5}
-.fnote{font-size:12.5px;font-weight:800;color:#5431B3;display:flex;align-items:center;gap:6px}
-.fnote svg{width:14px;height:14px}
+.fin .send:disabled{opacity:.55}
+.fnote{flex:none;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 12px 10px;font-size:12px;font-weight:800;color:#5431B3}
+.fnote.busy{color:#0B6B66}
+.fnote svg{width:14px;height:14px;flex:none}
+
+@keyframes fp-in{from{opacity:0;transform:translateX(16px)}}
+@keyframes fp-out{to{opacity:0;transform:translateX(16px)}}
+@keyframes fr-in{from{opacity:0;transform:translateY(-8px)}}
+@keyframes fr-glow{from{border-color:#A88AF7;background:#F7F3FF}}
+@keyframes fcw-in{from{opacity:0;transform:translateY(24px)}}
+
+@media (max-width:640px){
+  .fcw{right:8px;width:calc(100vw - 16px)}
+}
+@media (prefers-reduced-motion: reduce){
+  .fwrap,.flist,.freqs,.freq{transition:none}
+  .fpanel,.fpanel.out,.fpbody,.fr.fresh,.fcw,.fm,.fmod{animation:none}
+}

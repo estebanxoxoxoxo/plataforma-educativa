@@ -162,6 +162,15 @@ export type ParentActivity = {
 
 export type Friend = { id: string; nick: string; color: string; status: string; xp: string; streak: string; league: string; since: string; commonCourses: string[] };
 export type FriendMessage = { id: string; from: 'me' | 'them'; text: string };
+/** Solicitud de amistad entrante (NPCs del demo). */
+export type FriendRequest = { id: string; nick: string; color: string; note?: string };
+/** Un hilo con un amigo: mensajes + si el amigo está "escribiendo…" (respuesta del NPC en camino). */
+export type FriendThread = { messages: FriendMessage[]; typing: boolean };
+/** Enviar un mensaje pasa por moderación en tiempo real (visión, audio 24): si no corresponde,
+ *  el mensaje NUNCA llega al amigo y el moderador le explica al chico cómo decirlo mejor. */
+export type SendMessageResult =
+  | { status: 'ok'; msg: FriendMessage }
+  | { status: 'blocked'; notice: string };
 
 /** La liga del chico: ASIGNADA según sus resultados (no se elige).
  *  `xp` es el puntaje de la semana — el MISMO que aparece en la zona y el país.

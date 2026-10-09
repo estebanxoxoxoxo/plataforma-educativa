@@ -4,14 +4,17 @@
 // Este módulo lo simula para que la UI quede como esqueleto definitivo:
 //   - Los ítems de VIDEO salen del catálogo aprobado real (se pueden abrir y reproducir).
 //   - Las LECTURAS son URLs reales de sitios de la lista blanca (pasan por el lector moderado).
-//   - Los eventos de AMIGOS y las reacciones son datos de demo en memoria. Las medallas y ascensos de los amigos se
-//     fechan en el último cierre de liga (lastCloseLabel): se reparten el domingo, no a cualquier hora.
+//   - Los eventos de AMIGOS salen de friendsFake (friendNews): los NPCs del demo son UNA sola lista de amigos en todo el
+//     sistema (mismos nicks y colores que la sección Amigos, y cada NPC "sabe" lo que publicó). Las reacciones son datos
+//     de demo en memoria. Las medallas y ascensos de los amigos se fechan en el último cierre de liga (lastCloseLabel):
+//     se reparten el domingo, no a cualquier hora.
 //   - La noticia de MI LIGA cuenta el ciclo semanal: cómo me fue en el cierre pasado (lastWeek de leaguesFake, la MISMA
 //     medalla que el estandarte de Ligas y el aside) + dónde compito esta semana. Se arma al servir, no se duplica.
 //   - La barra lateral NO es demo: liga/zona/país salen de leaguesFake (con la XP real de ./progress) y "Seguí
 //     practicando" del progreso real + el recorrido real de Practicar: los MISMOS números que Ligas y Practicar.
 // Para conectar el backend real: reemplazar getFeed()/reactFeed() manteniendo las formas.
 import { whiteTopics } from './config'
+import { friendNews } from './friendsFake'
 import { lastCloseLabel, leagueSidebar, MEDAL_EMOJI, myLeague, type Medal } from './leaguesFake'
 import { practiceSummary } from './practice'
 import { summary } from './progress'
@@ -51,19 +54,7 @@ export function reactFeed(id: string, emoji: string): { id: string; reactions: F
 }
 
 /* ---------- pools de demo ---------- */
-// Amigos: mismos nombres/colores que la sección Amigos (coherencia visual en la demo).
-const FRIENDS: [string, string][] = [['TomiCohete', '#3A5BD9'], ['LuliVolcan', '#F26B3A'], ['MateoDino', '#13A39A'], ['CataEstrella', '#E5487A'], ['JuanchiRayo', '#F2A81D'], ['MartuLuna', '#8A5CF5']]
-const FRIEND_EVENTS: { f: number; text: string; icon: Extract<FeedItem, { kind: 'friend' }>['icon'] }[] = [
-  { f: 2, text: 'ganó la medalla de oro 🥇 en la Liga Cometa', icon: 'medal' },
-  { f: 0, text: 'llegó a una racha de 12 días seguidos practicando', icon: 'streak' },
-  { f: 1, text: 'se ganó la insignia «Guardiana de los Volcanes»', icon: 'badge' },
-  { f: 5, text: 'compartió la ruta «El cuerpo humano por dentro»', icon: 'route' },
-  { f: 3, text: 'subió a la Liga Estrella ⭐', icon: 'league' },
-  { f: 4, text: 'terminó la unidad 1 de Fracciones', icon: 'badge' },
-  { f: 2, text: 'completó 40 pasos este mes 💪', icon: 'streak' },
-  { f: 0, text: 'ganó la medalla de bronce 🥉 en la Liga Cometa', icon: 'medal' }, // la plata de esa liga fue de Ian (lastWeek)
-  { f: 1, text: 'compartió la ruta «Volcanes de Argentina»', icon: 'route' },
-]
+// Noticias de amigos: NO viven acá — las publica cada NPC en friendsFake (friendNews(), en el orden de intercalado).
 // Lecturas: URLs reales de la lista blanca (verificadas con el lector moderado).
 const ARTICLES: { title: string; url: string; source: string; snippet: string; reason: string }[] = [
   { title: 'Apolo 11: el viaje a la Luna', url: 'https://es.wikipedia.org/wiki/Apolo_11', source: 'es.wikipedia.org', snippet: 'La misión que llevó a los primeros seres humanos a pisar la Luna, en julio de 1969.', reason: 'el espacio' },
@@ -124,6 +115,7 @@ function build(): FeedItem[] {
   topicsUsed = okTopics
 
   // Intercalado: social → video → lectura → video → ruta/liga → …
+  const news = friendNews()
   const pattern = ['friend', 'video', 'article', 'video', 'route', 'friend', 'video', 'article', 'league'] as const
   const idx = { friend: 0, video: 0, article: 0, route: 0, league: 0 }
   const items: FeedItem[] = []
@@ -139,10 +131,9 @@ function build(): FeedItem[] {
       } else if (kind === 'route' && idx.route < ROUTES.length) {
         const c = ROUTES[idx.route++]
         items.push({ kind, id: `fr-${c.id}`, time: timeOf(i), reason: 'Por tus temas de interés', course: c })
-      } else if (kind === 'friend' && idx.friend < FRIEND_EVENTS.length) {
-        const e = FRIEND_EVENTS[idx.friend++]
-        const [nick, color] = FRIENDS[e.f]
-        items.push({ kind, id: `ff-${idx.friend}`, time: timeOf(i), friend: { nick, color }, text: e.text, icon: e.icon, reactions: [] })
+      } else if (kind === 'friend' && idx.friend < news.length) {
+        const e = news[idx.friend++]
+        items.push({ kind, id: `ff-${idx.friend}`, time: timeOf(i), friend: e.friend, text: e.text, icon: e.icon, reactions: [] })
       } else if (kind === 'league' && idx.league === 0) {
         idx.league = 1
         // La liga se ASIGNA por resultados: la noticia cuenta el ciclo (cierre pasado + dónde competís esta semana),

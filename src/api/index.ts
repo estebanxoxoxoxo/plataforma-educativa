@@ -1,17 +1,20 @@
 // Cliente de API. Casi todo va al backend real (server/): búsqueda, artículos, imágenes, videos, chat,
-// Mi espacio, práctica (ejercicios del contenido real), progreso/Energy Coin, Tienda, y ligas/feed como
-// FAKES de servidor con XP real. Solo quedan simulados en el navegador: cursos (lista/generación) y
-// amigos. Cada llamada se loguea en la consola (→ / ←).
+// Mi espacio, práctica (ejercicios del contenido real), progreso/Energy Coin, Tienda, y ligas/feed/amigos como
+// FAKES de servidor (amigos: NPCs con moderación real). Solo queda simulado en el navegador: cursos
+// (lista/generación). Cada llamada se loguea en la consola (→ / ←).
 import * as M from './mock';
 import type {
   AnswerResult, Answer, ArticleResponse, ChannelDetail, Channel, ChatReply, ChatTurn, Course, DriveFolder, DriveItem, DriveView,
-  EcTx, FeedReaction, FeedResponse, FolderNode, CourseDetail, Exercise, Friend, FriendMessage, NewMarketItem,
+  EcTx, FeedReaction, FeedResponse, FolderNode, FriendThread, CourseDetail, Exercise, Friend, FriendRequest, NewMarketItem, SendMessageResult,
   ParentActivity, ParentFeatures, ParentItemPatch,
   AssignedLeague, GeoRanking, GeoScope, ImageResult, Journey, LeagueStanding, MarketItem, PageResult, Playlist, PlaylistDetail,
   ProgressSummary, Redemption, SavePayload, SearchResponse, Tab, TrashView, User, Video, VideoResult,
 } from './types';
 
+export type { FriendThread } from './types';
 export type SearchMap = { pages: PageResult; images: ImageResult; videos: VideoResult };
+/** Hilo con un amigo (o lo nuevo del polling) + si está escribiendo (hay una respuesta en camino).
+ *  ADITIVO de server/src/friendsFake.ts: pendiente de formalizar en types.ts. */
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 const jitter = (ms: number) => ms * (0.85 + Math.random() * 0.3);
@@ -43,9 +46,6 @@ async function call<T>(method: string, path: string, latency: number, fn: () => 
 /* ---------- "base de datos" en memoria ---------- */
 const db = {
   generated: [] as Course[],
-  threads: structuredClone(M.THREADS) as Record<string, FriendMessage[]>,
-  pending: {} as Record<string, { text: string; at: number }[]>,
-  seq: 100,
 };
 const allCourses = () => [...db.generated, ...M.COURSES];
 const findCourse = (id: string) => {
@@ -158,28 +158,22 @@ export const api = {
    *  muestra antes del juez de salida). `history` es el contexto ya "en cuarentena". */
   chat: (history: ChatTurn[], text: string) => http<ChatReply>('/api/chat', { history, text }),
 
-  /* amigos */
-  friends: () => call<Friend[]>('GET', '/friends', 500, () => M.FRIENDS),
-  friend: (id: string) => call<Friend>('GET', `/friends/${id}`, 350, () => {
-    const f = M.FRIENDS.find((x) => x.id === id);
-    if (!f) throw new ApiError(404, 'Amigo no encontrado');
-    return f;
-  }),
-  thread: (id: string) => call<FriendMessage[]>('GET', `/friends/${id}/messages`, 400, () => db.threads[id] ?? []),
-  sendMessage: (id: string, text: string) => call<FriendMessage>('POST', `/friends/${id}/messages`, 300, () => {
-    const msg: FriendMessage = { id: `m${db.seq++}`, from: 'me', text };
-    (db.threads[id] ??= []).push(msg);
-    (db.pending[id] ??= []).push({ text: M.REPLIES[Math.floor(Math.random() * M.REPLIES.length)], at: Date.now() + 2200 });
-    return msg;
-  }),
-  /** Polling de mensajes nuevos del amigo. */
-  newMessages: (id: string) => call<FriendMessage[]>('GET', `/friends/${id}/messages?new=1`, 200, () => {
-    const ready = (db.pending[id] ?? []).filter((p) => p.at <= Date.now());
-    db.pending[id] = (db.pending[id] ?? []).filter((p) => p.at > Date.now());
-    const msgs = ready.map((p): FriendMessage => ({ id: `m${db.seq++}`, from: 'them', text: p.text }));
-    (db.threads[id] ??= []).push(...msgs);
-    return msgs;
-  }),
+  /* amigos — server FAKE (server/src/friendsFake.ts): los NPCs del demo (lista, solicitud de amistad, hilos) viven en RAM
+     del server y vuelven al seed con cada carga de página. Lo que Ian escribe pasa por la moderación REAL antes de llegar
+     (palabras bloqueadas + juez); los NPCs contestan con el modelo, revisados por el juez de salida. Amigos apagado: 403. */
+  friends: () => http<{ friends: Friend[] }>('/api/friends'),
+  friend: (id: string) => http<Friend>(`/api/friends/one?id=${encodeURIComponent(id)}`),
+  /** Solicitudes de amistad pendientes (las mandan los NPCs). */
+  requests: () => http<{ requests: FriendRequest[] }>('/api/friends/requests'),
+  /** Aceptar: el NPC pasa a la lista (primero) y devuelve su perfil completo. */
+  acceptRequest: (id: string) => http<{ friend: Friend }>('/api/friends/requests/accept', { id }),
+  /** "Ahora no": la solicitud desaparece (vuelve con la próxima carga de página: demo). */
+  declineRequest: (id: string) => http<{ ok: boolean }>('/api/friends/requests/decline', { id }),
+  thread: (id: string) => http<FriendThread>(`/api/friends/thread?id=${encodeURIComponent(id)}`),
+  /** Moderación en tiempo real: `blocked` = el mensaje NO llegó y `notice` le explica al chico cómo decirlo mejor. */
+  sendMessage: (id: string, text: string) => http<SendMessageResult>('/api/friends/send', { id, text }),
+  /** Polling: las respuestas del amigo que ya están listas + si sigue escribiendo. */
+  newMessages: (id: string) => http<FriendThread>(`/api/friends/new?id=${encodeURIComponent(id)}`),
 
   /* ligas — server FAKE (server/src/leaguesFake.ts): los otros 11 chicos y los rankings de zona/país son demo,
      pero "Vos" lleva la XP REAL de la semana (el mismo número en las tres tablas) y el puesto sale de ordenarla. */

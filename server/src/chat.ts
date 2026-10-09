@@ -263,3 +263,7 @@ export async function sendChildMessage(history: Msg[], childText: string): Promi
   const markers = uisOk.map(markerFor).filter(Boolean).join(' ')
   return { kind: 'normal', text: principal.text, contextText: markers ? `${principal.text} ${markers}` : principal.text, media: await resolveMedia(uisOk), trace }
 }
+
+/* ---------- exports aditivos (tanda 7): piezas del pipeline que reusan los mensajes entre amigos (friendsFake.ts) ---------- */
+/** Guion fijo de crisis de la familia (crisis.guion + helpline): el MISMO protocolo de contención que el chat. */
+export { guionCrisis }
