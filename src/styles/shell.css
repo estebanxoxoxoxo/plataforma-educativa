@@ -8,7 +8,7 @@
    ?stage (1280×720 escalado), donde una media query vería la ventana y no el escenario.
    Ojo: @container mide el content box de .side (alto − 32px de padding vertical). */
 .side{container:side/size;background:#FFFFFF;border-right:1px solid #E4E8F1;padding:18px 16px 14px;display:flex;flex-direction:column;min-height:0;
-  --ni-h:50px;--ni-gap:8px;--ni-ic:30px;--ni-px:12px;--ni-tx:16px;--ni-fs:14px;--si-h:36px;--si-ic:18px;--si-m:6px;--ft-h:44px;--ft-gap:14px}
+  --ni-h:50px;--ni-gap:8px;--ni-ic:30px;--ni-px:12px;--ni-tx:16px;--ni-fs:14px;--si-h:36px;--si-ic:18px;--si-m:6px;--si-inset:10px;--ft-h:44px;--ft-gap:14px}
 .brand{flex:none;display:flex;align-items:center;gap:10px;height:40px;margin-bottom:22px;padding-left:calc(2px + var(--ni-px) + (var(--ni-ic) - 34px) / 2);border-radius:12px;font-family:var(--display);font-weight:800;font-size:22px}
 .side nav{display:flex;flex-direction:column;gap:var(--ni-gap);margin-bottom:var(--ft-gap)}
 /* Cada ítem con su posible submenú debajo (el orden del menú no afecta al submenú). */
@@ -40,11 +40,11 @@
    al anillo de foco (el margen negativo lo compensa, las filas no se corren). */
 .sub{display:grid;grid-template-rows:0fr;margin-top:calc(var(--ni-gap) * -1);visibility:hidden;transition:grid-template-rows .3s ease,visibility 0s linear .3s}
 .sub.open{grid-template-rows:1fr;visibility:visible;transition:grid-template-rows .3s ease,visibility 0s}
-.sub-in{min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:2px;margin:0 -6px;padding:0 6px}
-/* Cada fila tiene la MISMA caja que el .nav-item padre (mismos bordes izquierdo y derecho; width:100% explícito
-   porque un <button> con width:auto se encoge a su contenido). Adentro, el mini-ícono va CENTRADO en la columna
-   de íconos del menú y la etiqueta arranca en la columna de texto: padding y gap salen de las mismas variables
-   de densidad que el .nav-item (sus 2px de borde incluidos), así se alinean en las tres densidades. */
+.sub-in{min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:2px;margin:0 -6px;padding:0 calc(6px + var(--si-inset))}
+/* Cada fila es un poco MENOS ancha que el .nav-item padre y CENTRADA con él: inset simétrico de --si-inset por
+   lado (mismo eje central). width:100% explícito porque un <button> con width:auto se encoge a su contenido.
+   El interior repite el trazado del padre (padding y gap salen de las mismas variables de densidad) y se corre
+   con la caja. */
 .sub-item{flex:none;align-self:stretch;width:100%;display:flex;align-items:center;height:var(--si-h);border-radius:10px;
   gap:calc(var(--ni-tx) + (var(--ni-ic) - var(--si-ic)) / 2);
   padding:0 calc(2px + var(--ni-px)) 0 calc(2px + var(--ni-px) + (var(--ni-ic) - var(--si-ic)) / 2);
