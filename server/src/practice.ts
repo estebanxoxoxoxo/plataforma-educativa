@@ -139,6 +139,9 @@ async function chapterText(ch: Chapter): Promise<string | null> {
 /* ---------- regla de oro, determinística: la cita tiene que estar en el material ---------- */
 const normQ = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
 interface Mat { norm: string; lines: Set<string> }
+/** Material contra el que se chequea la regla de oro: sin las etiquetas de los videos (se le muestran al modelo como
+ *  contexto, pero no son datos: ni la cita ni la respuesta pueden salir de ahí). */
+const groundingMat = (material: string): Mat => matOf(material.split('\n').filter(l => !l.startsWith('Etiquetas')).join('\n'))
 function matOf(material: string): Mat {
   return { norm: ' ' + normQ(material) + ' ', lines: new Set(material.split('\n').map(normQ).filter(Boolean)) }
 }
@@ -287,7 +290,7 @@ type Raw = Record<string, unknown>
 const str = (x: unknown, max: number) => (typeof x === 'string' ? x.replace(/\s+/g, ' ').trim() : '').slice(0, max)
 /** Como str, pero si no entra en el tope devuelve '' (un texto cortado a la mitad no se muestra). */
 const fit = (x: unknown, max: number) => { const t = typeof x === 'string' ? x.replace(/\s+/g, ' ').trim() : ''; return t.length <= max ? t : '' }
-const BAD_OPT = /^(todas|todos|ninguna|ninguno|ambas|ambos|todas las anteriores|ninguna de las anteriores)\b/i
+const BAD_OPT =/^(todas|todos|ninguna|ninguno|ambas|ambos|todas las anteriores|ninguna de las anteriores)\b/i
 /* Muletillas al principio de ok/bad (la app ya muestra «¡Correcto!» / «Incorrecto»): se pelan. */
 const LEAD = /^(?:[¡!]?\s*(?:muy\s+bien|bien pensado|bien|exacto|correcto|perfecto|genial|claro|así es|eso es|eso mismo|eso|sí|si|no|incorrecto|casi)\s*[!:.,;—–-]+\s*)+/i
 const unlead = (s: string) => { const t = s.replace(LEAD, '').trim(); return t ? t[0].toUpperCase() + t.slice(1) : s }
@@ -372,8 +375,10 @@ function badMath(text: string): boolean {
 }
 /** ¿La consigna está en castellano? (sin contar lo que va entre comillas). Con 4+ palabras, tiene que haber palabras funcionales del castellano. */
 const ES_FN = new Set(['el', 'la', 'los', 'las', 'de', 'del', 'que', 'y', 'en', 'un', 'una', 'es', 'se', 'por', 'para', 'con', 'qué', 'cómo', 'cuál', 'cuáles', 'cuántos', 'cuántas', 'dónde', 'quiere', 'decir', 'dice', 'son', 'al', 'su', 'sus', 'no', 'más', 'o', 'tiene', 'hay'])
+const EN_FN = new Set(['the', 'is', 'are', 'means', 'mean', 'of', 'and', 'in', 'to', 'it', 'this', 'that', 'what', 'how', 'which', 'word'])
 function looksSpanish(t: string): boolean {
   const w = t.replace(/[«"“'‘][^«»"“”'‘’]*[»"”'’]/g, ' ').toLowerCase().split(/[^a-záéíóúñü]+/).filter(Boolean)
+  if (w.some(x => EN_FN.has(x))) return false
   return w.length < 4 || w.some(x => ES_FN.has(x))
 }
 /** Dos opciones que difieren en una sola letra (agregada, sacada o cambiada). */
@@ -464,7 +469,7 @@ async function generateUnit(info: CourseInfo, u: Unit): Promise<UnitPractice> {
   const empty = (why: string): UnitPractice => ({ v: GEN_VERSION, courseId: info.id, title: u.title, badge: '', exercises: [], dropped: [{ why }], sources, at: Date.now() })
   if (!used.length) return empty('sin material aprobado')
   const material = used.map((x, i) => `[${i + 1}] ${x.t}`).join('\n\n')
-  const m = matOf(material)
+  const m = groundingMat(material)
 
   const videoMeta = used.filter(x => x.ch.kind === 'video').map(x => matOf(x.t.split('\n').filter(l => /^(Video «|Título:|Etiquetas)/.test(l)).join('\n')))
   let best = await attempt(info, u, material, m, used.length, videoMeta)
