@@ -14,8 +14,12 @@
 /* ciclo semanal (hero): cuánto falta para el cierre + estandarte de la semana pasada (solo podio, con el color de su
    medalla: los mismos de la tabla, lib/format.ts) */
 .lchips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.lchip{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:3px 12px 3px 9px;border-radius:999px;border:1.5px solid #E1E5EE;background:#fff;color:#47506B;font-size:13px;font-weight:800;line-height:1.2}
-.lchip-ic{font-size:15px;line-height:1}
+/* Título + chips del ciclo en la misma línea (pedido 9-oct: chips a la derecha del título). */
+.ltitle-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.ltitle-row .lchips{margin-top:0}
+/* ~15% más chicos que la primera versión (pedido 9-oct), para que no compitan con el título al lado. */
+.lchip{display:inline-flex;align-items:center;gap:5px;min-height:24px;padding:2px 10px 2px 8px;border-radius:999px;border:1.5px solid #E1E5EE;background:#fff;color:#47506B;font-size:11.5px;font-weight:800;line-height:1.2}
+.lchip-ic{font-size:13px;line-height:1}
 .lclose[data-today]{border-color:#F5B49A;background:#FDEBE3;color:#B03F18}
 .lmedal{--lmd:#E8A317;--lmd-bg:#FFF4D6;--lmd-fg:#7F5300;border-color:var(--lmd);background:linear-gradient(135deg,var(--lmd-bg) 0%,#fff 70%);color:var(--lmd-fg)}
 .lmedal[data-medal="plata"]{--lmd:#9AA3B5;--lmd-bg:#E9EDF3;--lmd-fg:#3E4760}
@@ -43,7 +47,9 @@
 .rank.loading{opacity:.5}
 .rk{display:flex;align-items:center;gap:12px;height:34px;padding:0 12px;border-radius:6px;font-weight:700;font-size:14.5px}
 .rk:nth-child(even){background:#F8F9FC}
-.rk .pos{width:48px;font-variant-numeric:tabular-nums;font-weight:800;color:#6A7390}
+/* Mismo eje para todos los puestos: el número pelado y la medallita se centran en la misma caja
+   (pedido 9-oct: "no están alineados los que tienen medalla y los que no"). */
+.rk .pos{width:48px;display:grid;place-items:center;font-variant-numeric:tabular-nums;font-weight:800;color:#6A7390}
 .rk .md{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:12px;font-weight:800}
 .rk .av3{width:26px;height:26px;font-size:13px}
 .rk .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

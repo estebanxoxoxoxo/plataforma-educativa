@@ -54,7 +54,7 @@ export default function App() {
           <Route path="buscar" element={<SearchPage />} />
           <Route path="buscar/articulo/:id" element={<ArticlePage />} />
           <Route path="buscar/video/:id" element={<VideoPage />} />
-          {/* El chat es otra puerta para encontrar cosas; "Descubrir" es el feed (la home, ruta /). */}
+          {/* El chat es otra puerta para encontrar cosas; "Home" (el menú) es el feed — el "descubrir" de la visión. */}
           <Route path="chat" element={<ChatPage />} />
           {/* redirecciones de las rutas viejas (historial / marcadores) */}
           <Route path="descubrir" element={<Navigate to="/chat" replace />} />

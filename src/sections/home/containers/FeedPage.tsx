@@ -80,8 +80,8 @@ export function FeedPage() {
     } catch { /* se mantiene lo optimista */ }
   };
 
-  // El contenido se abre en el lector / reproductor (/buscar/…), con "volver" al feed (Descubrir).
-  const back = { backTo: '/', backLabel: '‹ Descubrir' };
+  // El contenido se abre en el lector / reproductor (/buscar/…), con "volver" al feed (Home).
+  const back = { backTo: '/', backLabel: '‹ Home' };
   const h = {
     video: (v: { id: string }) => go(`/buscar/video/${v.id}`, { state: back }),
     article: (url: string) => go(`/buscar/articulo/${encodeURIComponent(url)}`, { state: back }),

@@ -22,6 +22,8 @@ framework en `server/` (puerto 8787, proxy `/api` de Vite). El usuario demo es I
 5. **CSS**: clases con prefijo propio de la sección. Antes de inventar una clase, grepearla en
    `src/**/*.css` — ya hubo choques reales (`.act`, `.scard`, `.vthumb`, `.fgo`). Ojo con el
    *grid blowout*: `#v-space` usa `grid-template-columns:minmax(0,1fr)` por eso.
+   Ojo en COMENTARIOS de CSS: un `*/` adentro del texto (p.ej. escribir `src/**/*.css`) CIERRA el
+   comentario y el navegador descarta EN SILENCIO la regla que sigue (pasó de verdad con tokens de color).
    **Layout de página**: el ancho y la alineación los da `.view` (tokens `--content-w`/`--view-px`
    en base.css) — NINGUNA sección pone su propio max-width/margin:auto de página. Excepciones más
    angostas SIEMPRE centradas en el mismo eje (video 760, lector 900, ejercicio 780). Una vista con
@@ -32,10 +34,12 @@ framework en `server/` (puerto 8787, proxy `/api` de Vite). El usuario demo es I
 7. Ligas: se ASIGNAN por resultados (nunca se eligen/buscan), 12 participantes, y el puntaje
    semanal es UNO solo (mismo número en liga, zona y país). El ciclo semanal (closesInDays real +
    lastWeek/medalla) tiene UNA sola fuente: server/src/leaguesFake.ts — no lo dupliques.
-8. Menú actual: Descubrir (= el FEED, es la home en `/`) · Buscar (`/buscar/*`) · Chat (`/chat`) ·
-   Mi espacio (`/espacio/carpetas`, `/espacio/videos` con solapas Canales|Mis listas) · Tienda
-   (`/tienda`) · Aprender · Practicar · Amigos · Ligas (solapas Mi liga|Tu zona|País con ?tab=). "Descubrir" es el feed de recomendaciones
-   (así lo define la visión), NO el chat. Si cambiás rutas, dejá redirecciones de las viejas.
+8. Menú actual (EN ESTE ORDEN, 9-oct-2026): Home (= el FEED de recomendaciones, el "descubrir" de la
+   visión; es la home en `/`) · Buscar (`/buscar/*`) · Chat (`/chat`) · Aprender · Practicar ·
+   Repasar (`/repasar`, las cartas diarias del Active Recall — ese nombre NUNCA va en la UI) · Tienda
+   (`/tienda`) · Amigos · Ligas (solapas Mi liga|Tu zona|País con ?tab=) · Mi espacio AL FINAL
+   (`/espacio/carpetas`, `/espacio/videos` con solapas Canales|Mis listas). "Home" es el feed, NO el
+   chat. Si cambiás rutas, dejá redirecciones de las viejas.
 9. **La economía del demo vive en RAM** (pedido de Esteban): XP/Energy Coin/canjes NO se persisten
    a disco; cada carga de página hace POST /api/demo/reset (ver src/hooks/user.tsx) y todo vuelve a
    los valores iniciales (seed). Si tu módulo guarda estado económico, exponé un reset() y
@@ -57,6 +61,9 @@ framework en `server/` (puerto 8787, proxy `/api` de Vite). El usuario demo es I
   sesión, patrón de los existentes (navegar, `waitForSelector`, screenshots a `shots/`, juntar
   errores de consola y terminar con `console.log('ERR', errs)`). El dev ya corre: web 5173, api 8787
   (tsx watch recarga solo; si 8787 no responde, el watch crasheó: mirá el error de compilación).
+- Los puertos 5173/8787 son del dev de INNERITH: no levantes dev servers de otros proyectos
+  (smarty-poc, etc.) ni ocupes esos puertos — ya pasó que un Vite ajeno tomó el 5173 y todos vieron
+  otra app. Si necesitás un entorno propio, usá puertos efímeros y apagalo al terminar.
 - Mirá al menos una captura con tus propios ojos antes de dar por buena la estética.
 
 ## Qué actualizar al terminar una feature

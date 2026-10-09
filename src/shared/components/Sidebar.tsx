@@ -4,17 +4,18 @@ import type { User } from '../../api/types';
 import { featureAllows, useFeatures } from '../../sections/parent/lib/features';
 import { BrandMark } from './BrandMark';
 import { MiniPlayer } from './MiniPlayer';
+import { ProfileCard } from './ProfileCard';
 import {
   IcNavChat, IcNavDiscover, IcNavFolder, IcNavFriends, IcNavLeagues, IcNavLearn,
   IcNavPractice, IcNavRecall, IcNavSearch, IcNavSpace, IcNavStore, IcNavTv,
 } from './icons';
 
 type Sec = 'home' | 'search' | 'chat' | 'space' | 'store' | 'learn' | 'practice' | 'recall' | 'friends' | 'leagues';
-// Orden definido por Esteban (9-oct-2026). El submenú de Mi espacio se engancha por sec, no por posición.
+// Orden definido por Esteban (9-oct-2026): Home primero, Mi espacio al final.
+// El submenú de Mi espacio se engancha por sec, no por posición.
 const NAV: { sec: Sec; label: string; to: string; Icon: ComponentType }[] = [
-  { sec: 'space', label: 'Mi espacio', to: '/espacio/carpetas', Icon: IcNavSpace },
-  // Descubrir ES el feed de recomendaciones (la home, tipo YouTube/Instagram); su sec sigue siendo 'home'.
-  { sec: 'home', label: 'Descubrir', to: '/', Icon: IcNavDiscover },
+  // Home ES el feed de recomendaciones (el "descubrir" de la visión, tipo YouTube/Instagram); sec 'home', ruta /.
+  { sec: 'home', label: 'Home', to: '/', Icon: IcNavDiscover },
   { sec: 'search', label: 'Buscar', to: '/buscar', Icon: IcNavSearch },
   // El chat es otra puerta para encontrar cosas, conversando. Sin submenús.
   { sec: 'chat', label: 'Chat', to: '/chat', Icon: IcNavChat },
@@ -26,6 +27,7 @@ const NAV: { sec: Sec; label: string; to: string; Icon: ComponentType }[] = [
   { sec: 'store', label: 'Tienda', to: '/tienda', Icon: IcNavStore },
   { sec: 'friends', label: 'Amigos', to: '/amigos', Icon: IcNavFriends },
   { sec: 'leagues', label: 'Ligas', to: '/ligas', Icon: IcNavLeagues },
+  { sec: 'space', label: 'Mi espacio', to: '/espacio/carpetas', Icon: IcNavSpace },
 ];
 
 function activeFrom(path: string): { sec?: Sec; sub?: string } {
@@ -60,13 +62,14 @@ export function Sidebar({ user }: { user?: User }) {
     const current = on ? (n.sec === 'space' ? 'true' : 'page') : undefined;
     return (
       <button key={n.sec} className={`nav-item${on ? ' on' : ''}`} data-sec={n.sec} aria-current={current} onClick={() => go(n.to)}>
-        <n.Icon />{n.label}
+        {/* El span permite el ajuste óptico vertical de Baloo 2 (ver .nav-item span en shell.css) */}
+        <n.Icon /><span>{n.label}</span>
       </button>
     );
   };
   const subItem = (key: string, label: string, to: string, Icon: ComponentType) => (
     <button key={key} className={`sub-item${sub === key ? ' on' : ''}`} aria-current={sub === key ? 'page' : undefined} onClick={() => go(to)}>
-      <Icon />{label}
+      <Icon /><span>{label}</span>
     </button>
   );
 
@@ -91,10 +94,7 @@ export function Sidebar({ user }: { user?: User }) {
         ))}
       </nav>
       <MiniPlayer />
-      <div className="profile">
-        <span className="av">{user?.name[0] ?? ''}</span>
-        <div><b>{user?.name ?? '…'}</b><small>{user ? `${user.age} años` : ''}</small></div>
-      </div>
+      <ProfileCard user={user} />
       {/* Acceso discreto a la Zona de padres (no es parte del menú del chico; estilo en parent.css) */}
       <Link className="pz-access" to="/padres">Zona de padres</Link>
     </aside>

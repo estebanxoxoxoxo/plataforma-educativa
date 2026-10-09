@@ -19,6 +19,9 @@
   font-family:var(--display);font-weight:800;font-size:var(--ni-fs);line-height:1;letter-spacing:.06em;text-transform:uppercase;color:#6A7390;
   transition:background-color .2s ease,border-color .2s ease,color .2s ease;cursor:pointer}
 .nav-item svg{width:var(--ni-ic);height:var(--ni-ic);flex:none}
+/* Baloo 2 reserva mucho descendente: con line-height 1 las MAYÚSCULAS quedan ópticamente altas respecto
+   del ícono (pedido 9-oct). El span (Sidebar) permite bajar SOLO la etiqueta, sin mover el ícono. */
+.nav-item span,.sub-item span{transform:translateY(2px)}
 .nav-item:hover{background:#F1F3F8;color:#47506B}
 .nav-item.on{background:var(--sec-bg);border-color:var(--sec-bd);color:var(--sec-fg)}
 /* Por sección: relleno suave · borde · etiqueta (etiqueta ≥4.5:1 sobre su relleno; la inactiva #6A7390 da 4.7:1

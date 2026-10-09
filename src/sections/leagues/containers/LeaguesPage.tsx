@@ -43,9 +43,13 @@ export function LeaguesPage() {
         <div className="lhead">
           <LeagueIcon color={data.league.color} />
           <div>
-            <h3 className="ltitle">{data.league.name}</h3>
+            {/* Los chips del ciclo van A LA DERECHA del título (pedido 9-oct): el bloque queda de dos
+                líneas parejas (título+chips / lede) y el ícono centra bien contra las dos. */}
+            <div className="ltitle-row">
+              <h3 className="ltitle">{data.league.name}</h3>
+              <LeagueCycle league={data.league} />
+            </div>
             <p className="lede">Asignada por tus resultados · Tu puesto {data.league.pos} de {data.league.total} · {data.league.xp.toLocaleString('es-AR')} XP esta semana{data.league.closesInDays === undefined && ` · cierra ${data.league.closes}`}</p>
-            <LeagueCycle league={data.league} />
           </div>
         </div>
         <UnderlineTabs key={fontReady ? 'font' : 'fallback'} tabs={TABS} value={tab} onChange={(t) => setParams(t === 'liga' ? {} : { tab: t })}

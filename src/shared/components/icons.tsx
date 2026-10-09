@@ -109,7 +109,7 @@ const NK = {
   orange: '#F26B3A', orangeD: '#D9531F', violet: '#8A5CF5', green: '#2FB57A',
   fTab: '#E6A23C', fBody: '#FFC95C', fHi: '#FFD98A', // = IcFolderWin
 };
-/** Descubrir (el feed de recomendaciones, la home): brújula rosa con aguja coral. */
+/** Home (el feed de recomendaciones — el "descubrir" de la visión): brújula rosa con aguja coral. */
 export const IcNavDiscover = filled(<>
   <circle cx="16" cy="16" r="13.4" fill={NK.pink} />
   <circle cx="16" cy="16" r="9.4" fill={NK.pinkL} />
@@ -132,12 +132,11 @@ export const IcNavChat = filled(<>
   <path d="M7.5 22l-1.3 6.8 7.8-5.2z" fill={NK.green} />
   <circle cx="10" cy="14.5" r="2.1" fill="#fff" /><circle cx="16" cy="14.5" r="2.1" fill="#fff" /><circle cx="22" cy="14.5" r="2.1" fill="#fff" />
 </>);
-/** Mi espacio: la carpeta amarilla de siempre (colores de IcFolderWin) con un corazón: "lo mío". */
+/** Mi espacio: la carpeta amarilla de siempre, SOLA (colores de IcFolderWin; pedido 9-oct: sin corazón). */
 export const IcNavSpace = filled(<>
   <path d="M3 9a2.6 2.6 0 012.6-2.6h6.6a2.6 2.6 0 011.9.8L16.3 9.6H26.4A2.6 2.6 0 0129 12.2v2H3z" fill={NK.fTab} />
   <rect x="3" y="12" width="26" height="15.6" rx="2.8" fill={NK.fBody} />
   <path d="M3 14.8A2.8 2.8 0 015.8 12h20.4a2.8 2.8 0 012.8 2.8v1.2H3z" fill={NK.fHi} />
-  <path d="M16 25c-3.6-2.3-5.6-4.3-5.6-6.5a2.8 2.8 0 015.6-.9 2.8 2.8 0 015.6.9c0 2.2-2 4.2-5.6 6.5z" fill="#fff" />
 </>);
 /** Tienda: tiendita con toldo a rayas coral, vidriera y puerta dorada. */
 export const IcNavStore = filled(<>

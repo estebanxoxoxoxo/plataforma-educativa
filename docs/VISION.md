@@ -77,7 +77,7 @@ Como "si no sabés que algo existe, no sabés buscarlo", hacen falta las cuatro:
 - **Reproductor en segundo plano**: la plataforma es también el reproductor de música del chico
   (la música vive en YouTube), más ruido blanco/rosa/marrón y lluvia para concentrarse. (Hecho en
   la UI nueva: MiniPlayer en la barra lateral, ruidos sintetizados blanco/marrón/rosa; falta
-  "lluvia" y los topes parentales de volumen; 8-oct-2026.)
+  "lluvia"; 8-oct-2026. Topes parentales de volumen hechos en la Zona de padres v2; 9-oct-2026.)
 
 ## 5. Rutas de aprendizaje — el corazón de la plataforma
 
@@ -196,19 +196,19 @@ costo a casi nada.
 | MyTube (suscripciones, canales) | ✔ | ✔ real ("Mi espacio → Videos → Canales": 16 seguidos de arranque + "Para descubrir" en una línea al pie) |
 | Playlists del chico | ✔ ("Mis listas") | ✔ real (orden propio, reproducir todo con auto-avance, escuchar de fondo la cola entera) |
 | Drive (carpetas) | ✔ | ✔ real (carpetas anidadas, raíz solo-carpetas tipo nube con "General" por defecto, papelera restaurable, "Guardar en…" desde video/lectura/imagen; `server/data/space.json`) |
-| Música de fondo + ruidos | ✔ | ✔ real (MiniPlayer en la barra: cola + repeat + seek + duck; ruidos blanco/marrón/rosa por Web Audio; faltan topes parentales) |
+| Música de fondo + ruidos | ✔ | ✔ real (MiniPlayer en la barra: cola + repeat + seek + duck; ruidos blanco/marrón/rosa por Web Audio; topes parentales de volumen vivos desde la Zona de padres → Límites) |
 | Feed (descubrir + social) | ✖ | parcial (server fake con XP/continuar REALES; sin algoritmo de recomendación) |
-| Rutas desde contenido + facts verificados | parcial (learnRoutes en el backup; el generador "route lab" no está en el snapshot) | parcial-fuerte (Practicar REAL: ejercicios generados del contenido aprobado con regla de oro + cita por ejercicio + revisión adversarial; XP/EC reales. Falta: route-lab, edición del padre, conteo por fact) |
-| Active Recall | ✖ | ✖ |
+| Rutas desde contenido + facts verificados | parcial (learnRoutes en el backup; el generador "route lab" no está en el snapshot) | parcial-fuerte (Practicar REAL: ejercicios generados del contenido aprobado con regla de oro + cita por ejercicio + revisión adversarial; XP/EC reales; cada respuesta ya cuenta en la fuerza de su fact vía Repasar. Falta: route-lab, edición del padre) |
+| Active Recall | ✖ | ✔ real en demo ("Repasar", `/repasar`; el nombre "Active Recall" no aparece en la UI): ledger por fact en RAM (fuerza 0-100 → floja/mejorando/firme) sembrado con 24 ejercicios REALES de Practicar —con su cita— y alimentado EN VIVO por cada respuesta de Practicar; sesión diaria de 10 cartas (lo más flojo primero, cursos intercalados), corrección server-side con la de Practicar, cita "De dónde sale" y cambio de nivel animado por carta, +5 XP reales por acierto en la del día, racha de repaso y sesión extra sin ⚡. Falta: repetición espaciada con fechas (hoy es por fuerza + última vez visto), persistencia del ledger por chico y que el padre vea la fuerza por curso; 9-oct-2026 |
 | Simulaciones integradoras | ✖ | ✖ |
 | Matemática determinista | ✖ | ✖ |
 | Música adaptativa | ✔ prototipo (`audio-lab`) | ✖ |
 | Energy Coin + billetera + marketplace | ✖ | ✔ real en demo ("Tienda": billetera en RAM con reset por carga de página, premios del padre, canjes pendientes de entrega, lista de deseos persistida; faltan los ítems de plataforma) |
 | Ligas semanales por coin + equipos | ✖ | parcial-fuerte (liga asignada con XP real, solapas Mi liga/Tu zona/País, cuenta regresiva real al cierre del domingo y medalla de la semana pasada visible en Ligas, feed y aside; falta el cierre real y los equipos) |
-| Amigos + feed de logros + DMs moderados | ✖ | ✔ real en demo (NPCs con modelo + moderación de ida y salida, chat flotante, solicitudes; falta aviso de crisis al padre y ventana persistente entre secciones) |
-| Avatar + guardarropas | prototipo (`avatar-lab`, `voice-server`) | ✖ |
-| Admin parental (listas, reglas, modo prueba) | ✔ completo (el "motor intermedio") | parcial (Zona de padres v1: portón de adulto, grandes on-off con enforcement, premios del marketplace, canjes "ya se lo di", actividad del chico y protecciones en lectura; falta la edición fina de listas/temas, presets y wizard) |
-| Presets / wizard parental | ✖ | ✖ |
+| Amigos + feed de logros + DMs moderados | ✖ | ✔ real en demo (NPCs con modelo + moderación de ida y salida, chat flotante, solicitudes; aviso al padre de crisis —en cuarentena—, contacto e "insistió"; falta ventana persistente entre secciones) |
+| Avatar + guardarropas | prototipo (`avatar-lab`, `voice-server`) | parcial (look ELEGIBLE: 16 personajes dibujados en SVG propio —sin assets externos— × 8 colores, o iniciales; lo elige el chico desde su tarjeta de perfil y persiste en `server/data/identity.json`. Avatares en todo el demo —amigos, solicitud, chat flotante, detalle, ligas/zona/país, feed—: el look de los demás sale de un hash estable del nick, ~80% personaje y ~20% iniciales. Falta: guardarropas comprable con Energy Coin (ítems de plataforma en la Tienda), regalar ropa, emblemas de liga sobre el avatar y estilos por edad que habilite el padre; 9-oct-2026) |
+| Admin parental (listas, reglas, modo prueba) | ✔ completo (el "motor intermedio") | parcial-fuerte (Zona de padres v2 — config VIVA en el server: portón con sesión de API de 15 min, grandes on-off con 403 en Tienda/Chat/Amigos/Ligas, temas blancos (feed 1 de cada 3 + chat) y negros (jueces + feed + frase exacta) de la familia, palabras de la familia sumadas a las de fábrica, topes de volumen del MiniPlayer, avisos (crisis en cuarentena, contacto, "insistió"), premios, actividad y protecciones. Falta: sitios/reglas de dominio/prompts de la familia, horarios y límites de sesión, temas "críticos", cambiar el PIN, modo prueba) |
+| Presets / wizard parental | ✖ | parcial (3 presets honestos que aplican on-off + temas + palabras + topes de una vez —Primeros pasos 3-6, Clásico conservador, Explorador completo— con confirmación de qué cambia; falta el wizard inicial) |
 | Wrapper desktop + VPN | ✖ | ✖ |
 | NPCs agénticos | ✖ | parcial (7 NPCs con persona, memoria del hilo y respuestas reales; 1 solicitud entrante; falta que inicien conversaciones solos) |
 | Corpus de currículas escaneadas | ✖ | ✖ |
