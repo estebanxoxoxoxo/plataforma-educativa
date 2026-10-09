@@ -1,8 +1,8 @@
 /* Buscar › resultados (look Google). La carpeta "discover" agrupa buscar, lector, reproductor y chat.
-   Todas viven en la columna estándar que da .view (shell.css): el buscador conserva su diseño interno alineado a la
-   izquierda (barra 690, resultados 676), pero dentro de la columna, arrancando donde arranca el feed. */
+   Todas viven en la columna estándar que da .view (shell.css). Buscar usa el ANCHO COMPLETO de esa columna (pedido de
+   Esteban): input, solapas, nota de lista blanca y resultados van de punta a punta; el tipográfico Google no cambia. */
 #v-search{background:#fff;font-family:Arial,sans-serif}
-.sbar{height:46px;max-width:690px;border-radius:12px;background:#fff;border:1px solid #DFE1E5;display:flex;align-items:center;gap:10px;padding:0 10px 0 20px;font:16px Arial,sans-serif;color:#202124;transition:box-shadow .25s,border-color .25s}
+.sbar{height:46px;border-radius:12px;background:#fff;border:1px solid #DFE1E5;display:flex;align-items:center;gap:10px;padding:0 10px 0 20px;font:16px Arial,sans-serif;color:#202124;transition:box-shadow .25s,border-color .25s}
 .sbar:focus-within{border-color:transparent;box-shadow:0 1px 6px rgba(32,33,36,.28)}
 .sbar input{flex:1;min-width:0;border:0;outline:0;background:none;padding:0;font:16px Arial,sans-serif;color:#202124;caret-color:#202124}
 .sbar input::placeholder{color:#70757A}
@@ -17,7 +17,7 @@
 .tab.on{color:#1F1F1F;font-weight:700}
 .ink{position:absolute;bottom:-1px;height:3px;border-radius:1.5px 1.5px 0 0;background:#1F1F1F;transition:left .35s,width .35s}
 
-.wl{display:flex;align-items:center;gap:8px;margin-top:14px;width:max-content;font:13px Arial,sans-serif;color:#0B6B66;background:#E2F5F3;border-radius:4px;padding:8px 12px}
+.wl{display:flex;align-items:center;gap:8px;margin-top:14px;font:13px Arial,sans-serif;color:#0B6B66;background:#E2F5F3;border-radius:4px;padding:8px 12px}
 .wl svg{width:16px;height:16px}
 .ichips{display:flex;gap:8px;margin-top:14px;overflow:hidden}
 .ichip{flex:none;display:flex;align-items:center;gap:10px;height:40px;border:1px solid #DADCE0;border-radius:4px;overflow:hidden;padding-right:14px;font:14px Arial,sans-serif;color:#1F1F1F}
@@ -27,9 +27,11 @@
 .results{margin-top:18px}
 .sempty{margin-top:28px;font:15px Arial,sans-serif;color:#4D5156}
 
-/* páginas */
-.results.pages,.results.vids{max-width:676px;margin-left:-12px}
-.pages .it,.vids .it{background:none;border:0;border-radius:5px;padding:8px 12px;margin-bottom:20px}
+/* páginas (y videos): cada resultado ocupa el renglón entero de la columna; el texto arranca y termina donde el input */
+.pages .it,.vids .it{background:none;border:0;border-radius:5px;padding:8px 0;margin-bottom:20px}
+/* el recuadro rosa de "Filtrado" se infla 12px hacia afuera por lado sin mover el esqueleto: margen y padding se
+   compensan (y .it ya anima los dos), así queda con aire adentro y cae en el padding de la vista, sin desbordar */
+.pages .flagged,.vids .flagged{margin-left:-12px;margin-right:-12px;padding-left:12px;padding-right:12px}
 .pages .sk,.vids .sk{height:118px}
 .pages .sk .ph-a{width:28px;height:28px;border-radius:50%;margin-bottom:10px}
 .pages .sk .ph-b{display:grid;gap:9px}
@@ -76,7 +78,7 @@
 .gplay{position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:rgba(0,0,0,.55);display:grid;place-items:center}
 .gplay svg{width:12px;height:12px;margin-left:2px}
 .gdur{position:absolute;left:6px;bottom:5px;color:#fff;font:700 12px Arial,sans-serif;text-shadow:0 0 4px rgba(0,0,0,.9)}
-.g-vtxt{min-width:0;display:grid;gap:6px}
+.g-vtxt{flex:1;min-width:0;display:grid;gap:6px}
 .g-meta{font:14px/20px Arial,sans-serif;color:#4D5156}
 
 /* Artículo (formato Wikipedia) + moderación + generar curso */
