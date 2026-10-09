@@ -17,8 +17,10 @@
 /* Título + chips del ciclo en la misma línea (pedido 9-oct: chips a la derecha del título). */
 .ltitle-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .ltitle-row .lchips{margin-top:0}
-/* ~15% más chicos que la primera versión (pedido 9-oct), para que no compitan con el título al lado. */
-.lchip{display:inline-flex;align-items:center;gap:5px;min-height:24px;padding:2px 10px 2px 8px;border-radius:999px;border:1.5px solid #E1E5EE;background:#fff;color:#47506B;font-size:11.5px;font-weight:800;line-height:1.2}
+/* ~15% más chicos que la primera versión (pedido 9-oct), para que no compitan con el título al lado.
+   ALTURA FIJA (no min-height): cada emoji (⏳/🥈) trae métricas de línea propias y los chips quedaban
+   de alturas distintas; con height fija el flex centra y las cajas son idénticas. */
+.lchip{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px 0 8px;border-radius:999px;border:1.5px solid #E1E5EE;background:#fff;color:#47506B;font-size:11.5px;font-weight:800;line-height:1.2}
 .lchip-ic{font-size:13px;line-height:1}
 .lclose[data-today]{border-color:#F5B49A;background:#FDEBE3;color:#B03F18}
 .lmedal{--lmd:#E8A317;--lmd-bg:#FFF4D6;--lmd-fg:#7F5300;border-color:var(--lmd);background:linear-gradient(135deg,var(--lmd-bg) 0%,#fff 70%);color:var(--lmd-fg)}
