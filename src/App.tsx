@@ -11,6 +11,7 @@ import { PracticePage } from './sections/practice/containers/PracticePage';
 import { RecallPage } from './sections/recall/containers/RecallPage';
 import { RecallSessionPage } from './sections/recall/containers/RecallSessionPage';
 import { FriendsPage } from './sections/friends/containers/FriendsPage';
+import { ChatDock } from './sections/friends/containers/ChatDock';
 import { LeaguesPage } from './sections/leagues/containers/LeaguesPage';
 import { FeedPage } from './sections/home/containers/FeedPage';
 import { ChannelPage } from './sections/space/containers/ChannelPage';
@@ -41,6 +42,7 @@ function Layout() {
       <main className="main"><FeatureGate><Outlet /></FeatureGate></main>
       {/* iframe oculto del audio de fondo: vive acá para sobrevivir el cambio de sección */}
       <BgAudioHost />
+      <ChatDock />
     </div>
   );
 }

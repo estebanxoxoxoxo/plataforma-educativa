@@ -3,9 +3,10 @@ import type { Friend } from '../../../api/types';
 import { Avatar, lookFor } from '../../../shared/components/Avatar';
 import { IcChat, IcInfo } from '../../../shared/components/icons';
 
-/** Fila de un amigo. ⓘ abre/cierra su detalle (panel de la derecha); el globo abre la ventana de chat flotante.
- *  Tocar la fila también abre el detalle: con la ventana de chat abierta sobre la lista a ancho completo, los botones
- *  de las filas de abajo quedan tapados, pero el nombre se puede tocar igual (y el detalle trae "Mandar mensaje").
+/** Fila de un amigo. ⓘ abre/cierra su detalle (panel de la derecha); el globo abre su conversación en el dock de
+ *  mensajes (abajo a la derecha; `chatOpen` = ya tiene ventana ahí, abierta o minimizada).
+ *  Tocar la fila también abre el detalle: con ventanas del dock abiertas sobre la lista a ancho completo, los botones
+ *  de las filas de abajo pueden quedar tapados, pero el nombre se puede tocar igual (y el detalle trae "Mandar mensaje").
  *  `fresh` = recién aceptado de una solicitud (entra con una animación suave). */
 export const FriendRow = ({ f, infoOpen, chatOpen, fresh, onInfo, onMsg }: {
   f: Friend; infoOpen: boolean; chatOpen: boolean; fresh?: boolean; onInfo: () => void; onMsg: () => void;

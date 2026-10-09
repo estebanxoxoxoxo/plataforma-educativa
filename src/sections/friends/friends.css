@@ -3,8 +3,8 @@
    achica animada hasta la mitad (.3s sobre su ancho y el hueco) y recién ahí aparece el panel de la derecha; cerrar lo
    invierte (el panel se va → la lista se expande). Con una columna angosta (≤ 703 px, ventanas de ~1024) la lista cede
    ancho para que el panel nunca baje de 340 — el mismo fix del viejo minmax, ahora como container query.
-   La mensajería vive en una ventana FLOTANTE abajo a la derecha (estilo LinkedIn), fija sobre el contenido: por encima
-   de todo lo de la vista y por debajo de las hojas .shov (80) y del toast de la Tienda (70). */
+   La mensajería vive en el DOCK de mensajes (estilo LinkedIn, al final de este archivo): fijo abajo a la derecha en
+   TODA la app, montado en el Layout. Las burbujas del hilo (.fthread, .fm, .fmod…) son las de siempre. */
 
 /* ---- solicitudes de amistad: arriba, a ancho completo; se pliegan (filas 1fr → 0fr) al aceptar/rechazar ---- */
 .freqs{display:grid;grid-template-rows:1fr;margin-top:20px;transition:grid-template-rows .3s ease,opacity .25s ease,margin-top .3s ease}
@@ -70,20 +70,7 @@
 .fpmsg:hover{background:#7748EE}
 .fpmsg svg{width:17px;height:17px}
 
-/* ---- ventana de chat flotante (abajo a la derecha, pegada al borde inferior como en LinkedIn) ---- */
-.fcw{position:fixed;right:24px;bottom:0;z-index:55;width:min(360px,calc(100vw - 32px));height:min(480px,calc(100vh - 96px));display:flex;flex-direction:column;background:#fff;border:1.5px solid #E1E5EE;border-bottom:0;border-radius:12px 12px 0 0;box-shadow:0 -4px 36px -12px rgba(27,34,56,.38);animation:fcw-in .25s ease both}
-.fcw.min{height:auto}
-.fcw-head{flex:none;display:flex;align-items:center;gap:10px;padding:9px 8px 9px 12px;border-bottom:1px solid #EEF0F5;cursor:pointer;user-select:none}
-.fcw.min .fcw-head{border-bottom:0}
-.fcw-head .av3{width:36px;height:36px;font-size:16px}
-.fcw-who{flex:1;min-width:0}
-.fcw-who b{display:block;font-size:15.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fcw-who small{display:block;font-size:12.5px;font-weight:700;color:#6A7390;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fcw-who small.typing{color:#5431B3}
-.fcw-badge{flex:none;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:#E5487A;color:#fff;font-size:11.5px;font-weight:800;display:grid;place-items:center}
-.fcw-b{flex:none;width:32px;height:32px;border-radius:7px;display:grid;place-items:center;color:#47506B;transition:background .2s}
-.fcw-b:hover{background:#F1F3F8}
-.fcw-b svg{width:18px;height:18px}
+/* ---- el hilo de una conversación (adentro de cada ventana del dock) ---- */
 .fthread{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:14px 14px 10px;scrollbar-width:thin}
 .fthread > :first-child{margin-top:auto}
 .fm{max-width:84%;padding:9px 13px;border-radius:8px;font-weight:700;font-size:14.5px;line-height:1.4;overflow-wrap:anywhere;animation:popin .3s ease both}
@@ -107,16 +94,84 @@
 .fnote.busy{color:#0B6B66}
 .fnote svg{width:14px;height:14px;flex:none}
 
+/* ---- dock de mensajes (estilo LinkedIn; containers/ChatDock.tsx + lib/chatDock.ts), en TODA la app ----
+   Una fila pegada al borde inferior: [ventanas, la más nueva a la derecha][barra «Mensajes»]; la fila crece hacia la
+   izquierda. La caja .fdk va del borde del menú (240 + 16) al borde derecho (16): el dock la mide y el store reparte el
+   lugar (minimiza las expandidas más viejas, encoge las barras con elipsis y, si ni así entran, oculta las minimizadas
+   más viejas con un «+N» en la barra), así que nunca desborda ni tapa el menú. La caja no atrapa clics: solo sus piezas.
+   Las medidas llegan como variables desde DOCK (lib/chatDock.ts): --fdk-gap, --fdk-bar, --fdk-win, --fdk-minw, --fdk-minmin.
+   APILAMIENTO (medido en Edge): z 55 en la raíz. Queda por encima de TODO el contenido (.view es un contexto de apilamiento
+   propio por su animación fadein con fill both: cuenta como z 0) y por debajo del panel del MiniPlayer (.mp-panel, 60) y
+   de las hojas .shov de la barra lateral (80: "Tu avatar"). Una hoja .shov que vive DENTRO de una vista ("Guardar en",
+   listas, carpetas, canje de la Tienda) no puede quedar arriba por z-index (su contexto es .view): mientras haya una
+   abierta, el dock se aparta (regla :has de abajo). */
+.fdk{position:fixed;left:256px;right:16px;bottom:0;z-index:55;display:flex;align-items:flex-end;justify-content:flex-end;gap:var(--fdk-gap);pointer-events:none}
+.fdk[hidden]{display:none}
+.fdk > *{pointer-events:auto}
+.app:has(.main .shov) .fdk{visibility:hidden}
+
+/* una ventana: barra propia (avatar + nombre + estado o "escribiendo…", minimizar y cerrar) + el hilo + el campo */
+.fdk-win{flex:none;width:var(--fdk-win);height:min(480px,calc(100vh - 96px));min-width:0;display:flex;flex-direction:column;background:#fff;border:1.5px solid #E1E5EE;border-bottom:0;border-radius:12px 12px 0 0;box-shadow:0 -4px 36px -12px rgba(27,34,56,.38);animation:fdk-in .25s ease both}
+.fdk-win[hidden]{display:none}
+/* minimizada: queda solo su barra; con poco lugar se encoge con elipsis hasta --fdk-minmin (y bien angosta deja solo
+   avatar + nombre: la línea de estado se va para que el nombre tenga lugar) */
+.fdk-win.min{flex:0 1 var(--fdk-minw);min-width:var(--fdk-minmin);height:auto;container-type:inline-size;transition:border-color .2s}
+.fdk-win.min:hover{border-color:#D9CCFB}
+.fdk-win.min .fdk-head{gap:2px;padding:0 4px 0 8px}
+.fdk-win.min .fdk-who{gap:8px}
+.fdk-win.min .fdk-b{width:28px;height:28px}
+@container (max-width:170px){
+  .fdk-win.min .fdk-nm small{display:none}
+}
+.fdk-head{flex:none;height:48px;display:flex;align-items:center;gap:4px;min-width:0;padding:0 6px 0 10px;border-bottom:1px solid #EEF0F5;cursor:pointer;user-select:none}
+.fdk-win.min .fdk-head{border-bottom:0}
+.fdk-who{flex:1;min-width:0;align-self:stretch;display:flex;align-items:center;gap:10px;padding-right:4px;border-radius:9px;text-align:left}
+.fdk-who .av3{width:32px;height:32px;font-size:14px}
+.fdk-nm{flex:1;min-width:0;display:block}
+.fdk-nm b{display:block;font-size:15px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fdk-nm small{display:block;font-size:12.5px;font-weight:700;color:#6A7390;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fdk-nm small.typing{color:#5431B3}
+.fdk-badge{flex:none;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:#E5487A;color:#fff;font-size:11.5px;font-weight:800;display:grid;place-items:center}
+.fdk-b{flex:none;width:32px;height:32px;border-radius:7px;display:grid;place-items:center;color:#47506B;transition:background .2s}
+.fdk-b:hover{background:#F1F3F8}
+.fdk-b svg{width:18px;height:18px}
+
+/* barra «Mensajes»: minimizada es una tira; desplegada, la lista de conversaciones (crece hacia arriba, mismo ancho) */
+.fdk-list{flex:none;width:var(--fdk-bar);display:flex;flex-direction:column;background:#fff;border:1.5px solid #E1E5EE;border-bottom:0;border-radius:12px 12px 0 0;box-shadow:0 -4px 30px -14px rgba(27,34,56,.34)}
+.fdk-list.open{height:min(480px,calc(100vh - 96px))}
+.fdk-lhead{flex:none;width:100%;height:48px;display:flex;align-items:center;gap:10px;padding:0 6px 0 10px;border-radius:11px 11px 0 0;text-align:left;transition:background .2s}
+.fdk-lhead:hover{background:#F8F9FC}
+.fdk-list.open .fdk-lhead{border-bottom:1px solid #EEF0F5}
+.fdk-more{flex:none;height:22px;padding:0 8px;border-radius:11px;background:#EFE8FE;color:#5431B3;font-size:12px;font-weight:800;display:grid;place-items:center}
+.fdk-more.new{background:#E5487A;color:#fff}
+.fdk-chev{flex:none;width:32px;height:32px;display:grid;place-items:center;color:#47506B}
+.fdk-chev svg{width:18px;height:18px}
+.fdk-lbody{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin;padding:6px}
+.fdk-items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.fdk-item{width:100%;display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:8px;text-align:left;transition:background .2s}
+.fdk-item:hover{background:#F6F2FF}
+.fdk-item.on{background:#FAF8FF}
+.fdk-item .av3{width:42px;height:42px;font-size:18px}
+.fdk-item .fdk-nm b{font-size:15.5px}
+.fdk-dot{flex:none;width:9px;height:9px;margin-right:6px;border-radius:50%;background:#8A5CF5}
+.fdk-empty{margin:16px 10px;text-align:center;font-size:14px;font-weight:700;line-height:1.45;color:#6A7390}
+.fdk-empty p{margin:0}
+.fdk-retry{margin-top:10px;padding:8px 14px;border-radius:8px;border:1.5px solid #D9DEEA;background:#fff;font-weight:800;font-size:13.5px;color:#5431B3}
+.fdk-sk{display:flex;flex-direction:column;gap:2px}
+.fdk-sk span{display:flex;align-items:center;gap:12px;padding:8px 10px}
+.fdk-sk i,.fdk-sk b{flex:none;background:linear-gradient(90deg,#E6E9F1 0%,#F1F3F8 50%,#E6E9F1 100%);background-size:200% 100%;animation:shim 1.3s linear infinite}
+.fdk-sk i{width:42px;height:42px;border-radius:50%}
+.fdk-sk b{width:60%;height:12px;border-radius:4px}
+/* el anillo de foco va por dentro: estas piezas llenan su caja (y la lista recorta lo que se sale) */
+.fdk-who:focus-visible,.fdk-lhead:focus-visible,.fdk-item:focus-visible{outline-offset:-3px}
+
 @keyframes fp-in{from{opacity:0;transform:translateX(16px)}}
 @keyframes fp-out{to{opacity:0;transform:translateX(16px)}}
 @keyframes fr-in{from{opacity:0;transform:translateY(-8px)}}
 @keyframes fr-glow{from{border-color:#A88AF7;background:#F7F3FF}}
-@keyframes fcw-in{from{opacity:0;transform:translateY(24px)}}
+@keyframes fdk-in{from{opacity:0;transform:translateY(24px)}}
 
-@media (max-width:640px){
-  .fcw{right:8px;width:calc(100vw - 16px)}
-}
 @media (prefers-reduced-motion: reduce){
-  .fwrap,.flist,.freqs,.freq{transition:none}
-  .fpanel,.fpanel.out,.fpbody,.fr.fresh,.fcw,.fm,.fmod{animation:none}
+  .fwrap,.flist,.freqs,.freq,.fdk-win.min{transition:none}
+  .fpanel,.fpanel.out,.fpbody,.fr.fresh,.fdk-win,.fm,.fmod,.fdk-sk i,.fdk-sk b{animation:none}
 }

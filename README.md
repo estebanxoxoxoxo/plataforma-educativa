@@ -82,6 +82,18 @@ El control vive en la barra lateral (MiniPlayer); el iframe oculto, en el Layout
 chico, tope)), los sliders del MiniPlayer no pasan del tope ("máx. 40") y lo que suena baja en el acto
 (`sections/parent/lib/limits.ts` sobre el público `GET /api/parent/limits`, misma pestaña / otras pestañas / al volver el foco).
 
+**Mensajes (dock estilo LinkedIn)**: `sections/friends/containers/ChatDock.tsx` también vive en el Layout, así que está en
+TODA la app y sobrevive al cambio de sección. Abajo a la derecha, la barra «Mensajes» (minimizada por defecto; desplegada,
+la lista de conversaciones con los amigos aceptados) y, a su izquierda, una ventana por conversación —cada apertura nueva
+entra pegada a la barra y la fila crece hacia la izquierda—, cada una con su barra, minimizar y cerrar (Esc minimiza). Adentro,
+el hilo de siempre: "escribiendo…", respuestas reales del NPC y la moderación de ida (`/api/friends/send`: lo bloqueado nunca
+entra al hilo, el Moderador explica y el texto queda en el campo). El globo de `/amigos` abre la conversación acá (reabrir no
+duplica: enfoca/restaura). Estado en RAM (`sections/friends/lib/chatDock.ts`, `useSyncExternalStore`): recargar = dock
+cerrado. Cada ventana sondea `api.newMessages` mientras exista, abierta o minimizada (lo que llega minimizada suma a su badge);
+sin ventana no hay sondeo. Si no entran: se minimizan las expandidas más viejas, las barras se encogen con elipsis y, si ni
+así, las minimizadas más viejas se ocultan con un «+N» (nunca hay scroll lateral). Con Amigos apagado no existe; en
+`/padres/*` no se muestra. z 55: sobre el contenido y bajo las hojas modales (las de una vista lo apartan con `:has`).
+
 ## Diferencias con el prototipo
 
 - Corregidos los estilos que se pisaban: barra del reproductor (`.pbar` → `.vbar`), fila "Rango temporal" del cuadro de Wikipedia (`.sub` → `.wk-sub`), perfil lateral (`.kid` → `.profile`) y clase de imágenes (`.ph` → `.ph-img`).
