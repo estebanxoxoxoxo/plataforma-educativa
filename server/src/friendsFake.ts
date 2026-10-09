@@ -80,7 +80,7 @@ const NPCS: Npc[] = [
   },
   {
     id: 'f2', nick: 'LuliVolcan', color: '#F26B3A', status: 'Racha de 8 días', xp: '2.870', streak: '8 días', league: 'Liga Cometa', since: 'abril', commonCourses: ['Animales del océano'],
-    age: 9, girl: true, persona: 'Fanática de los volcanes (sueña con ver el Lanín) y de los animales del océano; su favorito es el pulpo. Alegre y charlatana, orgullosísima de su racha.',
+    age: 9, girl: true, persona: 'Fanática de los volcanes (sueña con ver el Lanín) y de los animales del océano; su favorito es el pulpo. Alegre y charlatana, re contenta con su racha.',
   },
   {
     id: 'f3', nick: 'MateoDino', color: '#13A39A', status: 'Terminó la unidad 2 de Dinosaurios', xp: '4.010', streak: '21 días', league: 'Liga Estrella', since: 'marzo', commonCourses: ['Dinosaurios', 'Fracciones'],
