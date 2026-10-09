@@ -294,7 +294,9 @@ const str = (x: unknown, max: number) => (typeof x === 'string' ? x.replace(/\s+
 const fit = (x: unknown, max: number) => { const t = typeof x === 'string' ? x.replace(/\s+/g, ' ').trim() : ''; return t.length <= max ? t : '' }
 const BAD_OPT =/^(todas|todos|ninguna|ninguno|ambas|ambos|todas las anteriores|ninguna de las anteriores)\b/i
 /* Muletillas al principio de ok/bad (la app ya muestra «¡Correcto!» / «Incorrecto»): se pelan. */
-const LEAD = /^(?:[¡!]?\s*(?:muy\s+bien|bien pensado|bien|exacto|correcto|perfecto|genial|claro|así es|eso es|eso mismo|eso|sí|si|no|incorrecto|casi)\s*[!:.,;—–-]+\s*)+/i
+/* La muletilla puede traer vocativo ("¡Muy bien, Ian!"): el nombre opcional también se pela, si no
+   quedaba "Ian! Explicaste…" (visto en Repasar, que usa esta misma corrección). */
+const LEAD = /^(?:[¡!]?\s*(?:muy\s+bien|bien pensado|bien|exacto|correcto|perfecto|genial|claro|así es|eso es|eso mismo|eso|sí|si|no|incorrecto|casi)(?:\s*,\s*\p{L}{2,20})?\s*[!:.,;—–-]+\s*)+/iu
 const unlead = (s: string) => { const t = s.replace(LEAD, '').trim(); return t ? t[0].toUpperCase() + t.slice(1) : s }
 /* Frases que presentan un contenido ("en este video aprenderás…", "conoceremos…"): no son datos. */
 const PRESENTA = /\b(aprend(er|er[aá]n|er[aá]s|eremos|emos|amos)|veremos|conoceremos|descubri(r[aá]s|remos)|en este (nuevo )?(v[ií]deo|art[ií]culo)|nuevo v[ií]deo|te (contamos|mostramos|explicamos)|vamos a (ver|aprender|conocer))\b/i
