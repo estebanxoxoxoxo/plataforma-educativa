@@ -2,8 +2,9 @@ import type { AssignedLeague } from '../../../api/types';
 import { MEDAL_INFO, closesLabel, lastWeekLabel } from '../lib/cycle';
 
 /** Chips del ciclo semanal en el hero de Ligas: cuánto falta para el cierre y el estandarte de la semana pasada.
- *  El estandarte es solo para el podio (con medalla); sin datos del ciclo no se muestra nada. */
-export function LeagueCycle({ league }: { league: AssignedLeague }) {
+ *  El estandarte es solo para el podio (con medalla); sin datos del ciclo no se muestra nada.
+ *  `fresh` = la medalla se acaba de ganar en un cierre (entra con un saltito, una sola vez). */
+export function LeagueCycle({ league, fresh }: { league: AssignedLeague; fresh?: boolean }) {
   const days = league.closesInDays;
   const lw = league.lastWeek;
   const medal = lw?.medal ? MEDAL_INFO[lw.medal] : null;
@@ -16,7 +17,7 @@ export function LeagueCycle({ league }: { league: AssignedLeague }) {
         </span>
       )}
       {lw && medal && (
-        <span className="lchip lmedal" data-medal={lw.medal} title={`${medal.name} · ${lastWeekLabel(lw.pos)}`}>
+        <span className={`lchip lmedal${fresh ? ' is-new' : ''}`} data-medal={lw.medal} title={`${medal.name} · ${lastWeekLabel(lw.pos)}`}>
           <span className="lchip-ic" role="img" aria-label={medal.name}>{medal.emoji}</span>{lastWeekLabel(lw.pos)}
         </span>
       )}

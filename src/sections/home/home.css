@@ -3,7 +3,8 @@
 /* El feed es la REFERENCIA de la columna estándar (1040, centrada): ahora la da .view para todas (shell.css). */
 .feed{display:grid;grid-template-columns:minmax(0,1fr) 288px;gap:30px;align-items:start}
 .fmain{min-width:0}
-.fhead{margin-bottom:18px}
+.fhead{margin-bottom:18px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px 16px;flex-wrap:wrap}
+.fhead-txt{min-width:0}
 .fitems{display:grid;gap:12px}
 
 /* tarjeta base */
@@ -62,6 +63,36 @@ button.fcard:hover{border-color:#C9D2E4;box-shadow:0 10px 24px -20px rgba(27,34,
 .rchip:active{transform:scale(.94)}
 .rchip.on{border-color:#13A39A;background:#E2F5F3}
 .rchip.on i{color:#0B6B66}
+
+/* MI noticia (la medalla del chico en el cierre de liga: la que ven sus amigos en su feed): celebratoria, con su avatar,
+   la pastilla "Vos" y los colores de SU medalla (los mismos de la tabla de Ligas y de la tarjeta de la liga) */
+.ffriend[data-mine]{--fmd:#E8A317;border-color:#F2D9A8;background:linear-gradient(135deg,#FFFBF0,#FFF2D3)}
+.ffriend[data-mine][data-medal="plata"]{--fmd:#9AA3B5;border-color:#D7DDE8;background:linear-gradient(135deg,#FAFBFD,#ECEFF5)}
+.ffriend[data-mine][data-medal="bronce"]{--fmd:#C07A43;border-color:#EFD3BC;background:linear-gradient(135deg,#FFF9F3,#FBE8D7)}
+.ffriend[data-mine] .rchip{background:rgba(255,255,255,.75)}
+.fyou{display:inline-block;margin-left:7px;padding:2px 7px;border-radius:999px;background:#3A5BD9;color:#fff;font-size:11px;font-weight:800;line-height:1.3;vertical-align:1px}
+.fev-medal{width:40px;height:40px;border-radius:50%;background:#fff;font-size:22px;line-height:1;box-shadow:0 0 0 2px var(--fmd),0 6px 14px -6px rgba(27,34,56,.45)}
+
+/* lo que acaba de entrar en vivo (botón de demo "Simular NPCs"): baja apenas y se marca un instante. Fill "backwards":
+   al terminar no queda pegado y el hover de las tarjetas-botón sigue funcionando */
+.fnew{animation:fnew-in .45s cubic-bezier(.2,.8,.3,1) backwards,fnew-mark 2.6s ease .2s backwards}
+@keyframes fnew-in{from{opacity:0;transform:translateY(-10px) scale(.985)}}
+@keyframes fnew-mark{from{box-shadow:0 0 0 2px #A9B9F6}to{box-shadow:0 0 0 2px rgba(169,185,246,0)}}
+
+/* botón de DEMO junto al saludo (docs/AGENTS.md regla 9): discreto, punteado y gris; no compite con el feed */
+.fdemo-wrap{display:grid;justify-items:end;gap:4px;padding-top:2px}
+.fdemo{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 13px 0 5px;border-radius:999px;border:1.5px dashed #C9D0DE;background:#fff;color:#6A7390;font-size:12.5px;font-weight:800;white-space:nowrap;transition:border-color .15s,color .15s,background .15s}
+.fdemo:hover:not(:disabled){border-color:#8A93AD;color:#1B2238;background:#FAFBFD}
+.fdemo:disabled{cursor:progress;color:#8A93AD}
+.fdemo-tag{padding:2px 7px;border-radius:999px;background:#EEF1F6;color:#6A7390;font-size:10px;letter-spacing:.07em;text-transform:uppercase}
+.fdemo-ic{flex:none;width:14px;height:14px;color:#8A5CF5}
+.fdemo[aria-busy] .fdemo-ic{animation:spin 1.1s linear infinite}
+.fdemo-msg{min-height:16px;font-size:12px;font-weight:800;color:#0B6B66}
+.fdemo-msg.err{color:#B32D33}
+@media (prefers-reduced-motion: reduce){
+  .fnew{animation:fnew-mark 2.6s ease .2s backwards}
+  .fdemo[aria-busy] .fdemo-ic{animation:none}
+}
 
 /* pie de lista */
 .fmore{justify-self:center;padding:11px 22px;border-radius:9px;border:1.5px solid #D9DEEA;background:#fff;font-weight:800;font-size:14px;color:#2843A8;transition:border-color .2s,background .2s}

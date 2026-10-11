@@ -12,11 +12,11 @@ function splitMedal(desc: string): { medal: Medal | null; text: string } {
 }
 
 /** Noticia de la liga ASIGNADA de la semana (las ligas no se eligen: se asignan por resultados). Cuenta el ciclo:
- *  cómo te fue en el cierre pasado y dónde competís esta semana. */
-export function LeagueInviteCard({ it, onOpen }: { it: It; onOpen: () => void }) {
+ *  cómo te fue en el cierre pasado y dónde competís esta semana. `fresh` = acaba de entrar (animación de entrada). */
+export function LeagueInviteCard({ it, onOpen, fresh }: { it: It; onOpen: () => void; fresh?: boolean }) {
   const { medal, text } = splitMedal(it.desc);
   return (
-    <button className="fcard fleague" data-medal={medal ?? undefined} onClick={onOpen}>
+    <button className={`fcard fleague${fresh ? ' fnew' : ''}`} data-medal={medal ?? undefined} onClick={onOpen}>
       <span className="fcup">
         <IcTrophyLine />
         {medal && <span className="fcupm" role="img" aria-label={MEDAL_INFO[medal].name}>{MEDAL_INFO[medal].emoji}</span>}

@@ -19,8 +19,9 @@ import { searchImages } from './images'
 import { allChannels, getVideo, loadChannelMeta, loadVideoMeta, searchVideos, toVideoResult, videosOfChannel } from './videos'
 import { sendChildMessage } from './chat'
 import { getCourse, prewarmCourses } from './learn'
-import { getFeed, reactFeed } from './feedFake'
+import { getFeed, reactFeed, resetFeed } from './feedFake'
 import { friendsRoutes, resetFriends } from './friendsFake'
+import { resetLeagues } from './leaguesFake'
 import * as space from './space'
 import { practiceRoutes } from './practice'
 import { progressRoutes, resetProgress } from './progress'
@@ -81,6 +82,8 @@ createServer(async (req, res) => {
       ;(market as { resetMarket?: () => void }).resetMarket?.()
       resetFriends() // el grafo social del demo (amigos aceptados, solicitudes, hilos) también vuelve al seed
       resetRecall() // el ledger de Repasar (fuerza por fact) también es RAM: vuelve al seed
+      resetLeagues() // el ciclo de liga simulado (cierres de semana del botón de demo) vuelve al seed
+      resetFeed() // las noticias en vivo (cierres, ráfagas de NPCs) y las reacciones vuelven al seed
       return send(res, 200, { ok: true })
     }
 

@@ -65,3 +65,58 @@
 .rank.full{margin-bottom:4px}
 
 .lempty{color:#A5ACBD;font-weight:800;margin-top:14px}
+
+/* ---- cierre de semana (botón de demo): el aviso del resultado, arriba del hero ----
+   Con medalla: el tinte, el anillo y las chispas son los de SU medalla (los mismos de la tabla y del feed). Sin medalla:
+   neutro (azul suave) con el ícono de la liga nueva. Festejo de una sola vez; con movimiento reducido, quieto. */
+.lwk{--lwk-bg:#EEF2FD;--lwk-line:#D5DDF7;--lwk-md:#3A5BD9;position:relative;display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;align-items:center;margin:20px 0 2px;padding:18px 52px 18px 20px;border-radius:14px;border:1px solid var(--lwk-line);background:linear-gradient(115deg,var(--lwk-bg) 0%,#fff 78%);animation:lwk-in .45s cubic-bezier(.2,.8,.3,1) both}
+.lwk[data-medal="oro"]{--lwk-bg:#FFF1CC;--lwk-line:#F2D9A8;--lwk-md:#E8A317}
+.lwk[data-medal="plata"]{--lwk-bg:#E5EAF2;--lwk-line:#D3DAE6;--lwk-md:#9AA3B5}
+.lwk[data-medal="bronce"]{--lwk-bg:#FBE4D0;--lwk-line:#EFD3BC;--lwk-md:#C07A43}
+.lwk-art{position:relative;width:64px;height:64px;display:grid;place-items:center}
+.lwk-art .lic{width:56px;height:56px;border-radius:9px}
+.lwk-art .lic svg{width:30px;height:30px}
+.lwk-medal{width:64px;height:64px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:36px;line-height:1;box-shadow:0 0 0 3px var(--lwk-md),0 10px 22px -10px rgba(27,34,56,.5);animation:lwk-pop .55s cubic-bezier(.2,1.5,.4,1) .12s both}
+.lwk-burst{position:absolute;inset:0;pointer-events:none}
+.lwk-burst i{position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:2px;background:var(--c);opacity:0;animation:lwk-burst .9s ease-out .3s both}
+.lwk-body{min-width:0}
+.lwk-t{margin:0;font-family:var(--display);font-weight:800;font-size:22px;line-height:1.15;color:#1B2238;text-wrap:balance}
+.lwk-t:focus{outline:none}
+.lwk-p{margin:4px 0 0;font-weight:700;font-size:15px;line-height:1.4;color:#47506B}
+.lwk-row{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;margin:10px 0 0}
+.lwk-move{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;font-weight:800;font-size:13.5px;line-height:1.2;background:#fff;color:#47506B;box-shadow:inset 0 0 0 1.5px #E1E5EE}
+.lwk-move svg{width:15px;height:15px;margin-left:-3px}
+.lwk-move[data-move="sube"]{background:#E3F6EA;color:#0F7F40;box-shadow:none}
+.lwk-move[data-move="baja"]{background:#FDEBE3;color:#B03F18;box-shadow:none}
+.lwk-cheer{font-weight:800;font-size:13.5px;color:#2843A8}
+.lwk-note{margin:10px 0 0;font-weight:700;font-size:13px;line-height:1.45;color:#6A7390}
+.lwk-go{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:2px 0;font-weight:800;font-size:13.5px;color:#2843A8}
+.lwk-go svg{width:15px;height:15px;transition:transform .2s}
+.lwk-go:hover{text-decoration:underline}
+.lwk-go:hover svg{transform:translateX(3px)}
+.lwk-x{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:8px;display:grid;place-items:center;color:#6A7390;transition:background .15s,color .15s}
+.lwk-x:hover{background:rgba(27,34,56,.06);color:#1B2238}
+.lwk-x svg{width:16px;height:16px}
+/* la medalla nueva en el chip del ciclo entra con el mismo saltito */
+.lmedal.is-new .lchip-ic{display:inline-block;animation:lwk-pop .55s cubic-bezier(.2,1.5,.4,1) .2s both}
+@keyframes lwk-in{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+@keyframes lwk-pop{from{opacity:0;transform:scale(.5) rotate(-14deg)}to{opacity:1;transform:none}}
+@keyframes lwk-burst{from{opacity:1;transform:rotate(var(--a)) translateY(-30px) scale(.6)}to{opacity:0;transform:rotate(var(--a)) translateY(-64px) scale(1)}}
+@media (max-width:640px){
+  .lwk{grid-template-columns:minmax(0,1fr);padding:16px 48px 16px 16px}
+}
+
+/* ---- botón de DEMO al pie (docs/AGENTS.md regla 9): discreto, punteado y gris; no compite con la UI del chico ---- */
+.ldemo-bar{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin:22px 0 0 2px}
+.ldemo{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 13px 0 5px;border-radius:999px;border:1.5px dashed #C9D0DE;background:#fff;color:#6A7390;font-size:12.5px;font-weight:800;transition:border-color .15s,color .15s,background .15s}
+.ldemo:hover:not(:disabled){border-color:#8A93AD;color:#1B2238;background:#FAFBFD}
+.ldemo:disabled{cursor:progress;color:#8A93AD}
+.ldemo-tag{padding:2px 7px;border-radius:999px;background:#EEF1F6;color:#6A7390;font-size:10px;letter-spacing:.07em;text-transform:uppercase}
+.ldemo-ic{flex:none;width:13px;height:13px}
+.ldemo[aria-busy] .ldemo-ic{animation:ldemo-go .8s ease-in-out infinite}
+@keyframes ldemo-go{50%{transform:translateX(3px)}}
+.ldemo-err{font-size:12.5px;font-weight:800;color:#B32D33}
+@media (prefers-reduced-motion: reduce){
+  .lwk,.lwk-medal,.lmedal.is-new .lchip-ic,.ldemo[aria-busy] .ldemo-ic{animation:none}
+  .lwk-burst{display:none}
+}

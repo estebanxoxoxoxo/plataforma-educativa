@@ -4,9 +4,10 @@ import { imgSrc } from '../../../shared/lib/img';
 
 type It = Extract<FeedItem, { kind: 'route' }>;
 
-/** Ruta/curso recomendado por los temas de interés. Abre el curso en Aprender. */
-export const FeedRouteCard = ({ it, onOpen }: { it: It; onOpen: (courseId: string) => void }) => (
-  <button className="fcard froute" onClick={() => onOpen(it.course.id)}>
+/** Ruta/curso recomendado (por los temas de interés o porque la compartió un amigo). Abre el curso en Aprender.
+ *  `fresh` = acaba de entrar (animación de entrada). */
+export const FeedRouteCard = ({ it, onOpen, fresh }: { it: It; onOpen: (courseId: string) => void; fresh?: boolean }) => (
+  <button className={`fcard froute${fresh ? ' fnew' : ''}`} onClick={() => onOpen(it.course.id)}>
     <span className="fart" style={{ background: `linear-gradient(135deg,${it.course.bg[0]},${it.course.bg[1]})` }}>
       <img src={imgSrc(it.course.img)} alt="" loading="lazy" />
     </span>
