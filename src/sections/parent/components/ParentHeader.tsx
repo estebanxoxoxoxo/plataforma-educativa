@@ -8,6 +8,8 @@ const TABS = [
   { to: '/padres/limites', label: 'Límites', end: false },
   { to: '/padres/avisos', label: 'Avisos', end: false },
   { to: '/padres/premios', label: 'Premios', end: false },
+  // Marketplace de profes particulares: lo que se contrata acá aparece en el Calendario del chico (/calendario).
+  { to: '/padres/profesores', label: 'Profesores', end: false },
   { to: '/padres/actividad', label: 'Actividad', end: false },
   { to: '/padres/protecciones', label: 'Protecciones', end: false },
 ];

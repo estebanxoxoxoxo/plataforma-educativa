@@ -47,7 +47,8 @@ framework en `server/` (puerto 8787, proxy `/api` de Vite). El usuario demo es I
    registralo en ese endpoint. SÍ persisten los activos/preferencias del chico (space.json,
    wishlist.json, identity.json: el avatar) y la CONFIG del padre (parent.json v2: on-off de
    funcionalidades, premios de la Tienda, temas blancos/negros, palabras de la familia, topes de
-   volumen y preset aplicado; teachers.json: profes contratados y sus clases). Los AVISOS al padre
+   volumen y preset aplicado; teachers.json: profes contratados — las clases NO se guardan, se
+   derivan al leer y la serie corre sola). Los AVISOS al padre
    (crisis/contacto/bloqueos) viven en RAM y hoy NO se registran en el reset del demo.
    **Botones de demo ("Simular…")**: chip discreto con el prefijo CSS de su sección, que SOLO dispara
    un endpoint de demo del server fake (nada de lógica simulada en el cliente) y refetchea; el efecto

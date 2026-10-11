@@ -1,5 +1,82 @@
-// Calendario (las clases del chico con los profes que contrató el padre) — STUB del coordinador:
-// la tanda CAL lo reemplaza. Contrato: api.calendar() → { events: CalendarEvent[] } (sin precios acá).
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { api } from '../../../api';
+import type { CalendarEvent } from '../../../api/types';
+import { CalendarEmpty, CalendarFail, CalendarSkeleton } from '../components/CalendarStates';
+import { NextClassHero } from '../components/NextClassHero';
+import { UpcomingList } from '../components/UpcomingList';
+import { WeekStrip } from '../components/WeekStrip';
+import { buildCalendar, endOf } from '../lib/calendar';
+
+/** Cada cuánto se rearma la pantalla con la hora nueva ("faltan 2 horas", la clase que pasa a "Ahora mismo"). */
+const TICK_MS = 30_000;
+
+/** Calendario (/calendario): las clases del chico con los profes que contrató su familia en la Zona de padres
+ *  (api.calendar(): sin precios ni nada que gestionar). Arriba la próxima clase, después la semana (lunes a domingo) y
+ *  la lista de las que siguen. Se mantiene al día solo: relee al volver a la pestaña (el padre puede haber contratado
+ *  o cancelado en otra) y cuando termina una clase (el server corre la serie y agrega la que sigue). */
 export function CalendarPage() {
-  return <div className="view cal-view" id="v-calendar" />;
+  const [events, setEvents] = useState<CalendarEvent[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  const [showLater, setShowLater] = useState(false);
+  const alive = useRef(true);
+  const seq = useRef(0);
+  const fetchedAt = useRef(0);
+
+  /** Las recargas no tapan lo que ya se ve (nada de esqueleto de nuevo); solo cuenta la respuesta de la última. */
+  const load = useCallback(async () => {
+    const my = ++seq.current;
+    try {
+      const r = await api.calendar();
+      if (!alive.current || my !== seq.current) return;
+      fetchedAt.current = Date.now();
+      setEvents(r.events);
+      setFailed(false);
+      setNow(Date.now());
+    } catch {
+      if (alive.current && my === seq.current) setFailed(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    alive.current = true;
+    void load();
+    const tick = setInterval(() => setNow(Date.now()), TICK_MS);
+    const wake = () => { if (document.visibilityState === 'visible') void load(); };
+    window.addEventListener('focus', wake);
+    document.addEventListener('visibilitychange', wake);
+    return () => {
+      alive.current = false;
+      clearInterval(tick);
+      window.removeEventListener('focus', wake);
+      document.removeEventListener('visibilitychange', wake);
+    };
+  }, [load]);
+
+  // Terminó una clase desde la última lectura → se relee (la serie corre y aparece la que sigue). Solo las que terminaron
+  // DESPUÉS de leer: si el reloj de la compu y el del server no coinciden, no queda releyendo en cada minuto.
+  useEffect(() => {
+    if (events?.some((e) => endOf(e) <= now && endOf(e) > fetchedAt.current)) void load();
+  }, [events, now, load]);
+
+  const view = useMemo(() => (events ? buildCalendar(events, now) : null), [events, now]);
+
+  return (
+    <section className="view cal-view" id="v-calendar">
+      <header className="cal-head">
+        <h2 className="h2">Calendario</h2>
+        <p className="lede">Tus clases con los profes, día por día: así sabés qué te toca y cuándo.</p>
+      </header>
+
+      {!view ? (failed ? <CalendarFail onRetry={() => void load()} /> : <CalendarSkeleton />)
+        : !view.hero ? <CalendarEmpty /> : (
+          <>
+            <NextClassHero hero={view.hero} />
+            {view.week && <WeekStrip week={view.week} now={now} />}
+            <UpcomingList soon={view.soon} later={view.later} laterCount={view.laterCount} showLater={showLater}
+              nextId={view.hero.event.id} now={now} onToggle={() => setShowLater((v) => !v)} />
+          </>
+        )}
+    </section>
+  );
 }

@@ -231,7 +231,7 @@ export const api = {
          las contrataciones PERSISTEN (config del padre, server/data/teachers.json) ---- */
   teachers: () => http<{ teachers: Teacher[] }>('/api/teachers'),
   hireTeacher: (id: string, slot: TeacherSlot) => http<HireResult>('/api/teachers/hire', { id, slot }),
-  cancelTeacher: (id: string) => http<{ ok: boolean }>('/api/teachers/cancel', { id }),
+  cancelTeacher: (id: string) => http<{ ok: boolean; error?: string }>('/api/teachers/cancel', { id }),
   /** El calendario del chico: SOLO las clases (sin precios). */
   calendar: () => http<{ events: CalendarEvent[] }>('/api/calendar'),
 

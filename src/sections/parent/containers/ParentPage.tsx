@@ -14,11 +14,13 @@ import { FeaturesPanel } from './FeaturesPanel';
 import { LimitsPanel } from './LimitsPanel';
 import { PresetsPanel } from './PresetsPanel';
 import { RewardsPanel } from './RewardsPanel';
+import { TeachersPanel } from './TeachersPanel';
 import { TopicsPanel } from './TopicsPanel';
 
 /** Zona de padres (/padres/*): primero el portón (PIN de la familia, lo valida el server y abre una sesión de API);
  *  pasado, la configuración de la cuenta del chico en secciones con URL propia — /padres (presets + funcionalidades),
- *  /padres/temas, /padres/limites, /padres/avisos, /padres/premios, /padres/actividad y /padres/protecciones.
+ *  /padres/temas, /padres/limites, /padres/avisos, /padres/premios, /padres/profesores (marketplace de profes: genera el
+ *  Calendario del chico), /padres/actividad y /padres/protecciones.
  *  Estética sobria de adulto (parent.css, pz-). Si la sesión vence (401), vuelve al portón con el motivo. */
 export function ParentPage() {
   const unlocked = useAdultUnlocked();
@@ -111,6 +113,7 @@ function ParentZone({ kid }: { kid: string }) {
           <Route path="avisos" element={<AlertsPanel kid={kid} alerts={alerts} failed={alertsFailed} busy={seenBusy}
             onSeen={(id) => void markSeen([id])} onSeenAll={() => void markSeen(unseen.map((a) => a.id))} onRetry={() => void loadAlerts()} />} />
           <Route path="premios" element={<RewardsPanel kid={kid} dash={dash} failed={failed} reload={load} />} />
+          <Route path="profesores" element={<TeachersPanel kid={kid} />} />
           <Route path="actividad" element={<ActivityPanel kid={kid} dash={dash} failed={failed} onRetry={() => void load()} />} />
           <Route path="protecciones" element={<ProtectionsPanel kid={kid} dash={dash} failed={failed} onRetry={() => void load()} />} />
           <Route path="*" element={<Navigate to="/padres" replace />} />

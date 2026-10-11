@@ -329,3 +329,99 @@
   .pz-switch,.pz-knob,.pz-tab,.pz-feat,.pz-preset,.pz-chip-x{transition:none!important}
   .pz-tr.is-fresh td,.pz-skel i,.pz-pin.is-shake{animation:none}
 }
+
+/* =================== Profesores: marketplace del padre + hoja de reserva (tanda CAL) =================== */
+/* Mismo lenguaje del panel (neutros + el acento #2843A8). El color de cada profe aparece SOLO como fondo suave detrás de
+   su emoji: es el que lo identifica también en el Calendario del chico (CalendarEvent.color). color-mix con un fondo
+   neutro antes, por si el navegador no lo entiende. */
+.pz-tc-sum{margin:-4px 0 0;display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 16px;font-size:14px;font-weight:700;color:#5A6380}
+.pz-tc-sum b{font-weight:800;color:#1B2238;font-variant-numeric:tabular-nums}
+.pz-tcs{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,262px),1fr));gap:14px}
+/* columna: la línea de quién es estira y deja el precio y la acción alineados al pie en toda la fila */
+/* sin efecto al pasar el mouse: la tarjeta no es clickeable entera (la acción es su botón) */
+.pz-tc{display:flex;flex-direction:column;gap:12px;min-width:0;padding:16px 16px 14px;border:1px solid #E4E8F1;border-radius:10px;background:#fff;transition:border-color .2s,box-shadow .2s}
+.pz-tc.is-hired{border-color:#2843A8;box-shadow:0 0 0 1px #2843A8 inset;background:#FBFCFF}
+.pz-tc.is-fresh{animation:pz-tc-fresh 2.6s ease}
+@keyframes pz-tc-fresh{0%,45%{background:#EAF0FE}100%{background:#FBFCFF}}
+.pz-tc-head{display:flex;align-items:center;gap:12px;min-width:0}
+.pz-tc-emo{flex:none;width:56px;height:56px;border-radius:12px;display:grid;place-items:center;font-size:30px;line-height:1;
+  background:#F1F3F8;background:color-mix(in srgb,var(--tc,#8A93AD) 15%,#fff);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tc,#8A93AD) 28%,#fff)}
+.pz-tc-id{min-width:0;display:grid;gap:3px}
+.pz-tc-name{margin:0;font-size:16px;font-weight:800;line-height:1.25;color:#1B2238;overflow-wrap:anywhere}
+.pz-tc-sub{margin:0;display:flex;align-items:center;flex-wrap:wrap;gap:2px 10px;font-size:13.5px;font-weight:700;line-height:1.35;color:#5A6380}
+.pz-tc-rate{display:inline-flex;align-items:center;gap:3px;font-weight:800;color:#1B2238;font-variant-numeric:tabular-nums}
+.pz-tc-rate svg{flex:none;width:14px;height:14px;color:#D9940F}
+.pz-tc-bio{flex:1 1 auto;margin:0;font-size:13.5px;font-weight:600;line-height:1.5;color:#5A6380}
+.pz-tc-hired{align-self:flex-start;margin:0;display:inline-flex;align-items:center;gap:5px;padding:4px 10px 4px 7px;border-radius:6px;background:#EEF2FD;color:#1F3487;font-size:13px;font-weight:800;line-height:1.3}
+.pz-tc-hired svg{flex:none;width:14px;height:14px}
+.pz-tc-foot{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 12px;min-height:47px;padding-top:12px;border-top:1px solid #EDF0F5}
+.pz-tc-price{margin:0;font-size:13px;font-weight:700;color:#6A7390;white-space:nowrap}
+.pz-tc-price b{margin-right:2px;font-size:21px;font-weight:800;line-height:1;color:#1B2238;font-variant-numeric:tabular-nums}
+.pz-tc-confirm{display:grid;gap:8px;padding:12px;border-radius:8px;background:#F8F9FC;border:1px solid #E4E8F1}
+.pz-tc-confirm p{margin:0;font-size:13.5px;font-weight:700;line-height:1.45;color:#1B2238}
+.pz-tc-err{margin:0;font-size:13px;font-weight:700;line-height:1.4;color:#B32D33}
+
+/* ---- hoja de reserva (sobre el patrón global .shov/.shcard de space.css) ---- */
+.pz-ov{animation:fadein .2s both}
+.pz-bk{width:min(540px,94vw);gap:16px;padding:20px 22px 18px;animation:pz-bk-in .22s ease both}
+.pz-bk:focus{outline:none}
+@keyframes pz-bk-in{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+.pz-bk-head{display:flex;align-items:center;gap:12px;min-width:0}
+.pz-bk-id{flex:1;min-width:0;display:grid;gap:2px}
+.pz-bk-t{margin:0;font-size:18px;font-weight:800;line-height:1.25;color:#1B2238;overflow-wrap:anywhere}
+.pz-bk-sub{margin:0;font-size:13.5px;font-weight:700;color:#5A6380}
+.pz-bk-x{flex:none;align-self:flex-start;width:34px;height:34px;margin:-6px -8px 0 0;display:grid;place-items:center;border-radius:8px;color:#6A7390;transition:background-color .15s,color .15s}
+.pz-bk-x:hover:not(:disabled){background:#F1F3F8;color:#1B2238}
+.pz-bk-x:disabled{opacity:.45;cursor:not-allowed}
+.pz-bk-x svg{width:18px;height:18px}
+.pz-bk-lede{margin:-2px 0 0;font-size:14px;font-weight:600;line-height:1.5;color:#47506B}
+.pz-bk-set{margin:0;padding:0;border:0;min-width:0;display:grid;gap:8px}
+/* float: la legend deja de ser la "legend renderizada" del fieldset y pasa a ser una fila más de la grilla (el gap la separa) */
+.pz-bk-legend{float:left;width:100%;padding:0;margin:0;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#6A7390}
+.pz-bk-opts{display:flex;flex-wrap:wrap;gap:6px}
+/* cada opción es un radio de verdad (teclado y lector), invisible encima de su ficha */
+.pz-bk-opt{position:relative;display:inline-flex}
+.pz-bk-opt input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.pz-bk-opt input:disabled{cursor:not-allowed}
+.pz-bk-chip{min-width:56px;min-height:38px;padding:7px 10px;display:inline-grid;place-items:center;border:1.5px solid #D3D9E6;border-radius:8px;background:#fff;
+  font-size:14px;font-weight:800;line-height:1.2;color:#1B2238;font-variant-numeric:tabular-nums;transition:background-color .15s,border-color .15s}
+.pz-bk-opt:hover input:not(:disabled):not(:checked) + .pz-bk-chip{background:#F1F3F8;border-color:#C3CADA}
+.pz-bk-opt input:checked + .pz-bk-chip{border-color:#2843A8;background:#EEF2FD;color:#1F3487;box-shadow:0 0 0 1px #2843A8 inset}
+.pz-bk-opt input:focus-visible + .pz-bk-chip{outline:3px solid var(--blue);outline-offset:2px}
+.pz-bk-opt input:disabled + .pz-bk-chip{background:#F4F5F9;border-color:#E4E8F1;color:#A5ACBD;text-decoration:line-through;text-decoration-thickness:1.5px}
+.pz-bk-set:disabled .pz-bk-chip{opacity:.7}
+.pz-bk-taken{margin:0;font-size:12.5px;font-weight:700;line-height:1.45;color:#6A7390}
+.pz-bk-sum{display:grid;align-content:center;gap:3px;min-height:68px;padding:12px 14px;border-radius:8px;background:#F8F9FC;border:1px solid #E4E8F1}
+.pz-bk-sum-main{margin:0;font-size:14.5px;font-weight:700;line-height:1.4;color:#1B2238}
+.pz-bk-sum-main b{font-weight:800}
+.pz-bk-sum-sub{margin:0;font-size:13px;font-weight:600;line-height:1.45;color:#5A6380}
+.pz-bk-sum-empty{margin:0;font-size:13.5px;font-weight:700;color:#6A7390}
+.pz-bk-err{margin:0;padding:10px 12px;border-radius:8px;background:#FDF1F1;border:1px solid #F3C7C9;color:#8E2328;font-size:13.5px;font-weight:700;line-height:1.45}
+.pz-bk-btns{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:10px}
+.pz-bk-go{min-width:132px}
+.pz-bk-demo{margin:-6px 0 0;font-size:12.5px;font-weight:600;color:#6A7390;text-align:right}
+/* éxito */
+.pz-bk-done{display:grid;justify-items:center;gap:8px;padding:4px 0 2px;text-align:center}
+.pz-bk-ok{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:#E6F4EC;color:#25734A}
+.pz-bk-ok svg{width:26px;height:26px}
+.pz-bk-done-t{margin:4px 0 0;max-width:420px;font-size:17px;font-weight:800;line-height:1.35;color:#1B2238;text-wrap:balance}
+.pz-bk-done-p{margin:0;max-width:420px;font-size:14px;font-weight:600;line-height:1.5;color:#47506B;text-wrap:balance}
+.pz-bk-done .pz-bk-btns{justify-content:center;margin-top:8px}
+
+/* ---- secciones de la zona cuando no entran en una fila ----
+   Con 8 secciones la fila mide ~850 px (~900 con los contadores de canjes y avisos): a 1280 de ventana entra; más
+   angosto (1024: ~690 px) las últimas quedaban escondidas en un scroll sin barra. Debajo de 920 px de cabecera las
+   secciones pasan a fichas que bajan de línea (todas a la vista); la elegida, en el azul del acento. */
+.pz-head{container:pz-head / inline-size}
+@container pz-head (max-width: 920px){
+  .pz-tabs{flex-wrap:wrap;gap:6px;padding-bottom:14px;overflow:visible}
+  .pz-tab{padding:7px 12px;border:1px solid #E1E5EE;border-radius:8px;background:#fff}
+  .pz-tab:hover{background:#ECEFF6}
+  .pz-tab.is-on{border-color:#2843A8;background:#EEF2FD;color:#1F3487;box-shadow:0 0 0 1px #2843A8 inset}
+  .pz-tab.is-on::after{display:none}
+}
+
+@media (prefers-reduced-motion: reduce){
+  .pz-tc,.pz-bk-chip,.pz-bk-x{transition:none}
+  .pz-tc.is-fresh,.pz-ov,.pz-bk{animation:none}
+}
