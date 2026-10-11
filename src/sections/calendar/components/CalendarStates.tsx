@@ -27,12 +27,12 @@ export function CalendarFail({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-/** Esqueleto mientras llega el calendario: hero, la tira de la semana y dos filas. */
+/** Esqueleto mientras llega el calendario: hero y tres filas del listado. */
 export function CalendarSkeleton() {
   return (
     <div className="cal-sk" aria-busy="true" aria-label="Cargando tu calendario">
       <div className="cal-sk-hero"><i /><i /><i /></div>
-      <div className="cal-sk-week">{Array.from({ length: 7 }, (_, i) => <i key={i} />)}</div>
+      <div className="cal-sk-row"><i /><i /></div>
       <div className="cal-sk-row"><i /><i /></div>
       <div className="cal-sk-row"><i /><i /></div>
     </div>

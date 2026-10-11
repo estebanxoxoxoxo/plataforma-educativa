@@ -3,7 +3,7 @@
    respeta su padding inferior (reserva el dock de Mensajes, abajo a la derecha).
    Color de la sección: el coral del menú (shell.css: --sec-bg #FDECEA · --sec-bd #F08A7E · --sec-fg #9E2B22). Lo que
    lleva texto blanco encima usa #B8372B (5,8:1, AA). Cada clase lleva el color de SU profe (CalendarEvent.color, var
-   --c) como fondo suave + filete: es lo que la identifica de un vistazo en la semana y en la lista. color-mix con un
+   --c) como fondo suave + filete: es lo que la identifica de un vistazo en la lista. color-mix con un
    fondo neutro antes, por si el navegador no lo entiende. */
 #v-calendar{
   --cal-ink:#9E2B22; --cal-strong:#B8372B; --cal-strong-sh:#8E2A21; --cal-bd:#F08A7E; --cal-soft:#FDECEA; --cal-line:#F5CFC9;
@@ -47,32 +47,7 @@
 .cal-sechead h3{margin:0;font-family:var(--display);font-weight:800;font-size:22px;line-height:1.1}
 .cal-sechead small{font-size:13.5px;font-weight:700;color:#6A7390}
 
-/* ---- la semana: 7 columnas iguales (lunes a domingo) ---- */
-.cal-week{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
-/* cada día es un contenedor: la materia de la tarjetita se achica con el ancho de SU columna (ver .cal-tile-name) */
-.cal-day{container-type:inline-size;display:flex;flex-direction:column;gap:8px;min-width:0;min-height:150px;padding:10px 4px 8px;border-radius:12px;background:#fff;border:1px solid #E6E9F1}
-.cal-day.is-past{background:#F9FAFC;border-color:#EDF0F5}
-/* borde de 2 px: el relleno baja 1 px para que el contenido mida lo mismo que en los otros días */
-.cal-day.is-today{padding:9px 3px 7px;border:2px solid var(--cal-bd);background:#FFF8F7;box-shadow:0 10px 22px -18px rgba(158,43,34,.7)}
-.cal-dh{display:grid;justify-items:center;gap:3px;padding-bottom:7px;border-bottom:1px solid #F0F2F7}
-.cal-day.is-today .cal-dh{border-bottom-color:#F7D9D4}
-.cal-dow{padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:800;line-height:1.25;letter-spacing:.07em;text-transform:uppercase;color:#6A7390}
-.cal-day.is-today .cal-dow{background:var(--cal-strong);color:#fff}
-.cal-dnum{font-family:var(--display);font-weight:800;font-size:24px;line-height:1;color:#1B2238;font-variant-numeric:tabular-nums}
-.cal-day.is-past .cal-dow,.cal-day.is-past .cal-dnum{color:#A5ACBD}
-.cal-tiles{list-style:none;margin:0;padding:0;display:grid;align-content:start;gap:6px;min-width:0}
-.cal-tile{display:grid;gap:3px;min-width:0;padding:7px 4px 7px 8px;border-radius:9px;background:#F4F6FA;background:color-mix(in srgb,var(--c,#9AA5C4) 14%,#fff);
-  box-shadow:inset 3px 0 0 var(--c,#9AA5C4);animation:rise .45s ease both}
-.cal-tile-top{display:flex;align-items:center;gap:4px;min-width:0}
-.cal-tile-emo{flex:none;font-size:15px;line-height:1}
-.cal-tile-time{font-size:13.5px;font-weight:800;line-height:1.1;color:#1B2238;font-variant-numeric:tabular-nums;white-space:nowrap}
-/* La materia entera aunque la columna sea angosta (≈93 px a 1024 de ancho): se achica con SU columna antes de partirse.
-   100cqi = el ancho útil del día; 12 px = el relleno de la tarjetita; 6.7 em ≈ "Programación" (la más larga del demo,
-   6,6 em en Nunito 800) con margen. Partir la palabra queda solo de último recurso. */
-.cal-tile-name{font-size:clamp(10.5px,calc((100cqi - 12px) / 6.7),12.5px);font-weight:800;line-height:1.2;color:#2E3650;overflow-wrap:anywhere}
-.cal-tile.is-live{box-shadow:inset 3px 0 0 var(--c,#9AA5C4),0 0 0 2px var(--cal-strong)}
-
-/* ---- próximas clases: grupos por día ---- */
+/* ---- próximas clases: grupos por día (UN listado con todo lo que viene; pedido 11-oct: sin tira semanal) ---- */
 .cal-days{display:grid;gap:16px;min-width:0}
 .cal-group{display:grid;gap:8px;min-width:0}
 .cal-group-h{margin:0;font-size:15px;font-weight:800;color:#1B2238}
@@ -90,9 +65,7 @@
 .cal-tag--next{background:var(--cal-soft);color:var(--cal-ink)}
 .cal-tag--live{background:var(--cal-strong);color:#fff}
 .cal-none{margin:0;font-size:14.5px;font-weight:700;color:#6A7390}
-/* separador entre las dos semanas a la vista y lo de más adelante ("Ver más adelante") */
-.cal-later{margin:4px 0 -4px;display:flex;align-items:center;gap:12px;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--cal-ink)}
-.cal-later::before,.cal-later::after{content:"";flex:1;height:0;border-top:2px dashed var(--cal-line)}
+/* .cal-more quedó solo para el "Reintentar" del estado de falla */
 .cal-more{justify-self:start;display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:10px;background:#fff;border:2px solid var(--cal-bd);color:var(--cal-ink);
   font-family:var(--display);font-weight:800;font-size:15px;line-height:1.1;box-shadow:0 3px 0 var(--cal-line);transition:background .2s,transform .12s,box-shadow .12s}
 .cal-more:hover{background:#FFF5F3}
@@ -114,8 +87,6 @@
 .cal-sk-hero{display:grid;gap:12px;align-content:center;height:190px;padding:0 30px;border-radius:16px;border:1px solid #E6E9F1;background:#fff}
 .cal-sk-hero i{height:14px;width:42%}
 .cal-sk-hero i:nth-child(2){height:26px;width:64%}
-.cal-sk-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
-.cal-sk-week i{height:156px;border-radius:12px}
 .cal-sk-row{display:grid;grid-template-columns:62px minmax(0,1fr);align-items:center;gap:16px;padding:12px 16px;border-radius:12px;border:1px solid #E6E9F1;background:#fff}
 .cal-sk-row i{height:14px}
 .cal-sk-row i + i{width:46%}
@@ -125,9 +96,6 @@
 @keyframes cal-glow{0%,100%{filter:none}50%{filter:brightness(1.12)}}
 
 /* ---- ventanas angostas ---- */
-@media (max-width:1180px){
-  .cal-week{gap:6px}
-}
 @media (max-width:1100px){
   .cal-leaf{display:none}
   .cal-hero{padding:22px 24px 24px}
@@ -140,6 +108,6 @@
   .cal-tag{grid-column:3;justify-self:start}
 }
 @media (prefers-reduced-motion: reduce){
-  .cal-hero-emo,.cal-live,.cal-hero.is-live .cal-chip,.cal-tile,.cal-row,.cal-empty-spark,.cal-sk i{animation:none}
+  .cal-hero-emo,.cal-live,.cal-hero.is-live .cal-chip,.cal-row,.cal-empty-spark,.cal-sk i{animation:none}
   .cal-more{transition:none}
 }

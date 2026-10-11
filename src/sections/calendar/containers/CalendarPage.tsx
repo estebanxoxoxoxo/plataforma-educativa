@@ -4,21 +4,20 @@ import type { CalendarEvent } from '../../../api/types';
 import { CalendarEmpty, CalendarFail, CalendarSkeleton } from '../components/CalendarStates';
 import { NextClassHero } from '../components/NextClassHero';
 import { UpcomingList } from '../components/UpcomingList';
-import { WeekStrip } from '../components/WeekStrip';
 import { buildCalendar, endOf } from '../lib/calendar';
 
 /** Cada cuánto se rearma la pantalla con la hora nueva ("faltan 2 horas", la clase que pasa a "Ahora mismo"). */
 const TICK_MS = 30_000;
 
 /** Calendario (/calendario): las clases del chico con los profes que contrató su familia en la Zona de padres
- *  (api.calendar(): sin precios ni nada que gestionar). Arriba la próxima clase, después la semana (lunes a domingo) y
- *  la lista de las que siguen. Se mantiene al día solo: relee al volver a la pestaña (el padre puede haber contratado
- *  o cancelado en otra) y cuando termina una clase (el server corre la serie y agrega la que sigue). */
+ *  (api.calendar(): sin precios ni nada que gestionar). Arriba la próxima clase y después UN SOLO listado con
+ *  todas las que vienen, agrupadas por día, que scrollea con la página (pedido 11-oct: sin tira semanal).
+ *  Se mantiene al día solo: relee al volver a la pestaña (el padre puede haber contratado o cancelado en otra)
+ *  y cuando termina una clase (el server corre la serie y agrega la que sigue). */
 export function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [now, setNow] = useState(() => Date.now());
-  const [showLater, setShowLater] = useState(false);
   const alive = useRef(true);
   const seq = useRef(0);
   const fetchedAt = useRef(0);
@@ -72,9 +71,7 @@ export function CalendarPage() {
         : !view.hero ? <CalendarEmpty /> : (
           <>
             <NextClassHero hero={view.hero} />
-            {view.week && <WeekStrip week={view.week} now={now} />}
-            <UpcomingList soon={view.soon} later={view.later} laterCount={view.laterCount} showLater={showLater}
-              nextId={view.hero.event.id} now={now} onToggle={() => setShowLater((v) => !v)} />
+            <UpcomingList groups={view.groups} nextId={view.hero.event.id} now={now} />
           </>
         )}
     </section>
