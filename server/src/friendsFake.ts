@@ -411,9 +411,10 @@ async function sendMessage(n: Npc, text: string): Promise<SendMessageResult> {
   log(`Ian → ${n.nick} «${text.slice(0, 60)}» → ${g.ok ? 'ok' : `BLOQUEADO (${g.category})`} · ${g.trace} (${Date.now() - t0} ms)`)
   if (!g.ok) {
     if (g.category === 'crisis') log(`CRISIS en un mensaje de Ian para ${n.nick}: se le mostró el guion fijo de contención (aviso al padre en la Zona de padres).`)
-    // Aviso al padre (Zona del padre v2): crisis en cuarentena (sin el texto), contacto/salir de la plataforma, y los demás
-    // bloqueos suman para el aviso de "insistió". Una falla del juez no es culpa del chico: no avisa.
-    if (g.category !== 'falla') notifyParent(g.category === 'crisis' ? 'crisis' : ['contacto', 'datos_personales', 'fuera_de_plataforma'].includes(g.category) ? 'contacto' : 'bloqueos', g.category === 'crisis' ? '' : text, `la conversación con ${n.nick} (Amigos)`)
+    // Aviso al padre (Zona del padre v2): crisis CON el texto del chico (decisión de Esteban, 11-oct: toda la
+    // info), contacto/salir de la plataforma, y los demás bloqueos suman para el aviso de "insistió".
+    // Una falla del juez no es culpa del chico: no avisa.
+    if (g.category !== 'falla') notifyParent(g.category === 'crisis' ? 'crisis' : ['contacto', 'datos_personales', 'fuera_de_plataforma'].includes(g.category) ? 'contacto' : 'bloqueos', text, `la conversación con ${n.nick} (Amigos)`)
     return { status: 'blocked', notice: noticeFor(g.category, n.nick) }
   }
   const msg: FriendMessage = { id: nextId(), from: 'me', text }

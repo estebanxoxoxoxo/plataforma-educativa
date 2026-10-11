@@ -275,7 +275,7 @@ export type ParentVolume = { maxMusic: number; maxNoise: number };
 export type ParentAlert = {
   id: number; ts: number;
   kind: 'crisis' | 'contacto' | 'bloqueos';
-  /** Qué pasó, SIN el texto del chico si es crisis (cuarentena) */ text: string;
+  /** Qué pasó, con el texto del chico incluido (también en crisis: decisión de Esteban, 11-oct-2026) */ text: string;
   /** De dónde salió (chat, un hilo de Amigos…) */ source: string;
   seen: boolean;
 };

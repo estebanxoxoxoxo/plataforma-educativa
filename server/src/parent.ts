@@ -9,7 +9,7 @@
 //   · Palabras de la familia → se SUMAN a las de fábrica en matchBlockedWord (búsquedas, títulos, chat, Amigos…).
 //   · Topes de volumen → GET /api/parent/limits (público) → bgAudio/MiniPlayer del chico (como settings.maxVol* de Smarty).
 //   · Presets (audios 56/66: "grandes presets, no mil detalles") → aplican de una vez on-off + temas + palabras + topes.
-//   · Avisos (notifyParent) → crisis (en cuarentena: sin el texto del chico), datos de contacto y bloqueos repetidos.
+//   · Avisos (notifyParent) → crisis (CON el texto del chico: decisión de Esteban 11-oct), contacto y bloqueos repetidos.
 //
 // Contrato HTTP (congelado; formas en src/api/types.ts). TODAS las rutas piden la sesión abierta por el PIN (cabecera
 // X-Parent-Token) MENOS tres: POST unlock (el portón) y GET features / GET limits (las lee la UI del chico). Sin token,
@@ -387,8 +387,9 @@ const blockThreshold = () => Math.max(2, Math.round(ov.num('const.sondeoUmbral')
 const quote = (s: string, n: number) => { const t = cleanText(s); return t.length > n ? `${t.slice(0, n - 1)}…` : t }
 
 /** Aviso para el padre (Zona de padres → Avisos). Lo llaman los ganchos de friendsFake.ts y chat.ts.
- *  - kind 'crisis': CUARENTENA — el texto que llegue se IGNORA y el aviso dice solo dónde pasó (si el chico contó, por
- *    ejemplo, una situación de violencia en casa, mostrárselo a cualquier adulto con el PIN podría exponerlo).
+ *  - kind 'crisis': `text` = lo que el chico escribió, y el aviso lo MUESTRA entero (decisión de Esteban, 11-oct-2026:
+ *    "que se vea con toda la info"; revierte la cuarentena del aviso que había elegido la tanda P — la cuarentena del
+ *    CONTEXTO del chat sigue intacta, esto es solo el panel del padre).
  *  - kind 'contacto': `text` = el mensaje que el Moderador frenó (link, teléfono, otra app, encuentros, datos personales).
  *  - kind 'bloqueos': cada llamada es UN mensaje frenado; el aviso sale recién al juntar `const.sondeoUmbral` en la
  *    misma fuente dentro de 10 minutos ("insistió"), y el contador vuelve a cero.
@@ -399,7 +400,8 @@ export function notifyParent(kind: AlertKind, text: string, source: string): voi
     const kid = kidName()
     let body: string
     if (kind === 'crisis') {
-      body = `Hubo un mensaje de crisis en ${src}. A ${kid} se le mostró el mensaje de contención de la familia, que lo invita a hablarlo con un adulto de confianza. Por su cuidado, lo que escribió no se guarda ni se muestra acá: lo mejor es preguntarle con calma.`
+      const said = quote(String(text ?? ''), 220)
+      body = `Hubo un mensaje de crisis en ${src}.${said ? ` ${kid} escribió: «${said}».` : ''} Se le mostró el mensaje de contención de la familia, que lo invita a hablarlo con un adulto de confianza. Hablalo con ${kid} con calma cuanto antes.`
     } else if (kind === 'contacto') {
       const said = quote(String(text ?? ''), 140)
       body = `${kid} quiso pasar un dato de contacto o seguir la charla fuera de Innerith en ${src}${said ? `: «${said}»` : ''}. El Moderador lo frenó y el mensaje no llegó.`

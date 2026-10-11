@@ -225,7 +225,9 @@ export async function sendChildMessage(history: Msg[], childText: string): Promi
   // 2) Crisis: guion fijo, no generativo.
   if (verdict.es_crisis) {
     controller.abort(); principalPromise.catch(() => {})
-    notifyParent('crisis', '', 'el chat con el asistente') // aviso al padre, en cuarentena: sin el texto del chico
+    // Aviso al padre CON el texto del chico (decisión de Esteban, 11-oct: "que se vea con toda la info").
+    // La cuarentena del CONTEXTO del chat (childContextText) sigue intacta: esto es solo el aviso del panel.
+    notifyParent('crisis', childText, 'el chat con el asistente')
     const t = guionCrisis()
     return { kind: 'crisis', text: t, contextText: t, childContextText: '[mensaje sensible — atendido con protocolo de contención]', trace: 'Crisis detectada: guion fijo de contención.' }
   }
