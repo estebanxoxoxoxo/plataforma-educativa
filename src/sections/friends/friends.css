@@ -69,6 +69,11 @@
 .fpmsg{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border-radius:8px;background:#8A5CF5;color:#fff;font-weight:800;font-size:14px;transition:background .2s}
 .fpmsg:hover{background:#7748EE}
 .fpmsg svg{width:17px;height:17px}
+/* la ropa que tiene puesta (un regalo de Ian) y el acceso a regalarle (lleva a la ropa de la Tienda) */
+.fwear{display:block;width:fit-content;margin-top:6px;padding:3px 10px;border-radius:999px;background:#F7F3FF;color:#5431B3;font-size:12.5px;font-weight:800}
+.fpacts{display:flex;flex-wrap:wrap;gap:10px}
+.fpgift{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border-radius:8px;background:#fff;border:1.5px solid #D9CCFB;color:#5431B3;font-weight:800;font-size:14px;transition:background .2s,border-color .2s}
+.fpgift:hover{background:#F7F3FF;border-color:#A88AF7}
 
 /* ---- el hilo de una conversación (adentro de cada ventana del dock) ---- */
 .fthread{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:14px 14px 10px;scrollbar-width:thin}

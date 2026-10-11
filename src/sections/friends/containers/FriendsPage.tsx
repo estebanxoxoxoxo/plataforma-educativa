@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../../api';
 import type { Friend, FriendRequest } from '../../../api/types';
+import { useFeatures } from '../../parent/lib/features';
 import { FriendRow } from '../cards/FriendCard';
 import { RequestCard } from '../cards/RequestCard';
 import { FriendProfile } from '../components/FriendProfile';
@@ -17,8 +19,12 @@ const plural = (n: number) => `${n} ${n === 1 ? 'amigo' : 'amigos'}`;
 /** Amigos (VISION §8): la lista a ancho completo, las solicitudes de amistad arriba y el detalle de un amigo en un panel
  *  que entra con transición. La mensajería NO vive acá: el globo de cada fila (y "Mandar mensaje" del detalle) abre la
  *  conversación en el dock de mensajes del Layout (containers/ChatDock, estilo LinkedIn), que sigue abierto entre
- *  secciones. Los amigos son NPCs del server (friendsFake): lo que Ian escribe pasa por la moderación en tiempo real. */
+ *  secciones. Los amigos son NPCs del server (friendsFake): lo que Ian escribe pasa por la moderación en tiempo real.
+ *  Cada avatar lleva la ropa que el amigo tiene puesta (Friend.accessory: los regalos de Ian), y desde el detalle se le
+ *  puede regalar una prenda ("Regalale ropa" → la ropa de la Tienda con ese amigo ya elegido; solo con la Tienda prendida). */
 export function FriendsPage() {
+  const go = useNavigate();
+  const shopOn = useFeatures()?.tienda === true;
   const [friends, setFriends] = useState<Friend[] | null>(null);
   const [loadErr, setLoadErr] = useState(false);
   const [requests, setRequests] = useState<FriendRequest[]>([]);
@@ -121,7 +127,8 @@ export function FriendsPage() {
         </div>
         {detail && shown && (
           <aside className={`fpanel${detail.closing ? ' out' : ''}`} aria-label={`Información de ${shown.nick}`}>
-            <FriendProfile key={shown.id} f={shown} onClose={closeDetail} onMessage={() => openChat(shown.id)} />
+            <FriendProfile key={shown.id} f={shown} onClose={closeDetail} onMessage={() => openChat(shown.id)}
+              onGift={shopOn ? () => go(`/tienda?regalar=${encodeURIComponent(shown.id)}#ropa`) : undefined} />
           </aside>
         )}
       </div>

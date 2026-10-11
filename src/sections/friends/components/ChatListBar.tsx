@@ -78,9 +78,10 @@ export function ChatListBar({ me, friends, failed, open, wins, hidden, barRef, o
                   <li key={f.id}>
                     <button className={`fdk-item${w ? ' on' : ''}`} type="button" onClick={() => onPick(f.id)}
                       aria-label={`Conversación con ${f.nick}: ${f.status}${state}${news}`}>
-                      <Avatar name={f.nick} color={f.color} look={lookFor(f.nick)} />
+                      <Avatar name={f.nick} color={f.color} look={lookFor(f.nick)} accessory={f.accessory} />
                       <span className="fdk-nm"><b>{f.nick}</b><small>{f.status}</small></span>
-                      {w && w.unread > 0 ? <span className="fdk-badge" aria-hidden="true">{w.unread}</span> : w ? <span className="fdk-dot" aria-hidden="true" /> : null}
+                      {/* Marca SOLO si el amigo escribió y todavía no se vio (pedido 11-oct): tener ventana no marca nada. */}
+                      {w && w.unread > 0 && <span className="fdk-badge" aria-hidden="true">{w.unread}</span>}
                     </button>
                   </li>
                 );

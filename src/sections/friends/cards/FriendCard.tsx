@@ -14,7 +14,7 @@ export const FriendRow = ({ f, infoOpen, chatOpen, fresh, onInfo, onMsg }: {
   const only = (fn: () => void) => (e: MouseEvent) => { e.stopPropagation(); fn(); };
   return (
     <div className={`fr${infoOpen ? ' sel' : ''}${fresh ? ' fresh' : ''}`} onClick={onInfo}>
-      <Avatar name={f.nick} color={f.color} look={lookFor(f.nick)} />
+      <Avatar name={f.nick} color={f.color} look={lookFor(f.nick)} accessory={f.accessory} />
       <div className="grow"><b>{f.nick}</b><small>{f.status}</small></div>
       <button className={`ib info${infoOpen ? ' active' : ''}`} title={infoOpen ? 'Cerrar información' : 'Ver información'}
         aria-label={`${infoOpen ? 'Cerrar' : 'Ver'} información de ${f.nick}`} aria-expanded={infoOpen} onClick={only(onInfo)}><IcInfo /></button>

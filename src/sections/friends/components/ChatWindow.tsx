@@ -65,7 +65,7 @@ export function ChatWindow({ f, entries, typing, sending, minimized, unread, hid
 
   const who = (
     <>
-      <Avatar name={f.nick} color={f.color} look={lookFor(f.nick)} />
+      <Avatar name={f.nick} color={f.color} look={lookFor(f.nick)} accessory={f.accessory} />
       <span className="fdk-nm">
         <b>{f.nick}</b>
         <small className={typing ? 'typing' : undefined}>{typing ? 'escribiendo…' : f.status}</small>

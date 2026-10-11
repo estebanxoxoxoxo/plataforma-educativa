@@ -91,6 +91,8 @@ export const api = {
   progress: () => http<ProgressSummary>('/api/progress/summary'),
   ecTx: () => http<{ tx: EcTx[] }>('/api/progress/tx'),
   market: () => http<{ items: MarketItem[]; ec: number }>('/api/market'),
+  /** Canjea un premio. OJO: para los ítems de ROPA (kind 'ropa') la entrega es instantánea al
+   *  guardarropas y la respuesta NO trae `redemption` (los canjes pendientes son solo de premios del padre). */
   redeem: (itemId: number) => http<{ ok: boolean; ec: number; redemption?: Redemption; error?: string }>('/api/market/redeem', { itemId }),
   redemptions: () => http<{ redemptions: Redemption[] }>('/api/market/redemptions'),
   /** Marca/desmarca un premio en la lista de deseos (toggle si no viene value). */

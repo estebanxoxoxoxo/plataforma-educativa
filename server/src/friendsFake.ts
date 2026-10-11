@@ -29,6 +29,13 @@
 //   POST /api/friends/send {id, text}       → SendMessageResult                (blocked = el mensaje NO entró al hilo)
 //   GET  /api/friends/new?id=               → { messages: FriendMessage[]; typing: boolean }  (polling: lo nuevo listo)
 //   `typing` (el amigo está escribiendo: hay una respuesta en camino) es ADITIVO: pendiente de formalizar en types.ts.
+// REGALOS DE ROPA (tanda W; audios 29 y 41-42, "los noviecitos regalándose cosas"): Ian le compra una prenda a un amigo en
+// la Tienda (POST /api/market/gift → market.ts, que cobra) y acá el NPC la guarda en SU guardarropas, SE LA PONE
+// (Friend.accessory: la ven la lista de Amigos, el detalle y el dock) y agradece en su hilo con un mensaje PLANTILLADO
+// —cálido, corto y con la voz de cada NPC; SIN modelo (no gasta el tope de costo) y sin juez: es texto fijo nuestro, que
+// igual pasa por las palabras bloqueadas de la familia por si el padre bloqueó el nombre de la prenda—. En el hilo queda
+// también el regalo ("🎁 ¡Te regalé …!") como mensaje de Ian, así el NPC lo tiene de contexto en la charla. Los regalos
+// son parte del grafo social del demo: RAM, vuelven al seed con resetFriends().
 // Para conectar el backend real: reemplazar el estado en RAM y los NPCs manteniendo las formas.
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { guionCrisis } from './chat'
@@ -40,7 +47,11 @@ import { blackTopicsAll, featureOn, notifyParent } from './parent'
 import { readJson, send } from './web'
 
 /* ---------- formas (las de src/api/types.ts) ---------- */
-export interface Friend { id: string; nick: string; color: string; status: string; xp: string; streak: string; league: string; since: string; commonCourses: string[] }
+export interface Friend {
+  id: string; nick: string; color: string; status: string; xp: string; streak: string; league: string; since: string; commonCourses: string[]
+  /** La prenda que tiene puesta (un regalo de Ian; null = nada). Id del set de ropa (identity.ts / Avatar.tsx). */
+  accessory: string | null
+}
 export interface FriendMessage { id: string; from: 'me' | 'them'; text: string }
 export interface FriendRequest { id: string; nick: string; color: string; note?: string }
 export type SendMessageResult = { status: 'ok'; msg: FriendMessage } | { status: 'blocked'; notice: string }
@@ -61,13 +72,15 @@ const NPC_MODEL = MODELS.juez
 const NPC_MAX_TOKENS = 400
 
 /* ---------- los NPCs (seed del demo) ---------- */
-interface Npc extends Omit<Friend, 'since'> {
+interface Npc extends Omit<Friend, 'since' | 'accessory'> {
   /** Desde cuándo son amigos (los del seed). El de la solicitud: desde el mes en que Ian la acepta. */
   since?: string
   age: number
   girl: boolean
   /** Personalidad e intereses: solo para el prompt (nunca sale por la API). */
   persona: string
+  /** Su "¡gracias!" por un regalo de ropa, con su voz (plantilla: {el} = "la gorra", {lo} = "la", {puesto} = "puesta"). */
+  thanks: string
   /** Si viene, el NPC arranca como SOLICITUD de amistad pendiente (no es amigo hasta que Ian la acepta). */
   request?: { note: string; greeting: string }
 }
@@ -77,30 +90,37 @@ const NPCS: Npc[] = [
   {
     id: 'f1', nick: 'TomiCohete', color: '#3A5BD9', status: 'Practicando: El sistema solar', xp: '3.120', streak: '12 días', league: 'Liga Cometa', since: 'marzo', commonCourses: ['El sistema solar', 'Dinosaurios'],
     age: 10, girl: false, persona: 'Le encantan los cohetes, los planetas y todo lo del espacio; quiere ser astronauta y su planeta favorito es Saturno. Competitivo pero buena onda: siempre propone carreras de XP.',
+    thanks: '¡Gracias, Ian! Con {el} voy a ir más rápido que un cohete en la liga 🚀',
   },
   {
     id: 'f2', nick: 'LuliVolcan', color: '#F26B3A', status: 'Racha de 8 días', xp: '2.870', streak: '8 días', league: 'Liga Cometa', since: 'abril', commonCourses: ['Animales del océano'],
     age: 9, girl: true, persona: 'Fanática de los volcanes (sueña con ver el Lanín) y de los animales del océano; su favorito es el pulpo. Alegre y charlatana, re contenta con su racha.',
+    thanks: '¡Uaaa, gracias, Ian! Me puse {el} y no me {lo} saco más 🌋',
   },
   {
     id: 'f3', nick: 'MateoDino', color: '#13A39A', status: 'Terminó la unidad 2 de Dinosaurios', xp: '4.010', streak: '21 días', league: 'Liga Estrella', since: 'marzo', commonCourses: ['Dinosaurios', 'Fracciones'],
     age: 10, girl: false, persona: 'Sabe muchísimo de dinosaurios y fósiles; su favorito es el triceratops. Entusiasta, le encanta contar datos curiosos. Por ganar el oro en la Liga Cometa subió a la Liga Estrella.',
+    thanks: '¡Gracias, Ian! Ya me puse {el}. ¡Ni un triceratops se vería tan bien! 🦖',
   },
   {
     id: 'f4', nick: 'CataEstrella', color: '#E5487A', status: 'Practicando: Inglés inicial', xp: '1.940', streak: '3 días', league: 'Liga Cometa', since: 'mayo', commonCourses: ['Inglés inicial'],
     age: 9, girl: true, persona: 'Está aprendiendo inglés y a veces mete alguna palabra en inglés. Le gusta mirar las estrellas y dibujar. Un poco tímida y muy amable.',
+    thanks: '¡Thank you, Ian! Me encanta, ya {lo} tengo {puesto} ✨',
   },
   {
     id: 'f5', nick: 'JuanchiRayo', color: '#F2A81D', status: 'Racha de 2 días', xp: '1.380', streak: '2 días', league: 'Liga Chispa', since: 'junio', commonCourses: ['Fracciones'],
     age: 9, girl: false, persona: 'Llegó hace poco a Innerith. Las fracciones le costaban pero les pone garra (ya terminó la unidad 1). Gracioso; le gustan el fútbol y las tormentas eléctricas, de ahí su apodo.',
+    thanks: '¡Golazo, Ian! Gracias por {el}, ya {lo} tengo {puesto} ⚡',
   },
   {
     id: 'f6', nick: 'MartuLuna', color: '#8A5CF5', status: 'Practicando: Mi cuerpo', xp: '2.210', streak: '5 días', league: 'Liga Cometa', since: 'marzo', commonCourses: ['Mi cuerpo', 'El sistema solar'],
     age: 10, girl: true, persona: 'Curiosa, siempre hace preguntas. Le interesan el cuerpo humano y la Luna; quiere ser médica.',
+    thanks: '¡Gracias, Ian! Ya {lo} tengo {puesto}. ¿Cómo sabías justo qué regalarme? 🌙',
   },
   {
     id: 'f7', nick: 'NicoRobot', color: '#18A957', status: 'Practicando: Fracciones', xp: '2.460', streak: '4 días', league: 'Liga Chispa', commonCourses: ['Fracciones', 'El sistema solar'],
     age: 10, girl: false, persona: 'Arma robots con Arduino y un kit de electrónica, y le encanta la impresión 3D. Tranquilo e ingenioso: siempre está inventando algo.',
+    thanks: '¡Gracias, Ian! Ya {lo} tengo {puesto} en mi avatar. ¡Bip bip de alegría! 🤖',
     request: {
       note: '¡Hola! Hacemos el mismo curso de Fracciones y yo armo robots con Arduino 🤖 ¿Querés que seamos amigos?',
       greeting: '¡Gracias por aceptarme! ¿Vos también armás cosas o hacés experimentos?',
@@ -128,6 +148,13 @@ const SEED_THREADS: Record<string, string[]> = {
 }
 /** Pasado el tope de costo, los NPC contestan con frases cortas que sirven para cualquier mensaje (sin modelo). */
 const CANNED = ['¡Dale! Te espero en Practicar.', '¿Hacemos una carrera de XP?', 'Ahora estoy practicando, ¡después te escribo!', 'Me voy a seguir con el curso. ¡Hablamos después!']
+/** "¡Gracias!" por un regalo que sirven para cualquier NPC (se alternan con el de cada uno, así no repiten siempre lo mismo). */
+const THANKS = ['¡Muchas gracias por {el}, Ian! Ya {lo} tengo {puesto} 😄', '¡Qué lindo regalo! Me puse {el} y me encanta. ¡Gracias, Ian!']
+/** Si el padre bloqueó una palabra que aparece en la plantilla (p. ej. el nombre de la prenda): sin nombrarla. */
+const THANKS_SAFE = '¡Muchas gracias por el regalo, Ian! 😄'
+const GIFT_SAFE = '🎁 ¡Te mandé un regalo!'
+/** Demora del "¡gracias!" (el NPC aparece "escribiendo…" un ratito, como con cualquier respuesta). */
+const THANKS_MIN_MS = 1800, THANKS_SPAN_MS = 1200
 
 /* ---------- estado del demo (RAM) ---------- */
 interface Pending { at: number; msg: FriendMessage }
@@ -144,9 +171,12 @@ interface State {
   chats: Record<string, Chat>
   /** Respuestas con modelo en esta carga de página (tope COST_CAP). */
   npcCalls: number
+  /** La ropa que Ian le regaló a cada NPC (ids de accesorio) y la que tiene puesta: arrancan sin nada. */
+  wardrobe: Record<string, string[]>
+  wearing: Record<string, string>
 }
 function seed(): State {
-  const s: State = { seq: 1, friends: NPCS.filter(n => !n.request).map(n => n.id), requests: NPCS.filter(n => n.request).map(n => n.id), since: {}, chats: {}, npcCalls: 0 }
+  const s: State = { seq: 1, friends: NPCS.filter(n => !n.request).map(n => n.id), requests: NPCS.filter(n => n.request).map(n => n.id), since: {}, chats: {}, npcCalls: 0, wardrobe: {}, wearing: {} }
   for (const [id, lines] of Object.entries(SEED_THREADS)) {
     s.chats[id] = { messages: lines.map(text => ({ id: `m${s.seq++}`, from: 'them' as const, text })), pending: [], busy: false, again: false }
   }
@@ -175,7 +205,7 @@ const monthNow = () => new Date().toLocaleString('es-AR', { month: 'long' })
 const pick = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)]
 const toFriend = (n: Npc): Friend => ({
   id: n.id, nick: n.nick, color: n.color, status: n.status, xp: n.xp, streak: n.streak, league: n.league,
-  since: n.since ?? state.since[n.id] ?? monthNow(), commonCourses: [...n.commonCourses],
+  since: n.since ?? state.since[n.id] ?? monthNow(), commonCourses: [...n.commonCourses], accessory: state.wearing[n.id] ?? null,
 })
 const toRequest = (n: Npc): FriendRequest => ({ id: n.id, nick: n.nick, color: n.color, ...(n.request ? { note: n.request.note } : {}) })
 const chatOf = (id: string): Chat => (state.chats[id] ??= { messages: [], pending: [], busy: false, again: false })
@@ -441,6 +471,38 @@ function decline(id: string): boolean {
   state.requests.splice(i, 1)
   log(`solicitud de ${npcOf(id)?.nick ?? id} rechazada ("Ahora no")`)
   return true
+}
+
+/* ---------- regalos de ropa (los cobra market.ts: POST /api/market/gift) ---------- */
+/** ¿Se le puede regalar esa prenda a ese amigo? Amigos apagado → 403; no es amigo → 404; ya la tiene → 200 (rechazo de
+ *  negocio, con el motivo para el chico). market.ts lo pregunta ANTES de cobrar. `el` = "la gorra", para el texto. */
+export function giftCheck(id: string, accessory: string, el: string): { ok: true; nick: string } | { ok: false; status: number; error: string } {
+  if (!featureOn('amigos')) return { ok: false, status: 403, error: OFF.error }
+  const n = isFriend(id) ? npcOf(id) : undefined
+  if (!n) return { ok: false, status: 404, error: 'Ese amigo no está en tu lista.' }
+  if (state.wardrobe[id]?.includes(accessory)) return { ok: false, status: 200, error: `¡${n.nick} ya tiene ${el}! Elegí otro regalo.` }
+  return { ok: true, nick: n.nick }
+}
+
+/** Ian le regaló una prenda (ya cobrada): va a su guardarropas, SE LA PONE y en su hilo quedan el regalo ("🎁 ¡Te
+ *  regalé …!", de Ian) y, tras un "escribiendo…" corto, su "¡gracias!" plantillado (sin modelo). Los dos entran por la
+ *  cola de pendientes, así una ventana del dock ya abierta los recibe por el sondeo. Devuelve el perfil con la prenda. */
+export function receiveGift(id: string, accessory: string, t: { el: string; lo: string; puesto: string }): Friend {
+  const n = npcOf(id)
+  if (!n) throw new Error(`receiveGift: el NPC ${id} no existe`) // giftCheck lo validó antes de cobrar
+  const w = (state.wardrobe[id] ??= [])
+  if (!w.includes(accessory)) w.push(accessory)
+  state.wearing[id] = accessory
+  const say = (s: string) => s.replace(/\{el\}/g, t.el).replace(/\{lo\}/g, t.lo).replace(/\{puesto\}/g, t.puesto)
+  const mine = say('🎁 ¡Te regalé {el}!')
+  const thanks = say(Math.random() < 0.6 ? n.thanks : pick(THANKS))
+  const c = chatOf(id), now = Date.now()
+  const last = c.pending.length ? c.pending[c.pending.length - 1].at : 0
+  c.pending.push({ at: now, msg: { id: nextId(), from: 'me', text: matchBlockedWord(mine) ? GIFT_SAFE : mine } })
+  const word = matchBlockedWord(thanks)
+  c.pending.push({ at: Math.max(now + THANKS_MIN_MS + Math.random() * THANKS_SPAN_MS, last + 800), msg: { id: nextId(), from: 'them', text: word ? THANKS_SAFE : thanks } })
+  log(`${n.nick} recibió de regalo «${accessory}»: se lo puso y agradece en su hilo${word ? ` (plantilla sin nombrar la prenda: palabra bloqueada «${word}»)` : ''} «${word ? THANKS_SAFE : thanks}»`)
+  return toFriend(n)
 }
 
 /* ---------- rutas ---------- */
