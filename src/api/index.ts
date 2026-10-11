@@ -4,11 +4,11 @@
 // (lista/generación). Cada llamada se loguea en la consola (→ / ←).
 import * as M from './mock';
 import type {
-  AnswerResult, Answer, ArticleResponse, AvatarLook, ChannelDetail, Channel, ChatReply, ChatTurn, Course, DriveFolder, DriveItem, DriveView,
-  EcTx, FeedReaction, FeedResponse, FolderNode, FriendThread, CourseDetail, Exercise, Friend, FriendRequest, Identity, NewMarketItem, SendMessageResult,
+  AnswerResult, Answer, ArticleResponse, AvatarLook, CalendarEvent, ChannelDetail, Channel, ChatReply, ChatTurn, CloseWeekResult, Course, DriveFolder, DriveItem, DriveView,
+  EcTx, FeedReaction, FeedResponse, FolderNode, FriendThread, CourseDetail, Exercise, Friend, FriendRequest, GiftResult, HireResult, Identity, NewMarketItem, SendMessageResult,
   ParentActivity, ParentAlert, ParentConfig, ParentFeatures, ParentItemPatch, ParentPreset, ParentTopics, ParentVolume, ParentWords,
   AssignedLeague, GeoRanking, GeoScope, ImageResult, Journey, LeagueStanding, MarketItem, PageResult, Playlist, PlaylistDetail,
-  ProgressSummary, RecallAnswerResult, RecallFinish, RecallSession, RecallSummary, Redemption, SavePayload, SearchResponse, Tab, TrashView, User, Video, VideoResult,
+  ProgressSummary, RecallAnswerResult, RecallFinish, RecallSession, RecallSummary, Redemption, SavePayload, SearchResponse, SimulateNpcsResult, Tab, Teacher, TeacherSlot, TrashView, User, Video, VideoResult,
 } from './types';
 
 export type { FriendThread } from './types';
@@ -220,4 +220,21 @@ export const api = {
   leagueStanding: (id: string) => http<LeagueStanding>(`/api/leagues/standing?id=${encodeURIComponent(id)}`),
   /** Puesto por puntaje en la zona o el país (top 10 + mi puesto). */
   geoRanking: (scope: GeoScope) => http<GeoRanking>(`/api/leagues/geo?scope=${scope}`),
+
+  /* ---- Demo vivo (botones "Simular…" — endpoints de demo del server fake) ---- */
+  /** Cierra la semana de liga YA: congela tabla, medallas, re-asigna y arranca la semana nueva (XP → 0). */
+  closeWeek: () => http<CloseWeekResult>('/api/leagues/close-week', {}),
+  /** Los NPCs "viven" un rato: noticias frescas de logros en el feed. */
+  simulateNpcs: () => http<SimulateNpcsResult>('/api/feed/simulate-npcs', {}),
+
+  /* ---- Profesores (marketplace del padre) + Calendario del chico — server FAKE teachersFake.ts;
+         las contrataciones PERSISTEN (config del padre, server/data/teachers.json) ---- */
+  teachers: () => http<{ teachers: Teacher[] }>('/api/teachers'),
+  hireTeacher: (id: string, slot: TeacherSlot) => http<HireResult>('/api/teachers/hire', { id, slot }),
+  cancelTeacher: (id: string) => http<{ ok: boolean }>('/api/teachers/cancel', { id }),
+  /** El calendario del chico: SOLO las clases (sin precios). */
+  calendar: () => http<{ events: CalendarEvent[] }>('/api/calendar'),
+
+  /* ---- Guardarropas: regalar ropa a un amigo (gasta EC; el NPC se la pone y agradece en el hilo) ---- */
+  giftToFriend: (itemId: number, friendId: string) => http<GiftResult>('/api/market/gift', { itemId, friendId }),
 };

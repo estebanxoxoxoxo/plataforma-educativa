@@ -218,3 +218,17 @@ export function getFeed(after?: string | null): FeedResponse {
     sidebar: { league: leagueSidebar(), continue: continueCard(), topics: topicsUsed.slice(0, 6) },
   }
 }
+
+/* ---------- Demo vivo (stubs del coordinador: la tanda LF los implementa de verdad) ---------- */
+
+/** Botón "Simular NPCs" (Home): mete una ráfaga de noticias frescas de los NPCs (logros variados
+ *  con reacciones) arriba del feed. Devuelve cuántas entraron. STUB: todavía no hace nada. */
+export function simulateNpcs(): { added: number } {
+  return { added: 0 }
+}
+
+/** Cierre de semana (lo llama leaguesFake.closeWeek): noticias del cierre en el feed (medallas de
+ *  Ian y de NPCs, arranque de semana nueva). Devuelve cuántas entraron. STUB: todavía no hace nada. */
+export function injectLeagueClose(_r: { pos: number; medal: 'oro' | 'plata' | 'bronce' | null; leagueName: string }): number {
+  return 0
+}

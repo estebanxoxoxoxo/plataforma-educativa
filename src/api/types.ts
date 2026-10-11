@@ -127,6 +127,10 @@ export type MarketItem = {
   /** Quién la publicó */ source: 'padre' | 'plataforma';
   /** Canjes disponibles (null = sin límite) */ stock: number | null;
   /** Está en la lista de deseos del chico (la wishlist persiste; no la toca el reset del demo) */ wished: boolean;
+  /** Ítems de plataforma (audio 26): 'ropa' = accesorio del avatar; ausente = premio clásico del padre. */
+  kind?: 'premio' | 'ropa';
+  /** Solo kind 'ropa': qué accesorio del set del cliente desbloquea */ accessoryId?: AccessoryId;
+  /** Solo kind 'ropa': ya está en tu guardarropas (compras en RAM: resetean por carga) */ owned?: boolean;
 };
 export type Redemption = { id: number; itemId: number; title: string; emoji: string; price: number; ts: number; status: 'pendiente' | 'entregado' };
 
@@ -160,7 +164,10 @@ export type ParentActivity = {
   protections?: ParentProtections;
 };
 
-export type Friend = { id: string; nick: string; color: string; status: string; xp: string; streak: string; league: string; since: string; commonCourses: string[] };
+export type Friend = {
+  id: string; nick: string; color: string; status: string; xp: string; streak: string; league: string; since: string; commonCourses: string[];
+  /** Accesorio que lleva puesto su avatar (p.ej. uno que Ian le regaló; RAM del demo) */ accessory?: string | null;
+};
 export type FriendMessage = { id: string; from: 'me' | 'them'; text: string };
 /** Solicitud de amistad entrante (NPCs del demo). */
 export type FriendRequest = { id: string; nick: string; color: string; note?: string };
@@ -262,7 +269,8 @@ export type RecallFinish = {
 /* ---------- Identidad (avatar propio; visión audios 26, 32, 41-42) ----------
    Avatar dibujado determinístico (sin assets externos). `null` = el default típico: la inicial
    sobre un color. En el demo el 80% de los usuarios se ve con avatar dibujado y el 20% con iniciales. */
-export type AvatarLook = { variant: number; color: string } | null;
+/** `accessory`: ropa/accesorio del guardarropas puesto sobre el personaje (null/ausente = sin nada). */
+export type AvatarLook = { variant: number; color: string; accessory?: string | null } | null;
 export type Identity = { nick: string; look: AvatarLook };
 
 /* ---------- Zona del padre v2: la configuración viva (visión audios 8, 34-35, 56, 66; POC Smarty) ---------- */
@@ -285,3 +293,35 @@ export type ParentPreset = {
   spec: { features: ParentFeatures; topics: ParentTopics; words: string[]; volume: ParentVolume };
 };
 export type ParentConfig = { topics: ParentTopics; words: ParentWords; volume: ParentVolume; preset: string | null };
+
+/* ---------- Demo vivo (botones "Simular…"): cierre de semana de liga y ráfaga de NPCs ---------- */
+/** POST /api/leagues/close-week: congela la tabla, reparte medallas, re-asigna liga y arranca la semana
+ *  nueva (la XP semanal vuelve a 0: progress.startNewWeek; la EC/racha NO se tocan — audios 20-26). */
+export type CloseWeekResult = {
+  closed: { league: { id: string; name: string; color: string }; pos: number; total: number; medal: 'oro' | 'plata' | 'bronce' | null; xp: number };
+  next: { league: { id: string; name: string; color: string }; movement: 'sube' | 'baja' | 'queda'; closesInDays: number };
+  /** Noticias que el cierre metió en el feed */ feedAdded: number;
+};
+/** POST /api/feed/simulate-npcs: los NPCs "viven" un rato — noticias de logros frescas en el feed. */
+export type SimulateNpcsResult = { added: number };
+
+/* ---------- Profesores (marketplace del padre; visión audios 30 y 67) + Calendario del chico ---------- */
+/** weekday 0=lunes … 6=domingo · hour 0-23 (en punto, demo). */
+export type TeacherSlot = { weekday: number; hour: number };
+export type Teacher = {
+  id: string; name: string; emoji: string; color: string;
+  subject: string; /** USD por hora (lo ve SOLO el padre) */ pricePerHour: number;
+  bio: string; rating: number;
+  hired: boolean; slot?: TeacherSlot | null;
+};
+export type HireResult = { ok: boolean; error?: string; teacher?: Teacher; eventsAdded?: number };
+/** Una clase en el calendario del chico (el precio NUNCA viaja acá). */
+export type CalendarEvent = {
+  id: number; teacherId: string; title: string; subject: string; emoji: string; color: string;
+  /** epoch ms del inicio */ start: number; durationMin: number;
+};
+
+/* ---------- Guardarropas (ropa del avatar) + regalos (audios 26, 29, 41-42) ---------- */
+/** Id de accesorio del set dibujado del cliente (Avatar.tsx). */
+export type AccessoryId = string;
+export type GiftResult = { ok: boolean; error?: string; /** saldo tras regalar */ ec?: number; friend?: Friend };

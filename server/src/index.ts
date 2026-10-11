@@ -29,6 +29,8 @@ import { leaguesRoutes } from './leaguesFake'
 import { featureOn, parentRoutes, resetUnlockAttempts } from './parent'
 import { recallRoutes, resetRecall } from './recall'
 import { identityRoutes } from './identity'
+import { teachersRoutes } from './teachersFake'
+import { simulateNpcs } from './feedFake'
 import { readJson, send } from './web'
 import type { Msg } from './llm'
 
@@ -85,6 +87,8 @@ createServer(async (req, res) => {
     // --- Dominios con módulo propio (cada uno maneja sus subrutas y métodos) ---
     if (url.pathname.startsWith('/api/recall/')) return await recallRoutes(req, res, url)
     if (url.pathname === '/api/identity') return await identityRoutes(req, res, url)
+    // Profesores (marketplace del padre) + el calendario del chico: teachersFake.ts
+    if (url.pathname.startsWith('/api/teachers') || url.pathname === '/api/calendar') return await teachersRoutes(req, res, url)
     if (url.pathname.startsWith('/api/practice/')) return await practiceRoutes(req, res, url)
     if (url.pathname.startsWith('/api/progress/')) return progressRoutes(req, res, url)
     if (url.pathname.startsWith('/api/market')) return await market.marketRoutes(req, res, url)
@@ -100,6 +104,10 @@ createServer(async (req, res) => {
       const b = await readJson<{ id?: string; emoji?: string }>(req)
       if (!b.id || !b.emoji) return send(res, 400, { error: 'id/emoji' })
       return send(res, 200, reactFeed(String(b.id), String(b.emoji)))
+    }
+    // Botón de demo "Simular NPCs" (Home): ráfaga de noticias frescas de los NPCs.
+    if (url.pathname === '/api/feed/simulate-npcs' && req.method === 'POST') {
+      return send(res, 200, simulateNpcs())
     }
 
     // --- MI ESPACIO (backend real: server/src/space.ts, persistido en data/space.json) ---

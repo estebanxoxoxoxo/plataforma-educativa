@@ -67,6 +67,14 @@ function rollWeek() {
   if (ws !== store.weekStart) { store.weekStart = ws; store.xpWeek = 0 }
 }
 
+/** Cierre SIMULADO de semana (botón de demo en Ligas; lo orquesta leaguesFake.closeWeek):
+ *  la XP semanal vuelve a 0 y "arranca la semana que viene". La billetera (EC), la racha y el
+ *  total NO se tocan (audios 20-26: la EC se acumula; la que compite es la XP de la semana). */
+export function startNewWeek(): void {
+  store.weekStart = mondayOf(new Date())
+  store.xpWeek = 0
+}
+
 function touchStreak() {
   const today = dayKey(new Date())
   if (store.lastDay === today) return

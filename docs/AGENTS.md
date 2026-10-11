@@ -34,20 +34,24 @@ framework en `server/` (puerto 8787, proxy `/api` de Vite). El usuario demo es I
 7. Ligas: se ASIGNAN por resultados (nunca se eligen/buscan), 12 participantes, y el puntaje
    semanal es UNO solo (mismo número en liga, zona y país). El ciclo semanal (closesInDays real +
    lastWeek/medalla) tiene UNA sola fuente: server/src/leaguesFake.ts — no lo dupliques.
-8. Menú actual (EN ESTE ORDEN, 9-oct-2026): Home (= el FEED de recomendaciones, el "descubrir" de la
+8. Menú actual (EN ESTE ORDEN, 11-oct-2026): Home (= el FEED de recomendaciones, el "descubrir" de la
    visión; es la home en `/`) · Buscar (`/buscar/*`) · Chat (`/chat`) · Aprender · Practicar ·
    Repasar (`/repasar`, las cartas diarias del Active Recall — ese nombre NUNCA va en la UI) · Tienda
-   (`/tienda`) · Amigos · Ligas (solapas Mi liga|Tu zona|País con ?tab=) · Mi espacio AL FINAL
-   (`/espacio/carpetas`, `/espacio/videos` con solapas Canales|Mis listas). "Home" es el feed, NO el
-   chat. Si cambiás rutas, dejá redirecciones de las viejas.
+   (`/tienda`) · Amigos · Ligas (solapas Mi liga|Tu zona|País con ?tab=) · Mi espacio
+   (`/espacio/carpetas`, `/espacio/videos` con solapas Canales|Mis listas) · Calendario AL FINAL
+   (`/calendario`: las clases con los profes que el padre contrata en /padres). "Home" es el feed,
+   NO el chat. Si cambiás rutas, dejá redirecciones de las viejas.
 9. **La economía del demo vive en RAM** (pedido de Esteban): XP/Energy Coin/canjes NO se persisten
    a disco; cada carga de página hace POST /api/demo/reset (ver src/hooks/user.tsx) y todo vuelve a
    los valores iniciales (seed). Si tu módulo guarda estado económico, exponé un reset() y
    registralo en ese endpoint. SÍ persisten los activos/preferencias del chico (space.json,
    wishlist.json, identity.json: el avatar) y la CONFIG del padre (parent.json v2: on-off de
    funcionalidades, premios de la Tienda, temas blancos/negros, palabras de la familia, topes de
-   volumen y preset aplicado). Los AVISOS al padre (crisis/contacto/bloqueos) viven en RAM y hoy
-   NO se registran en el reset del demo.
+   volumen y preset aplicado; teachers.json: profes contratados y sus clases). Los AVISOS al padre
+   (crisis/contacto/bloqueos) viven en RAM y hoy NO se registran en el reset del demo.
+   **Botones de demo ("Simular…")**: chip discreto con el prefijo CSS de su sección, que SOLO dispara
+   un endpoint de demo del server fake (nada de lógica simulada en el cliente) y refetchea; el efecto
+   vive en RAM y una recarga vuelve al seed, como todo el demo.
 10. **Watcher de Vite/tsx en Windows**: a veces pierde la segunda de dos ediciones seguidas del
    mismo archivo y sirve un módulo viejo. Si el navegador no refleja tu cambio, verificá el módulo
    servido y hacé un `touch` del archivo para forzar la recarga.

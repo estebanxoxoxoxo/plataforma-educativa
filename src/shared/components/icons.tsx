@@ -165,6 +165,20 @@ export const IcNavPractice = filled(<g transform="rotate(-40 16 16)">
   <rect x="7" y="7.4" width="5.6" height="17.2" rx="2.8" fill={NK.orange} />
   <rect x="19.4" y="7.4" width="5.6" height="17.2" rx="2.8" fill={NK.orange} />
 </g>);
+/** Calendario: almanaque con encabezado coral, anillas y la clase de hoy marcada en dorado. */
+export const IcNavCalendar = filled(<>
+  <rect x="3.5" y="7" width="25" height="21" rx="3" fill="#FDECEA" />
+  <path d="M3.5 10a3 3 0 013-3h19a3 3 0 013 3v4.5h-25z" fill={NK.coral} />
+  <rect x="8.2" y="3.5" width="3.2" height="6.6" rx="1.6" fill={NK.ink} />
+  <rect x="20.6" y="3.5" width="3.2" height="6.6" rx="1.6" fill={NK.ink} />
+  <g fill="#F5B4AC">
+    <rect x="7" y="17" width="4.6" height="4.6" rx="1.3" />
+    <rect x="13.7" y="17" width="4.6" height="4.6" rx="1.3" />
+    <rect x="7" y="23" width="4.6" height="4.6" rx="1.3" />
+    <rect x="13.7" y="23" width="4.6" height="4.6" rx="1.3" />
+  </g>
+  <rect x="20.4" y="17" width="4.6" height="4.6" rx="1.3" fill={NK.gold} />
+</>);
 /** Repasar: dos tarjetas de memoria (la verde asoma inclinada atrás) con el tilde de "esta ya la sé". */
 export const IcNavRecall = filled(<>
   <g transform="rotate(10 20 10)"><rect x="10" y="3.6" width="18.5" height="13.5" rx="2.4" fill={NK.green} /></g>

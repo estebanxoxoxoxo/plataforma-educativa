@@ -10,6 +10,7 @@ import './sections/space/space.css';
 import './sections/learn/learn.css';
 import './sections/practice/practice.css';
 import './sections/recall/recall.css';
+import './sections/calendar/calendar.css';
 import './shared/components/avatar.css';
 import './sections/friends/friends.css';
 import './sections/leagues/leagues.css';
