@@ -112,17 +112,18 @@
 /* ── Barra superior estilo GT7: tira oscura con segmentos (liga · ⚡) a la izquierda y reloj + campana a la
    derecha. Chips legibles sobre tinta; la liga es un LINK a /ligas (que ya no está en el menú). ── */
 .topbar{flex:none;display:flex;align-items:center;gap:10px;height:46px;padding:0 14px 0 18px;background:#1B2238;color:#fff}
-.tb-seg{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.08);
-  color:#fff;font-size:13.5px;font-weight:700;line-height:1;text-decoration:none;white-space:nowrap}
+/* Chips con MÁS contraste contra la tinta (pedido 12-oct noche): fondo más claro + borde fino. */
+.tb-seg{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.15);
+  border:1px solid rgba(255,255,255,.22);color:#fff;font-size:13.5px;font-weight:700;line-height:1;text-decoration:none;white-space:nowrap}
 .tb-seg b{font-family:var(--display);font-weight:800;font-size:15px}
 .tb-seg svg{width:17px;height:17px;flex:none}
-.tb-dim{color:#AEB6CC;font-weight:700}
-.tb-name{color:#D7DCEA;font-weight:800;font-size:12.5px;letter-spacing:.04em;text-transform:uppercase}
+.tb-dim{color:#C3CADC;font-weight:700}
+.tb-name{color:#E6EAF4;font-weight:800;font-size:12.5px;letter-spacing:.04em;text-transform:uppercase}
 a.tb-league{transition:background-color .15s}
-a.tb-league:hover{background:rgba(255,255,255,.16)}
+a.tb-league:hover{background:rgba(255,255,255,.24)}
 /* Energy Coins: link a la Tienda con el MISMO ⚡ naranja de su billetera (pedido 12-oct) */
 a.tb-ec{transition:background-color .15s}
-a.tb-ec:hover{background:rgba(255,255,255,.16)}
+a.tb-ec:hover{background:rgba(255,255,255,.24)}
 .tb-bolt{font-size:15px;line-height:1}
 .tb-spacer{flex:1}
 .tb-clock{display:inline-flex;align-items:baseline;gap:8px;font-variant-numeric:tabular-nums;white-space:nowrap}
