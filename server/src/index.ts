@@ -8,8 +8,7 @@
 //   POST /api/chat                → turno del chat con el pipeline de moderación de Smarty
 //   GET /api/feed?after=  ·  POST /api/feed/react   → FAKE (demo) hasta que exista el feed real
 //   GET /api/me                   → apodo del chico
-//   GET /api/learn/course?id=&name= → temario del curso con un contenido real por capítulo
-//   /api/space/*                  → Mi espacio: Drive (carpetas+papelera), listas, canales seguidos (space.ts)
+//   /api/space/*                → Mi espacio: Drive (carpetas+papelera), listas, canales seguidos (space.ts)
 //   /api/friends*                 → FAKE (demo): amigos NPC con moderación REAL y respuestas del modelo (friendsFake.ts)
 import { createServer } from 'node:http'
 import { config } from './config'
@@ -18,12 +17,10 @@ import { queryTokens, searchPages } from './search'
 import { searchImages } from './images'
 import { allChannels, getVideo, loadChannelMeta, loadVideoMeta, searchVideos, toVideoResult, videosOfChannel } from './videos'
 import { sendChildMessage } from './chat'
-import { getCourse, prewarmCourses } from './learn'
 import { feedLess, getFeed, reactFeed, resetFeed } from './feedFake'
 import { friendsRoutes, resetFriends } from './friendsFake'
 import { resetLeagues } from './leaguesFake'
 import * as space from './space'
-import { practiceRoutes } from './practice'
 import { progressRoutes, resetProgress } from './progress'
 import * as market from './market'
 import { leaguesRoutes } from './leaguesFake'
@@ -99,7 +96,6 @@ createServer(async (req, res) => {
     if (url.pathname.startsWith('/api/create/')) return await createRoutes(req, res, url)
     // MyTube (porte Smarty W5): canal enriquecido del chico + ingesta del padre
     if (url.pathname.startsWith('/api/mytube/')) return await mytubeRoutes(req, res, url)
-    if (url.pathname.startsWith('/api/practice/')) return await practiceRoutes(req, res, url)
     if (url.pathname.startsWith('/api/progress/')) return progressRoutes(req, res, url)
     if (url.pathname.startsWith('/api/market')) return await market.marketRoutes(req, res, url)
     if (url.pathname.startsWith('/api/leagues/')) return await leaguesRoutes(req, res, url)
@@ -222,13 +218,6 @@ createServer(async (req, res) => {
       return send(res, 200, { query: q, items: hits.map(toVideoResult) })
     }
 
-    if (url.pathname === '/api/learn/course') {
-      const id = (url.searchParams.get('id') ?? '').trim()
-      if (!id) return send(res, 400, { error: 'id vacío' })
-      const c = await getCourse(id, (url.searchParams.get('name') ?? '').trim().slice(0, 120) || undefined)
-      return send(res, 200, c)
-    }
-
     if (url.pathname === '/api/video') {
       const v = await getVideo(url.searchParams.get('id') ?? '')
       return v ? send(res, 200, { ...v, followed: space.isFollowed(v.channelId) }) : send(res, 404, { error: 'Video no aprobado' })
@@ -263,7 +252,7 @@ createServer(async (req, res) => {
     send(res, 500, { error: 'internal' })
   }
 }).listen(PORT, () => {
-  setImmediate(() => { searchVideos('precalentar'); void prewarmCourses() }) // índice de videos (~5 s) y cursos de Aprender, al arrancar
+  setImmediate(() => { searchVideos('precalentar') }) // índice de videos (~5 s), al arrancar
   console.log(`Innerith API en http://localhost:${PORT} · policyVersion ${config.policyVersion} · ${config.sites.length} sitios`)
   if (!process.env.OPENAI_API_KEY || !process.env.SERPER_API_KEY) console.warn('Faltan claves en server/.env (correr el import de Smarty)')
 })

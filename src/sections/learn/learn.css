@@ -1,49 +1,7 @@
-/* Aprender / Practicar: grilla de cursos + detalle de curso */
-.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,200px));gap:20px;margin-top:22px}
-.course{position:relative;display:flex;flex-direction:column;aspect-ratio:1/1;background:#fff;border-radius:10px;overflow:hidden;border:1.5px solid #E7EAF2;box-shadow:0 3px 0 #E4E8F1;transition:transform .25s,box-shadow .25s;cursor:pointer}
-.course:hover{transform:translateY(-4px);box-shadow:0 10px 0 -2px #DCE1EC}
-.course .art{flex:none;aspect-ratio:16/9;min-height:0;display:block}
-.course .art svg{width:100%;height:100%;display:block}
-.course .meta{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;padding:6px 18px}
-.course h3{margin:0;font-family:var(--display);font-weight:800;font-size:18px;line-height:1.2;min-height:2.4em;display:grid;align-content:center}
-.course h3 span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden}
-.course small{display:block;height:16px;margin-top:4px;color:#6A7390;font-weight:700;font-size:13px;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pbar{height:8px;border-radius:2px;background:#EEF1F6;margin:8px 0 5px;overflow:hidden}
-.pbar i{display:block;height:100%;background:#F26B3A;border-radius:2px}
-.course .pbar{height:6px;margin:5px 0 0}
-.course .pbar + small{margin-top:3px}
-.newb{position:absolute;left:12px;top:12px;background:#fff;color:#0B6B66;font-size:12px;font-weight:800;padding:5px 10px;border-radius:999px;display:flex;gap:6px;align-items:center;box-shadow:0 2px 0 rgba(0,0,0,.12)}
-.newb svg{width:14px;height:14px}
-.course.sk .art{background:linear-gradient(90deg,#E6E9F1 0%,#F1F3F8 50%,#E6E9F1 100%);background-size:200% 100%;animation:shim 1.3s linear infinite}
-.course.sk .meta i{display:block;height:14px;width:60%;border-radius:3.5px;background:#EEF1F6}
-.course.sk .meta i + i{margin-top:8px;width:35%;height:10px}
-
-.chead{display:flex;align-items:center;gap:18px;margin:12px 0 18px}
-.chead .art{width:132px;height:74px;border-radius:7px;overflow:hidden;flex:none}
-.units{display:flex;flex-direction:column;gap:12px}
-.unit{background:#fff;border:1.5px solid #E7EAF2;border-radius:9px;overflow:hidden}
-.uhead{display:flex;align-items:center;gap:14px;padding:14px 20px;font-weight:800;font-size:17px;width:100%;cursor:pointer}
-.unum{width:34px;height:34px;border-radius:5.5px;background:#E7ECFD;color:#2843A8;display:grid;place-items:center;font-family:var(--display);font-size:17px}
-.unit.open .unum{background:#3A5BD9;color:#fff}
-.uhead .cnt{margin-left:auto;color:#6A7390;font-size:13.5px}
-.chev{width:18px;height:18px;color:#6A7390;transition:transform .3s}
-.unit.open .chev{transform:rotate(180deg)}
-.ubody{max-height:0;overflow:hidden;transition:max-height .5s ease}
-.unit.open .ubody{max-height:420px}
-
-/* Capítulo = un contenido real; toda la fila es clickeable */
-.chap{display:flex;align-items:center;gap:14px;width:100%;padding:11px 20px 11px 68px;border-top:1px solid #EEF1F6;text-align:left;cursor:pointer;transition:background .2s}
-.chap:hover{background:#F6F8FE}
-.chap .n{color:#6A7390;font-weight:800;font-size:13px;width:30px;margin-left:-44px;flex:none}
-.chap .ctxt{flex:1;min-width:0;display:grid;gap:1px}
-.chap .ctxt b{font-size:15px}
-.chap .ctxt small{font-size:12.5px;font-weight:700;color:#8A93AD;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.chap .go{width:18px;height:18px;color:#A5ACBD;flex:none;transition:transform .2s,color .2s}
-.chap:hover .go{color:#2843A8;transform:translateX(3px)}
-.rc{display:inline-flex;align-items:center;gap:6px;flex:none;font-size:12.5px;font-weight:800;padding:5px 11px;border-radius:999px}
-.rc svg{width:14px;height:14px}
-.rc.video{background:#E7ECFD;color:#2843A8}.rc.lect{background:#E2F5F3;color:#0B6B66}
-.cprep{margin-top:18px;animation:fadein .6s both}
+/* Aprender = Learn (porte Smarty W3+W4): mosaico de rutas · camino de postas · overlay de actividad (lectura / video /
+   juego / resultado) · Active Recall. Prefijo propio ln- (grepeado: sin choques); el motor usa lrn- (src/learn). Los
+   colores por módulo del camino son los 6 pares EXACTOS del POC (van inline); el resto, tokens de Innerith. Los overlays
+   se dibujan en un portal sobre <body> (pantalla completa, por encima del menú, la barra y el dock). */
 
 /* ---- encabezado de Aprender con el botón Crear a la altura del título (pedido 12-oct) ---- */
 .lp-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
@@ -54,3 +12,197 @@
 .lp-create svg{width:18px;height:18px}
 .lp-create:hover{background:#6E1F64}
 .lp-create:active{transform:translateY(2px);box-shadow:0 1px 0 #5E1A55}
+
+/* ---- mosaico ---- */
+/* Entrada raíz de Active recall (aparece con algo ya jugado). */
+.ln-recall{display:flex;align-items:center;gap:14px;width:100%;margin-top:22px;padding:15px 18px;border-radius:14px;background:#3A5BD9;color:#fff;text-align:left;
+  box-shadow:0 3px 0 #2843A8;transition:background .2s,transform .12s,box-shadow .12s;cursor:pointer}
+.ln-recall:hover{background:#2F4FCB}
+.ln-recall:active{transform:translateY(2px);box-shadow:0 1px 0 #2843A8}
+.ln-recall > svg{flex:none;width:22px;height:22px}
+.ln-recall-t{flex:1;min-width:0}
+.ln-recall-t b{display:block;font-family:var(--display);font-weight:800;font-size:18px;line-height:1.15}
+.ln-recall-t small{display:block;margin-top:2px;font-size:14px;font-weight:700;opacity:.92}
+.ln-recall .ln-go{flex:none;width:18px;height:18px}
+
+.ln-cat{margin-top:26px}
+.ln-cat-h{margin:0 0 12px;font-family:var(--display);font-weight:800;font-size:19px;line-height:1.2;color:var(--ink)}
+.ln-cat-h span{font-family:var(--body);font-size:13px;font-weight:700;color:var(--muted)}
+.ln-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,200px));gap:20px;margin-top:22px}
+.ln-cat .ln-grid{margin-top:0}
+
+/* Tarjeta de ruta: el patrón de la tarjeta de Aprender (borde, radio, sombra suave, título centrado en el alto de 2 líneas). */
+.ln-card{position:relative;display:flex;flex-direction:column;min-width:0;background:#fff;border-radius:10px;overflow:hidden;border:1.5px solid #E7EAF2;
+  box-shadow:0 3px 0 #E4E8F1;transition:transform .25s,box-shadow .25s;cursor:pointer;text-align:left}
+.ln-card:hover{transform:translateY(-4px);box-shadow:0 10px 0 -2px #DCE1EC}
+.ln-card-art{flex:none;display:grid;place-items:center;aspect-ratio:16/9;overflow:hidden;background:#E8EDFE}
+.ln-card-art img{display:block;width:100%;height:100%;object-fit:cover}
+.ln-card-emoji{font-size:46px;line-height:1}
+.ln-card-meta{flex:1;display:flex;flex-direction:column;justify-content:center;padding:6px 16px 12px}
+.ln-card-title{display:grid;align-content:center;min-height:2.4em;font-family:var(--display);font-weight:800;font-size:18px;line-height:1.2;color:var(--ink)}
+.ln-card-title > span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
+.ln-card-desc{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;margin-top:2px;font-size:12.5px;font-weight:600;line-height:1.35;color:#6A7390}
+.ln-bar{display:block;height:6px;margin-top:6px;border-radius:3px;background:#EEF1F6;overflow:hidden}
+.ln-bar i{display:block;height:100%;border-radius:3px;background:var(--blue);transition:width .5s}
+.ln-card-foot{display:flex;align-items:center;gap:5px;margin-top:6px;font-size:13px;font-weight:800;color:#2843A8}
+.ln-card-foot .ln-star{flex:none;width:14px;height:14px;color:var(--gold)}
+.ln-card-foot .ln-go{flex:none;width:16px;height:16px;margin-left:auto;transition:transform .2s}
+.ln-card:hover .ln-go{transform:translateX(2px)}
+.ln-card.is-sk{cursor:default;box-shadow:0 3px 0 #E4E8F1}
+.ln-card.is-sk:hover{transform:none}
+.ln-card.is-sk .ln-card-art{background:linear-gradient(90deg,#E6E9F1 0%,#F1F3F8 50%,#E6E9F1 100%);background-size:200% 100%;animation:shim 1.3s linear infinite}
+.ln-card.is-sk .ln-card-meta{min-height:84px}
+.ln-card.is-sk .ln-card-meta i{display:block;height:14px;width:70%;border-radius:4px;background:#EEF1F6}
+.ln-card.is-sk .ln-card-meta i + i{margin-top:10px;width:40%;height:10px}
+.ln-fail{margin-top:22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-weight:700;color:var(--muted)}
+.ln-fail p{margin:0}
+
+/* ---- el camino de una ruta (la vista no tiene padding propio: la barra y las bandas van a todo el ancho y alinean su
+   contenido con la columna vía var(--view-pad-x)) ---- */
+#v-ruta{padding:0 0 76px;--ln-head-h:62px}
+.ln-rhead{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:12px;height:var(--ln-head-h);padding:0 var(--view-pad-x);
+  background:rgba(246,247,251,.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid #E4E8F1}
+.ln-back{flex:none;width:40px;height:40px;display:grid;place-items:center;margin-left:-8px;border-radius:12px;color:#2843A8;transition:background .15s,transform .1s}
+.ln-back:hover{background:#E8EDFE}
+.ln-back:active{transform:scale(.95)}
+.ln-back svg{width:22px;height:22px}
+.ln-remoji{flex:none;font-size:26px;line-height:1}
+.ln-rtitle{min-width:0;margin:0;font-family:var(--display);font-weight:800;font-size:22px;line-height:1.2;color:#2843A8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* banda STICKY del módulo (color inline: band/ink del par del módulo) */
+.ln-band{position:sticky;top:var(--ln-head-h);z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;
+  padding:9px var(--view-pad-x);border-bottom:1px solid rgba(0,0,0,.05);text-align:left;font-size:14px}
+.ln-band:disabled{cursor:default}
+.ln-band-t{min-width:0;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ln-band-see{flex:none;display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:700;opacity:.75}
+.ln-band-see svg{width:14px;height:14px}
+.ln-band:not(:disabled):hover .ln-band-see{opacity:1}
+
+/* nodos en zig-zag (por índice GLOBAL) */
+.ln-path{display:flex;flex-direction:column;align-items:center;gap:32px;padding:32px 16px}
+.ln-node{display:flex;flex-direction:column;align-items:center}
+.ln-node.is-l{transform:translateX(-40px)}
+.ln-node.is-r{transform:translateX(40px)}
+.ln-dot{position:relative;width:80px;height:80px;border-radius:50%;display:grid;place-items:center;transition:transform .1s}
+.ln-sq{width:64px;height:64px;border-radius:16px;display:grid;place-items:center;transition:transform .1s}
+.ln-dot:not(:disabled):active,.ln-sq:not(:disabled):active{transform:scale(.95)}
+.ln-dot .ln-ti{width:28px;height:28px}
+.ln-sq svg{width:24px;height:24px}
+.ln-dot.is-locked,.ln-sq.is-locked{background:#E5E7EB;color:#9CA3AF;cursor:default}
+.ln-dot.is-shadow,.ln-sq.is-shadow{box-shadow:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1)}
+/* sin módulo: el acento del tema (azul de Aprender) */
+.ln-dot.is-flat-done{background:var(--blue);color:#fff;box-shadow:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1)}
+.ln-dot.is-flat-avail{background:#D9E0FA;color:#2843A8;box-shadow:0 0 0 4px rgba(217,224,250,.6),0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1)}
+.ln-sq.is-flat-recall{background:var(--blue);color:#fff;box-shadow:0 0 0 4px rgba(217,224,250,.6),0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1)}
+.ln-pulse{animation:ln-pulse 2s cubic-bezier(.4,0,.6,1) infinite}
+@keyframes ln-pulse{50%{opacity:.5}}
+.ln-check{position:absolute;right:-2px;top:-2px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:#22C55E;color:#fff;box-shadow:0 0 0 2px var(--bg)}
+.ln-check svg{width:13px;height:13px}
+.ln-nlabel{display:block;max-width:140px;margin-top:5px;text-align:center}
+.ln-nlabel b{display:block;font-size:13px;font-weight:700;line-height:1.25;color:var(--ink)}
+.ln-nlabel b.is-recall{color:#2843A8}
+.ln-node.is-locked .ln-nlabel b{color:#9CA3AF}
+.ln-nlabel small{display:block;margin-top:2px;font-size:10.5px;font-weight:700;color:#9CA3AF}
+.ln-stars{display:flex;justify-content:center;gap:2px;margin-top:3px}
+.ln-stars svg{width:13px;height:13px;color:#D1D5DB}
+.ln-stars svg.on{color:var(--gold)}
+
+/* placeholder de una posta sin definición (sobre la hoja modal .shov de Innerith) */
+.ln-pend{z-index:120}
+.ln-pend-card{position:relative;width:min(384px,100%);padding:24px;border-radius:16px;background:#fff;text-align:center;box-shadow:0 24px 48px -24px rgba(27,34,56,.45)}
+.ln-pend-x{position:absolute;top:10px;right:10px}
+.ln-pend-emoji{font-size:40px;line-height:1;margin:8px 0}
+.ln-pend-t{margin:0;font-family:var(--display);font-weight:800;font-size:20px;color:var(--ink)}
+.ln-pend-p{margin:8px 0 0;font-size:14px;font-weight:600;color:var(--muted)}
+.ln-pend-p span{font-size:12px}
+
+/* ---- overlays de Learn (portal sobre <body>; el z-index lo da la pila de overlays) ---- */
+.ln-ov{position:fixed;inset:0;background:var(--bg);color:var(--ink);font-family:var(--body)}
+.ln-ov-stage{height:100%}
+.ln-ib{flex:none;width:40px;height:40px;display:grid;place-items:center;border-radius:12px;color:#2843A8;transition:background .15s,transform .1s}
+.ln-ib:hover{background:#E8EDFE}
+.ln-ib:active{transform:scale(.95)}
+.ln-ib svg{width:20px;height:20px}
+.ln-ib.is-flag{color:#B45309}
+.ln-ib.is-flag:hover{background:#FEF3C7}
+.ln-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 18px;border-radius:12px;font-weight:800;font-size:15px;line-height:1.1;transition:background .15s,transform .1s}
+.ln-btn:active{transform:scale(.95)}
+.ln-btn svg{width:16px;height:16px}
+.ln-btn-go{background:#3A5BD9;color:#fff;box-shadow:0 3px 0 #2843A8}
+.ln-btn-go:hover{background:#2F4FCB}
+.ln-btn-quiet{background:#fff;color:#2843A8;border:1.5px solid #D9E0FA}
+.ln-btn-quiet:hover{background:#F4F6FE}
+
+/* Runner: barra (✕ · título · puntaje · Pausar/Reanudar · Rendirse) + tablero */
+.ln-run{display:flex;flex-direction:column;height:100%}
+.ln-run-head{flex:none;display:flex;align-items:center;gap:8px;height:58px;padding:0 16px;border-bottom:1px solid rgba(228,232,241,.8)}
+.ln-run-t{flex:1;min-width:0;margin:0;font-family:var(--display);font-weight:800;font-size:19px;line-height:1.2;color:#2843A8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ln-run-score{margin-right:4px;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;color:#9CA3AF;white-space:nowrap}
+.ln-run-score strong{color:#2843A8;font-weight:800}
+.ln-run-body{flex:1;min-height:0;overflow-y:auto;padding:16px}
+@media (min-width:640px){.ln-run-body{padding:24px}}
+.ln-board{max-width:672px;margin:0 auto}
+
+/* Lobby + cuenta regresiva */
+.ln-lobby{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;min-height:340px;padding:64px 24px;text-align:center}
+.ln-lobby-t{margin:0;font-family:var(--display);font-weight:800;font-size:28px;line-height:1.2;color:var(--ink)}
+.ln-lobby-p{margin:0;max-width:384px;font-size:16px;font-weight:700;color:var(--muted)}
+.ln-lobby .ln-btn-go{font-size:18px;padding:13px 26px}
+.ln-countdown{font-family:var(--display);font-weight:800;font-size:72px;line-height:1;color:#2843A8;font-variant-numeric:tabular-nums}
+
+/* Resultado */
+.ln-result{max-width:384px;margin:40px auto 0;text-align:center}
+.ln-result-emoji{margin-bottom:8px;font-size:48px;line-height:1}
+.ln-result-t{margin:0;font-family:var(--display);font-weight:800;font-size:24px;color:var(--ink)}
+.ln-result-score{margin-top:12px;font-family:var(--display);font-weight:800;font-size:32px;line-height:1.1;color:#2843A8;font-variant-numeric:tabular-nums}
+.ln-result-score span{font-family:var(--body);font-size:16px;font-weight:600;color:#9CA3AF}
+/* la economía de Innerith: lo acreditado, chiquito (mismo look que el premio que tenía Practicar) */
+.ln-result-ec{display:inline-flex;align-items:center;margin-top:10px;padding:5px 11px;border-radius:999px;background:#FFF4DA;border:1.5px solid #F5D58A;color:#8A5A00;
+  font-family:var(--display);font-weight:800;font-size:15px;line-height:1;white-space:nowrap}
+.ln-result-stats{display:flex;justify-content:center;gap:16px;margin-top:12px;font-size:14px;font-weight:700;color:var(--ink)}
+.ln-result-acts{display:flex;justify-content:center;gap:12px;margin-top:24px;flex-wrap:wrap}
+
+/* definición fuera del catálogo */
+.ln-ov-err{display:grid;place-items:center;padding:24px;text-align:center}
+.ln-err{max-width:384px}
+.ln-err-emoji{margin:0 0 12px;font-size:40px;line-height:1}
+.ln-err-t{margin:0;font-weight:800;font-size:17px;color:var(--ink)}
+.ln-err-p{margin:4px 0 0;font-size:14px;font-weight:600;color:var(--muted);overflow-wrap:anywhere}
+.ln-err .ln-btn{margin-top:20px}
+
+/* ---- lectura (fase 'reading' y guidebook de artículo): el lector de Innerith (WikiArticle, columna de 900) ---- */
+.ln-read{display:flex;flex-direction:column;background:#fff}
+.ln-read-head{flex:none;display:flex;align-items:center;gap:14px;min-height:62px;padding:10px 24px;border-bottom:1px solid #E4E8F1;background:#fff}
+.ln-read-cta{flex:none;display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:9px;border:1.5px solid #D9E0FA;background:#F4F6FE;
+  font-weight:800;font-size:14px;color:#2843A8;transition:background .15s,transform .1s}
+.ln-read-cta:hover{background:#E8EDFE}
+.ln-read-cta:active{transform:scale(.95)}
+.ln-read-tt{min-width:0}
+.ln-read-t{margin:0;font-weight:800;font-size:15px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ln-read-host{margin:1px 0 0;font-size:12px;font-weight:700;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ln-read-body{flex:1;min-height:0;overflow-y:auto;padding:0 24px}
+.ln-read-msg{margin:0;padding:80px 24px;text-align:center;font-weight:700;color:var(--muted);line-height:1.5}
+.ln-read-msg span{font-size:14px;font-weight:600}
+.ln-read-foot{flex:none;display:flex;align-items:center;gap:12px;padding:10px 24px;border-top:1px solid #E4E8F1;background:#fff}
+.ln-read-save{padding:8px 15px;border-radius:999px;border:1.5px solid #F5D58A;background:#fff;font-weight:800;font-size:13.5px;color:#8A5A00;transition:background .15s,transform .1s}
+.ln-read-save:hover,.ln-read-save.is-on{background:#FFF8E6}
+.ln-read-save:active{transform:scale(.95)}
+.ln-read-ok{margin-left:auto;font-size:12px;font-weight:800;color:#0F7F40;white-space:nowrap}
+
+/* ---- video (fase 'video' y guidebook de video): youtube-nocookie contenido, controles nativos ---- */
+.ln-vid{display:flex;flex-direction:column}
+.ln-vid-head{flex:none;display:flex;align-items:center;gap:14px;min-height:62px;padding:10px 24px;border-bottom:1px solid #E4E8F1;background:#fff}
+.ln-vid-cta{flex:none;padding:9px 14px;border-radius:9px;border:1.5px solid #D9E0FA;background:#F4F6FE;font-weight:800;font-size:14px;color:#2843A8;transition:background .15s,transform .1s}
+.ln-vid-cta:hover{background:#E8EDFE}
+.ln-vid-cta:active{transform:scale(.95)}
+.ln-vid-t{min-width:0;margin:0;font-weight:800;font-size:15px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ln-vid-stage{flex:1;min-height:0;display:grid;place-items:center;padding:16px}
+.ln-vid-frame{width:min(100%,760px,calc((100vh - 190px) * 16 / 9));aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#000;box-shadow:0 24px 48px -28px rgba(27,34,56,.6)}
+.ln-vid-frame iframe{display:block;width:100%;height:100%;border:0}
+.ln-vid-foot{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 24px;border-top:1px solid #E4E8F1;background:#fff}
+.ln-vid-foot > span{font-size:13px;font-weight:700;color:var(--muted)}
+
+@media (prefers-reduced-motion: reduce){
+  .ln-pulse{animation:none}
+  .ln-card,.ln-card .ln-go,.ln-bar i{transition:none}
+}

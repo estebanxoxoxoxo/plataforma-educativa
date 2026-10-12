@@ -2,6 +2,8 @@
 import { createActivity, type ActivityHandle } from './activity'
 import { multiModule, makeMultiRuntime, type MultiChild } from './activities/multi'
 import { buildDefinition, definitionsForTarget } from './definitions'
+import { dueTargets, type DueOptions } from './recall'
+import type { ActivityResultRow } from '../api/types'
 
 /* Active recall — armado de la actividad (ACTIVIDADES.md §7). Toma los objetivos
    DUE (lib/recall, urgencia = fallas + espaciado) y los convierte en un Tipo
@@ -10,17 +12,9 @@ import { buildDefinition, definitionsForTarget } from './definitions'
    se repasa todo el tiempo que se quiera. Cada sub-resultado lo graba el overlay a
    SU objetivo (child-finished) → repasar mueve las postas reales. */
 
-/* PORTE INNERITH (W2): este archivo porta EL ARMADOR del multi de recall (`buildRecallActivity`
-   + sus helpers), que es motor puro. `recallableTargets(rows, now, opts)` del POC NO va acá todavía:
-   depende de `dueTargets` (lib/recall: la urgencia 0.6·(1−lastPct) + 0.4·min(1, Δt/3 días)) y de
-   las filas de `activityResults` (que W3 pasa a nuestro server). Lo porta W4 junto con lib/recall,
-   tal cual el POC:
-     export function recallableTargets(rows: ActivityResultRow[], now: number, opts?: DueOptions): string[] {
-       return dueTargets(rows, now, opts)
-         .map((d) => d.target)
-         .filter((t) => leafDef(t) != null)
-     }
-*/
+/* PORTE INNERITH: W2 portó el ARMADOR del multi (`buildRecallActivity`); W4 suma `recallableTargets` tal cual el POC
+   (sobre `dueTargets` de ./recall, el port de lib/recall). Único cambio: las filas son las de NUESTRO server
+   (`ActivityResultRow` de src/api/types.ts, misma forma que la fila de Dexie). */
 
 /** La Definición leaf (no-multi) que entrena un objetivo, si existe. */
 function leafDef(target: string) {
@@ -31,6 +25,14 @@ function recallChildFor(target: string, seed: number): MultiChild | null {
   const d = leafDef(target)
   if (!d) return null
   return { make: () => buildDefinition(d.id, seed), typeId: d.typeId, title: d.title, target: d.target, definitionId: d.id }
+}
+
+/** Objetivos repasables (ya vistos + con Definición leaf), ordenados por urgencia.
+ *  `opts.scope` acota a los objetivos de UNA ruta (recall in-route, 3c). */
+export function recallableTargets(rows: ActivityResultRow[], now: number, opts?: DueOptions): string[] {
+  return dueTargets(rows, now, opts)
+    .map((d) => d.target)
+    .filter((t) => leafDef(t) != null)
 }
 
 /** Multi de active recall sobre los objetivos due (orden de urgencia). Sin `count` =

@@ -180,6 +180,37 @@ IndexedDB se guardan en nuestro server manteniendo formas y semántica de persis
   corre con `.\.venv\Scripts\python.exe -m uvicorn server:app --port 5203`. El :5203 de Esteban sirve
   desde la carpeta del POC (arrancó antes de la copia): la QA usó la copia del repo en un puerto efímero
   para no escribir jobs en el POC.
+- **W3+W4 (Learn colapsado + Active Recall) — HECHA 12-oct, sin commitear.** Aprender ES Learn (`sections/learn/**`,
+  prefijo `ln-`): port EXACTO de `Learn.tsx`, `RutaView.tsx`, `ActivityOverlay.tsx`, `lib/learn.ts` (resolveRoute y
+  compañía), `lib/recall.ts` (→ `src/learn/recall.ts`, con `skillMastery`), `recallableTargets` (→ `src/learn/recallActivity.ts`),
+  `overlayNav` (useOverlay), `routeCover` y las fases `ReadingView`/`VideoReadingView`. **Mosaico** de las rutas del catálogo
+  por categoría (orden del POC; un grupo = grilla plana) con portada (manual → miniatura maxres/mq del 1er video → emoji),
+  "N/M postas" y el botón raíz "Active recall · N temas" (espera la hidratación: trampa 16 resuelta, aprobado). **Camino**:
+  zig-zag por índice global, los 6 pares de color EXACTOS por módulo con banda sticky y guidebook, nodos círculo/cuadrado,
+  estados de `resolveRoute` tal cual, repaso en ruta (K = min(5, n), urgencia en el gesto). **Overlay** (portal a pantalla
+  completa): lectura con el LECTOR REAL de Innerith (mismo `api.article` + `WikiArticle`; ReadingView propio de la
+  sección porque ArticlePage está atada a su ruta) o video propio (nocookie + sandbox) → "Empezar preguntas →" → lobby,
+  cuenta 3-2-1 (700/450 ms), Runner y resultado, `makeSeed` exacto, persistencia primero (hijo → su target, outer → posta,
+  recall sin outer, multi con rollup). **Datos**: `lib/learnData.ts` = el liveQuery del POC sobre el server (filas +
+  rutas + hidratación con `GET /api/learn-routes/definitions`, nuevo); `recordResult` → `api.recordLearnResult`
+  fire-and-forget. **SceneDirector montado**: `useScene('ruta')`, push/update/pop por fase, gano/perdio, y
+  `bindBgAudio` con el MiniPlayer real (bgAudio sumó `getBgState` + `setMusicVolumeTransient` y des-mutea al
+  `unduck`, como el POC). **Economía** (desvío aprobado, `server/src/learnResults.ts`): la 1ª fila `completed` no-rollup
+  de cada target paga 30 ⚡ + 30 XP (la tarifa de cerrar una unidad de Practicar) y el resultado lo muestra ("+30 ⚡").
+  **Feed** re-apuntado a las rutas reales (hero "Seguí con <ruta>" · "Vas X de Y postas", cards y rutas compartidas del
+  catálogo, `/aprender?ruta=<id>`). **Retirado**: `sections/practice/**` + `practice.css`, los cursos de `sections/learn`
+  (CourseGrid/CoursePage/CourseCard/CourseCardSkeleton/CourseArt/UnitAccordion/ChapterCard), `server/src/{learn,practice}.ts`
+  y `course`/`lastCourse` de `progress.ts` (el "seguí practicando" lo deriva Learn). **Desvíos/recortes documentados**:
+  sin iframe TEMP de YouTube en la escena 'ruta' (vuelve a `temaA`, como dice el propio POC) ni panel "Probar YouTube";
+  sin la portada de Wikipedia para rutas de artículo; `trusted` del lector sin equivalente (el server modera siempre);
+  links del cuerpo → lector anidado (el server decide); el reloj de `finishedAt` es el del server (contrato);
+  try/catch en el asentado de `equalPowerFade` (bug latente del POC: NotSupportedError al cambiar de escena rápido);
+  si una definición rompe al acuñarse se ve el error del POC en vez de tumbar la página. **Hallazgo**: la trampa 31
+  real es otra — "Atrás" en la fase de contenido de una posta CIERRA el overlay entero (orden de efectos de React:
+  el ActivityOverlay queda arriba de la pila); portado igual que el código. QA: tsc/build/`npm test` (11 suites, 122
+  tests: +recall y +resolveRoute) y E2E Edge (≈100 checks de los 10 pedidos + prueba aislada de lectura/repaso de
+  módulo con ruta temporal), ERR []. **Pendiente**: acuñado seco completo al importar (W1), formalizar en types/api
+  lo aditivo (`course.emoji` del feed) y podar cursos/práctica del contrato (coordinador).
 - **W5 (MyTube) — HECHA 12-oct, sin commitear.** Port exacto de `MyTube.tsx`, `ChannelView.tsx`, `MisListas.tsx`
   (ListView), `lib/mytube.ts`, `lib/youtube.ts` y la solapa YouTube de `pages.tsx`. **Chico** (`sections/mytube/**`,
   `mt-`): `/mytube` con solapas Canales | Mis listas en estado local (viaja en el state del historial, nunca en la URL;

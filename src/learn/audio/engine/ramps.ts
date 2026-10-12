@@ -45,5 +45,13 @@ export function equalPowerFade(param: AudioParam, dir: 'in' | 'out', fadeTime: n
   }
   param.cancelScheduledValues(now)
   param.setValueCurveAtTime(curve, now, fade)
-  param.setValueAtTime(dir === 'in' ? 1 : 0, now + fade) // asienta exacto (el fin de curva es float-aprox)
+  // PORTE INNERITH (W3, bug latente del POC que aparece al montar el SceneDirector): si el reloj del AudioContext avanzó
+  // entre que el llamador leyó `now` y esta programación (crossfadeTo crea las fuentes en el medio), el navegador corre el
+  // inicio de la curva a currentTime y el asentado en now+fade cae ADENTRO de la curva → NotSupportedError sin atrapar
+  // (escenas que cambian rápido). En ese caso se omite el asentado: la curva ya termina en su extremo (±float).
+  try {
+    param.setValueAtTime(dir === 'in' ? 1 : 0, now + fade) // asienta exacto (el fin de curva es float-aprox)
+  } catch {
+    /* la curva arrancó más tarde que `now`: su propio final asienta el valor */
+  }
 }

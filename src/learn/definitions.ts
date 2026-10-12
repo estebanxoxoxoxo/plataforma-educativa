@@ -60,8 +60,9 @@ export function clearImportedDefinition(id: string): void {
    `registerImportedDefinitions(rows.map((r) => r.def as DefinitionRecipe))` UNA vez al arrancar.
    En Innerith las definiciones importadas viven en NUESTRO server (desvío forzado (b) del mapa
    00 §4: IndexedDB→server; las persiste el importador de W1 con la forma {id, routeId, target,
-   importedAt, def}). La hidratación desde `api` la cablea W3 con EXACTAMENTE esa llamada:
-   `registerImportedDefinitions(filas.map((r) => r.def))`. */
+   importedAt, def}). La hidratación desde `api` la cableó W3 con EXACTAMENTE esa llamada
+   (sections/learn/lib/learnData.ts → loadLearn(): GET /api/learn-routes/definitions →
+   `registerImportedDefinitions(defs)`), al ENTRAR a Aprender en vez de al arrancar la app. */
 
 export function definitionFor(id: string): DefinitionRecipe | undefined {
   return DEFINITIONS[id] ?? imported[id]

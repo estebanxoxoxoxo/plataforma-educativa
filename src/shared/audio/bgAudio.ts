@@ -201,6 +201,19 @@ export function duckForForeground() {
 }
 export function unduck() {
   if (!state.ducked) return;
+  ytCommand(iframe, 'unMute'); // reanudar sin gesto puede dejarlo muteado → des-mutear (como el backgroundAudio del POC)
   ytCommand(iframe, 'playVideo');
   state = { ...state, playing: true, ducked: false }; emit();
+}
+
+/* ---- SceneDirector de Learn (porte Smarty W3): las dos piezas del backgroundAudio del POC que el director usa y que
+   este módulo no tenía. Dentro de Learn el director es el ÚNICO dueño del duck (fade en lectura/actividad, pausa en
+   video, restaurar al salir); lo enchufa sections/learn/lib/bgAudioBinding.ts. ---- */
+/** Estado actual (lectura no-hook, para singletons como el SceneDirector). */
+export function getBgState(): BgAudioState { return state; }
+/** Volumen TRANSITORIO (los fades del director): des-mutea y comanda el volumen con el tope parental SIN persistirlo ni
+ *  tocar `state.volume` (la preferencia del chico queda intacta para restaurarla). */
+export function setMusicVolumeTransient(v: number) {
+  ytCommand(iframe, 'unMute');
+  ytCommand(iframe, 'setVolume', [Math.max(0, Math.min(getLimits().maxMusic, Math.round(v)))]);
 }

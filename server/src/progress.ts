@@ -3,16 +3,18 @@
 // REGLA DEL DEMO (pedido de Esteban, 8-oct-2026): NADA de esto se persiste. Vive en RAM del server
 // y cada carga de página vuelve a los valores iniciales (el front hace POST /api/demo/reset al
 // arrancar — ver src/hooks/user.tsx). Se resta/suma de verdad mientras navegás; F5 = demo nueva.
-// CONTRATO CONGELADO entre la tanda 1 (Practicar real: gana XP acá) y la tanda 2 (Tienda: gasta EC
-// acá) — cambios solo vía el coordinador. Ver docs/AGENTS.md.
+// CONTRATO CONGELADO entre quien GANA (desde la tanda W3: Learn, server/src/learnResults.ts —la primera
+// partida completada de cada target de una ruta—; antes Practicar, retirado) y la Tienda (GASTA EC acá) —
+// cambios solo vía el coordinador. Ver docs/AGENTS.md.
 //
-// Modelo (audios 20-24 de la visión): cada punto ganado practicando suma 1 XP semanal (compite en
+// Modelo (audios 20-24 de la visión): cada punto ganado aprendiendo suma 1 XP semanal (compite en
 // ligas) y 1 Energy Coin a la billetera (se acumula y se GASTA sin afectar la XP de la semana).
+// "Seguí practicando" (summary().continue) ya no se guarda acá: lo DERIVA Learn de sus resultados persistidos
+// (la última ruta jugada con su avance real) y lo registra con registerContinue() al cargar.
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { send } from './web'
 
 export interface EcTx { id: number; ts: number; kind: 'earn' | 'spend'; amount: number; label: string }
-interface CourseProg { name: string; done: number; total: number }
 interface Store {
   seq: number
   weekStart: number
@@ -21,8 +23,6 @@ interface Store {
   ec: number
   streakDays: number
   lastDay: string // YYYY-MM-DD del último día con actividad
-  lastCourse: string | null
-  course: Record<string, CourseProg>
   tx: EcTx[]
 }
 
@@ -46,8 +46,6 @@ function seed(): Store {
     ec: 1240,
     streakDays: 5,
     lastDay: dayKey(new Date()),
-    lastCourse: 'solar',
-    course: { solar: { name: 'El sistema solar', done: 2, total: 36 } }, // total = nodos reales del journey
     // Del más nuevo al más viejo, como el runtime (unshift): el contrato de GET /api/progress/tx.
     tx: [
       { id: 3, ts: now - 1 * 864e5, kind: 'earn', amount: 440, label: 'Práctica: El sistema solar' },
@@ -111,21 +109,22 @@ export function spendEc(amount: number, label: string): { ok: boolean; ec: numbe
   return { ok: true, ec: store.ec }
 }
 
-/** Marca por dónde va el chico en un curso (alimenta "Seguí practicando"). */
-export function setCourseProgress(courseId: string, name: string, done: number, total: number) {
-  store.course[courseId] = { name: name.slice(0, 80), done: Math.max(0, done), total: Math.max(1, total) }
-  store.lastCourse = courseId
-}
-export function courseDone(courseId: string): number { return store.course[courseId]?.done ?? 0 }
+/** "Seguí practicando" = la forma `continue` del contrato (courseId = el id de la RUTA desde W3). */
+export type ContinueInfo = { courseId: string; title: string; done: number; total: number } | null
+let continueOf: () => ContinueInfo = () => null
+/** Learn (learnResults.ts) registra acá de dónde sale el "seguí practicando": la última ruta jugada y su avance real,
+ *  derivados de los resultados persistidos (no es economía: no lo toca el reset del demo). Sin registro → null. */
+export function registerContinue(fn: () => ContinueInfo): void { continueOf = fn }
 
 export function summary() {
   rollWeek()
-  const c = store.lastCourse ? store.course[store.lastCourse] : null
+  let cont: ContinueInfo = null
+  try { cont = continueOf() } catch (e) { console.warn('[progress] no pude derivar el "seguí practicando":', e) }
   return {
     xpWeek: store.xpWeek,
     ec: store.ec,
     streakDays: store.streakDays,
-    continue: c && store.lastCourse ? { courseId: store.lastCourse, title: c.name, done: c.done, total: c.total } : null,
+    continue: cont,
   }
 }
 export const weekXp = () => { rollWeek(); return store.xpWeek }

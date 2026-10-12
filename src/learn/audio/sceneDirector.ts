@@ -8,10 +8,11 @@
  * FASE 1a (esto): sólo maneja los TEMAS del motor (crossfade por escena) + el ánimo. La coordinación del
  * fondo/ruido y el "dueño único del duck" van en la fase 1b.
  *
- * PORTE INNERITH (W2): archivo FIEL al POC pero SIN MONTAR — nadie lo importa todavía (ni useScene ni
- * push/pop). La integración con el MiniPlayer de Innerith y las escenas (RutaView/ActivityOverlay) es
- * de W3. Único cambio: la música de fondo se lee del puerto `./bgAudioPort` (mismas firmas que el
- * `lib/backgroundAudio` del POC; inerte hasta que W3 lo enchufe con `bindBgAudio`).
+ * PORTE INNERITH (W2): archivo FIEL al POC. La música de fondo se lee del puerto `./bgAudioPort` (mismas
+ * firmas que el `lib/backgroundAudio` del POC). W3 lo MONTA: useScene('ruta') en el camino, push/update/pop
+ * por fase en el ActivityOverlay (sections/learn) y `bindBgAudio` con el MiniPlayer real
+ * (sections/learn/lib/bgAudioBinding.ts). Único cambio de W3 acá: la escena 'ruta' sin el iframe TEMP
+ * de YouTube (ver SCENES).
  */
 import { useEffect, useRef } from 'react'
 import { crossfadeTo, stopStem, ensureAudio, audioSink } from './service'
@@ -46,7 +47,10 @@ interface Recipe {
 const SCENES: Record<Scene, Recipe> = {
   // TEMP test: la escena 'ruta' usa UN solo video de YouTube (embed liviano de un video, no el de
   // playlist videoseries que es más pesado/lento). Al terminar, repite. Revertir a { kind:'stem', stem:'temaA' }.
-  ruta: { source: { kind: 'yt', tracks: [{ videoId: 'yJ6Lbsmb1lY' }] }, fondo: 'fadeout' },
+  // PORTE INNERITH (W3, trampa 37 — placeholder TEMP NO portado por pedido del brief): el iframe oculto de YouTube
+  // (video de prueba yJ6Lbsmb1lY) se saca y la fuente vuelve a lo que indica el propio comentario del POC: el tema
+  // demo temaA. La política del fondo ('fadeout') queda como está.
+  ruta: { source: { kind: 'stem', stem: 'temaA' }, fondo: 'fadeout' },
   lectura: { source: { kind: 'stem', stem: 'temaA', mood: 'calmo' }, fondo: 'fade', fondoVol: 20 },
   video: { fondo: 'pause' }, // sin fuente + pausa el fondo: manda el audio del video
   actividad: { source: { kind: 'stem', stem: 'temaB', mood: 'play' }, fondo: 'fade', fondoVol: 20 },

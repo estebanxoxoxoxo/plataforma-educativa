@@ -26,7 +26,8 @@ framework en `server/` (puerto 8787, proxy `/api` de Vite). El usuario demo es I
    comentario y el navegador descarta EN SILENCIO la regla que sigue (pasó de verdad con tokens de color).
    **Layout de página**: el ancho y la alineación los da `.view` (tokens `--content-w`/`--view-px`
    en base.css) — NINGUNA sección pone su propio max-width/margin:auto de página. Excepciones más
-   angostas SIEMPRE centradas en el mismo eje (video 760, lector 900, ejercicio 780, feed 780). Una vista con
+   angostas SIEMPRE centradas en el mismo eje (video 760, lector 900, feed 780; los overlays de Learn van a pantalla
+   completa en un portal sobre `<body>`). Una vista con
    `padding:0` alinea sus barras con `var(--view-pad-x)`. Listas de filas en grid: `minmax(0,1fr)`.
 6. Drive: en la RAÍZ viven solo carpetas (lógica Windows/nube); los archivos siempre adentro de
    una carpeta; "General" es el destino por defecto. Carpetas todas con el MISMO ícono
@@ -36,15 +37,17 @@ framework en `server/` (puerto 8787, proxy `/api` de Vite). El usuario demo es I
    lastWeek/medalla) tiene UNA sola fuente: server/src/leaguesFake.ts — no lo dupliques.
 8. Menú actual (EN ESTE ORDEN, 12-oct-2026 tarde, SIN submenús): Feed (= el feed de
    recomendaciones, la home en `/`; antes se llamó Home y Descubrir) · Buscar (`/buscar/*`) ·
-   Chat (`/chat`) · MyTube (`/mytube`; las rutas viejas `/espacio/videos*` redirigen acá) · Aprender (su encabezado lleva el botón "Crear" → `/crear`, que marca Aprender
-   como sección activa; con W3 se vuelve Learn: aprender+practicar colapsados) · Tienda (`/tienda`) · Calendario (`/calendario`) · Mi espacio AL FONDO (`/espacio/carpetas` directo).
+   Chat (`/chat`) · MyTube (`/mytube`; las rutas viejas `/espacio/videos*` redirigen acá) · Aprender (`/aprender` = Learn desde W3+W4: aprender + practicar + Active Recall
+   colapsados; la ruta abierta es estado de la vista y `?ruta=<id>` la abre directo; su encabezado lleva el botón "Crear" → `/crear`, que marca Aprender
+   como sección activa) · Tienda (`/tienda`) · Calendario (`/calendario`) · Mi espacio AL FONDO (`/espacio/carpetas` directo).
    LIGAS TAMPOCO ES PUNTO DE MENÚ (12-oct): la posición vive SIEMPRE en la BARRA SUPERIOR estilo
    GT7 (src/shared/components/TopBar.tsx: liga → link a /ligas · ⚡ Energy Coins · fecha/hora
    compacta · campana de notificaciones con las solicitudes y los no-leídos del dock; respeta los
    apagados del padre). AMIGOS YA NO ES SECCIÓN (12-oct): los amigos siguen existiendo — viven en el dock de Mensajes,
    se BUSCAN por nombre de usuario en Buscar y las solicitudes llegan como notificación destacada
-   en la zona PINNEADA de arriba del Feed (tanda F2). `/practicar*` sigue vivo (entra el feed por
-   el hero "Seguí con <curso>" del hilo v6); `/repasar*` no existe (redirige a /aprender). "Feed" es el feed, NO el
+   en la zona PINNEADA de arriba del Feed (tanda F2). PRACTICAR YA NO EXISTE (W3, 12-oct: los cursos viejos y su
+   práctica se borraron): `/practicar*` y `/aprender/:id` redirigen a /aprender, y el hero del Feed ("Seguí con <ruta>")
+   lleva a `/aprender?ruta=<id>`; `/repasar*` no existe (redirige a /aprender). "Feed" es el feed, NO el
    chat. Si cambiás rutas, dejá redirecciones de las viejas.
 9. **La economía del demo vive en RAM** (pedido de Esteban): XP/Energy Coin/canjes NO se persisten
    a disco; cada carga de página hace POST /api/demo/reset (ver src/hooks/user.tsx) y todo vuelve a

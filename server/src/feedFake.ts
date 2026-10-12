@@ -36,6 +36,10 @@
 //         cliente NO las mete solo: muestra la píldora "N novedades ↑" y las trae cuando el chico la toca.
 //       · feedLess(): "Ver menos de esto" — los ids ocultos se filtran de TODAS las respuestas siguientes (reversible).
 //     Después de un cierre, lo de semanas anteriores se fecha por semanas. resetFeed() vuelve al seed (va en /api/demo/reset).
+//   - RUTAS (tanda W3 del porte Smarty): el hero, las cards 'route' y las rutas que comparten los NPCs salen del CATÁLOGO
+//     REAL de Learn (learnRoutes.ts) y su avance de los resultados persistidos (learnResults.ts, derivado con la misma
+//     regla que el camino: learnProgress.ts). Los 5 cursos fijos de Aprender/Practicar se retiraron. Todo lleva a
+//     /aprender?ruta=<id> (abre la ruta directo; la vista limpia el parámetro).
 // Para conectar el backend real: reemplazar getFeed()/reactFeed()/feedLess() manteniendo las formas.
 import { friendNews } from './friendsFake'
 import {
@@ -44,14 +48,18 @@ import {
 } from './leaguesFake'
 import { matchBlockedWord } from './filters'
 import { familyBlockedTerms, familyTopics, featureOn, feedMotion, topicHit, type FeedMotion } from './parent'
-import { practiceSummary } from './practice'
-import { summary } from './progress'
+import { LEARN_EC, resultRows } from './learnResults'
+import { catalogRoutes, type CatalogRoute } from './learnRoutes'
+import { routeInProgress, routeRuns, type RouteRun } from './learnProgress'
 import { searchVideos, toVideoResult, type CatalogVideo } from './videos'
 
 type VideoCard = ReturnType<typeof toVideoResult>
 export interface FeedReaction { emoji: string; count: number; mine: boolean }
 type NewsIcon = 'medal' | 'streak' | 'badge' | 'route' | 'league'
-type RouteCourse = { id: string; name: string; units: number; img: string; bg: [string, string] }
+/** La ruta como la dibuja la card (forma `course` del contrato): `units` = sus postas (sin contar los repasos), `img` = la
+ *  portada ('' si no hay: la card cae al emoji). `emoji` = ADITIVO de W3 (pendiente de formalizar en src/api/types.ts por
+ *  el coordinador): el ícono de la ruta, para la card sin portada. */
+type RouteCourse = { id: string; name: string; units: number; img: string; bg: [string, string]; emoji?: string }
 export type FeedItem =
   | { kind: 'video'; id: string; time: string; reason: string; video: VideoCard }
   | { kind: 'article'; id: string; time: string; reason: string; title: string; url: string; source: string; snippet?: string }
@@ -142,24 +150,42 @@ const ARTICLES: { title: string; url: string; source: string; snippet: string; t
   { title: '¿Qué es un cometa?', url: 'https://concepto.de/cometas/', source: 'concepto.de', snippet: 'Cuerpos celestes con núcleo de hielo y polvo que desarrollan una cola brillante.', topic: 'el espacio' },
   { title: 'La Vía Láctea', url: 'https://es.wikipedia.org/wiki/V%C3%ADa_L%C3%A1ctea', source: 'es.wikipedia.org', snippet: 'La galaxia espiral donde vive el sistema solar, con cientos de miles de millones de estrellas.', topic: 'el espacio' },
 ]
-// Rutas recomendadas: los cursos existentes (mismo arte que la UI).
-const ROUTES: RouteCourse[] = [
-  { id: 'solar', name: 'El sistema solar', units: 6, img: 'c_solar', bg: ['#3A5BD9', '#1E2F7A'] },
-  { id: 'ocean', name: 'Animales del océano', units: 6, img: 'c_ocean', bg: ['#1C9BD6', '#0E5F8A'] },
-  { id: 'body', name: 'Mi cuerpo', units: 5, img: 'c_body', bg: ['#E5487A', '#9E2350'] },
-  { id: 'frac', name: 'Fracciones', units: 7, img: 'c_fractions', bg: ['#F26B3A', '#B8431C'] },
+/* Rutas: el CATÁLOGO real de Learn (ver la cabecera). El catálogo no trae colores: el fondo de la card sale de un par fijo
+   de la paleta de Innerith según el id (estable). */
+const ROUTE_BG: [string, string][] = [
+  ['#3A5BD9', '#1E2F7A'], ['#13A39A', '#0B6B66'], ['#F26B3A', '#B8431C'], ['#8A5CF5', '#5431B3'], ['#E5487A', '#9E2350'], ['#1C9BD6', '#0E5F8A'],
 ]
-const ROUTE_WHY: Record<string, string> = {
-  solar: 'Porque te interesa el espacio', ocean: 'Porque te gustan los animales del mar', body: 'Para conocer cómo funciona tu cuerpo',
-  frac: 'Para seguir jugando con los números', eng: 'Para sumar palabras en inglés',
+/** Portada de la card: la subida en /crear; si no, la miniatura del PRIMER contenido si es un video (mqdefault: la 16:9 que
+ *  siempre existe — la regla del mosaico, firstContent del POC); si no, '' (la card cae al emoji). */
+function routeImg(r: CatalogRoute): string {
+  if (typeof r.cover === 'string' && r.cover) return r.cover
+  const mods = Array.isArray(r.modules) ? (r.modules as { source?: { url?: string; kind?: string; videoId?: string } }[]) : []
+  const m = mods[0]?.source
+  const first = m && (m.url || m.videoId) ? m : (r.postas.find((p) => p.reading)?.reading as { kind?: string; videoId?: string } | undefined)
+  return first?.kind === 'video' && first.videoId ? `https://i.ytimg.com/vi/${first.videoId}/mqdefault.jpg` : ''
 }
-/** El tema de videos de cada curso (la grilla acompaña la ruta que el chico tiene en curso). */
-const COURSE_TOPIC: Record<string, string> = { solar: 'el sistema solar', ocean: 'animales del océano', body: 'órganos del cuerpo', frac: 'fracciones', eng: 'inglés para niños' }
+/** Cada ruta del catálogo con su avance real (resultados persistidos), en el orden del catálogo. */
+function catalogRuns(): { route: CatalogRoute; run: RouteRun }[] {
+  const routes = catalogRoutes()
+  const runs = routeRuns(routes, resultRows())
+  return routes.map((route, i) => ({ route, run: runs[i] }))
+}
+function routeCourse(route: CatalogRoute, run: RouteRun): RouteCourse {
+  return { id: run.id, name: run.title, units: run.total, img: routeImg(route), bg: ROUTE_BG[hashOf(run.id) % ROUTE_BG.length], emoji: run.emoji || undefined }
+}
+/** El "por qué" de una ruta: en el eje del chico (lo que lleva hecho), salvo que pegue con un tema de la familia. */
+function routeWhy(run: RouteRun): string {
+  const w = topicHit(run.title, familyTopics().white)
+  if (w) return familyReason(w)
+  if (run.lastAt === 0 || run.done === 0) return 'Es una ruta para arrancar algo nuevo'
+  if (run.done < run.total) return `La empezaste y te quedan ${run.total - run.done} postas`
+  return 'Ya la terminaste: podés repasarla'
+}
+/** Lo que abre una ruta (Aprender la abre directo y limpia el parámetro). */
+const routeLink = (id: string) => `/aprender?ruta=${encodeURIComponent(id)}`
 const timeOf = (i: number) => (i < 2 ? 'hace 1 h' : i < 4 ? 'hace 3 h' : i < 8 ? 'hoy' : i < 13 ? 'ayer' : i < 19 ? 'hace 2 días' : 'esta semana')
 /** La misma escala en horas (para ubicar lo que se repartió en el cierre de liga). */
 const ageOf = (i: number) => (i < 2 ? 1 : i < 4 ? 3 : i < 8 ? 8 : i < 13 ? 30 : i < 19 ? 54 : 100)
-/** Cada unidad de Practicar cierra con un trofeo de +30 (XP y ⚡ 1:1): el MISMO valor que XP.trophy de practice.ts. */
-const TROPHY_EC = 30
 /** "Videos cortitos" de la edición de la noche. */
 const SHORT_SEC = 6 * 60
 /** Las noticias de amigos que en realidad son de ligas (medallas, ascensos): se reparten en el cierre. */
@@ -191,8 +217,7 @@ interface Pool {
   /** Videos del día (1-25 min) y los de la noche (hasta 6 min), cada uno con su "por qué". */
   vids: PoolVideo[]; short: PoolVideo[]
   arts: { n: number; title: string; url: string; source: string; snippet: string; reason: string }[]
-  routes: { course: RouteCourse; reason: string }[]
-  news: { n: number; friend: { nick: string; color: string }; text: string; icon: NewsIcon }[]
+  news:{ n: number; friend: { nick: string; color: string }; text: string; icon: NewsIcon }[]
 }
 let pool: Pool | null = null
 let poolFor = ''
@@ -251,14 +276,13 @@ function build(): Pool {
     }
     return out
   }
-  // Lecturas, rutas y noticias sin lo que pega con un tema negro. Los ids conservan el lugar en su pool (las reacciones de
-  // las noticias van por id: no se corren cuando se filtra una).
+  // Lecturas y noticias sin lo que pega con un tema negro (las rutas se arman al servir: catálogo + avance reales). Los ids
+  // conservan el lugar en su pool (las reacciones de las noticias van por id: no se corren cuando se filtra una).
   const arts = ARTICLES.map((a, n) => ({ a, n: n + 1 }))
     .filter(({ a }) => !blocked(`${a.title} ${a.snippet} ${a.topic}`))
     .map(({ a, n }) => ({ n, title: a.title, url: a.url, source: a.source, snippet: a.snippet, reason: why(a.title, kidWhy(a.topic)) }))
-  const routes = ROUTES.filter(c => !blocked(c.name)).map(course => ({ course, reason: why(course.name, ROUTE_WHY[course.id] ?? 'Por tus temas de interés') }))
   const news = friendNews().map((e, i) => ({ ...e, n: i + 1 })).filter(e => !blocked(e.text))
-  return (pool = { vids: pickVids(1500), short: pickVids(SHORT_SEC), arts, routes, news })
+  return (pool = { vids: pickVids(1500), short: pickVids(SHORT_SEC), arts, news })
 }
 
 /* ---------- la edición: franja del día + plantilla editorial ---------- */
@@ -306,10 +330,14 @@ function seedStream(dp: Daypart): FeedItem[] {
   const social = amigos ? p.news.filter(e => ligas || !LEAGUEISH.has(e.icon)) : []
   const friendItem = (e: Pool['news'][number]): Of<'friend'> =>
     ({ kind: 'friend', id: `ff-${e.n}`, time: '', reason: npcWhy(e.friend.nick), friend: e.friend, text: e.text, icon: e.icon, reactions: [] })
+  // Las rutas: el catálogo REAL de Learn (sin lo que pega con un tema negro o una palabra de la familia), cada una con su
+  // avance de verdad en el "por qué".
+  const blocked = familyFilter()
+  const routes = catalogRuns().filter(({ run }) => !blocked(run.title))
   const queues: Record<Slot, FeedItem[]> = {
     friend: social.filter(e => !LEAGUEISH.has(e.icon)).map(friendItem),
     article: p.arts.map(({ n, ...a }): Of<'article'> => ({ kind: 'article', id: `fa-${n}`, time: '', ...a })),
-    route: p.routes.map(({ course, reason }): Of<'route'> => ({ kind: 'route', id: `fr-${course.id}`, time: '', reason, course })),
+    route: routes.map(({ route, run }): Of<'route'> => ({ kind: 'route', id: `fr-${run.id}`, time: '', reason: routeWhy(run), course: routeCourse(route, run) })),
     video: (dp === 'noche' ? p.short : p.vids).map(({ video, reason }): Of<'video'> => ({ kind: 'video', id: `fv-${video.id}`, time: '', reason, video })),
   }
   const { pattern } = EDITIONS[dp]
@@ -331,50 +359,50 @@ function seedStream(dp: Daypart): FeedItem[] {
   return out
 }
 
-/** La ruta en curso del chico: el progreso real + el recorrido real de Practicar (los mismos números que Practicar). */
-function currentCourse(): { courseId: string; name: string; done: number; total: number } {
-  const c = summary().continue ?? { courseId: 'solar', title: 'El sistema solar', done: 0, total: 1 }
-  const p = practiceSummary(c.courseId)
-  const total = Math.max(1, p?.total ?? c.total)
-  return { courseId: c.courseId, name: p?.name ?? c.title, done: Math.min(c.done, total), total }
+/** Las rutas del catálogo que la familia deja ver, con su avance real (las que pegan con un tema negro o una palabra de la
+ *  familia no se nombran). */
+function visibleRuns(): RouteRun[] {
+  const blocked = familyFilter()
+  return catalogRuns().map(({ run }) => run).filter((r) => !blocked(r.title))
 }
 
 /** El hero "Fijado · tu siguiente paso": SIEMPRE la siguiente mejor acción de aprendizaje (nunca comercio). De día,
- *  seguir la ruta en curso; de noche, un repaso tranquilo de esa ruta (lo que promete el resumen). Si la terminó (o la
- *  familia bloqueó su tema), una ruta nueva para empezar en Aprender. */
+ *  seguir la ruta EN CURSO (la de actividad más reciente que tiene postas pendientes); de noche, un repaso tranquilo de esa
+ *  ruta (lo que promete el resumen). Sin ruta en curso: empezar una (la primera que no jugó, en el orden del catálogo; si
+ *  jugó todas, la primera sin terminar); con todo terminado (o sin rutas), elegir en Aprender. */
 function nextStep(dp: Daypart): Of<'next'> {
-  const blocked = familyFilter()
-  const c = currentCourse()
-  const coins = featureOn('tienda') ? ` · al cerrar la unidad, +${TROPHY_EC} ⚡` : '' // sin Tienda no se nombra la moneda
-  const left = Math.max(0, c.total - c.done)
-  if (left === 0 || blocked(c.name)) {
-    const other = ROUTES.find(r => r.id !== c.courseId && !blocked(r.name))
+  const runs = visibleRuns()
+  const coins = featureOn('tienda') ? ` · +${LEARN_EC} ⚡ por cada posta nueva` : '' // sin Tienda no se nombra la moneda
+  const cur = routeInProgress(runs)
+  if (!cur) {
+    const other = runs.find((r) => r.lastAt === 0 && r.total > 0) ?? runs.find((r) => r.done < r.total)
     if (!other) return { kind: 'next', id: 'fn-aprender', time: 'ahora', reason: 'Para elegir qué aprender hoy', title: 'Elegí qué aprender hoy', meta: 'En Aprender están todas tus rutas', action: { label: 'Ver rutas', to: '/aprender' } }
+    const last = runs.filter((r) => r.lastAt > 0).sort((a, b) => b.lastAt - a.lastAt)[0]
     return {
-      kind: 'next', id: `fn-${other.id}`, time: 'ahora', title: `Empezá ${other.name}`, meta: `${other.units} unidades para descubrir${coins}`,
-      reason: left === 0 ? `Terminaste ${c.name}: ¡vamos por otra!` : 'Es una ruta para arrancar algo nuevo', action: { label: 'Empezar', to: `/aprender/${other.id}` },
+      kind: 'next', id: `fn-${other.id}`, time: 'ahora', title: `Empezá ${other.title}`, meta: `${other.total} postas para descubrir${coins}`,
+      reason: last ? `Terminaste ${last.title}: ¡vamos por otra!` : 'Es una ruta para arrancar algo nuevo', action: { label: 'Empezar', to: routeLink(other.id) },
     }
   }
-  const to = `/practicar/${c.courseId}`
+  const to = routeLink(cur.id)
+  const left = cur.total - cur.done
   if (dp === 'noche') {
-    return { kind: 'next', id: `fn-${c.courseId}`, time: 'ahora', title: `Repasá ${c.name}, sin apuro`, meta: `Vas ${c.done} de ${c.total} pasos · un repaso cortito antes de dormir`, reason: 'A la noche, un repaso tranquilo te ayuda a recordar', action: { label: 'Repasar', to } }
+    return { kind: 'next', id: `fn-${cur.id}`, time: 'ahora', title: `Repasá ${cur.title}, sin apuro`, meta: `Vas ${cur.done} de ${cur.total} postas · un repaso cortito antes de dormir`, reason: 'A la noche, un repaso tranquilo te ayuda a recordar', action: { label: 'Repasar', to } }
   }
   return {
-    kind: 'next', id: `fn-${c.courseId}`, time: 'ahora', title: `Seguí con ${c.name}`,
-    meta: c.done === 0 ? `Arrancá por el primero de ${c.total} pasos${coins}` : `Vas ${c.done} de ${c.total} pasos${coins}`,
-    reason: c.done === 0 ? 'Es la ruta que elegiste' : `La empezaste y te quedan ${left} pasos`, action: { label: 'Seguir', to },
+    kind: 'next', id: `fn-${cur.id}`, time: 'ahora', title: `Seguí con ${cur.title}`,
+    meta: `Vas ${cur.done} de ${cur.total} postas${coins}`,
+    reason: `La empezaste y te quedan ${left} ${left === 1 ? 'posta' : 'postas'}`, action: { label: 'Seguir', to },
   }
 }
 
-/** El tema de la grilla de videos: la primera sugerencia de la familia; si no hay, el de la ruta en curso (la grilla
- *  la acompaña); si no, el primer tema de chico. */
+/** El tema de la grilla de videos: la primera sugerencia de la familia; si no hay, el TÍTULO de la ruta en curso (la
+ *  grilla la acompaña) cuando el buscador tiene videos para él; si no, el primer tema de chico. */
 function shelfTopic(): { topic: string; reason: string } {
   const blocked = familyFilter()
   const fam = familyTopics().white.find(t => !blocked(t))
   if (fam) return { topic: fam, reason: familyReason(fam) }
-  const c = currentCourse()
-  const t = COURSE_TOPIC[c.courseId]
-  if (t && !blocked(t) && !blocked(c.name)) return { topic: t, reason: `Porque estás aprendiendo ${c.name}` }
+  const cur = routeInProgress(visibleRuns())
+  if (cur && searchVideos(cur.title, 1).length) return { topic: cur.title, reason: `Porque estás aprendiendo ${cur.title}` }
   const first = INTERESTS.find(q => !blocked(q)) ?? INTERESTS[0]
   return { topic: first, reason: kidWhy(first) }
 }
@@ -539,12 +567,9 @@ const NPC_NEWS: { key: string; nick: string; text: string; icon: NewsIcon }[] = 
   { key: 'nico-espacio', nick: 'NicoRobot', text: 'terminó la unidad «Explorar el espacio» de El sistema solar 🛰️', icon: 'badge' },
   { key: 'nico-podio', nick: 'NicoRobot', text: 'va 2º en su Liga Chispa 🥈', icon: 'medal' },
 ]
-/** Rutas que comparten los amigos (kind 'route': un curso REAL del demo, con su arte; se abre en Aprender). */
-const ENG: RouteCourse = { id: 'eng', name: 'Inglés inicial', units: 8, img: 'c_english', bg: ['#8A5CF5', '#5431B3'] }
-const SHARES: { nick: string; course: RouteCourse }[] = [
-  { nick: 'TomiCohete', course: ROUTES[0] }, { nick: 'LuliVolcan', course: ROUTES[1] }, { nick: 'CataEstrella', course: ENG },
-  { nick: 'MartuLuna', course: ROUTES[2] }, { nick: 'JuanchiRayo', course: ROUTES[3] },
-]
+/** Los amigos que comparten rutas (kind 'route'): cada ráfaga impar, el que toca comparte una ruta REAL del catálogo de
+ *  Learn (en ronda; se abre en Aprender). */
+const SHARERS = ['TomiCohete', 'LuliVolcan', 'CataEstrella', 'MartuLuna', 'JuanchiRayo']
 /** La carrera de la liga, contada para el chico. */
 function raceText(ev: NpcRace): string {
   if (ev.passedMe) return `te pasó en la ${ev.league}: sumó ${ev.gain} XP y ahora va ${ev.to}º 😮`
@@ -574,10 +599,13 @@ export function simulateNpcs(): { added: number } {
     }
   }
   if (n % 2 === 1) {
-    const s = SHARES[((n - 1) / 2) % SHARES.length]
-    if (!blocked(s.course.name)) {
-      out.push({ kind: 'route', id: `fs-${++freshSeq}`, time: 'recién', reason: `La compartió ${s.nick}`, course: s.course })
-      who.add(s.nick)
+    const k = (n - 1) / 2
+    const routes = catalogRuns().filter(({ run }) => !blocked(run.title))
+    const nick = SHARERS[k % SHARERS.length]
+    const s = routes.length ? routes[k % routes.length] : null
+    if (s) {
+      out.push({ kind: 'route', id: `fs-${++freshSeq}`, time: 'recién', reason: `La compartió ${nick}`, course: routeCourse(s.route, s.run) })
+      who.add(nick)
     }
   }
   // El podio de un amigo en "su Liga X" no se publica si X es la liga de Ian esta semana: en la tabla de Ian ese amigo

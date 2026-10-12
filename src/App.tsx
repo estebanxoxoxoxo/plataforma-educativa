@@ -3,11 +3,7 @@ import { ArticlePage } from './sections/discover/containers/ArticlePage';
 import { ChatPage } from './sections/discover/containers/ChatPage';
 import { SearchPage } from './sections/discover/containers/SearchPage';
 import { VideoPage } from './sections/discover/containers/VideoPage';
-import { CoursePage } from './sections/learn/containers/CoursePage';
 import { LearnPage } from './sections/learn/containers/LearnPage';
-import { ExercisePage } from './sections/practice/containers/ExercisePage';
-import { JourneyPage } from './sections/practice/containers/JourneyPage';
-import { PracticePage } from './sections/practice/containers/PracticePage';
 import { CalendarPage } from './sections/calendar/containers/CalendarPage';
 import { CreatePage } from './sections/create/containers/CreatePage';
 import { MyTubePage } from './sections/mytube/containers/MyTubePage';
@@ -87,12 +83,15 @@ export default function App() {
           <Route path="espacio/canales/:id" element={<OldCanal />} />
           <Route path="espacio/listas/:id" element={<OldLista />} />
           <Route path="tienda" element={<StorePage />} />
+          {/* Aprender = Learn (porte Smarty W3+W4): aprender + practicar + Active Recall COLAPSADOS en una sola sección;
+              la ruta abierta es estado de la vista (no URL) y `?ruta=<id>` la abre directo. Los cursos viejos y Practicar
+              se retiraron: sus rutas redirigen a Aprender. */}
           <Route path="aprender" element={<LearnPage />} />
-          <Route path="aprender/:id" element={<CoursePage />} />
-          <Route path="practicar" element={<PracticePage />} />
-          <Route path="practicar/:id" element={<JourneyPage />} />
-          <Route path="practicar/:id/ejercicio/:n" element={<ExercisePage />} />
-          {/* Repasar se eliminó (12-oct): el Active Recall exacto del POC llega DENTRO de Learn (W4) */}
+          <Route path="aprender/:id" element={<Navigate to="/aprender" replace />} />
+          <Route path="practicar" element={<Navigate to="/aprender" replace />} />
+          <Route path="practicar/:id" element={<Navigate to="/aprender" replace />} />
+          <Route path="practicar/:id/ejercicio/:n" element={<Navigate to="/aprender" replace />} />
+          {/* Repasar se eliminó (12-oct): el Active Recall exacto del POC vive DENTRO de Learn (W4) */}
           <Route path="repasar/*" element={<Navigate to="/aprender" replace />} />
           {/* Amigos dejó de ser sección (12-oct, tanda F2): los amigos viven en el dock de Mensajes, se buscan en
               Buscar → Personas y las solicitudes llegan a la zona pinneada del Feed. La ruta vieja va al Feed. */}

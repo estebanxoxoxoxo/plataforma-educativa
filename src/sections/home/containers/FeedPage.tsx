@@ -298,7 +298,7 @@ export function FeedPage() {
   const h = {
     video: (v: VideoResult) => go(`/buscar/video/${v.id}`, { state: back }),
     article: (url: string) => go(`/buscar/articulo/${encodeURIComponent(url)}`, { state: back }),
-    route: (courseId: string) => go(`/aprender/${courseId}`),
+    route: (courseId: string) => go(`/aprender?ruta=${encodeURIComponent(courseId)}`), // W3: abre la ruta en Learn
     league: () => go('/ligas'),
   };
   /** La noticia es del propio chico (su medalla del cierre de liga). */

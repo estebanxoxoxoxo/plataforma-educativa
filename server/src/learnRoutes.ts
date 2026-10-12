@@ -21,6 +21,11 @@
 //        descarta el cuerpo de un 4xx: la vista necesita el motivo). 500 { ok: false, error } si no se pudo escribir.
 //        El bundle puede traer además `meta` y `editorial` (ADITIVOS al RouteBundle de types.ts): se guardan opacos.
 //   POST /api/learn-routes/delete { id } → { ok: true }  ruta + sus definiciones; los resultados (cuando existan) QUEDAN.
+//   GET  /api/learn-routes/definitions → { definitions: DefinitionRecipe[] }  (tanda W3) TODAS las definiciones del
+//        catálogo (el `def` opaco de cada fila, en orden de clave) en un solo viaje: es la hidratación del motor del
+//        cliente al entrar a Learn — el hydrateImportedDefinitions() del POC (db.learnDefinitions.toArray() →
+//        registerImportedDefinitions(rows.map(r => r.def))).
+//   Para los módulos del server (economía y feed fake de Learn, W3): catalogRoutes() / routeTitle().
 //
 // Validación = la del importador del POC, en su orden y con sus mensajes: kind · schemaVersion 1 · route (id + postas[]) ·
 // definitions[] · integridad referencial (toda posta que no es recall y tiene definitionId apunta a una definición del
@@ -216,6 +221,20 @@ function load(): void {
 }
 try { load() } catch (e) { console.error('[learn-routes] no pude cargar el catálogo:', e) }
 
+/* ---------- lectura para los módulos del server (W3) ---------- */
+/** Una ruta del catálogo tal como la guarda la fila (opaca salvo lo que leen el feed y la economía). */
+export type CatalogRoute = RouteData
+/** Las rutas habilitadas del catálogo, en el orden de la clave: el useImportedRoutes() del POC
+ *  (db.learnRoutes.toArray() → filter(enabled !== false) → route). */
+export function catalogRoutes(): CatalogRoute[] {
+  return [...routes.values()].filter((r) => r.enabled !== false).sort(byId).map((r) => r.route)
+}
+/** El título de una ruta (para rotular los movimientos de ⚡); undefined si no existe (p. ej. una ruta borrada). */
+export function routeTitle(id: string): string | undefined {
+  const t = routes.get(id)?.route.title
+  return typeof t === 'string' ? t : undefined
+}
+
 /* ---------- vistas ---------- */
 const countOf = (x: unknown) => (Array.isArray(x) ? x.length : 0)
 function listItems() {
@@ -253,6 +272,11 @@ export async function learnRoutesRoutes(req: IncomingMessage, res: ServerRespons
   if (path === '/api/learn-routes') {
     if (req.method !== 'GET') return send(res, 405, { error: 'method' })
     return send(res, 200, { routes: listItems() })
+  }
+
+  if (path === '/api/learn-routes/definitions') {
+    if (req.method !== 'GET') return send(res, 405, { error: 'method' })
+    return send(res, 200, { definitions: [...defs.values()].sort(byId).map((d) => d.def) })
   }
 
   if (path === '/api/learn-routes/one') {
