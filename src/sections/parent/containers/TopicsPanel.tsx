@@ -83,8 +83,8 @@ export function TopicsPanel({ kid }: { kid: string }) {
     const max = k === 'words' ? TERM_LIMITS.words : TERM_LIMITS.topics;
     if (list.length + fresh.length > max) { say(k, { kind: 'error', text: `Hasta ${max} ${k === 'words' ? 'palabras' : 'temas por lista'}. Quitá alguno antes de sumar más.` }); return false; }
     const what = quoted(fresh);
-    const ok = k === 'white' ? `Guardado: Descubrir ya le sugiere a ${kid} ${what} y el chat lo propone.`
-      : k === 'black' ? `Guardado: ${what} ya no le aparece a ${kid} (Descubrir, búsquedas, lecturas, chat y mensajes).`
+    const ok = k === 'white' ? `Guardado: el Feed ya le sugiere a ${kid} ${what} y el chat lo propone.`
+      : k === 'black' ? `Guardado: ${what} ya no le aparece a ${kid} (Feed, búsquedas, lecturas, chat y mensajes).`
       : `Guardado: ${what} ya se frena en búsquedas, títulos, chat y mensajes a amigos.`;
     return save(k, [...list, ...fresh], ok);
   };
@@ -106,10 +106,10 @@ export function TopicsPanel({ kid }: { kid: string }) {
       {cfg && (
         <div className="pz-terms-grid">
           <ChipEditor id="white" tone="white" title="Sugerencias de la familia" items={cfg.topics.white} busy={busy === 'white'} status={status.white}
-            help={<>Temas que querés promover. Descubrir los pone primero —uno de cada tres videos, con «Porque a tu familia le interesa»— y el chat los propone. Guían, no dirigen: el resto sigue los intereses de {kid}.</>}
+            help={<>Temas que querés promover. El Feed los pone primero —uno de cada tres videos, con «Porque a tu familia le interesa»— y el chat los propone. Guían, no dirigen: el resto sigue los intereses de {kid}.</>}
             empty="Todavía no sugeriste ningún tema." placeholder="Por ejemplo: historia, astronomía" onAdd={add('white')} onRemove={remove('white')} />
           <ChipEditor id="black" tone="black" title="Temas que no tienen que aparecer" items={cfg.topics.black} busy={busy === 'black'} status={status.black}
-            help={<>El revisor automático los rechaza en lecturas, chat y mensajes entre amigos; Descubrir saca lo que pega con ellos y el nombre se frena en búsquedas. Se suman a los temas que Innerith ya vigila de fábrica (<Link to="/padres/protecciones" className="pz-inline pz-inline--tight">ver Protecciones</Link>).</>}
+            help={<>El revisor automático los rechaza en lecturas, chat y mensajes entre amigos; el Feed saca lo que pega con ellos y el nombre se frena en búsquedas. Se suman a los temas que Innerith ya vigila de fábrica (<Link to="/padres/protecciones" className="pz-inline pz-inline--tight">ver Protecciones</Link>).</>}
             empty="No agregaste temas: rige solo la protección de fábrica." placeholder="Por ejemplo: Halloween, videojuegos violentos" onAdd={add('black')} onRemove={remove('black')} />
           <ChipEditor id="words" tone="word" title="Palabras bloqueadas de la familia" items={cfg.words.extra} busy={busy === 'words'} status={status.words}
             help={<>Corte exacto, sin importar mayúsculas ni tildes y por palabra entera: frena búsquedas, títulos de videos, respuestas del chat y mensajes a amigos. Se suman a las {fmtNum(cfg.words.builtin)} de fábrica.</>}

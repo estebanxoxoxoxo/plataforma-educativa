@@ -6,6 +6,7 @@ import { lastSearch } from '../../../hooks/user';
 import { duckForForeground, playQueue, playTrack, unduck, type BgTrack } from '../../../shared/audio/bgAudio';
 import { FolderSheet } from '../../../shared/components/FolderSheet';
 import { ListSheet } from '../../../shared/components/ListSheet';
+import { channelPath, type MtDetailState } from '../../mytube/lib/nav';
 import { VideoInfo } from '../components/VideoInfo';
 import { VideoPlayer } from '../components/VideoPlayer';
 
@@ -14,7 +15,8 @@ type Nav = { backTo?: string; backLabel?: string; queue?: string[]; qi?: number;
 export function VideoPage() {
   const { id = '' } = useParams();
   const go = useNavigate();
-  const st = (useLocation().state ?? null) as Nav | null;
+  const loc = useLocation();
+  const st = (loc.state ?? null) as Nav | null;
   const { data: v } = useAsync(() => api.video(id), [id]);
   const [followed, setFollowed] = useState(false);
   const [sheet, setSheet] = useState<'none' | 'save' | 'list'>('none');
@@ -43,13 +45,20 @@ export function VideoPage() {
     if (r) setFollowed(r.followed);
   };
 
+  // Chip del canal → su vista en MyTube: la ÚNICA puerta a un canal que el chico no sigue (como el POC). Su «Volver» trae
+  // de vuelta a este video con el state con el que se abrió (su propio «Volver» y su cola), como cerrar el overlay del POC.
+  // Sin channelId el chip no es botón.
+  const openChannel = v?.channelId
+    ? () => go(channelPath(v.channelId), { state: { backTo: loc.pathname + loc.search, backLabel: '‹ Volver', backState: st ?? undefined } satisfies MtDetailState })
+    : undefined;
+
   return (
     <section className="view" id="v-player">
       <button className="back" onClick={() => go(back.to)}>{back.label}</button>
       {queue.length > 1 && <p className="pqueue">Lista · video {qi + 1} de {queue.length}</p>}
       {v ? <>
         <VideoPlayer key={v.id} v={v} onEnded={onEnded} onTime={(t) => { pos.current = t; }} />
-        <VideoInfo v={v} followed={followed} onFollow={follow}
+        <VideoInfo v={v} followed={followed} onFollow={follow} onChannel={openChannel}
           // Handoff al fondo (como Smarty): sigue sonando desde la MISMA posición y salimos del player.
           // Si el video vino de una lista, va la COLA ENTERA (dos salidas de la misma cola).
           onBg={() => {

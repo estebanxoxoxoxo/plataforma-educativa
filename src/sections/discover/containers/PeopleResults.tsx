@@ -1,11 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { ApiError, api } from '../../../api';
+import type { PersonRelation, PersonResult } from '../../../api/types';
 import { chatAwait, chatFriendsChanged, openChat, useChatDock } from '../../friends/lib/chatDock';
 import { PersonCard } from '../cards/PersonCard';
-import { PEOPLE_MIN, type PersonRelation, type PersonResult, askToConnect, peopleQueryLen, searchPeople } from '../lib/people';
+
+/** Largo mínimo de una búsqueda de personas (en letras, sin contar espacios): el mismo que exige el server
+ *  (GET /api/friends/search, server/src/friendsFake.ts). */
+const PEOPLE_MIN = 2;
+const peopleQueryLen = (q: string) => q.replace(/\s+/g, '').length;
 
 /** Buscar → Personas (tanda F2: Amigos dejó de ser sección; a la gente se la BUSCA por su nombre de usuario). Contenedor:
- *  busca en el server fake de amigos (lib/people.ts) y resuelve las acciones de cada resultado:
+ *  busca en el server fake de amigos (api.searchPeople) y resuelve las acciones de cada resultado:
  *    · "Quiero contactarlo" → solicitud saliente; el dock la espera (chatAwait) y, cuando el chico acepta (en el demo, solo
  *      a los segundos), su conversación llega minimizada con su saludo y esta tarjeta pasa a "Ya son amigos".
  *    · "Aceptar" (él ya quería contactarse con Ian) → como en la zona pinneada del Feed: amigos y su conversación abierta.
@@ -25,7 +30,7 @@ export function PeopleResults({ q }: { q: string }) {
   useEffect(() => {
     if (short) { seq.current++; setRes(null); setFailed(false); return; }
     const n = ++seq.current;
-    searchPeople(q).then(
+    api.searchPeople(q).then(
       (r) => { if (n === seq.current) { setRes({ q, people: r.people }); setFailed(false); } },
       () => { if (n === seq.current) setFailed(true); },
     );
@@ -40,7 +45,7 @@ export function PeopleResults({ q }: { q: string }) {
     if (busy) return;
     setBusy(p.id); setNote(null);
     try {
-      const r = await askToConnect(p.id);
+      const r = await api.askToConnect(p.id);
       setRelation(p.id, r.relation);
       if (r.relation === 'sent') chatAwait(p.id);
       else if (r.relation === 'friend' && r.ok) { chatFriendsChanged(); openChat(p.id); }

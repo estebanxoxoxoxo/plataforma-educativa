@@ -17,13 +17,20 @@ import { parentCall } from './adultGate';
 export type FeatureKey = keyof ParentFeatures;
 export const FEATURE_KEYS: FeatureKey[] = ['tienda', 'ligas', 'amigos', 'chat'];
 
-/** Ruta del chico que pertenece a cada funcionalidad (incluye sus subrutas: /tienda?vista=deseos, etc.). */
-const ROUTE: Record<FeatureKey, string> = { tienda: '/tienda', ligas: '/ligas', amigos: '/amigos', chat: '/chat' };
+/** Ruta del chico que pertenece a cada funcionalidad (incluye sus subrutas: /tienda?vista=deseos, etc.). Amigos NO tiene
+ *  ruta desde la tanda F2 (12-oct: dejó de ser sección): /amigos solo redirige al Feed (App.tsx) y, con Amigos apagado,
+ *  tiene que seguir redirigiendo —no mostrar "apagada por tu familia"—. Lo de Amigos (dock, Buscar → Personas, zona
+ *  pinneada, noticias) lo esconde cada pieza con useFeatures(). */
+const ROUTE: Partial<Record<FeatureKey, string>> = { tienda: '/tienda', ligas: '/ligas', chat: '/chat' };
 /** Un dato más viejo que esto no alcanza para abrir una sección apagable: se confirma con el server. */
 const FRESH_MS = 15_000;
 
+/** La funcionalidad apagable a la que pertenece `path` (null = ninguna: siempre se muestra). Las claves sin ruta no cuentan. */
 export function featureForPath(path: string): FeatureKey | null {
-  for (const k of FEATURE_KEYS) if (path === ROUTE[k] || path.startsWith(ROUTE[k] + '/')) return k;
+  for (const k of FEATURE_KEYS) {
+    const r = ROUTE[k];
+    if (r && (path === r || path.startsWith(r + '/'))) return k;
+  }
   return null;
 }
 /** ¿Se muestra lo que vive en `path`? Sin datos todavía (null) lo apagable queda oculto (fail-closed). */

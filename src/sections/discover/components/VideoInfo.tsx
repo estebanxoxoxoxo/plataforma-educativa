@@ -9,23 +9,34 @@ const IcLike = () => (
   <svg viewBox="0 0 24 24"><path d="M18.77 11h-4.23l1.52-4.94C16.38 5.03 15.54 4 14.38 4c-.58 0-1.14.24-1.52.65L7 11H3v10h14.43c1.06 0 1.98-.67 2.3-1.68l1.26-4.04C21.28 14.04 20.17 11 18.77 11zM7 20H4v-8h3v8zm12.98-6.83-1.34 4.31c-.23.9-.78 1.52-1.21 1.52H8v-8.61l5.6-6.06c.19-.21.48-.33.78-.33.26 0 .5.11.63.3.07.1.15.26.09.47l-1.52 4.94-.4 1.29h5.58c.41 0 .8.17 1.03.46.13.15.26.4.19.71z" /></svg>
 );
 
+/** Avatar + nombre + suscriptores del canal. Dentro del chip-botón van como <span> (un botón solo admite contenido de
+ *  frase); fuera, como siempre. */
+const Owner = ({ v, Tag }: { v: Video; Tag: 'div' | 'span' }) => (
+  <>
+    {v.channelThumb
+      ? <img className="yt-av" src={v.channelThumb} alt="" referrerPolicy="no-referrer" />
+      : <span className="yt-av">{v.channel[0]}</span>}
+    <Tag className="yt-ch">
+      <Tag className="yt-name">{v.channel}{v.verified && <IcVerified />}</Tag>
+      {v.subscribers && <Tag className="yt-subs">{v.subscribers}</Tag>}
+    </Tag>
+  </>
+);
+
 /** Título + fila del canal (formato YouTube) + acciones REALES de Mi espacio:
- *  Suscribirse (canal → MyTube), Fondo (audio de fondo), Guardar (Drive) y ＋Lista. */
-export const VideoInfo = ({ v, followed, onFollow, onBg, onSave, onList }: {
+ *  Suscribirse (canal → MyTube), Fondo (audio de fondo), Guardar (Drive) y ＋Lista.
+ *  `onChannel` (solo si el video trae su canal): el chip avatar+nombre abre el canal en MyTube; sin él, no es botón. */
+export const VideoInfo = ({ v, followed, onFollow, onChannel, onBg, onSave, onList }: {
   v: Video; followed: boolean;
-  onFollow: () => void; onBg: () => void; onSave: () => void; onList: () => void;
+  onFollow: () => void; onChannel?: () => void; onBg: () => void; onSave: () => void; onList: () => void;
 }) => (
   <div className="pinfo">
     <h3>{v.title}</h3>
     <div className="yt-row">
       <div className="yt-owner">
-        {v.channelThumb
-          ? <img className="yt-av" src={v.channelThumb} alt="" referrerPolicy="no-referrer" />
-          : <span className="yt-av">{v.channel[0]}</span>}
-        <div className="yt-ch">
-          <div className="yt-name">{v.channel}{v.verified && <IcVerified />}</div>
-          {v.subscribers && <div className="yt-subs">{v.subscribers}</div>}
-        </div>
+        {onChannel
+          ? <button type="button" className="yt-chip" onClick={onChannel} title="Ver el canal" aria-label={`Ver el canal ${v.channel}`}><Owner v={v} Tag="span" /></button>
+          : <Owner v={v} Tag="div" />}
         <button className={`yt-sub${followed ? ' on' : ''}`} onClick={onFollow}>{followed ? 'Suscripto ✓' : 'Suscribirse'}</button>
       </div>
       <div className="yt-actions">

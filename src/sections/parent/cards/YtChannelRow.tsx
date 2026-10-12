@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { MtAdminChannel } from '../../mytube/lib/mytubeApi';
+import type { MtAdminChannel } from '../../../api/types';
 
 /** Un canal de MyTube en el panel (CanalRow del POC): cómo se le presenta al chico, con la descripción editable. El texto
  *  arranca con la descripción que había al abrir el panel; «Guardar» la deja como la que ve el chico (y ya no se pisa). */

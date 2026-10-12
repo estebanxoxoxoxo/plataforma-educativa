@@ -210,6 +210,14 @@
 .yt-subs{font-size:12px;line-height:18px;font-weight:400;color:#606060;white-space:nowrap}
 .yt-sub{height:36px;padding:0 16px;border-radius:18px;background:#0F0F0F;color:#fff;font:500 14px/36px "Roboto","Arial",sans-serif}
 .yt-sub:hover{background:#272727}
+/* chip del canal (avatar + nombre): abre su canal en MyTube, la única puerta a un canal que el chico no sigue (como el
+   POC). Sin channelId no es botón y la fila queda como siempre. Mismo lugar y medidas que sin chip: el margen negativo
+   compensa el relleno del fondo del hover (y suma los 24px de siempre hasta Suscribirse). */
+.yt-chip{display:flex;align-items:center;min-width:0;margin:-4px 16px -4px -6px;padding:4px 8px 4px 6px;border-radius:26px;transition:background-color .15s}
+.yt-chip .yt-ch{display:block;margin-right:0}
+.yt-chip .yt-subs{display:block}
+.yt-chip:hover{background:rgba(0,0,0,.05)}
+.yt-chip:active{background:rgba(0,0,0,.1)}
 .yt-actions{display:flex;align-items:center;gap:8px}
 .yt-seg{display:flex;align-items:center;height:36px;border-radius:18px;background:rgba(0,0,0,.05);overflow:hidden}
 .yt-seg .yt-btn{background:none;border-radius:0}

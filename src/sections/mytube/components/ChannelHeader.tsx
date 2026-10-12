@@ -1,5 +1,5 @@
 import { IcCheck } from '../../../shared/components/icons';
-import type { MtChannel } from '../lib/mytubeApi';
+import type { MtChannel } from '../../../api/types';
 import { IcMtPlus } from './MtIcons';
 
 /** Cabecera de la vista de canal (ChannelView del POC): avatar, título (o «Canal»), @handle, Seguir/Siguiendo y la

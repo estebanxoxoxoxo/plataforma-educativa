@@ -1,6 +1,12 @@
 // Videos: SOLO el catálogo aprobado por la familia (lista blanca de YouTube importada de Smarty).
 // Port de smarty-poc/app/src/lib/videoSearch.ts (MiniSearch, BM25 + boosts, AND, sin prefijo, fuzzy 0.2).
 // Además: metadatos reales de YouTube (fecha, Me gusta, suscriptores) vía Data API, con la clave del servidor.
+// CATÁLOGO APROBADO = catalog.json (base, SOLO LECTURA) + los videos que sumó la FAMILIA en Zona de padres → YouTube (viven
+// en server/data/mytube.json). La capa de la familia es `familyCatalog` de mytube.ts, que se registra sola al arrancar
+// llamando a setFamilyCatalog (el seam de W5). Con ella, Buscar, el reproductor, el chat, Mis listas y Drive ven los videos
+// de la familia como a los del catálogo: getCatalogVideo/getVideo los resuelven y searchVideos los encuentra. OJO:
+// allChannels/videosOfChannel siguen SOLO sobre el base a propósito: MyTube ya suma la familia por su cuenta (sumarla acá
+// duplicaría sus conteos de canales y videos).
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import MiniSearch from 'minisearch'
@@ -14,21 +20,58 @@ export interface CatalogVideo {
 
 const catalog: CatalogVideo[] = JSON.parse(readFileSync(join(SERVER_ROOT, 'data', 'catalog.json'), 'utf8'))
 const byId = new Map(catalog.map(v => [v.videoId, v]))
-export const getCatalogVideo = (id: string) => byId.get(id)
+
+/* ---------- capa de la familia (seam de mytube.ts: `familyCatalog`) ---------- */
+/** Los videos de la familia con la forma del catálogo; `version()` sube con cada cambio (alta, reingesta, borrado en
+ *  cascada, quitar duplicados) y el índice de búsqueda la mira para rehacer su parte. Sin capa: solo el catálogo base. */
+let family: { get(id: string): CatalogVideo | undefined; all(): CatalogVideo[]; version(): number } | null = null
+/** Los ids de la familia que hoy están en el índice y la versión de la capa con la que entraron (null = hay que sumarlos). */
+let famIds: string[] = []
+let famSynced: number | null = null
+/** La llama mytube.ts al arrancar (detección en runtime: sin esta función no se registra nada). */
+export function setFamilyCatalog(l: NonNullable<typeof family>): void {
+  family = l
+  famSynced = null
+}
+
+/** Un video del catálogo aprobado: el base y, si no está ahí, el de la familia (un videoId existe una sola vez: la ingesta
+ *  de mytube.ts no re-agrega lo que ya está en el base). */
+export const getCatalogVideo = (id: string): CatalogVideo | undefined => byId.get(id) ?? family?.get(id)
+/** Tamaño del catálogo BASE (mytube.ts le suma las filas de la familia en su `total`: no cambiar sin mirar ahí). */
 export const catalogSize = () => catalog.length
 
 const normalize = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ')
+const toDoc = (v: CatalogVideo) => ({ videoId: v.videoId, title: v.title, source: [v.source, v.channelTitle].filter(Boolean).join(' '), description: v.description, tags: v.tags.join(' '), topics: v.topics.join(' ') })
 let index: MiniSearch | null = null
 function ensureIndex(): MiniSearch {
-  if (index) return index
-  const t0 = Date.now()
-  const mi = new MiniSearch({
-    idField: 'videoId', fields: ['title', 'source', 'description', 'tags', 'topics'], storeFields: ['title'],
-    processTerm: t => normalize(t).trim() || null,
-  })
-  mi.addAll(catalog.map(v => ({ videoId: v.videoId, title: v.title, source: [v.source, v.channelTitle].filter(Boolean).join(' '), description: v.description, tags: v.tags.join(' '), topics: v.topics.join(' ') })))
-  console.log(`[videos] índice de ${catalog.length} videos en ${Date.now() - t0} ms`)
-  return (index = mi)
+  if (!index) {
+    const t0 = Date.now()
+    const mi = new MiniSearch({
+      idField: 'videoId', fields: ['title', 'source', 'description', 'tags', 'topics'], storeFields: ['title'],
+      processTerm: t => normalize(t).trim() || null,
+    })
+    mi.addAll(catalog.map(toDoc))
+    console.log(`[videos] índice de ${catalog.length} videos en ${Date.now() - t0} ms`)
+    index = mi
+  }
+  syncFamily(index)
+  return index
+}
+/** La parte de la FAMILIA del índice: se rehace cuando cambia `family.version()` (salen los ids que había y entran los de
+ *  `family.all()`). Va en el MISMO índice que el base —no en uno aparte— para que el ranking BM25 sea uno solo, como en el
+ *  POC (una sola tabla ytVideos, invalidateVideoIndex al cambiar), y sin reconstruir los ~95.000 del base (~5 s). */
+function syncFamily(mi: MiniSearch): void {
+  const ver = family ? family.version() : 0
+  if (famSynced === ver) return
+  mi.discardAll(famIds.filter(id => mi.has(id)))
+  famIds = []
+  for (const v of family?.all() ?? []) {
+    if (!v.videoId || byId.has(v.videoId) || mi.has(v.videoId)) continue // un videoId, una vez (gana el base)
+    mi.add(toDoc(v))
+    famIds.push(v.videoId)
+  }
+  famSynced = ver
+  if (family) console.log(`[videos] índice: ${famIds.length} video(s) de la familia (versión ${ver})`)
 }
 
 const STOPWORDS = new Set(['de', 'del', 'la', 'el', 'los', 'las', 'un', 'una', 'unos', 'unas', 'y', 'o', 'u', 'que', 'con', 'en', 'a', 'al', 'por', 'para', 'sobre', 'su', 'sus', 'lo', 'le', 'les', 'se', 'mas', 'muy', 'mi', 'tu', 'necesito', 'necesitas', 'quiero', 'queres', 'quieres', 'ver', 'mira', 'mirar', 'mostrame', 'muestrame', 'mostra', 'dame', 'busca', 'buscar', 'busco', 'pone', 'poneme', 'video', 'videos', 'algo', 'cosa', 'cosas'])
@@ -39,8 +82,8 @@ export function searchVideos(query: string, limit = ov.num('const.videoMostrados
   if (!terms.length) return []
   const boost = { title: ov.num('const.videoScoreTitle'), tags: 2.5, source: ov.num('const.videoScoreSource'), topics: 2, description: ov.num('const.videoScoreDesc') }
   return ensureIndex().search(terms.join(' '), { boost, prefix: false, fuzzy: 0.2, combineWith: 'AND' })
-    .map(r => byId.get(r.id as string)!)
-    .filter(v => v && matchBlockedWord(v.title) === null)
+    .map(r => getCatalogVideo(r.id as string))
+    .filter((v): v is CatalogVideo => !!v && matchBlockedWord(v.title) === null)
     .slice(0, limit)
 }
 
@@ -111,7 +154,7 @@ export function toVideoResult(v: CatalogVideo) {
 }
 
 export async function getVideo(id: string) {
-  const v = byId.get(id)
+  const v = getCatalogVideo(id) // base o familia
   if (!v || matchBlockedWord(v.title) !== null) return null // solo videos aprobados
   await loadVideoMeta([id])
   const ch = await loadChannelMeta(v.channelId)

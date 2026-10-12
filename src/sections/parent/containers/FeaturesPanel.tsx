@@ -7,7 +7,7 @@ import { refreshFeatures, saveFeature, useFeaturesStatus, type FeatureKey } from
 const COPY: { key: FeatureKey; label: string; desc: string }[] = [
   { key: 'tienda', label: 'Tienda y Energy Coins', desc: 'Energy Coins y premios para canjear.' },
   { key: 'ligas', label: 'Ligas', desc: 'Competencia semanal con chicos de su nivel.' },
-  { key: 'amigos', label: 'Amigos', desc: 'Lista de amigos y mensajes directos.' },
+  { key: 'amigos', label: 'Amigos', desc: 'Mensajes con amigos, solicitudes y búsqueda de personas.' },
   { key: 'chat', label: 'Chat', desc: 'Preguntas y búsquedas conversando con el asistente de IA.' },
 ];
 

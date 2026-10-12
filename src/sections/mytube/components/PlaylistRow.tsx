@@ -1,5 +1,5 @@
 import { IcListMusic } from '../../../shared/components/icons';
-import type { MtVideo } from '../lib/mytubeApi';
+import type { MtVideo } from '../../../api/types';
 import { VideoList } from './VideoList';
 
 /** nombreLista del POC: «Lista X (12 videos)» (el título de una entrada 'playlist') → «X». */

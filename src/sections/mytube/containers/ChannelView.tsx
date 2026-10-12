@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../../api';
+import type { MtChannelDetail, MtVideo } from '../../../api/types';
 import { UnderlineTabs } from '../../../shared/components/UnderlineTabs';
 import { ChannelHeader } from '../components/ChannelHeader';
 import { PlaylistRow } from '../components/PlaylistRow';
 import { VideoList, VideoListSkeleton } from '../components/VideoList';
-import { mytubeApi, type MtChannelDetail, type MtVideo } from '../lib/mytubeApi';
 import { channelPath, useMtBack, videoPath } from '../lib/nav';
 
 type CTab = 'videos' | 'playlists';
@@ -45,7 +45,7 @@ export function ChannelView() {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const loadDetail = async (first: boolean) => {
       try {
-        const d = await mytubeApi.channel(id);
+        const d = await api.mtChannel(id);
         if (cancelled) return;
         setDetail(d);
         if (first) setFollowed(d.followed);
@@ -57,7 +57,7 @@ export function ChannelView() {
       }
     };
     void loadDetail(true);
-    mytubeApi.channelVideos(id, 0, FIRST).then(
+    api.mtChannelVideos(id, 0, FIRST).then(
       (r) => { if (!cancelled) { setVids(r.videos); setVTotal(r.total); } },
       () => { if (!cancelled) setVFailed(true); },
     );
@@ -79,7 +79,7 @@ export function ChannelView() {
     if (vids.length < want) {
       setMore(true);
       try {
-        const r = await mytubeApi.channelVideos(id, vids.length, want - vids.length);
+        const r = await api.mtChannelVideos(id, vids.length, want - vids.length);
         if (cur.current !== id) return;
         setVids((v) => [...(v ?? []), ...r.videos]);
         setVTotal(r.total);
@@ -106,7 +106,7 @@ export function ChannelView() {
     setOpenPl((o) => { const n = { ...o }; if (pid in n) delete n[pid]; else n[pid] = FIRST; return n; });
     if (opening && (plVideos[pid] === undefined || plVideos[pid] === 'error')) {
       setPlVideos((p) => ({ ...p, [pid]: null }));
-      mytubeApi.channelPlaylist(pid).then(
+      api.mtChannelPlaylist(pid).then(
         (r) => { if (cur.current === id) setPlVideos((p) => ({ ...p, [pid]: r.videos })); },
         () => { if (cur.current === id) setPlVideos((p) => ({ ...p, [pid]: 'error' })); },
       );

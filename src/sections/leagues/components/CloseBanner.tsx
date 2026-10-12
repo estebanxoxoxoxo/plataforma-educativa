@@ -39,7 +39,7 @@ export function CloseBanner({ r, coins, onDismiss, onFeed }: { r: CloseWeekResul
         <p className="lwk-note">
           Arrancó la semana nueva: tu XP vuelve a 0{coins && <> y tus <span aria-hidden>⚡</span>{'\u00A0'}Energy Coins siguen en tu billetera</>}. {closesLabel(days)}{days > 0 && '.'}
         </p>
-        {r.feedAdded > 0 && <button className="lwk-go" onClick={onFeed}>Ver las novedades del cierre en Home<IcArrowRight /></button>}
+        {r.feedAdded > 0 && <button className="lwk-go" onClick={onFeed}>Ver las novedades del cierre en el Feed<IcArrowRight /></button>}
       </div>
       <button className="lwk-x" onClick={onDismiss} aria-label="Cerrar el aviso del cierre"><IcClose /></button>
     </section>

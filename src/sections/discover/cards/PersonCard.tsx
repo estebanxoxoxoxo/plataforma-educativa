@@ -1,6 +1,6 @@
 import { Avatar, lookFor } from '../../../shared/components/Avatar';
 import { IcChat, IcClock } from '../../../shared/components/icons';
-import type { PersonResult } from '../lib/people';
+import type { PersonResult } from '../../../api/types';
 
 /** Un chico encontrado en Buscar → Personas: su avatar (el look de siempre, con la ropa que tenga puesta), su nombre de
  *  usuario y su línea de estado —nada más: sin texto libre— y la acción según la relación con Ian:

@@ -16,7 +16,7 @@ export function FeatureOff({ error = false, onRetry }: { error?: boolean; onRetr
         {error ? (
           <button type="button" className="pz-btn pz-btn--ghost" onClick={onRetry}>Reintentar</button>
         ) : (
-          <Link className="pz-btn" to="/">Ir a Home</Link>
+          <Link className="pz-btn" to="/">Ir al Feed</Link>
         )}
       </div>
     </section>

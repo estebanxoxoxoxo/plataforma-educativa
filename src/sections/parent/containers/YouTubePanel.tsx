@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { mytubeApi, type MtAdminChannel, type MtAdminState } from '../../mytube/lib/mytubeApi';
+import { api } from '../../../api';
+import type { MtAdminChannel, MtAdminState } from '../../../api/types';
 import { YtChannelRow } from '../cards/YtChannelRow';
 import { PanelState } from '../components/PanelState';
 
@@ -43,7 +44,7 @@ export function YouTubePanel({ kid }: { kid: string }) {
   const load = useCallback(async () => {
     const my = ++seq.current;
     try {
-      const [s, c] = await Promise.all([mytubeApi.adminState(), mytubeApi.adminChannels()]);
+      const [s, c] = await Promise.all([api.mtAdminState(), api.mtAdminChannels()]);
       if (!alive.current || my !== seq.current) return;
       setSt(s); setChs(c.channels); setFailed(false);
       setCap((v) => v ?? String(s.videoCap));
@@ -68,7 +69,7 @@ export function YouTubePanel({ kid }: { kid: string }) {
     for (let i = 0; i < items.length; i++) {
       setProgress(`Procesando ${i + 1}/${items.length}…`);
       try {
-        const r = await mytubeApi.add(items[i]);
+        const r = await api.mtAdd(items[i]);
         if (r.ok) { ok++; vids += r.added; } else errs.push(`${items[i].slice(0, 48)} — ${explainYtError(r.error)}`);
       } catch {
         errs.push(`${items[i].slice(0, 48)} — ${NET}`);
@@ -88,7 +89,7 @@ export function YouTubePanel({ kid }: { kid: string }) {
     if (reingId !== null) return;
     setReingId(id); setMsg(''); setFails([]);
     try {
-      const r = await mytubeApi.reingest(id);
+      const r = await api.mtReingest(id);
       setMsg(r.ok ? `✓ Reingestada: ${r.title} · ${r.added} video(s)` : `Error al reingestar: ${explainYtError(r.error)}`);
     } catch {
       setMsg(`Error al reingestar: ${NET}`);
@@ -99,7 +100,7 @@ export function YouTubePanel({ kid }: { kid: string }) {
   };
 
   const remove = async (id: number) => {
-    await mytubeApi.remove(id).catch(() => null);
+    await api.mtRemove(id).catch(() => null);
     await load();
   };
 
@@ -107,7 +108,7 @@ export function YouTubePanel({ kid }: { kid: string }) {
     if (backfilling) return;
     setBackfilling(true); setMsg(''); setFails([]);
     try {
-      const r = await mytubeApi.backfill();
+      const r = await api.mtBackfill();
       setMsg(r.ok ? `✓ MyTube actualizado: ${r.completados} video(s) completados · ${r.canales} canal(es).` : `Error al completar canales: ${explainYtError(r.error)}`);
     } catch {
       setMsg(`Error al completar canales: ${NET}`);
@@ -121,7 +122,7 @@ export function YouTubePanel({ kid }: { kid: string }) {
     if (dedup) return;
     setDedup(true); setMsg(''); setFails([]);
     try {
-      const r = await mytubeApi.dedup();
+      const r = await api.mtDedup();
       setMsg(r.ok ? (r.removed ? `✓ Quité ${r.removed} entrada(s) duplicada(s)` : 'No había entradas duplicadas') : `Error: ${explainYtError(r.error)}`);
     } catch {
       setMsg(`Error: ${NET}`);
@@ -134,7 +135,7 @@ export function YouTubePanel({ kid }: { kid: string }) {
   const saveCap = async () => {
     setCapMsg('');
     try {
-      const r = await mytubeApi.setCap(cap ?? '');
+      const r = await api.mtSetCap(cap ?? '');
       setCap(String(r.videoCap));
       setCapMsg(r.videoCap ? `✓ Guardado: hasta ${r.videoCap} videos por entrada.` : '✓ Guardado: sin tope.');
     } catch {
@@ -143,7 +144,7 @@ export function YouTubePanel({ kid }: { kid: string }) {
   };
 
   const saveDesc = async (channelId: string, desc: string) => {
-    const r = await mytubeApi.setChannelDesc(channelId, desc).catch(() => null);
+    const r = await api.mtSetChannelDesc(channelId, desc).catch(() => null);
     return !!r?.ok;
   };
 

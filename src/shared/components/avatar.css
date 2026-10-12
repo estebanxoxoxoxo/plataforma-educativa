@@ -2,7 +2,7 @@
    Estilos del avatar dibujado (80% de los usuarios del demo) + el picker del propio look.
    La tanda I escribe acá todos sus estilos; nada de tocar shell.css. */
 
-/* ---- el avatar dibujado: misma caja que .av3 (el tamaño lo pone cada sección: .fr .av3, .rk .av3…) ---- */
+/* ---- el avatar dibujado: misma caja que .av3 (el tamaño lo pone cada sección: .fdk-item .av3, .rk .av3…) ---- */
 .idav{overflow:hidden}
 .idav svg{display:block;width:100%;height:100%}
 /* círculo neutro mientras llega el look de Ian (evita el salto iniciales → personaje) */

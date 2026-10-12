@@ -1,5 +1,5 @@
 import { fmtDuration, fmtFecha } from '../lib/fmt';
-import type { MtVideo } from '../lib/mytubeApi';
+import type { MtVideo } from '../../../api/types';
 
 /** Lista de videos de a tandas (VideoList del POC: 40 y «Ver más (N restantes)» de a 60; la tanda la maneja quien la usa).
  *  `remaining` = los que quedan sin dibujar. */

@@ -5,7 +5,7 @@ import type { AvatarLook } from '../../api/types';
      · `look` dibujado: un personaje de este set (variant) en un color de la paleta. SVG propio, sin assets
        externos (nada que moderar ni que bajar: funciona offline y no depende de ningún proveedor).
      · `look` null/ausente: el default típico, la inicial sobre un color (la .av3 de siempre).
-   El tamaño lo dan las reglas de cada sección sobre .av3 (.fr .av3, .rk .av3…) o la prop `size`.
+   El tamaño lo dan las reglas de cada sección sobre .av3 (.fdk-item .av3 en el dock, .rk .av3 en ligas…) o la prop `size`.
    Estilos: avatar.css (prefijo idav-). */
 
 /* ---------- paleta: la que ya circula en el demo (ligas/amigos). ESPEJO en server/src/identity.ts ---------- */
@@ -630,7 +630,7 @@ type Props = {
   /** Accesorio puesto, cuando NO viaja en el look (amigos: Friend.accessory). Manda sobre look.accessory; con iniciales
    *  también se dibuja (alrededor de la letra, sin taparla). Un id que no es del set no dibuja nada. */
   accessory?: string | null;
-  /** Lado en px. Sin esto manda el CSS de la sección (.fr .av3 {width…}). */
+  /** Lado en px. Sin esto manda el CSS de la sección (.fdk-item .av3 {width…}). */
   size?: number;
   className?: string;
   style?: CSSProperties;
