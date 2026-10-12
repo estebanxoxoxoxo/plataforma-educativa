@@ -28,6 +28,8 @@ import { featureOn, parentRoutes, resetUnlockAttempts } from './parent'
 import { identityRoutes } from './identity'
 import { teachersRoutes } from './teachersFake'
 import { simulateNpcs } from './feedFake'
+import { afterdayRoutes } from './afterday'
+import { scheduleRoutes } from './schedule'
 import { learnRoutesRoutes } from './learnRoutes'
 import { learnResultsRoutes } from './learnResults'
 import { createRoutes } from './create'
@@ -91,6 +93,8 @@ createServer(async (req, res) => {
     // Profesores (marketplace del padre) + el calendario del chico: teachersFake.ts
     if (url.pathname.startsWith('/api/teachers') || url.pathname === '/api/calendar') return await teachersRoutes(req, res, url)
     // Porte Smarty: rutas de Learn (catálogo) y la auditoría de facts de /crear
+    if (url.pathname === '/api/afterday') return await afterdayRoutes(req, res, url)
+    if (url.pathname === '/api/schedules') return await scheduleRoutes(req, res, url)
     if (url.pathname.startsWith('/api/learn-routes')) return await learnRoutesRoutes(req, res, url)
     if (url.pathname.startsWith('/api/learn/')) return await learnResultsRoutes(req, res, url)
     if (url.pathname.startsWith('/api/create/')) return await createRoutes(req, res, url)

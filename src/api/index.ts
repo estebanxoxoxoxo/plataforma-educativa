@@ -3,12 +3,12 @@
 // FAKES de servidor (amigos: NPCs con moderación real). Cada llamada se loguea en la consola (→ / ←).
 import type {
   ActivityResultInput, ActivityResultRow,
-  ArticleResponse, AuditFact, AuditResult, AvatarLook, CalendarEvent, ChatReply, ChatTurn, CloseWeekResult, ConnectResult, DriveFolder, DriveItem, DriveView,
-  DefinitionRecipeData, EcTx, FeedMotion, FeedReaction, FeedResponse, FolderNode, FriendThread, Friend, FriendRequest, GiftResult, HireResult, Identity, ImportBundleResult, LearnRouteData, LearnRouteListItem,
+  AfterDayTrack, ArticleResponse, AuditFact, AuditResult, AvatarLook, CalendarEvent, ChatReply, ChatTurn, CloseWeekResult, ConnectResult, DriveFolder, DriveItem, DriveView,
+  DefinitionRecipeData, EcTx, FeatureSchedule, FeedMotion, FeedReaction, FeedResponse, FolderNode, FriendThread, Friend, FriendRequest, GiftResult, HireResult, Identity, ImportBundleResult, LearnRouteData, LearnRouteListItem,
   MtAdminChannel, MtAdminState, MtChannelCard, MtChannelDetail, MtIngestResult, MtVideo, NewMarketItem, PeopleSearchResponse, RouteBundle, SendMessageResult,
   ParentActivity, ParentAlert, ParentConfig, ParentFeatures, ParentItemPatch, ParentPreset, ParentTopics, ParentVolume, ParentWords,
   AssignedLeague, GeoRanking, GeoScope, ImageResult, LeagueStanding, MarketItem, PageResult, Playlist, PlaylistDetail,
-  ProgressSummary, Redemption, SavePayload, SearchResponse, SimulateNpcsResult, Tab, Teacher, TeacherSlot, TrashView, User, Video, VideoResult,
+  ProgressSummary, Redemption, SavePayload, SearchResponse, SchedulesResponse, SectionKey, SimulateNpcsResult, Tab, Teacher, TeacherSlot, TrashView, User, Video, VideoResult,
 } from './types';
 
 export type { FriendThread } from './types';
@@ -210,6 +210,15 @@ export const api = {
          route-lab se llama DIRECTO desde el navegador como en el POC (URL configurable en la vista,
          default http://localhost:5203): no lleva claves. La auditoría de facts sí va por NUESTRO
          server (misma lógica del factAudit del POC; claves jamás al cliente). ---- */
+  /* ---- After Day (W6) + Horarios (W7): server/src/{afterday,schedule}.ts ---- */
+  afterDay: () => http<{ tracks: AfterDayTrack[] }>('/api/afterday'),
+  schedules: () => http<SchedulesResponse>('/api/schedules'),
+  parentMusic: () => http<{ tracks: AfterDayTrack[] }>('/api/parent/music'),
+  parentMusicAdd: (youtubeUrl: string, title?: string) =>
+    http<{ ok: true; track: AfterDayTrack } | { ok: false; error: string }>('/api/parent/music/add', { url: youtubeUrl, title }),
+  parentMusicRemove: (videoId: string) => http<{ ok: boolean }>('/api/parent/music/remove', { videoId }),
+  parentSchedules: (patch: Partial<Record<SectionKey, FeatureSchedule>>) => http<SchedulesResponse>('/api/parent/schedules', { patch }),
+
   /** Resultados de Learn (W3): todas las filas (el cliente deriva progreso/urgencia por target, como el POC). */
   learnResults: () => http<{ rows: ActivityResultRow[] }>('/api/learn/results'),
   /** Graba una partida terminada (el recordResult del POC; fire-and-forget en el overlay).

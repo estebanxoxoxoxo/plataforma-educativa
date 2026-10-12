@@ -77,6 +77,18 @@ export type MtIngestResult = { ok: true; added: number; title: string } | { ok: 
 export type Playlist = { id: number; name: string; count: number; cover?: string };
 export type PlaylistDetail = { id: number; name: string; videos: VideoResult[] };
 
+/* ---------- After Day (porte Smarty W6): la lista de audio curada por el padre; el chico la escucha
+   SOLO como fondo (nunca video). Independiente del catálogo de MyTube, sin key de YouTube. ---------- */
+export type AfterDayTrack = { videoId: string; url: string; title?: string; thumb: string; addedAt: number };
+
+/* ---------- Horarios por sección (porte Smarty W7): franjas por día de semana, config del padre.
+   `week` son 7 días con getDay() de JS (0 = domingo). Sin entrada para una sección = siempre abierta.
+   El Feed (la home) NUNCA se gatea: siempre hay un lugar a donde volver. ---------- */
+export type DaySchedule = { open: boolean; from: string; to: string }; // "HH:MM" [from, to)
+export type FeatureSchedule = { restrictionActive: boolean; week: DaySchedule[] };
+export type SectionKey = 'chat' | 'buscar' | 'mytube' | 'aprender' | 'tienda' | 'calendario' | 'espacio' | 'afterday';
+export type SchedulesResponse = { schedules: Partial<Record<SectionKey, FeatureSchedule>>; /** reloj del server (ms) */ serverNow: number };
+
 /* ---------- Progreso real: XP semanal (el puntaje ÚNICO de liga/zona/país) + Energy Coin ---------- */
 export type ProgressSummary = {
   xpWeek: number;

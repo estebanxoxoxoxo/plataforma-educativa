@@ -6,11 +6,11 @@ import { BrandMark } from './BrandMark';
 import { MiniPlayer } from './MiniPlayer';
 import { ProfileCard } from './ProfileCard';
 import {
-  IcNavCalendar, IcNavChat, IcNavDiscover, IcNavMyTube, IcNavLearn,
+  IcNavCalendar, IcNavChat, IcNavDiscover, IcNavMoon, IcNavMyTube, IcNavLearn,
   IcNavSearch, IcNavSpace, IcNavStore,
 } from './icons';
 
-type Sec = 'home' | 'search' | 'chat' | 'space' | 'store' | 'learn' | 'mytube' | 'calendar';
+type Sec = 'home' | 'search' | 'chat' | 'space' | 'store' | 'learn' | 'mytube' | 'afterday' | 'calendar';
 // Orden definido por Esteban (9-oct-2026): Home primero, Mi espacio al final.
 // El submenú de Mi espacio se engancha por sec, no por posición.
 const NAV: { sec: Sec; label: string; to: string; Icon: ComponentType }[] = [
@@ -21,6 +21,8 @@ const NAV: { sec: Sec; label: string; to: string; Icon: ComponentType }[] = [
   { sec: 'chat', label: 'Chat', to: '/chat', Icon: IcNavChat },
   // MyTube después de Chat (pedido 12-oct).
   { sec: 'mytube', label: 'MyTube', to: '/mytube', Icon: IcNavMyTube },
+  // After Day (porte Smarty W6): música de fondo curada por el padre, pensada para su propia franja.
+  { sec: 'afterday', label: 'After Day', to: '/afterday', Icon: IcNavMoon },
   // Aprender se vuelve Learn (W3 del porte: aprender+practicar COLAPSADOS). Practicar y Repasar ya
   // salieron del menú (decisiones 12-oct): sus rutas siguen vivas por URL hasta que el porte las absorba.
   { sec: 'learn', label: 'Aprender', to: '/aprender', Icon: IcNavLearn },
@@ -39,6 +41,7 @@ function activeFrom(path: string): { sec?: Sec; sub?: string } {
   // Mi espacio sin submenú (pedido 12-oct): la navegación interna es por carpetas; /espacio/videos
   // sigue ruteable sin link hasta que aterrice MyTube (W5 del porte).
   if (path.startsWith('/espacio/videos') || path.startsWith('/mytube')) return { sec: 'mytube' };
+  if (path.startsWith('/afterday')) return { sec: 'afterday' };
   if (path.startsWith('/espacio')) return { sec: 'space' };
   if (path.startsWith('/tienda')) return { sec: 'store' };
   if (path.startsWith('/aprender')) return { sec: 'learn' };

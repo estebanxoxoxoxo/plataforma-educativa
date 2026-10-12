@@ -173,6 +173,13 @@ export const IcNavMyTube = filled(<>
   <circle cx="25" cy="13.5" r="1.6" fill="#fff" />
   <circle cx="25" cy="18.5" r="1.6" fill={NK.goldL} />
 </>);
+/** After Day: luna dorada con estrellitas (música de fondo para la tardecita; porte Smarty W6). */
+export const IcNavMoon = filled(<>
+  <path d="M20.5 4.5a11 11 0 11-9.8 16.9A12.6 12.6 0 0020.5 4.5z" fill={NK.gold} />
+  <path d="M19 7.6a8.6 8.6 0 01-6.9 12.6 11 11 0 006.9-12.6z" fill={NK.goldL} />
+  <circle cx="7" cy="7.5" r="1.7" fill={NK.sky} />
+  <circle cx="10.5" cy="12" r="1.2" fill={NK.skyL} />
+</>);
 /** Crear: chispas de varita (estrella grande dorada + chispitas), como el "Crear" del POC. */
 export const IcNavCreate = filled(<>
   <path d="M13.2 3.6l2.5 6.1 6.1 2.5-6.1 2.5-2.5 6.1-2.5-6.1-6.1-2.5 6.1-2.5z" fill={NK.gold} />

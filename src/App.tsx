@@ -7,6 +7,7 @@ import { LearnPage } from './sections/learn/containers/LearnPage';
 import { CalendarPage } from './sections/calendar/containers/CalendarPage';
 import { CreatePage } from './sections/create/containers/CreatePage';
 import { MyTubePage } from './sections/mytube/containers/MyTubePage';
+import { AfterDayPage } from './sections/afterday/containers/AfterDayPage';
 import { ChatDock } from './sections/friends/containers/ChatDock';
 import { LeaguesPage } from './sections/leagues/containers/LeaguesPage';
 import { FeedPage } from './sections/home/containers/FeedPage';
@@ -72,6 +73,8 @@ export default function App() {
           <Route path="espacio/papelera" element={<TrashPage />} />
           {/* MyTube (W5): la sección nueva; las rutas viejas de Videos redirigen acá */}
           <Route path="mytube" element={<MyTubePage />} />
+          {/* After Day (porte Smarty W6): la música de fondo curada por el padre, con su propia franja (W7). */}
+          <Route path="afterday" element={<AfterDayPage />} />
           <Route path="mytube/canal/:id" element={<ChannelView />} />
           <Route path="mytube/lista/:id" element={<ListView />} />
           <Route path="espacio/videos" element={<Navigate to="/mytube" replace />} />
