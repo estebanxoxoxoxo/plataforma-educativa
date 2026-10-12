@@ -111,7 +111,8 @@
 
 /* ── Barra superior estilo GT7: tira oscura con segmentos (liga · ⚡) a la izquierda y reloj + campana a la
    derecha. Chips legibles sobre tinta; la liga es un LINK a /ligas (que ya no está en el menú). ── */
-.topbar{flex:none;display:flex;align-items:center;gap:10px;height:46px;padding:0 14px 0 18px;background:#1B2238;color:#fff}
+/* Gris oscuro neutro (muestra de Esteban 12-oct, estilo GT7) — antes era tinta azul #1B2238. */
+.topbar{flex:none;display:flex;align-items:center;gap:10px;height:46px;padding:0 14px 0 18px;background:#1E1F21;color:#fff}
 /* Chips con MÁS contraste contra la tinta (pedido 12-oct noche): fondo más claro + borde fino. */
 .tb-seg{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.15);
   border:1px solid rgba(255,255,255,.22);color:#fff;font-size:13.5px;font-weight:700;line-height:1;text-decoration:none;white-space:nowrap}
