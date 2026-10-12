@@ -213,21 +213,34 @@ export type ChatReply = {
   /** Resumen de la decisión de moderación (DecisionTrace) */ trace: string;
 };
 
-/* ---------- Feed (home). El backend real no existe: lo sirve un server FAKE (server/src/feedFake.ts). ---------- */
+/* ---------- Feed (home). El backend real no existe: lo sirve un server FAKE (server/src/feedFake.ts).
+   Modelo v6 del POC ("un hilo, muchos estilos", docs/feed-mocks/v6-hilo-unico.html; pedido 12-oct):
+   UN solo hilo con tipos intercalados — cada kind trae su presentación — y `reason` = el chip
+   "por qué te muestro esto" en lenguaje de chico, SIEMPRE en el eje de su propio interés. ---------- */
 export type FeedReaction = { emoji: string; count: number; mine: boolean };
+/** Dial de animación del Feed: lo fija el padre (Protecciones) y viaja en FeedResponse.motion;
+ *  prefers-reduced-motion fuerza 'calmo' en el cliente. */
+export type FeedMotion = 'calmo' | 'normal' | 'vivo';
 export type FeedItem =
   | { kind: 'video'; id: string; time: string; reason: string; video: VideoResult }
   | { kind: 'article'; id: string; time: string; reason: string; title: string; url: string; source: string; snippet?: string }
   | { kind: 'route'; id: string; time: string; reason: string; course: { id: string; name: string; units: number; img: string; bg: [string, string] } }
-  | { kind: 'friend'; id: string; time: string; friend: { nick: string; color: string }; text: string; icon: 'medal' | 'streak' | 'badge' | 'route' | 'league'; reactions: FeedReaction[] }
-  | { kind: 'league'; id: string; time: string; name: string; desc: string };
+  | { kind: 'friend'; id: string; time: string; reason?: string; friend: { nick: string; color: string }; text: string; icon: 'medal' | 'streak' | 'badge' | 'route' | 'league'; reactions: FeedReaction[] }
+  | { kind: 'league'; id: string; time: string; reason?: string; name: string; desc: string }
+  /* v6 — bloques nuevos del hilo (el server arma la mezcla; el cliente solo dibuja): */
+  /** "Fijado · tu siguiente paso": el hero de la edición. SIEMPRE aprendizaje, jamás comercio. */
+  | { kind: 'next'; id: string; time: string; reason: string; title: string; meta: string; action: { label: string; to: string } }
+  /** Grilla de videos inline (shelf): 1 lugar del hilo = N videos + "Ver todos". */
+  | { kind: 'videos'; id: string; time: string; reason: string; title: string; total: number; videos: VideoResult[] }
+  /** Resumen de la edición (panel propio): la mezcla de hoy y cómo cambia según la hora. */
+  | { kind: 'summary'; id: string; title: string; desc: string; mix: { label: string; n: number }[]; later: string };
+/** DEPRECADO (v6: el hilo único absorbió la columna lateral; lo borra la tanda del Feed v6). */
 export type FeedSidebar = {
-  /** Liga asignada por resultados + puestos por puntaje (zona y país). `medal` = cierre pasado. */
   league: { name: string; pos: number; total: number; zone: { name: string; pos: number }; country: { name: string; pos: number }; medal?: 'oro' | 'plata' | 'bronce' | null };
   continue: { courseId: string; title: string; done: number; total: number };
   topics: string[];
 };
-export type FeedResponse = { items: FeedItem[]; next: string | null; sidebar?: FeedSidebar };
+export type FeedResponse = { items: FeedItem[]; next: string | null; motion?: FeedMotion; sidebar?: FeedSidebar };
 
 /* ---------- Identidad (avatar propio; visión audios 26, 32, 41-42) ----------
    Avatar dibujado determinístico (sin assets externos). `null` = el default típico: la inicial
@@ -255,7 +268,9 @@ export type ParentPreset = {
   /** Qué deja configurado al aplicarlo (la tarjeta lo muestra antes de confirmar). */
   spec: { features: ParentFeatures; topics: ParentTopics; words: string[]; volume: ParentVolume };
 };
-export type ParentConfig = { topics: ParentTopics; words: ParentWords; volume: ParentVolume; preset: string | null };
+export type ParentConfig = { topics: ParentTopics; words: ParentWords; volume: ParentVolume; preset: string | null;
+  /** Dial de animación del Feed del chico (v6; default 'normal'). Opcional hasta que la tanda Feed v6 lo sirva siempre. */
+  feedMotion?: FeedMotion };
 
 /* ---------- Demo vivo (botones "Simular…"): cierre de semana de liga y ráfaga de NPCs ---------- */
 /** POST /api/leagues/close-week: congela la tabla, reparte medallas, re-asigna liga y arranca la semana

@@ -5,7 +5,7 @@
 import * as M from './mock';
 import type {
   AnswerResult, Answer, ArticleResponse, AuditFact, AuditResult, AvatarLook, CalendarEvent, ChannelDetail, Channel, ChatReply, ChatTurn, CloseWeekResult, Course, DriveFolder, DriveItem, DriveView,
-  DefinitionRecipeData, EcTx, FeedReaction, FeedResponse, FolderNode, FriendThread, CourseDetail, Exercise, Friend, FriendRequest, GiftResult, HireResult, Identity, ImportBundleResult, LearnRouteData, LearnRouteListItem, NewMarketItem, RouteBundle, SendMessageResult,
+  DefinitionRecipeData, EcTx, FeedMotion, FeedReaction, FeedResponse, FolderNode, FriendThread, CourseDetail, Exercise, Friend, FriendRequest, GiftResult, HireResult, Identity, ImportBundleResult, LearnRouteData, LearnRouteListItem, NewMarketItem, RouteBundle, SendMessageResult,
   ParentActivity, ParentAlert, ParentConfig, ParentFeatures, ParentItemPatch, ParentPreset, ParentTopics, ParentVolume, ParentWords,
   AssignedLeague, GeoRanking, GeoScope, ImageResult, Journey, LeagueStanding, MarketItem, PageResult, Playlist, PlaylistDetail,
   ProgressSummary, Redemption, SavePayload, SearchResponse, SimulateNpcsResult, Tab, Teacher, TeacherSlot, TrashView, User, Video, VideoResult,
@@ -75,6 +75,8 @@ export const api = {
   /** Feed de la home (server FAKE hasta que exista el algoritmo real; misma forma de respuesta). */
   feed: (after?: string) => http<FeedResponse>(`/api/feed${after ? `?after=${encodeURIComponent(after)}` : ''}`),
   feedReact: (id: string, emoji: string) => http<{ id: string; reactions: FeedReaction[] }>('/api/feed/react', { id, emoji }),
+  /** "Ver menos de esto" (v6): oculta ese ítem en las próximas respuestas (RAM del demo); undo lo deshace. */
+  feedLess: (id: string, undo = false) => http<{ ok: boolean }>('/api/feed/less', { id, undo }),
 
   /** Una búsqueda vale para todas las solapas (backend real):
    *  páginas = Serper sobre la lista blanca · imágenes = Pixabay + Commons moderadas · videos = catálogo aprobado. */
@@ -114,6 +116,8 @@ export const api = {
   parentTopics: (patch: Partial<ParentTopics>) => http<ParentTopics>('/api/parent/topics', patch),
   parentWords: (extra: string[]) => http<ParentWords>('/api/parent/words', { extra }),
   parentVolume: (patch: Partial<ParentVolume>) => http<ParentVolume>('/api/parent/volume', patch),
+  /** Dial de animación del Feed del chico (v6): calmo / normal / vivo. Vive con la sesión del portón. */
+  parentFeedMotion: (motion: FeedMotion) => http<{ feedMotion: FeedMotion }>('/api/parent/feed-motion', { motion }),
   parentAlerts: () => http<{ alerts: ParentAlert[] }>('/api/parent/alerts'),
   parentAlertSeen: (id: number) => http<{ ok: boolean }>('/api/parent/alerts/seen', { id }),
   parentPresets: () => http<{ presets: ParentPreset[]; current: string | null }>('/api/parent/presets'),
