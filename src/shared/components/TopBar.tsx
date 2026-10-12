@@ -5,7 +5,7 @@ import type { AssignedLeague, Friend, FriendRequest } from '../../api/types';
 import { chatFriendsChanged, openChat, useChatDock } from '../../sections/friends/lib/chatDock';
 import { useFeatures } from '../../sections/parent/lib/features';
 import { Avatar, lookFor } from './Avatar';
-import { IcBell, IcBolt, IcNavLeagues } from './icons';
+import { IcBell, IcNavLeagues } from './icons';
 
 /** Barra superior persistente estilo Gran Turismo 7 (pedido 12-oct): posición de liga SIEMPRE visible
  *  (y es el link a /ligas, que salió del menú), Energy Coins, fecha y hora compactas, y la campana de
@@ -106,9 +106,10 @@ export function TopBar() {
         </Link>
       )}
       {tiendaOn && ec !== null && (
-        <span className="tb-seg" title={`Tenés ${ec.toLocaleString('es-AR')} Energy Coins`}>
-          <IcBolt /><b>{ec.toLocaleString('es-AR')}</b>
-        </span>
+        /* El mismo ⚡ naranja de la billetera de la Tienda, y clickearlo lleva a la Tienda (pedido 12-oct). */
+        <Link className="tb-seg tb-ec" to="/tienda" title={`Tenés ${ec.toLocaleString('es-AR')} Energy Coins. Ir a la Tienda`}>
+          <span className="tb-bolt" aria-hidden="true">⚡</span><b>{ec.toLocaleString('es-AR')}</b>
+        </Link>
       )}
       <span className="tb-spacer" />
       <span className="tb-clock" title={now.toLocaleString('es-AR')}>

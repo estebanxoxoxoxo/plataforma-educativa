@@ -187,16 +187,10 @@
 .st-gempty{margin:4px 0;display:grid;justify-items:center;gap:10px;text-align:center;font-weight:700;font-size:14px;line-height:1.45;color:#6A7390}
 .st-gempty p{margin:0}
 
-/* ---- canjes y movimientos ---- */
-.st-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:18px;align-items:start;padding-bottom:12px}
-.st-panel{display:grid;gap:8px;min-width:0;background:#fff;border:1px solid #E6E9F1;border-radius:12px;padding:16px 18px;scroll-margin-top:16px}
-.st-panel-head{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:2px 12px;margin-bottom:2px}
-.st-panel-head h3{margin:0;font-family:var(--display);font-weight:800;font-size:20px;line-height:1.1}
-.st-panel-head small{font-size:12.5px;font-weight:700;color:#8A93AD}
-.st-panel-empty{margin:0;display:grid;gap:4px;font-weight:700;font-size:14px;line-height:1.45;color:#6A7390}
-.st-panel-empty p{margin:0;font-weight:800;color:#47506B}
-.st-panel-empty small{font-size:13px}
+/* ---- Tus canjes / Tus movimientos: paginas propias (?vista=canjes|movimientos, pedido 12-oct) ---- */
 .st-list{list-style:none;margin:0;padding:0;display:grid}
+.st-list--page{max-width:620px;background:#fff;border:1px solid #E6E9F1;border-radius:12px;padding:8px 14px}
+.st-page-empty{margin:4px 0;max-width:620px;background:#fff;border:1px dashed #D9DEEA;border-radius:12px;padding:22px 18px;font-weight:700;font-size:14px;line-height:1.5;color:#6A7390}
 .st-row,.st-tx{display:flex;align-items:center;gap:12px;min-width:0;padding:9px 6px;border-radius:9px}
 .st-row + .st-row,.st-tx + .st-tx{border-top:1px solid #F0F2F7}
 .st-row.is-new{animation:st-new 2.6s ease both}
@@ -216,8 +210,6 @@
 .st-tx-amt{flex:none;font-weight:800;font-size:14.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .st-tx-amt.is-earn{color:#237A2B}
 .st-tx-amt.is-spend{color:#C2333A}
-.st-more{justify-self:start;margin-top:2px;padding:7px 12px;border-radius:8px;font-weight:800;font-size:13.5px;color:var(--st-ink);transition:background .2s}
-.st-more:hover{background:var(--st-soft)}
 
 /* ---- estados ---- */
 .st-empty{margin:0;color:#6A7390;font-weight:700;background:#fff;border:1px dashed #D3D9E6;border-radius:12px;padding:18px 20px}

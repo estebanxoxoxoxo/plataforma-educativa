@@ -11,9 +11,9 @@ import type { WearState } from '../cards/WardrobeCard';
 import { BuySheet, type BuyState } from '../components/BuySheet';
 import { GiftSheet, type GiftState } from '../components/GiftSheet';
 import { HeartInline } from '../components/Heart';
-import { MovesPanel } from '../components/MovesPanel';
+import { MovesView } from '../components/MovesView';
 import { RedeemSheet, type SheetState } from '../components/RedeemSheet';
-import { RedemptionsPanel } from '../components/RedemptionsPanel';
+import { RedemptionsView } from '../components/RedemptionsView';
 import { StoreSkeleton } from '../components/StoreSkeleton';
 import { WalletHero } from '../components/WalletHero';
 import { WardrobeSection } from '../components/WardrobeSection';
@@ -35,9 +35,11 @@ type StoreData = {
 const wishedOf = (items: MarketItem[]) => items.filter((i) => i.wished).map((i) => i.id);
 const isRopa = (i: MarketItem) => i.kind === 'ropa';
 
-/** Tienda: la billetera de Energy Coin, los premios que publica el padre, la ROPA PARA TU AVATAR (ítems de plataforma:
- *  comprar → ponérsela, o regalársela a un amigo), los canjes y los movimientos; y, en /tienda?vista=deseos, "Tu lista
- *  de deseos" (mismo patrón de searchParams que las solapas de Videos). Contenedor puro: todo sale de api.market /
+/** Tienda: la billetera de Energy Coin, los premios que publica el padre y la ROPA PARA TU AVATAR (ítems de plataforma:
+ *  comprar → ponérsela, o regalársela a un amigo). Las listas largas viven en PÁGINAS propias por searchParams (pedido
+ *  12-oct, mismo patrón que las solapas de Videos): /tienda?vista=deseos ("Tu lista de deseos"), ?vista=canjes ("Tus
+ *  canjes") y ?vista=movimientos ("Tus movimientos") — en la vista principal ya no hay tablas, solo los accesos de la
+ *  billetera. Contenedor puro: todo sale de api.market /
  *  redeem / redemptions / wish / ecTx / giftToFriend / friends, y el look de Ian del store de identidad (ProfileCard).
  *  Canjear, comprar y regalar son transacciones: nada optimista — saldo, stock, guardarropas y canjes que se muestran
  *  son los que devolvió el server. El deseo sí es optimista (no mueve plata) y se reconcilia con el server.
@@ -46,7 +48,10 @@ export function StorePage() {
   const go = useNavigate();
   const { hash } = useLocation();
   const [params, setParams] = useSearchParams();
-  const view = params.get('vista') === 'deseos' ? 'deseos' : 'tienda';
+  const vistas = ['deseos', 'canjes', 'movimientos'] as const;
+  const view = (vistas as readonly string[]).includes(params.get('vista') ?? '')
+    ? (params.get('vista') as (typeof vistas)[number])
+    : 'tienda';
   const giftTo = params.get('regalar');
   const user = useUser();
   const { id: me } = useMyIdentity();
@@ -67,7 +72,6 @@ export function StorePage() {
   const loadSeq = useRef(0);
   const wishSeq = useRef(0);
   const opener = useRef<HTMLElement | null>(null);
-  const canjes = useRef<HTMLElement>(null);
   const ropaEl = useRef<HTMLElement>(null);
   const viewEl = useRef<HTMLElement>(null);
   const wishErrTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -297,14 +301,6 @@ export function StorePage() {
     }
   };
 
-  const toCanjes = () => {
-    const el = canjes.current;
-    if (!el) return;
-    const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
-    el.focus({ preventScroll: true });
-  };
-
   const premios = data?.items.filter((i) => !isRopa(i)) ?? [];
   const ropa = data?.items.filter(isRopa) ?? [];
   const pending = data?.redemptions?.filter((r) => r.status === 'pendiente').length ?? 0;
@@ -333,11 +329,14 @@ export function StorePage() {
           <WishlistView items={wishedItems(premios, data.wishOrder)} ec={data.ec} onBack={() => setParams({})}
             onRedeem={openRedeem} onWish={(it) => void toggleWish(it)} />
         )}
+        {data && view === 'canjes' && <RedemptionsView list={data.redemptions} fresh={fresh} onBack={() => setParams({})} />}
+        {data && view === 'movimientos' && <MovesView tx={data.tx} onBack={() => setParams({})} />}
 
         {data && view === 'tienda' && (
           <>
             <WalletHero ec={data.ec} wishCount={data.wishOrder.length} pending={pending}
-              onPractice={() => go('/practicar')} onWishes={() => setParams({ vista: 'deseos' })} onPending={toCanjes} />
+              onPractice={() => go('/practicar')} onWishes={() => setParams({ vista: 'deseos' })}
+              onRedemptions={() => setParams({ vista: 'canjes' })} onMoves={() => setParams({ vista: 'movimientos' })} />
 
             <section className="st-sec" aria-labelledby="st-premios-h">
               <div className="st-sec-head">
@@ -362,11 +361,6 @@ export function StorePage() {
                 giftOn={giftOn} giftFor={giftFor} onBuy={openBuy} onWear={(it) => void wear(it)} onGift={openGift}
                 onClearGiftFor={() => setParams({})} />
             )}
-
-            <div className="st-cols">
-              <RedemptionsPanel ref={canjes} list={data.redemptions} fresh={fresh} />
-              <MovesPanel tx={data.tx} />
-            </div>
           </>
         )}
       </div>

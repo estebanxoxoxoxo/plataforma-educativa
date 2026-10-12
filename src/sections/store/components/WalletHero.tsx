@@ -28,15 +28,17 @@ function useCountTo(value: number, ms = 650) {
 }
 
 /** Billetera de Energy Coin: a la izquierda el saldo grande y de dónde sale el ⚡; a la derecha los
- *  accesos: "Tu lista de deseos (N)" (siempre, con su contador) y el aviso de canjes pendientes.
- *  Pura: todo llega por props. */
-export function WalletHero({ ec, wishCount, pending, onPractice, onWishes, onPending }: {
+ *  accesos a las tres páginas de la Tienda (pedido 12-oct: canjes y movimientos ya no son tablas de la
+ *  vista principal, cada una tiene su página como la lista de deseos): "Tu lista de deseos (N)",
+ *  "Tus canjes" (resaltado si hay pendientes de entrega) y "Tus movimientos". Pura: todo llega por props. */
+export function WalletHero({ ec, wishCount, pending, onPractice, onWishes, onRedemptions, onMoves }: {
   /** Saldo que devolvió el server (nunca un cálculo optimista) */ ec: number;
   /** Cuántos premios hay en la lista de deseos (ya con el toggle optimista) */ wishCount: number;
   /** Canjes pendientes de entrega */ pending: number;
   onPractice: () => void;
   onWishes: () => void;
-  onPending: () => void;
+  onRedemptions: () => void;
+  onMoves: () => void;
 }) {
   const shown = useCountTo(ec);
   return (
@@ -59,11 +61,13 @@ export function WalletHero({ ec, wishCount, pending, onPractice, onWishes, onPen
           onClick={(e) => { e.preventDefault(); onWishes(); }}>
           <HeartInline /> Tu lista de deseos ({wishCount}) →
         </a>
-        {pending > 0 && (
-          <button type="button" className="st-pill st-pill--pend" onClick={onPending}>
-            📦 {pending === 1 ? '1 canje pendiente' : `${pending} canjes pendientes`} de entrega →
-          </button>
-        )}
+        <a className={`st-pill${pending > 0 ? ' st-pill--pend' : ''}`} href="/tienda?vista=canjes"
+          onClick={(e) => { e.preventDefault(); onRedemptions(); }}>
+          📦 Tus canjes{pending > 0 && ` (${pending === 1 ? '1 pendiente' : `${pending} pendientes`})`} →
+        </a>
+        <a className="st-pill" href="/tienda?vista=movimientos" onClick={(e) => { e.preventDefault(); onMoves(); }}>
+          🧾 Tus movimientos →
+        </a>
       </div>
     </section>
   );

@@ -48,10 +48,11 @@ function seed(): Store {
     lastDay: dayKey(new Date()),
     lastCourse: 'solar',
     course: { solar: { name: 'El sistema solar', done: 2, total: 36 } }, // total = nodos reales del journey
+    // Del más nuevo al más viejo, como el runtime (unshift): el contrato de GET /api/progress/tx.
     tx: [
-      { id: 1, ts: now - 3 * 864e5, kind: 'earn', amount: 420, label: 'Práctica: El sistema solar' },
-      { id: 2, ts: now - 2 * 864e5, kind: 'earn', amount: 380, label: 'Práctica: Fracciones' },
       { id: 3, ts: now - 1 * 864e5, kind: 'earn', amount: 440, label: 'Práctica: El sistema solar' },
+      { id: 2, ts: now - 2 * 864e5, kind: 'earn', amount: 380, label: 'Práctica: Fracciones' },
+      { id: 1, ts: now - 3 * 864e5, kind: 'earn', amount: 420, label: 'Práctica: El sistema solar' },
     ],
   }
 }
