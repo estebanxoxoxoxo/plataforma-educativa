@@ -230,17 +230,11 @@ export type FeedItem =
   /* v6 — bloques nuevos del hilo (el server arma la mezcla; el cliente solo dibuja): */
   /** "Fijado · tu siguiente paso": el hero de la edición. SIEMPRE aprendizaje, jamás comercio. */
   | { kind: 'next'; id: string; time: string; reason: string; title: string; meta: string; action: { label: string; to: string } }
-  /** Grilla de videos inline (shelf): 1 lugar del hilo = N videos + "Ver todos". */
-  | { kind: 'videos'; id: string; time: string; reason: string; title: string; total: number; videos: VideoResult[] }
+  /** Grilla de videos inline (shelf): 1 lugar del hilo = N videos + "Ver todos" (`topic` arma el link al buscador). */
+  | { kind: 'videos'; id: string; time: string; reason: string; title: string; total: number; videos: VideoResult[]; topic?: string }
   /** Resumen de la edición (panel propio): la mezcla de hoy y cómo cambia según la hora. */
   | { kind: 'summary'; id: string; title: string; desc: string; mix: { label: string; n: number }[]; later: string };
-/** DEPRECADO (v6: el hilo único absorbió la columna lateral; lo borra la tanda del Feed v6). */
-export type FeedSidebar = {
-  league: { name: string; pos: number; total: number; zone: { name: string; pos: number }; country: { name: string; pos: number }; medal?: 'oro' | 'plata' | 'bronce' | null };
-  continue: { courseId: string; title: string; done: number; total: number };
-  topics: string[];
-};
-export type FeedResponse = { items: FeedItem[]; next: string | null; motion?: FeedMotion; sidebar?: FeedSidebar };
+export type FeedResponse = { items: FeedItem[]; next: string | null; motion: FeedMotion };
 
 /* ---------- Identidad (avatar propio; visión audios 26, 32, 41-42) ----------
    Avatar dibujado determinístico (sin assets externos). `null` = el default típico: la inicial
@@ -269,8 +263,8 @@ export type ParentPreset = {
   spec: { features: ParentFeatures; topics: ParentTopics; words: string[]; volume: ParentVolume };
 };
 export type ParentConfig = { topics: ParentTopics; words: ParentWords; volume: ParentVolume; preset: string | null;
-  /** Dial de animación del Feed del chico (v6; default 'normal'). Opcional hasta que la tanda Feed v6 lo sirva siempre. */
-  feedMotion?: FeedMotion };
+  /** Dial de animación del Feed del chico (v6; default 'normal'). */
+  feedMotion: FeedMotion };
 
 /* ---------- Demo vivo (botones "Simular…"): cierre de semana de liga y ráfaga de NPCs ---------- */
 /** POST /api/leagues/close-week: congela la tabla, reparte medallas, re-asigna liga y arranca la semana

@@ -1,8 +1,8 @@
 import { IcSparkDouble } from '../../../shared/components/icons';
 
 /** Botón de DEMO junto al saludo del feed (docs/AGENTS.md regla 9): chip discreto que solo dispara la ráfaga de NPCs
- *  del server (POST /api/feed/simulate-npcs); el contenedor refetchea y lo nuevo entra arriba. `note` = cuántas
- *  novedades entraron (se borra sola). Puro por props. */
+ *  del server (POST /api/feed/simulate-npcs). Feed v6: el contenedor NO refetchea — muestra la píldora "N novedades ↑" y
+ *  lo nuevo entra arriba cuando el chico la toca. `note` = cuántas esperan (se borra sola). Puro por props. */
 export const SimulateNpcsChip = ({ busy, note, failed, onClick }: { busy: boolean; note: string | null; failed: boolean; onClick: () => void }) => (
   <div className="fdemo-wrap">
     <button className="fdemo" onClick={onClick} disabled={busy} aria-busy={busy || undefined}

@@ -1,41 +1,32 @@
-import type { ComponentType } from 'react';
+import type { ComponentType, SVGProps } from 'react';
 import type { FeedItem } from '../../../api/types';
 import { Avatar, lookFor } from '../../../shared/components/Avatar';
-import { MyAvatar } from '../../../shared/components/ProfileCard';
-import { IcBolt, IcBook, IcMedal, IcTrophyLine } from '../../../shared/components/icons';
-import { MEDAL_INFO, type Medal } from '../../leagues/lib/cycle';
+import { IcBolt, IcMedal } from '../../../shared/components/icons';
+import { FeedCard } from '../components/FeedCard';
+import { IcRouteLine, IcUsersLine } from '../components/feedIcons';
 import { ReactionBar } from '../components/ReactionBar';
 
 type It = Extract<FeedItem, { kind: 'friend' }>;
 
-const ICONS: Record<It['icon'], { I: ComponentType; c: string; bg: string }> = {
-  medal: { I: IcMedal, c: '#B07A06', bg: '#FFF1D6' },
-  streak: { I: IcBolt, c: '#C24B1F', bg: '#FDEBE3' },
-  badge: { I: IcMedal, c: '#0B6B66', bg: '#E2F5F3' },
-  route: { I: IcBook, c: '#2843A8', bg: '#E7ECFD' },
-  league: { I: IcTrophyLine, c: '#8A5A00', bg: '#FFF1D6' },
+/** Qué hizo el amigo (el tinte de cada evento: los de siempre del feed). Las medallas y lo de ligas van como NOTICIA. */
+const EVENT: Record<It['icon'], { label: string; I: ComponentType<SVGProps<SVGSVGElement>> }> = {
+  streak: { label: 'Racha', I: IcBolt },
+  badge: { label: 'Insignia', I: IcMedal },
+  route: { label: 'Ruta compartida', I: IcRouteLine },
+  medal: { label: 'Medalla', I: IcMedal },
+  league: { label: 'Liga', I: IcMedal },
 };
 
-/** La medalla de liga que nombra el texto (🥇/🥈/🥉), si nombra una. */
-const medalIn = (text: string): Medal | null => (Object.keys(MEDAL_INFO) as Medal[]).find((m) => text.includes(MEDAL_INFO[m].emoji)) ?? null;
-
-/** Noticia de un amigo (logro, racha, ruta compartida) con reacciones de emoji.
- *  `mine` = la noticia es del propio chico (su medalla del cierre de liga: la que ven sus amigos en su feed): va con SU
- *  avatar, la pastilla "Vos" y los colores de la medalla, celebratoria. `fresh` = acaba de entrar (animación de entrada). */
-export function FriendEventCard({ it, onReact, mine, fresh }: { it: It; onReact: (id: string, emoji: string) => void; mine?: boolean; fresh?: boolean }) {
-  const { I, c, bg } = ICONS[it.icon];
-  const medal = mine ? medalIn(it.text) : null;
+/** Noticia de un amigo (racha, insignia, ruta compartida) como card estándar: con SU avatar (el look de siempre, 80/20) en
+ *  el lugar de la miniatura y las reacciones de emoji como acción. Pura. */
+export function FriendEventCard({ it, onReact, onLess }: { it: It; onReact: (id: string, emoji: string) => void; onLess: () => void }) {
+  const ev = EVENT[it.icon];
   return (
-    <article className={`fcard ffriend${fresh ? ' fnew' : ''}`} data-icon={it.icon} data-mine={mine || undefined} data-medal={medal ?? undefined}>
-      {mine ? <MyAvatar name={it.friend.nick} /> : <Avatar name={it.friend.nick} color={it.friend.color} look={lookFor(it.friend.nick)} />}
-      <div className="fbody">
-        <p className="fline"><b>{it.friend.nick}</b>{mine && <span className="fyou">Vos</span>} {it.text}</p>
-        <span className="fmeta">{it.time}{mine && ' · Tus amigos lo ven en su feed'}</span>
-        <ReactionBar reactions={it.reactions} onReact={(e) => onReact(it.id, e)} />
-      </div>
-      {medal
-        ? <span className="fev fev-medal" role="img" aria-label={MEDAL_INFO[medal].name}>{MEDAL_INFO[medal].emoji}</span>
-        : <span className="fev" style={{ color: c, background: bg }} aria-hidden><I /></span>}
-    </article>
+    <FeedCard family="amigos" icon={<IcUsersLine />} label="Amigos" time={it.time} reason={it.reason} whyIcon={<IcUsersLine />} onLess={onLess}
+      thumb={<span className="hf-av"><Avatar name={it.friend.nick} color={it.friend.color} look={lookFor(it.friend.nick)} size={44} /></span>}
+      title={<><b>{it.friend.nick}</b> {it.text}</>}
+      meta={<span className="hf-evt" data-icon={it.icon}><ev.I aria-hidden="true" />{ev.label}</span>}
+      action={<ReactionBar reactions={it.reactions} onReact={(e) => onReact(it.id, e)} />}
+    />
   );
 }

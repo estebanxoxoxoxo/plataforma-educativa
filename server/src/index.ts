@@ -19,7 +19,7 @@ import { searchImages } from './images'
 import { allChannels, getVideo, loadChannelMeta, loadVideoMeta, searchVideos, toVideoResult, videosOfChannel } from './videos'
 import { sendChildMessage } from './chat'
 import { getCourse, prewarmCourses } from './learn'
-import { getFeed, reactFeed, resetFeed } from './feedFake'
+import { feedLess, getFeed, reactFeed, resetFeed } from './feedFake'
 import { friendsRoutes, resetFriends } from './friendsFake'
 import { resetLeagues } from './leaguesFake'
 import * as space from './space'
@@ -114,6 +114,12 @@ createServer(async (req, res) => {
       const b = await readJson<{ id?: string; emoji?: string }>(req)
       if (!b.id || !b.emoji) return send(res, 400, { error: 'id/emoji' })
       return send(res, 200, reactFeed(String(b.id), String(b.emoji)))
+    }
+    // "Ver menos de esto" del hilo v6 (reversible con undo; RAM, se limpia en el reset del demo).
+    if (url.pathname === '/api/feed/less' && req.method === 'POST') {
+      const b = await readJson<{ id?: string; undo?: boolean }>(req)
+      if (!b.id) return send(res, 400, { error: 'id' })
+      return send(res, 200, feedLess(String(b.id), b.undo === true))
     }
     // Botón de demo "Simular NPCs" (Home): ráfaga de noticias frescas de los NPCs.
     if (url.pathname === '/api/feed/simulate-npcs' && req.method === 'POST') {

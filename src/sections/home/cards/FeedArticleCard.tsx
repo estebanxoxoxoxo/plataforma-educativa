@@ -1,16 +1,15 @@
 import type { FeedItem } from '../../../api/types';
-import { IcResLect } from '../../../shared/components/icons';
+import { FeedCard } from '../components/FeedCard';
+import { IcBookLine } from '../components/feedIcons';
 
 type It = Extract<FeedItem, { kind: 'article' }>;
 
-/** Lectura recomendada (sitio de la lista blanca). Abre el lector moderado. */
-export const FeedArticleCard = ({ it, onOpen }: { it: It; onOpen: (url: string) => void }) => (
-  <button className="fcard farticle" onClick={() => onOpen(it.url)}>
-    <span className="fbody">
-      <small className="ftag tlect"><IcResLect />Lectura · {it.reason}</small>
-      <b className="ftitle">{it.title}</b>
-      {it.snippet && <span className="fsnip">{it.snippet}</span>}
-      <span className="fmeta">{it.source} · {it.time}</span>
-    </span>
-  </button>
+/** Lectura recomendada (sitio de la lista blanca) como card estándar: abre el lector moderado. Pura. */
+export const FeedArticleCard = ({ it, onOpen, onLess }: { it: It; onOpen: (url: string) => void; onLess: () => void }) => (
+  <FeedCard family="lectura" icon={<IcBookLine />} label="Lectura" time={it.time} reason={it.reason} onLess={onLess} link
+    thumb={<span className="hf-th is-icon" aria-hidden="true"><IcBookLine /></span>}
+    title={it.title}
+    meta={it.source}
+    action={<button type="button" className="hf-cta is-quiet hf-stretch" aria-label={`Leer «${it.title}»`} onClick={() => onOpen(it.url)}>Leer</button>}
+  />
 );

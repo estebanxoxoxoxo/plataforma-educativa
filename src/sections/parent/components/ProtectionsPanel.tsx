@@ -1,12 +1,14 @@
 import { Link } from 'react-router-dom';
+import { FeedMotionControl } from '../containers/FeedMotionControl';
 import { DOMAIN_MODE, fmtNum } from '../lib/format';
 import type { ParentDashboard } from '../lib/types';
 import { PanelState } from './PanelState';
 
-/** "Protecciones" (solo lectura): lo que el backend real filtra SIEMPRE, sin interruptor. Las palabras y los temas
+/** "Protecciones": lo que el backend real filtra SIEMPRE, sin interruptor (solo lectura). Las palabras y los temas
  *  cuentan lo de fábrica (Smarty) + lo que sumó la familia en "Temas y palabras". Sitios y catálogo se importan del
  *  respaldo de Smarty (su edición fina —sitios, reglas de dominio, prompts— sigue en el "motor intermedio" de la POC).
- *  Pura. */
+ *  Debajo, el dial "Animación del Feed" (Feed v6): ese bloque es un contenedor propio (FeedMotionControl: lee y guarda la
+ *  config del padre); el resto del panel es puro. */
 export function ProtectionsPanel({ kid, dash, failed, onRetry }: { kid: string; dash: ParentDashboard | null; failed: boolean; onRetry: () => void }) {
   const p = dash?.protections;
   const rows = p ? [
@@ -36,6 +38,7 @@ export function ProtectionsPanel({ kid, dash, failed, onRetry }: { kid: string; 
           ))}
         </dl>
       )}
+      <FeedMotionControl kid={kid} />
       <p className="pz-foot">
         Para sumar temas o palabras de la familia, andá a <Link to="/padres/temas" className="pz-inline pz-inline--tight">Temas y palabras</Link>; los topes de volumen están en <Link to="/padres/limites" className="pz-inline pz-inline--tight">Límites</Link>.
       </p>

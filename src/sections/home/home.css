@@ -1,13 +1,46 @@
-/* =================== Feed (la home, ruta /; antes se llamó Home y Descubrir) =================== */
-#v-feed{background:linear-gradient(180deg,#FFFFFF 0,#F6F7FB 200px)}
-/* El feed es la REFERENCIA de la columna estándar (1040, centrada): ahora la da .view para todas (shell.css). */
-.feed{display:grid;grid-template-columns:minmax(0,1fr) 288px;gap:30px;align-items:start}
-.fmain{min-width:0}
-.fhead{margin-bottom:18px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px 16px;flex-wrap:wrap}
-.fhead-txt{min-width:0}
-.fitems{display:grid;gap:12px}
+/* =================== Feed (la home, ruta /; antes se llamó Home y Descubrir) — MODELO v6 =================== */
+/* "Un hilo, muchos estilos" (mock smarty-poc/docs/feed-mocks/v6-hilo-unico.html): se copian la estructura, los tipos de
+   bloque, los radios, las medidas y el comportamiento; los COLORES son los de Innerith (pedido de Esteban, 12-oct).
+   Prefijo hf- (grepeado en todos los .css de src: libre). La zona pinneada (fpin-, tanda F2), el chip de demo (fdemo-) y
+   las reacciones (rbar/rchip) conservan los suyos. Sin sombras ruidosas: bordes finos y radios generosos; la SERIF solo
+   en los momentos editoriales (hero, noticia, resumen y el "Estás al día"). */
+#v-feed{
+  background:linear-gradient(180deg,#FFFFFF 0,#F6F7FB 200px);
+  /* tinta y neutros de la app */
+  --hf-ink:#1B2238; --hf-ink-2:#2E3650; --hf-muted:#6A7390; --hf-faint:#8A93AD; --hf-hair:#E6E9F1; --hf-line:#D9DEEA;
+  --hf-surface:#FFFFFF; --hf-surface-2:#EFF2F7; --hf-sunk:#F1F3F8;
+  /* el acento del Feed: el rosa de su ítem del menú (shell.css, data-sec="home") */
+  --hf-home:#C2346F; --hf-home-ink:#9E2350;
+  /* aprender (el hero): el azul de la app */
+  --hf-learn:#2843A8; --hf-learn-2:#3A5BD9; --hf-learn-soft:#E8EDFE;
+  /* la moneda ⚡: el oro de la Tienda */
+  --hf-ec:#8A5A00;
+  --hf-serif:ui-serif,Georgia,"Times New Roman",serif;
+  /* MOTION: el dial del padre (FeedResponse.motion → data-motion en esta raíz). Normal por defecto. */
+  --m-dur:220ms; --m-ease:cubic-bezier(.2,.7,.25,1); --m-travel:7px; --m-press:.99;
+}
+#v-feed[data-motion="calmo"]{--m-dur:110ms;--m-travel:0px;--m-press:1}
+#v-feed[data-motion="vivo"]{--m-dur:340ms;--m-travel:11px;--m-press:.975}
+/* el movimiento reducido del sistema fuerza SIEMPRE los valores de calmo (misma especificidad, va después) */
+@media (prefers-reduced-motion: reduce){
+  #v-feed[data-motion]{--m-dur:110ms;--m-travel:0px;--m-press:1}
+}
 
-/* ---- zona PINNEADA (tanda F2): notificaciones destacadas ARRIBA del stream (components/PinnedZone, lib/highlights).
+/* UN SOLO HILO central, sin columna lateral: más angosto que la columna estándar de .view y centrado en su mismo eje
+   (excepción permitida de docs/AGENTS.md regla 5, como el ejercicio: 780). */
+.hf-col{max-width:780px;margin:0 auto;display:flex;flex-direction:column}
+.hf-sp{flex:1}
+.hf-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- cabecera: el saludo de Innerith + la franja del día + racha sin presión + chip de demo ---- */
+.hf-head{display:flex;align-items:flex-start;flex-wrap:wrap;gap:10px 14px;margin-bottom:16px}
+.hf-head-txt{flex:1 1 260px;min-width:0}
+.hf-day{margin:7px 0 0;font-size:13.5px;font-weight:700;color:var(--hf-faint)}
+.hf-head-side{display:flex;align-items:flex-start;justify-content:flex-end;flex-wrap:wrap;gap:10px;padding-top:2px}
+.hf-streak{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:999px;background:var(--hf-surface-2);border:1px solid var(--hf-hair);font-size:13px;font-weight:800;color:var(--hf-muted);font-variant-numeric:tabular-nums;cursor:default}
+.hf-streak svg{width:13px;height:13px;color:#E39710}
+
+/* ---- zona PINNEADA (tanda F2): notificaciones destacadas ARRIBA del hilo (components/PinnedZone, lib/highlights).
    Hoy: "X quiere contactarse con vos" (solicitudes de amistad) con Aceptar / "Ahora no" ahí mismo. Violeta = lo social
    (el mismo del dock de Mensajes y del perfil de un amigo). Cada destacado se pliega al irse (filas 1fr → 0fr, con su
    recorte adentro) y, si se van todos, la zona entera; sin destacados la zona no se monta. ---- */
@@ -41,56 +74,186 @@
   .fpin,.fpin-done{animation:none}
 }
 
-/* tarjeta base */
-.fcard{position:relative;display:flex;gap:14px;align-items:center;width:100%;text-align:left;background:#fff;border:1px solid #E6E9F1;border-radius:12px;padding:14px 16px;transition:border-color .2s,box-shadow .2s,transform .2s}
-button.fcard{cursor:pointer}
-button.fcard:hover{border-color:#C9D2E4;box-shadow:0 10px 24px -20px rgba(27,34,56,.5);transform:translateY(-1px)}
-.fbody{flex:1;min-width:0;display:grid;gap:3px}
-.ftag{display:inline-flex;align-items:center;gap:6px;justify-self:start;font-size:11.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:5px}
-.ftag svg{width:13px;height:13px}
-.ftag.tvideo{background:#E7ECFD;color:#2843A8}
-.ftag.tlect{background:#E2F5F3;color:#0B6B66}
-.ftag.troute{background:#FDEBE3;color:#B8431C}
-.ftag.tleague{background:#FFF1D6;color:#8A5A00}
-.ftitle{font-size:16px;line-height:1.3;color:#1B2238;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.fsnip{font-size:13.5px;font-weight:600;color:#47506B;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.fmeta{font-size:12.5px;font-weight:700;color:#8A93AD}
+/* ---- píldora "N novedades ↑": pegada arriba del hilo mientras se scrollea (el scroll es de .view). Lo fresco NO entra
+   solo: entra arriba cuando el chico la toca. Un empujoncito suave en normal/vivo; quieta en calmo. El sticky se mide
+   desde la caja de CONTENIDO de .view (32px de padding arriba): top -20px = a 12px del borde visible. ---- */
+.hf-pillbar{position:sticky;top:-20px;z-index:6;display:flex;justify-content:center;margin:0 0 12px;pointer-events:none}
+.hf-pillbar:empty{margin:0}
+.hf-pill{pointer-events:auto;display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:999px;background:var(--hf-home);color:#fff;font-size:13.5px;font-weight:800;line-height:1.2;box-shadow:0 8px 20px -8px rgba(158,35,80,.55);transition:filter .15s}
+.hf-pill svg{width:14px;height:14px}
+.hf-pill:hover{filter:brightness(1.07)}
+.hf-pill:disabled{opacity:.75;cursor:progress}
+#v-feed[data-motion="normal"] .hf-pill,#v-feed[data-motion="vivo"] .hf-pill{animation:hf-nudge 2.6s var(--m-ease) infinite}
+@keyframes hf-nudge{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+@media (prefers-reduced-motion: reduce){ .hf-pill{animation:none !important} }
 
-/* video */
-.fthumb{position:relative;flex:none;width:168px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#0E1220}
-.fthumb img{width:100%;height:100%;object-fit:cover;display:block}
-.fplay{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;background:rgba(255,255,255,.92);display:grid;place-items:center;opacity:0;transition:opacity .2s}
-.fplay svg{width:13px;height:13px;margin-left:2px}
-.fcard:hover .fplay{opacity:1}
-.fdur{position:absolute;right:6px;bottom:6px;background:rgba(14,18,32,.85);color:#fff;font-size:11px;font-weight:800;padding:2px 6px;border-radius:4px}
+/* ---- el hilo: los bloques se intercalan y bajan como un feed ---- */
+.hf-thread{display:flex;flex-direction:column;gap:12px}
+.hf-slot{min-width:0}
+/* entrada: "rise" al aparecer (primera página, "Ver más de antes", al deshacer) y "slidein" desde arriba para lo que trae
+   la píldora; "leaving" al descartar (200 ms). Fill backwards: al terminar no queda nada pegado. */
+.hf-anim{animation:hf-rise var(--m-dur) var(--m-ease) backwards}
+.hf-in{animation:hf-slidein var(--m-dur) var(--m-ease) backwards}
+@keyframes hf-rise{from{opacity:0;transform:translateY(var(--m-travel))}}
+@keyframes hf-slidein{from{opacity:0;transform:translateY(calc(var(--m-travel) * -1.7))}}
+.hf-slot.is-leaving{opacity:0;transform:translateY(calc(var(--m-travel) * -.85));transition:opacity .2s ease,transform .2s ease;pointer-events:none}
+@media (prefers-reduced-motion: reduce){ .hf-slot{animation-delay:0s !important} }
 
-/* ruta */
-.fart{flex:none;width:76px;height:58px;border-radius:8px;overflow:hidden}
-.fart img{width:100%;height:100%;object-fit:cover;display:block}
-.fgo{flex:none;display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:8px;background:#1B2238;color:#fff;font-weight:800;font-size:13.5px}
-.fgo svg{width:15px;height:15px;transition:transform .2s}
-.fcard:hover .fgo svg{transform:translateX(3px)}
-.fgo.gold{background:#F2A81D}
+/* ---- piezas comunes ---- */
+.hf-k{display:flex;align-items:center;flex-wrap:wrap;gap:4px 6px;margin:0;font-size:10.5px;font-weight:800;line-height:1.3;letter-spacing:.06em;text-transform:uppercase}
+.hf-k svg{flex:none;width:12px;height:12px}
+.hf-cta{position:relative;display:inline-flex;align-items:center;gap:7px;padding:9px 17px;border-radius:11px;background:var(--hf-learn);color:#fff;font-size:13.5px;font-weight:800;line-height:1.2;white-space:nowrap;transition:filter .15s,background-color .15s,border-color .15s,transform .12s}
+.hf-cta svg{width:14px;height:14px}
+.hf-cta:hover:not(:disabled){filter:brightness(1.1)}
+.hf-cta:active:not(:disabled){transform:scale(var(--m-press))}
+.hf-cta:disabled{opacity:.55;cursor:default}
+.hf-cta.is-quiet{padding:7px 14px;background:var(--hf-surface);color:var(--hf-ink);border:1px solid var(--hf-line);font-weight:700}
+.hf-cta.is-quiet:hover:not(:disabled){filter:none;background:#F6F7FB;border-color:#C9D2E4}
+/* "por qué": el algoritmo se muestra. title = el motivo; al tocarlo o enfocarlo, la frase en un globito */
+.hf-why{position:relative;z-index:2;display:inline-flex;align-items:center;gap:5px;margin:-3px -7px;padding:3px 7px;border-radius:8px;font-size:12px;font-weight:700;color:var(--hf-faint);cursor:help;transition:color .15s,background-color .15s}
+.hf-why svg{width:12px;height:12px}
+.hf-why:hover,.hf-why:focus-visible{color:var(--hf-muted);background:var(--hf-sunk)}
+.hf-why.is-end:focus::after{left:auto;right:0}
+.hf-why:focus::after{content:attr(data-why);position:absolute;left:0;bottom:calc(100% + 6px);z-index:8;width:max-content;max-width:min(280px,70vw);padding:7px 10px;border-radius:9px;background:var(--hf-ink);color:#fff;font-size:12.5px;font-weight:700;line-height:1.35;letter-spacing:0;text-transform:none;white-space:normal;box-shadow:0 10px 24px -14px rgba(27,34,56,.6);pointer-events:none}
+/* ✕ "ver menos" */
+.hf-less{position:relative;z-index:2;flex:none;width:24px;height:24px;display:grid;place-items:center;border-radius:7px;color:var(--hf-faint);transition:background-color .15s,color .15s}
+.hf-less svg{width:14px;height:14px}
+.hf-less:hover{background:var(--hf-sunk);color:var(--hf-muted)}
+.hf-ec{color:var(--hf-ec);font-weight:800;white-space:nowrap}
+.hf-dur{position:absolute;right:5px;bottom:5px;padding:1px 5px;border-radius:5px;background:rgba(27,34,56,.82);color:#fff;font-size:10.5px;font-weight:700;font-variant-numeric:tabular-nums}
 
-/* liga */
-.fleague{--fmd:#E8A317;border-color:#F2D9A8;background:linear-gradient(135deg,#FFFBF0,#FFF4DA)}
-.fcup{position:relative;flex:none;width:46px;height:46px;border-radius:10px;background:#F2A81D;color:#fff;display:grid;place-items:center}
-.fcup svg{width:24px;height:24px}
-/* la medalla del cierre pasado, como insignia sobre la copa (anillo del color de la medalla: los mismos de la tabla de
-   Ligas, leagues/lib/format.ts) */
-.fleague[data-medal="plata"]{--fmd:#9AA3B5}
-.fleague[data-medal="bronce"]{--fmd:#C07A43}
-.fcupm{position:absolute;right:-7px;bottom:-8px;width:26px;height:26px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:15px;line-height:1;box-shadow:0 0 0 2px var(--fmd),0 4px 10px -4px rgba(27,34,56,.45)}
-.fleague .fsnip{-webkit-line-clamp:3}
+/* ===== A · CARD ESTÁNDAR (video, lectura, ruta, amigos): eyebrow → cuerpo → pie ===== */
+.hf-card{position:relative;display:flex;flex-direction:column;gap:9px;padding:14px 16px;border-radius:16px;background:var(--hf-surface);border:1px solid var(--hf-hair);transition:border-color .2s,transform .12s}
+.hf-card[data-fam="video"]{--hf-fam:#2843A8}
+.hf-card[data-fam="lectura"]{--hf-fam:#0B6B66}
+.hf-card[data-fam="ruta"]{--hf-fam:#B8431C}
+.hf-card[data-fam="amigos"]{--hf-fam:#5431B3}
+.hf-card.is-link:hover{border-color:#C9D2E4}
+/* la acción estirada cubre toda la card (se toca en cualquier lado); la que se "aprieta" es la card, no el botón (si el
+   botón escalara, su capa estirada se achicaría en pleno click) */
+.hf-stretch::after{content:'';position:absolute;inset:0;border-radius:16px}
+.hf-card .hf-stretch:active{transform:none}
+.hf-card:has(.hf-stretch:active){transform:scale(var(--m-press))}
+.hf-card .rbar{position:relative;z-index:2}
+.hf-eb{display:flex;align-items:center;gap:8px;min-width:0;font-size:11px;line-height:1.2}
+.hf-eb-ic{flex:none;display:grid;place-items:center;width:13px;height:13px;color:var(--hf-fam,var(--hf-muted))}
+.hf-eb-ic svg{width:13px;height:13px}
+.hf-eb-fam{font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--hf-muted)}
+.hf-eb-time{font-weight:700;color:var(--hf-faint);white-space:nowrap}
+.hf-bd{display:flex;align-items:center;gap:13px;min-width:0}
+.hf-th{position:relative;flex:none;width:78px;height:58px;border-radius:11px;overflow:hidden;display:grid;place-items:center;background:var(--hf-sunk);border:1px solid var(--hf-hair);color:var(--hf-fam,var(--hf-faint))}
+.hf-th img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+/* la miniatura de YouTube es 4:3 con bandas: en 16:9 (y 58 de alto) no se ven */
+.hf-th.is-video{width:104px;background:#0E1220}
+.hf-th.is-icon svg{width:22px;height:22px}
+.hf-av{flex:none;display:grid}
+.hf-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.hf-ti{margin:0;font-size:14.5px;font-weight:700;line-height:1.32;letter-spacing:-.005em;color:var(--hf-ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.hf-ti b{font-weight:800}
+.hf-mt{margin:0;font-size:12.5px;font-weight:600;line-height:1.4;color:var(--hf-muted)}
+.hf-evt{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:800;color:var(--hf-evt,var(--hf-muted))}
+.hf-evt svg{width:12px;height:12px}
+.hf-evt[data-icon="streak"]{--hf-evt:#C24B1F}
+.hf-evt[data-icon="badge"]{--hf-evt:#0B6B66}
+.hf-evt[data-icon="route"]{--hf-evt:#2843A8}
+.hf-ft{display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;min-width:0}
+.hf-ft .rbar,.hf-act .rbar{margin-top:0}
+/* lo que queda en el lugar de una card después de "ver menos" */
+.hf-lesscard{flex-direction:row;align-items:center;gap:12px;padding:12px 16px;background:var(--hf-surface-2)}
+.hf-lesscard .hf-mt{font-weight:700;color:var(--hf-ink-2)}
 
-/* noticia de amigo */
-.ffriend{align-items:flex-start}
-.ffriend .av3{width:42px;height:42px;font-size:18px;margin-top:2px}
-.fline{margin:0;font-size:15px;font-weight:600;line-height:1.45;color:#2E3650}
-.fline b{color:#1B2238}
-.fev{flex:none;width:34px;height:34px;border-radius:8px;display:grid;place-items:center}
-.fev svg{width:18px;height:18px}
-.rbar{display:flex;gap:6px;margin-top:8px}
+/* ===== B · "FIJADO · TU SIGUIENTE PASO" (el hero): raya del acento, ícono en caja suave, título en serif ===== */
+.hf-next{display:flex;gap:14px;padding:16px 18px 16px 20px;border-radius:18px;background:var(--hf-surface);border:1px solid var(--hf-hair);box-shadow:inset 3px 0 0 var(--hf-learn-2)}
+.hf-next-ic{flex:none;width:46px;height:46px;border-radius:13px;display:grid;place-items:center;background:var(--hf-learn-soft);color:var(--hf-learn)}
+.hf-next-ic svg{width:22px;height:22px}
+.hf-next-tx{flex:1;min-width:0}
+.hf-next .hf-k{color:var(--hf-learn)}
+.hf-next-t{margin:5px 0 3px;font-family:var(--hf-serif);font-size:19px;font-weight:600;line-height:1.25;letter-spacing:-.01em;color:var(--hf-ink)}
+.hf-next-mt{margin:0 0 13px;font-size:13px;font-weight:600;line-height:1.45;color:var(--hf-muted)}
+.hf-row{display:flex;align-items:center;flex-wrap:wrap;gap:13px}
+
+/* ===== C · NOTICIA que atraviesa (ligas): degradado MUY suave del tinte al blanco, emoji grande, título en serif.
+   Desvío decidido: con el avatar de quien la protagoniza y las reacciones de emoji. ===== */
+.hf-news{--hf-tint:#7F5300;--hf-tint-soft:#FFF3D9;--hf-tint-line:#F6E2B5;--hf-tint-ring:#F4B740;
+  position:relative;display:flex;align-items:center;gap:16px;padding:18px 20px;border-radius:18px;border:1px solid var(--hf-tint-line);background:linear-gradient(120deg,var(--hf-tint-soft) 0%,var(--hf-surface) 68%)}
+/* los colores de cada medalla: los mismos de la tabla de Ligas */
+.hf-news[data-tint="oro"]{--hf-tint:#7F5300;--hf-tint-soft:#FFF1D6;--hf-tint-line:#F2D9A8;--hf-tint-ring:#E8A317}
+.hf-news[data-tint="plata"]{--hf-tint:#4F5A73;--hf-tint-soft:#ECEFF5;--hf-tint-line:#D7DDE8;--hf-tint-ring:#9AA3B5}
+.hf-news[data-tint="bronce"]{--hf-tint:#8A4B1B;--hf-tint-soft:#FBE8D7;--hf-tint-line:#EFD3BC;--hf-tint-ring:#C07A43}
+/* recién entrada por la píldora */
+.hf-news.is-fresh{box-shadow:0 0 0 3px color-mix(in srgb,var(--hf-tint-ring) 26%,transparent)}
+.hf-news-x{position:absolute;top:12px;right:12px}
+.hf-big{position:relative;flex:none;width:60px;height:60px;border-radius:16px;display:grid;place-items:center;background:var(--hf-surface);border:1px solid var(--hf-tint-line)}
+.hf-big-em{font-size:32px;line-height:1}
+.hf-big .av3{position:absolute;right:-9px;bottom:-9px;box-shadow:0 0 0 2.5px var(--hf-surface)}
+.hf-nx{flex:1;min-width:0;padding-right:22px}
+.hf-news .hf-k{color:var(--hf-tint)}
+.hf-k-time{font-weight:700;opacity:.85}
+.hf-nt{margin:5px 0 3px;font-family:var(--hf-serif);font-size:20px;font-weight:600;line-height:1.25;letter-spacing:-.01em;color:var(--hf-ink);text-wrap:balance}
+.hf-nt b{font-weight:700}
+.hf-you{display:inline-block;margin-left:7px;padding:2px 7px;border-radius:999px;background:var(--hf-learn-2);color:#fff;font-family:var(--body);font-size:11px;font-weight:800;line-height:1.3;letter-spacing:0;vertical-align:3px}
+.hf-np{margin:0;font-size:13px;font-weight:600;line-height:1.45;color:var(--hf-muted)}
+.hf-act{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:12px}
+.hf-news .rchip{background:rgba(255,255,255,.85)}
+
+/* ===== D · BLOQUE DE VIDEOS (grilla inline) ===== */
+.hf-shelf{container-type:inline-size;padding:15px 16px 16px;border-radius:18px;background:var(--hf-surface);border:1px solid var(--hf-hair)}
+/* con 2 columnas (angosto: la grilla mide menos de 3×200 + 2×14) van 2 videos: el tercero quedaría solo en su fila
+   (el resto del tema está en "Ver todos") */
+@container (max-width:627.98px){ .hf-vgrid > li:nth-child(n+3){display:none} }
+.hf-shelf-h{display:flex;align-items:center;flex-wrap:wrap;gap:8px 9px;margin-bottom:12px}
+.hf-shelf-h > svg{flex:none;width:16px;height:16px;color:var(--hf-muted)}
+.hf-shelf-h h3{margin:0;font-size:14px;font-weight:800;color:var(--hf-ink)}
+.hf-co{font-size:12px;font-weight:700;color:var(--hf-faint);font-variant-numeric:tabular-nums}
+.hf-shelf-h .hf-why{margin-right:2px}
+.hf-tl{display:inline-flex;align-items:center;gap:4px;padding:2px 4px;margin:-2px -4px;border-radius:6px;font-size:12.5px;font-weight:800;color:var(--hf-learn)}
+.hf-tl svg{width:12px;height:12px;transition:transform .15s}
+.hf-tl:hover svg{transform:translateX(2px)}
+.hf-vgrid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.hf-vgrid > li{min-width:0}
+.hf-vid{display:block;width:100%;border-radius:11px;text-align:left}
+.hf-vthumb{position:relative;display:grid;place-items:center;aspect-ratio:16/9;border-radius:11px;overflow:hidden;background:#0E1220;border:1px solid var(--hf-hair)}
+.hf-vthumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hf-vpl{position:relative;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.94);color:var(--hf-learn);border:1px solid var(--hf-hair);transition:transform .15s}
+.hf-vpl svg{width:14px;height:14px;margin-left:2px}
+.hf-vid:hover .hf-vpl{transform:scale(1.07)}
+.hf-vt{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:8px 0 2px;font-size:13px;font-weight:700;line-height:1.28;color:var(--hf-ink)}
+.hf-vm{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;font-weight:600;color:var(--hf-muted)}
+
+/* ===== E · RESUMEN DE LA EDICIÓN: panel apenas hundido, display en serif ===== */
+.hf-sum{padding:16px 18px;border-radius:18px;background:var(--hf-surface-2);border:1px solid var(--hf-hair)}
+.hf-sum .hf-k{margin-bottom:4px;color:var(--hf-home-ink)}
+.hf-sum-t{margin:0;font-family:var(--hf-serif);font-size:18px;font-weight:600;letter-spacing:-.01em;color:var(--hf-ink)}
+.hf-sum-d{margin:3px 0 12px;font-size:12.5px;font-weight:600;line-height:1.45;color:var(--hf-muted)}
+.hf-mix{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.hf-mx{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;background:var(--hf-surface);border:1px solid var(--hf-hair);font-size:12.5px;font-weight:700;color:var(--hf-muted)}
+.hf-mx b{font-weight:800;color:var(--hf-ink);font-variant-numeric:tabular-nums}
+.hf-adapt{display:flex;align-items:center;gap:6px;margin:11px 0 0;font-size:11.5px;font-weight:700;color:var(--hf-faint)}
+.hf-adapt svg{flex:none;width:12px;height:12px;color:var(--hf-home)}
+
+/* ---- pie del hilo: "Ver más de antes" (lo pide el chico) → "Estás al día" ---- */
+.hf-endcap{display:grid;justify-items:center;padding:20px 16px 4px;text-align:center}
+.hf-more{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;border-radius:12px;border:1px solid var(--hf-line);background:var(--hf-surface);color:var(--hf-ink);font-size:13.5px;font-weight:800;transition:border-color .15s,background-color .15s}
+.hf-more svg{width:15px;height:15px;color:var(--hf-muted)}
+.hf-more:hover:not(:disabled){border-color:#C9D2E4;background:#FAFBFD}
+.hf-more:disabled{opacity:.7;cursor:progress}
+.hf-more-err{margin:8px 0 0;font-size:12.5px;font-weight:700;color:#B32D33}
+.hf-end-t{margin:0;font-family:var(--hf-serif);font-size:18px;font-weight:600;color:var(--hf-ink)}
+.hf-end-s{margin:3px 0 0;font-size:12.5px;font-weight:600;color:var(--hf-faint)}
+
+/* ---- sin datos / esqueletos ---- */
+.hf-empty{display:grid;justify-items:start;gap:10px;padding:18px;border-radius:16px;background:var(--hf-surface);border:1px solid var(--hf-hair)}
+.hf-empty p{margin:0;font-weight:700;color:var(--hf-muted)}
+.hf-sk{display:flex;flex-direction:column;gap:12px}
+.hf-sk-card{flex-direction:row;align-items:center;gap:13px}
+.hf-sk-card .ph-a{flex:none;width:78px;height:58px;border-radius:11px}
+.hf-sk-card .ph-b{flex:1;display:grid;gap:9px}
+.hf-sk-card .ph-b i:nth-child(1){width:30%;height:9px}
+.hf-sk-card .ph-b i:nth-child(2){width:80%;height:13px}
+.hf-sk-card .ph-b i:nth-child(3){width:50%;height:9px}
+
+/* ---- reacciones de emoji (noticias de amigos y de ligas) ---- */
+.rbar{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .rchip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;border:1px solid #E1E5EE;background:#FAFBFD;font-size:14px;transition:border-color .15s,background .15s,transform .1s}
 .rchip i{font-style:normal;font-size:12px;font-weight:800;color:#6A7390}
 .rchip:hover{border-color:#C9D2E4}
@@ -98,23 +261,8 @@ button.fcard:hover{border-color:#C9D2E4;box-shadow:0 10px 24px -20px rgba(27,34,
 .rchip.on{border-color:#13A39A;background:#E2F5F3}
 .rchip.on i{color:#0B6B66}
 
-/* MI noticia (la medalla del chico en el cierre de liga: la que ven sus amigos en su feed): celebratoria, con su avatar,
-   la pastilla "Vos" y los colores de SU medalla (los mismos de la tabla de Ligas y de la tarjeta de la liga) */
-.ffriend[data-mine]{--fmd:#E8A317;border-color:#F2D9A8;background:linear-gradient(135deg,#FFFBF0,#FFF2D3)}
-.ffriend[data-mine][data-medal="plata"]{--fmd:#9AA3B5;border-color:#D7DDE8;background:linear-gradient(135deg,#FAFBFD,#ECEFF5)}
-.ffriend[data-mine][data-medal="bronce"]{--fmd:#C07A43;border-color:#EFD3BC;background:linear-gradient(135deg,#FFF9F3,#FBE8D7)}
-.ffriend[data-mine] .rchip{background:rgba(255,255,255,.75)}
-.fyou{display:inline-block;margin-left:7px;padding:2px 7px;border-radius:999px;background:#3A5BD9;color:#fff;font-size:11px;font-weight:800;line-height:1.3;vertical-align:1px}
-.fev-medal{width:40px;height:40px;border-radius:50%;background:#fff;font-size:22px;line-height:1;box-shadow:0 0 0 2px var(--fmd),0 6px 14px -6px rgba(27,34,56,.45)}
-
-/* lo que acaba de entrar en vivo (botón de demo "Simular NPCs"): baja apenas y se marca un instante. Fill "backwards":
-   al terminar no queda pegado y el hover de las tarjetas-botón sigue funcionando */
-.fnew{animation:fnew-in .45s cubic-bezier(.2,.8,.3,1) backwards,fnew-mark 2.6s ease .2s backwards}
-@keyframes fnew-in{from{opacity:0;transform:translateY(-10px) scale(.985)}}
-@keyframes fnew-mark{from{box-shadow:0 0 0 2px #A9B9F6}to{box-shadow:0 0 0 2px rgba(169,185,246,0)}}
-
-/* botón de DEMO junto al saludo (docs/AGENTS.md regla 9): discreto, punteado y gris; no compite con el feed */
-.fdemo-wrap{display:grid;justify-items:end;gap:4px;padding-top:2px}
+/* ---- botón de DEMO junto al saludo (docs/AGENTS.md regla 9): discreto, punteado y gris; no compite con el feed ---- */
+.fdemo-wrap{display:grid;justify-items:end;gap:4px}
 .fdemo{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 13px 0 5px;border-radius:999px;border:1.5px dashed #C9D0DE;background:#fff;color:#6A7390;font-size:12.5px;font-weight:800;white-space:nowrap;transition:border-color .15s,color .15s,background .15s}
 .fdemo:hover:not(:disabled){border-color:#8A93AD;color:#1B2238;background:#FAFBFD}
 .fdemo:disabled{cursor:progress;color:#8A93AD}
@@ -124,58 +272,13 @@ button.fcard:hover{border-color:#C9D2E4;box-shadow:0 10px 24px -20px rgba(27,34,
 .fdemo-msg{min-height:16px;font-size:12px;font-weight:800;color:#0B6B66}
 .fdemo-msg.err{color:#B32D33}
 @media (prefers-reduced-motion: reduce){
-  .fnew{animation:fnew-mark 2.6s ease .2s backwards}
   .fdemo[aria-busy] .fdemo-ic{animation:none}
 }
 
-/* pie de lista */
-.fmore{justify-self:center;padding:11px 22px;border-radius:9px;border:1.5px solid #D9DEEA;background:#fff;font-weight:800;font-size:14px;color:#2843A8;transition:border-color .2s,background .2s}
-.fmore:hover{border-color:#3A5BD9;background:#F4F6FE}
-.fmore:disabled{opacity:.6}
-.fend{justify-self:center;margin:6px 0 20px;font-weight:800;color:#8A93AD}
-.fempty{display:grid;justify-items:start;gap:10px;background:#fff;border:1px solid #E6E9F1;border-radius:12px;padding:18px}
-.fempty p{margin:0;font-weight:700;color:#6A7390}
-
-/* esqueletos */
-.fsk{align-items:center}
-.fsk .ph-a{flex:none;width:168px;height:94px;border-radius:8px}
-.fsk.alt .ph-a{width:42px;height:42px;border-radius:50%}
-.fsk .ph-b{flex:1;display:grid;gap:9px}
-.fsk .ph-b i:nth-child(1){width:35%;height:9px}
-.fsk .ph-b i:nth-child(2){width:85%;height:14px}
-.fsk .ph-b i:nth-child(3){width:55%;height:9px}
-
-/* panel auxiliar derecho */
-.faside{position:sticky;top:0;display:grid;gap:14px}
-.hcard{background:#fff;border:1px solid #E6E9F1;border-radius:12px;padding:16px 18px;display:grid;gap:8px}
-.hcard h4{margin:0 0 2px;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6A7390}
-.htitle{font-size:15.5px;line-height:1.25}
-.hbar{display:block;height:8px;border-radius:4px;background:#EEF1F6;overflow:hidden}
-.hbar i{display:block;height:100%;background:#F26B3A;border-radius:4px}
-.hmeta{font-size:12.5px;font-weight:700;color:#8A93AD}
-.hbtn{display:inline-flex;align-items:center;justify-content:center;gap:6px;margin-top:4px;padding:10px 14px;border-radius:8px;background:#1B2238;color:#fff;font-weight:800;font-size:14px}
-.hbtn svg{width:15px;height:15px}
-.hbtn.ghost{background:#fff;border:1.5px solid #D9DEEA;color:#8A5A00}
-.hbtn.ghost:hover{border-color:#F2A81D;background:#FFFBF0}
-.hleague{display:flex;align-items:center;gap:12px}
-.hleague > div{display:grid;gap:2px;min-width:0}
-.hlname{display:flex;align-items:center;gap:7px;min-width:0}
-/* medallita del cierre pasado junto al nombre de la liga (mismos colores que la insignia de la tarjeta) */
-.hmedal{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#fff;font-size:14px;line-height:1;box-shadow:0 0 0 1.5px var(--hmd,#E8A317);cursor:default}
-.hmedal[data-medal="plata"]{--hmd:#9AA3B5}
-.hmedal[data-medal="bronce"]{--hmd:#C07A43}
-.hpos{white-space:nowrap}
-.hranks{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:2px 0 0}
-.hranks div{background:#F6F7FB;border-radius:8px;padding:8px 10px}
-.hranks dt{font-size:11px;font-weight:800;color:#8A93AD;text-transform:uppercase;letter-spacing:.05em}
-.hranks dd{margin:2px 0 0;font-family:var(--display);font-weight:800;font-size:17px}
-.hcup{flex:none;width:40px;height:40px;border-radius:9px;background:#FFF1D6;color:#B07A06;display:grid;place-items:center}
-.hcup svg{width:21px;height:21px}
-.htopics{display:flex;flex-wrap:wrap;gap:7px}
-.htopic{padding:7px 12px;border-radius:999px;border:1px solid #E1E5EE;background:#FAFBFD;font-weight:800;font-size:13px;color:#47506B;transition:border-color .15s,background .15s,color .15s}
-.htopic:hover{border-color:#13A39A;background:#E2F5F3;color:#0B6B66}
-
-@media (max-width:1100px){
-  .feed{grid-template-columns:minmax(0,1fr)}
-  .faside{position:static;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+/* ---- angosto ---- */
+@media (max-width:560px){
+  .hf-news{flex-direction:column;align-items:flex-start;padding:16px}
+  .hf-nx{padding-right:0}
+  .hf-vgrid{grid-template-columns:1fr 1fr;gap:10px}
+  .hf-th.is-video{width:88px;height:50px}
 }

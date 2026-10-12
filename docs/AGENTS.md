@@ -26,7 +26,7 @@ framework en `server/` (puerto 8787, proxy `/api` de Vite). El usuario demo es I
    comentario y el navegador descarta EN SILENCIO la regla que sigue (pasó de verdad con tokens de color).
    **Layout de página**: el ancho y la alineación los da `.view` (tokens `--content-w`/`--view-px`
    en base.css) — NINGUNA sección pone su propio max-width/margin:auto de página. Excepciones más
-   angostas SIEMPRE centradas en el mismo eje (video 760, lector 900, ejercicio 780). Una vista con
+   angostas SIEMPRE centradas en el mismo eje (video 760, lector 900, ejercicio 780, feed 780). Una vista con
    `padding:0` alinea sus barras con `var(--view-pad-x)`. Listas de filas en grid: `minmax(0,1fr)`.
 6. Drive: en la RAÍZ viven solo carpetas (lógica Windows/nube); los archivos siempre adentro de
    una carpeta; "General" es el destino por defecto. Carpetas todas con el MISMO ícono
@@ -44,7 +44,7 @@ framework en `server/` (puerto 8787, proxy `/api` de Vite). El usuario demo es I
    apagados del padre). AMIGOS YA NO ES SECCIÓN (12-oct): los amigos siguen existiendo — viven en el dock de Mensajes,
    se BUSCAN por nombre de usuario en Buscar y las solicitudes llegan como notificación destacada
    en la zona PINNEADA de arriba del Feed (tanda F2). `/practicar*` sigue vivo (entra el feed por
-   «Seguí practicando»); `/repasar*` no existe (redirige a /aprender). "Feed" es el feed, NO el
+   el hero "Seguí con <curso>" del hilo v6); `/repasar*` no existe (redirige a /aprender). "Feed" es el feed, NO el
    chat. Si cambiás rutas, dejá redirecciones de las viejas.
 9. **La economía del demo vive en RAM** (pedido de Esteban): XP/Energy Coin/canjes NO se persisten
    a disco; cada carga de página hace POST /api/demo/reset (ver src/hooks/user.tsx) y todo vuelve a

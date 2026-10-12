@@ -27,6 +27,8 @@
 //   POST /api/parent/topics {white?, black?}      → ParentTopics  (cada lista que viene REEMPLAZA a la anterior)
 //   POST /api/parent/words {extra}                → ParentWords   (reemplaza la lista de la familia)
 //   POST /api/parent/volume {maxMusic?, maxNoise?}→ ParentVolume
+//   POST /api/parent/feed-motion {motion}         → {feedMotion}  (dial de animación del Feed del chico: calmo/normal/vivo;
+//                                                   viaja en cada GET /api/feed como FeedResponse.motion)
 //   GET  /api/parent/alerts                       → {alerts: ParentAlert[]}  (el más nuevo primero)
 //   POST /api/parent/alerts/seen {id}             → {ok}
 //   GET  /api/parent/presets                      → {presets: ParentPreset[], current}
@@ -42,7 +44,8 @@
 // estira). Reiniciar el server las cierra todas. Tope de sesiones abiertas a la vez: se cae la más vieja.
 //
 // PERSISTENCIA: server/data/parent.json = CONFIG del padre (regla 9: la config persiste; la ECONOMÍA no): on-off,
-// premios, temas, palabras de la familia, topes de volumen y el preset aplicado. Los canjes, el saldo y el stock
+// premios, temas, palabras de la familia, topes de volumen, el preset aplicado y el dial de animación del Feed
+// (`feedMotion`, Feed v6: un parent.json sin el campo vale 'normal' y NO se reescribe por eso). Los canjes, el saldo y el stock
 // consumido siguen en RAM (market.ts / progress.ts). Los AVISOS también viven en RAM (no se registran en
 // /api/demo/reset: se pierden solo si se reinicia el server). Escritura atómica (tmp + rename, como space.ts) e
 // INMEDIATA, sin debounce a propósito: son pocos cambios y un reinicio de tsx watch justo después no puede perderlos.
@@ -85,11 +88,17 @@ export interface ParentItem {
 export interface ParentTopics { white: string[]; black: string[] }
 /** Topes de volumen (0-100) que la música y los ruidos de fondo del chico no pueden superar. */
 export interface ParentVolume { maxMusic: number; maxNoise: number }
+/** Dial de animación del Feed del chico (Feed v6): calma / normal / viva. El movimiento reducido del sistema fuerza
+ *  'calmo' en el cliente aunque acá diga otra cosa. */
+export const FEED_MOTIONS = ['calmo', 'normal', 'vivo'] as const
+export type FeedMotion = (typeof FEED_MOTIONS)[number]
+const isFeedMotion = (v: unknown): v is FeedMotion => typeof v === 'string' && (FEED_MOTIONS as readonly string[]).includes(v)
 export type AlertKind = 'crisis' | 'contacto' | 'bloqueos'
 interface ParentStore {
   version: 2; seq: number; features: ParentFeatures; items: ParentItem[]; /** sha256 hex del PIN */ pinHash: string
   topics: ParentTopics; /** palabras bloqueadas de la familia (se suman a las de fábrica) */ extraWords: string[]
   volume: ParentVolume; /** id del preset aplicado; null = configuración propia (se editó algo a mano) */ preset: string | null
+  /** Dial de animación del Feed (default 'normal'; aditivo: un archivo sin el campo NO se migra por eso) */ feedMotion: FeedMotion
 }
 
 const FILE = join(SERVER_ROOT, 'data', 'parent.json')
@@ -155,7 +164,7 @@ function seed(): ParentStore {
   return {
     version: 2, seq: SEED_ITEMS.length + 1, features: allFeatures(true),
     items: SEED_ITEMS.map((s, i) => ({ id: i + 1, ...s, archived: false, createdAt: now })), pinHash: DEMO_PIN_HASH,
-    topics: noTopics(), extraWords: [], volume: fullVolume(), preset: null,
+    topics: noTopics(), extraWords: [], volume: fullVolume(), preset: null, feedMotion: 'normal',
   }
 }
 
@@ -291,6 +300,8 @@ function sanitize(raw: unknown): ParentStore {
     extraWords: sanitizeTerms(r.extraWords, 'palabra', TERMS.words),
     volume: sanitizeVolume(r.volume),
     preset: typeof r.preset === 'string' && PRESETS.some(p => p.id === r.preset) ? r.preset : null,
+    // Feed v6 (aditivo con default; no entra en V2_FIELDS: su falta no reescribe el archivo)
+    feedMotion: isFeedMotion(r.feedMotion) ? r.feedMotion : 'normal',
   }
 }
 const V2_FIELDS = ['topics', 'extraWords', 'volume', 'preset'] as const
@@ -316,7 +327,7 @@ function load(): ParentStore {
     // vuelve al del demo (si no, nadie podría entrar a la Zona de padres a prender las cosas de nuevo).
     console.error('[parent] parent.json ilegible → arranco CERRADO (todo apagado, sin premios); copia en .roto-*:', e)
     try { renameSync(FILE, `${FILE}.roto-${Date.now()}`) } catch { /* sin copia: seguimos igual */ }
-    const s: ParentStore = { version: 2, seq: 1, features: allFeatures(false), items: [], pinHash: DEMO_PIN_HASH, topics: noTopics(), extraWords: [], volume: fullVolume(), preset: null }
+    const s: ParentStore = { version: 2, seq: 1, features: allFeatures(false), items: [], pinHash: DEMO_PIN_HASH, topics: noTopics(), extraWords: [], volume: fullVolume(), preset: null, feedMotion: 'normal' }
     writeAtomic(s) // si no, el próximo arranque vería "sin archivo" y sembraría todo prendido
     return s
   }
@@ -357,6 +368,8 @@ export const blackTopicsAll = (): Topic[] => withFamily(blackTopics(), store.top
 export const whiteTopicsAll = (): Topic[] => withFamily(whiteTopics(), store.topics.white, 'blanca')
 /** Topes de volumen vigentes (también los sirve GET /api/parent/limits, público). */
 export const volumeLimits = (): ParentVolume => ({ ...store.volume })
+/** Dial de animación del Feed vigente (feedFake lo manda en cada GET /api/feed: FeedResponse.motion). */
+export const feedMotion = (): FeedMotion => store.feedMotion
 
 /** ¿El texto "pega" con alguno de estos temas? Determinístico (sin modelo) para el feed: todas las palabras con
  *  contenido del tema tienen que aparecer en el texto como palabra entera, sin tildes ni mayúsculas y tolerando el
@@ -552,9 +565,18 @@ function setVolume(b: Input): Check<ParentVolume> {
   console.log(`[parent] topes de volumen → música ${next.maxMusic} · ruidos ${next.maxNoise}`)
   return save() ? { ok: true, value: volumeLimits() } : fail('No pude guardar los topes. Probá de nuevo.')
 }
+/** Dial de animación del Feed (patrón de los topes: valida, guarda al toque y rige en el próximo GET del feed). Los
+ *  presets no dicen nada de la animación, así que moverlo NO deja la configuración como "propia" (no toca el preset). */
+function setFeedMotion(b: Input): Check<FeedMotion> {
+  if (!isFeedMotion(b.motion)) return fail(`La animación tiene que ser una de: ${FEED_MOTIONS.join(', ')}.`)
+  if (b.motion === store.feedMotion) return { ok: true, value: store.feedMotion }
+  store.feedMotion = b.motion
+  console.log(`[parent] animación del Feed → ${store.feedMotion}`)
+  return save() ? { ok: true, value: store.feedMotion } : fail('No pude guardar la animación. Probá de nuevo.')
+}
 
 const wordsView = () => ({ extra: [...store.extraWords], builtin: config.blockedWords.length })
-const configView = () => ({ topics: familyTopics(), words: wordsView(), volume: volumeLimits(), preset: store.preset })
+const configView = () => ({ topics: familyTopics(), words: wordsView(), volume: volumeLimits(), preset: store.preset, feedMotion: store.feedMotion })
 const presetView = (p: PresetDef) => ({
   id: p.id, name: p.name, desc: p.desc,
   // aditivo (ver cabecera): lo que deja configurado, para que el panel muestre qué prende y qué apaga
@@ -607,6 +629,7 @@ const GETS = new Set(['/api/parent/features', '/api/parent/limits', '/api/parent
 const POSTS = new Set([
   '/api/parent/unlock', '/api/parent/lock', '/api/parent/features', '/api/parent/items', '/api/parent/items/update', '/api/parent/items/archive',
   '/api/parent/deliver', '/api/parent/topics', '/api/parent/words', '/api/parent/volume', '/api/parent/alerts/seen', '/api/parent/presets/apply',
+  '/api/parent/feed-motion',
 ])
 const NO_SESSION = { error: 'La sesión de la Zona de padres venció o no es válida: ingresá el PIN de nuevo.' }
 
@@ -687,6 +710,10 @@ export async function parentRoutes(req: IncomingMessage, res: ServerResponse, ur
     case '/api/parent/volume': {
       const r = setVolume(b)
       return r.ok ? send(res, 200, r.value) : send(res, 400, { error: r.error })
+    }
+    case '/api/parent/feed-motion': {
+      const r = setFeedMotion(b)
+      return r.ok ? send(res, 200, { feedMotion: r.value }) : send(res, 400, { error: r.error })
     }
     case '/api/parent/alerts/seen': {
       const id = parseId(b)

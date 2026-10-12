@@ -1,7 +1,7 @@
 import type { AssignedLeague, CloseWeekResult } from '../../../api/types';
 
 /** Ciclo semanal de la liga (VISION §7, capa 4): cómo se nombran el cierre y las medallas.
- *  Lo usan el hero de Ligas y el aside del feed, así los dos dicen lo mismo con las mismas palabras. */
+ *  Lo usan el hero de Ligas y las noticias de liga del Feed, así los dos dicen lo mismo con las mismas palabras. */
 export type Medal = NonNullable<NonNullable<AssignedLeague['lastWeek']>['medal']>;
 
 export const MEDAL_INFO: Record<Medal, { emoji: string; name: string; pos: number }> = {

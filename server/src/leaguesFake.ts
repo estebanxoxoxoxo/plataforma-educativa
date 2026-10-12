@@ -263,13 +263,6 @@ export function geoRanking(scope: Scope) {
   }
 }
 
-/** Lo que muestra la barra lateral del feed: los MISMOS números que la página de Ligas (y la MISMA medalla del cierre
- *  pasado que su estandarte). */
-export function leagueSidebar() {
-  const xp = weekXp(), l = myLeague()
-  return { name: l.name, pos: l.pos, total: l.total, zone: { name: GEO.zona.name, pos: geoPos('zona', xp) }, country: { name: GEO.pais.name, pos: geoPos('pais', xp) }, medal: l.lastWeek?.medal ?? null }
-}
-
 /* ---------- cierre de semana (demo) ---------- */
 /** XP de arranque de una semana nueva: chicas y variadas (0-90). Uno o dos todavía no arrancaron; nadie repite número. */
 function startXps(r: () => number): number[] {

@@ -1,58 +1,74 @@
-// ============================== SERVER FAKE DEL FEED ==============================
-// El backend real del feed (algoritmo de recomendación del padre + intereses del chico,
-// eventos sociales reales) TODAVÍA NO EXISTE — ver docs/VISION.md §3 "Feed".
-// Este módulo lo simula para que la UI quede como esqueleto definitivo:
-//   - Los ítems de VIDEO salen del catálogo aprobado real (se pueden abrir y reproducir).
-//   - Las LECTURAS son URLs reales de sitios de la lista blanca (pasan por el lector moderado).
-//   - Los eventos de AMIGOS salen de friendsFake (friendNews): los NPCs del demo son UNA sola lista de amigos en todo el
-//     sistema (mismos nicks y colores que la sección Amigos, y cada NPC "sabe" lo que publicó). Las reacciones son datos
-//     de demo en memoria. Las medallas y ascensos de los amigos se fechan en el último cierre de liga (lastCloseLabel):
-//     se reparten el domingo, no a cualquier hora.
-//   - La noticia de MI LIGA cuenta el ciclo semanal: cómo me fue en el cierre pasado (lastWeek/lastClose de leaguesFake,
-//     la MISMA medalla que el estandarte de Ligas y el aside) + dónde compito esta semana. Se arma al servir, no se duplica.
-//   - La barra lateral NO es demo: liga/zona/país salen de leaguesFake (con la XP real de ./progress) y "Seguí
-//     practicando" del progreso real + el recorrido real de Practicar: los MISMOS números que Ligas y Practicar.
-//   - Los TEMAS DE LA FAMILIA (Zona del padre v2) se aplican acá EN SERIO: lo que pega con un tema NEGRO no se sirve
-//     (videos, lecturas, rutas, noticias de amigos y temas del costado). Los BLANCOS son "las sugerencias del padre"
-//     (audio 8: guían, no dirigen): uno de cada tres videos sale de ellos (el primero incluido, como mucho 2 por tema) y
-//     lo que pega con alguno en el título dice "Porque a tu familia le interesa: …". Las PALABRAS de la familia también
-//     sacan lo que las trae. El armado se rehace cuando cambian esos temas o palabras.
-//   - DEMO VIVO (RAM, docs/AGENTS.md regla 9): lo que entra en vivo va ARRIBA del feed, del más nuevo al más viejo, y pasa
-//     por los MISMOS filtros vivos de la familia al servirse:
-//       · injectLeagueClose(): las noticias del cierre simulado de liga (lo orquesta leaguesFake.closeWeek): la medalla de
-//         Ian (la que ven sus amigos), la tarjeta de la liga de la semana nueva y el podio de su tabla.
-//       · simulateNpcs() (botón "Simular NPCs" de Home): una ráfaga de 4-6 noticias frescas de los NPCs del demo.
-//     Después de un cierre, lo de semanas anteriores se fecha por semanas ("la semana pasada"). resetFeed() vuelve al seed.
-// Para conectar el backend real: reemplazar getFeed()/reactFeed() manteniendo las formas.
-import { whiteTopics } from './config'
+// ============================== SERVER FAKE DEL FEED (modelo v6: "un hilo, muchos estilos") ==============================
+// El backend real del feed (algoritmo de recomendación del padre + intereses del chico, eventos sociales reales)
+// TODAVÍA NO EXISTE — ver docs/VISION.md §3 "Feed". Este módulo lo simula para que la UI quede como esqueleto definitivo,
+// con las formas del contrato Feed v6 (src/api/types.ts; mock fuente: smarty-poc/docs/feed-mocks/v6-hilo-unico.html):
+//   - UNA EDICIÓN FINITA. La MEZCLA es del server (plantilla editorial por franja del día, no un sort). Primera página:
+//       [ 'next' (el hero: SIEMPRE la siguiente mejor acción de APRENDIZAJE —jamás comercio—, del progreso real),
+//         lo que entró en vivo (noticias frescas, lo más nuevo primero),
+//         la edición sembrada: noticia de amigos → 1-2 "para vos" (lectura/ruta) → la grilla 'videos' → más social →
+//         el 'summary' (que CONFIESA la mezcla y cómo cambia con la hora) → el resto ].
+//     Las páginas siguientes siguen la edición, más vieja, sin hero ni resumen; la última trae next=null ("Estás al día").
+//     El cursor es la posición en la edición sembrada: lo que entra en vivo va siempre arriba de la primera página, así
+//     una ráfaga nueva no corre las páginas que el chico ya pidió.
+//   - FRANJA DEL DÍA (hora REAL del server, 6/13/20 h; el subtítulo del Feed usa los mismos cortes): mañana = más para
+//     aprender (lecturas y rutas primero) · tarde = más para explorar (videos antes) · noche = más tranquila (videos de
+//     hasta 6 min y el hero como repaso sin apuro). El resumen lo dice así y avisa qué viene después: es verdad.
+//   - Cada ítem trae su "por qué" (`reason`) en lenguaje de chico, en el eje de SU interés ("Porque te gustan los
+//     dinosaurios", "TomiCohete es tu amigo", "Tu liga").
+//   - Los VIDEOS salen del catálogo aprobado real (se pueden abrir y reproducir); las LECTURAS son URLs reales de sitios de
+//     la lista blanca (pasan por el lector moderado). La grilla 'videos' son 3 del tema del chico + el total REAL de ese
+//     tema en el buscador (su "Ver todos" lleva ahí). DESVÍO DELIBERADO (tanda v6): los temas de chico del armado ya NO
+//     incluyen los temas blancos de fábrica de config.json — esos son lo que el CHAT puede tratar si el chico pregunta
+//     (hoy, educación sexual: "feto", "óvulos"…), no intereses para empujarle en la home sin un "por qué" honesto.
+//   - Los eventos de AMIGOS salen de friendsFake (friendNews): los NPCs del demo son UNA sola lista en todo el sistema
+//     (mismos nicks y colores, y cada NPC "sabe" lo que publicó). Las reacciones son datos de demo en memoria. Las medallas
+//     y ascensos (y la tarjeta de la liga de la semana) se fechan en el último cierre de liga (lastCloseLabel) y entran en
+//     la edición donde les toca por antigüedad: se reparten el domingo, no a cualquier hora.
+//   - La noticia de MI LIGA cuenta el ciclo semanal: cómo me fue en el cierre pasado (lastWeek/lastClose de leaguesFake)
+//     + dónde compito esta semana. Se arma al servir, no se duplica.
+//   - La CONFIG DEL PADRE se aplica acá EN SERIO: lo que pega con un tema NEGRO o trae una palabra de la familia no se
+//     sirve; los temas BLANCOS de la familia son "sus sugerencias" (guían, no dirigen: 1 de cada 3 videos, "Porque a tu
+//     familia le interesa: …"); con Amigos apagado no hay nada social y con Ligas apagado nada de ligas (ni en vivo); con
+//     la Tienda apagada no se nombra la moneda. El dial de animación del Feed (parent.feedMotion) viaja en cada respuesta.
+//   - DEMO VIVO (RAM, docs/AGENTS.md regla 9): lo que entra en vivo pasa por los MISMOS filtros vivos al servirse:
+//       · injectLeagueClose(): las noticias del cierre simulado de liga (lo orquesta leaguesFake.closeWeek).
+//       · simulateNpcs() (botón "Simular NPCs" del Feed): una ráfaga de 4-6 noticias frescas de los NPCs del demo. El
+//         cliente NO las mete solo: muestra la píldora "N novedades ↑" y las trae cuando el chico la toca.
+//       · feedLess(): "Ver menos de esto" — los ids ocultos se filtran de TODAS las respuestas siguientes (reversible).
+//     Después de un cierre, lo de semanas anteriores se fecha por semanas. resetFeed() vuelve al seed (va en /api/demo/reset).
+// Para conectar el backend real: reemplazar getFeed()/reactFeed()/feedLess() manteniendo las formas.
 import { friendNews } from './friendsFake'
 import {
-  cycleWeek, hashOf, lastClose, lastCloseLabel, leagueSidebar, MEDAL_EMOJI, myLeague, npcPractice, rng, shuffle, sinceLabel, weeksAgoLabel,
+  cycleWeek, hashOf, lastClose, lastCloseLabel, MEDAL_EMOJI, myLeague, npcPractice, rng, shuffle, sinceLabel, weeksAgoLabel,
   type CloseNews, type Medal, type NpcRace,
 } from './leaguesFake'
 import { matchBlockedWord } from './filters'
-import { familyBlockedTerms, familyTopics, featureOn, topicHit } from './parent'
+import { familyBlockedTerms, familyTopics, featureOn, feedMotion, topicHit, type FeedMotion } from './parent'
 import { practiceSummary } from './practice'
 import { summary } from './progress'
 import { searchVideos, toVideoResult, type CatalogVideo } from './videos'
 
 type VideoCard = ReturnType<typeof toVideoResult>
 export interface FeedReaction { emoji: string; count: number; mine: boolean }
+type NewsIcon = 'medal' | 'streak' | 'badge' | 'route' | 'league'
+type RouteCourse = { id: string; name: string; units: number; img: string; bg: [string, string] }
 export type FeedItem =
   | { kind: 'video'; id: string; time: string; reason: string; video: VideoCard }
   | { kind: 'article'; id: string; time: string; reason: string; title: string; url: string; source: string; snippet?: string }
-  | { kind: 'route'; id: string; time: string; reason: string; course: { id: string; name: string; units: number; img: string; bg: [string, string] } }
-  | { kind: 'friend'; id: string; time: string; friend: { nick: string; color: string }; text: string; icon: 'medal' | 'streak' | 'badge' | 'route' | 'league'; reactions: FeedReaction[] }
-  | { kind: 'league'; id: string; time: string; name: string; desc: string }
-type NewsIcon = Extract<FeedItem, { kind: 'friend' }>['icon']
-type RouteCourse = Extract<FeedItem, { kind: 'route' }>['course']
-export interface FeedSidebar {
-  /** Liga ASIGNADA por los resultados del chico + puestos por puntaje (zona y país). */
-  league: { name: string; pos: number; total: number; zone: { name: string; pos: number }; country: { name: string; pos: number }; medal?: Medal | null }
-  continue: { courseId: string; title: string; done: number; total: number }
-  topics: string[]
-}
-export interface FeedResponse { items: FeedItem[]; next: string | null; sidebar?: FeedSidebar }
+  | { kind: 'route'; id: string; time: string; reason: string; course: RouteCourse }
+  | { kind: 'friend'; id: string; time: string; reason?: string; friend: { nick: string; color: string }; text: string; icon: NewsIcon; reactions: FeedReaction[] }
+  | { kind: 'league'; id: string; time: string; reason?: string; name: string; desc: string }
+  /** "Fijado · tu siguiente paso": el hero de la edición (aprendizaje, jamás comercio). */
+  | { kind: 'next'; id: string; time: string; reason: string; title: string; meta: string; action: { label: string; to: string } }
+  /** Grilla de videos inline. `topic` = ADITIVO (pendiente de formalizar en src/api/types.ts por el coordinador): el
+   *  tema de la grilla, para que "Ver todos" lleve a /buscar?tab=videos&q=<topic>. */
+  | { kind: 'videos'; id: string; time: string; reason: string; title: string; total: number; videos: VideoCard[]; topic?: string }
+  /** Resumen de la edición: la mezcla CONTADA de lo servido y cómo cambia con la hora. */
+  | { kind: 'summary'; id: string; title: string; desc: string; mix: { label: string; n: number }[]; later: string }
+type Of<K extends FeedItem['kind']> = Extract<FeedItem, { kind: K }>
+export interface FeedResponse { items: FeedItem[]; next: string | null; motion: FeedMotion }
+/** El mismo ítem con otro "hace cuánto" (el resumen no tiene). */
+const withTime = (it: FeedItem, time: string): FeedItem => (it.kind === 'summary' ? it : { ...it, time })
 
 /* ---------- reacciones (en memoria; por ítem de amigo) ---------- */
 const EMOJIS = ['👏', '🎉', '💪', '🤩']
@@ -71,16 +87,60 @@ export function reactFeed(id: string, emoji: string): { id: string; reactions: F
   return { id, reactions: arr.map(x => ({ ...x })) }
 }
 
+/* ---------- "Ver menos de esto" (v6; RAM del demo) ---------- */
+/** Ids que el chico pidió ver menos: no salen en NINGUNA respuesta siguiente hasta que lo deshaga (o se resetee el demo). */
+const hidden = new Set<string>()
+const MAX_HIDDEN = 500
+/** Forma de los ids del feed (fv-<videoId>, fa-3, ff-2, fx-12, fl-cometa…): lo demás no se guarda. */
+const FEED_ID = /^[\w.:-]{1,80}$/
+/** POST /api/feed/less {id, undo} → {ok}. FAKE: el algoritmo real aprendería "menos de esto"; acá se oculta ese ítem.
+ *  PENDIENTE (coordinador): enrutarlo en server/src/index.ts (este módulo no tiene router propio). */
+export function feedLess(id: string, undo = false): { ok: boolean } {
+  if (!FEED_ID.test(id)) return { ok: false }
+  if (undo) hidden.delete(id)
+  else if (hidden.size < MAX_HIDDEN) hidden.add(id)
+  console.log(`[feed] ver menos${undo ? ' (deshecho)' : ''}: ${id}`)
+  return { ok: true }
+}
+
+/* ---------- "por qué": en el eje del interés del chico (mock v6) ---------- */
+/** Los temas de chico con los que se arma la edición (las sugerencias de la familia van aparte). Ver el DESVÍO de la
+ *  cabecera: no salen de los temas blancos de fábrica del chat. */
+const INTERESTS = ['el sistema solar', 'dinosaurios', 'volcanes', 'tiburones', 'inventos', 'robots', 'la luna', 'experimentos para niños', 'fracciones']
+const TOPIC_WHY: Record<string, string> = {
+  'el sistema solar': 'Porque te interesa el espacio',
+  'el espacio': 'Porque te interesa el espacio',
+  'la luna': 'Porque te interesa el espacio',
+  dinosaurios: 'Porque te gustan los dinosaurios',
+  volcanes: 'Porque te copan los volcanes',
+  tiburones: 'Porque te gustan los animales del mar',
+  inventos: 'Porque te gusta saber cómo se inventan las cosas',
+  robots: 'Porque te gustan los robots',
+  'experimentos para niños': 'Porque te gusta experimentar',
+  fracciones: 'Para jugar con fracciones mirando',
+}
+const kidWhy = (topic: string) => TOPIC_WHY[topic] ?? `Porque te interesa: ${topic}`
+/** El motivo de una sugerencia de la familia (tema blanco de la Zona de padres). */
+const familyReason = (t: string) => `Porque a tu familia le interesa: ${t}`
+/** Los amigos de Ian (MISMOS nicks que friendsFake —ese módulo no se toca: van como datos acá—) y cómo se cuenta por qué
+ *  aparece lo suyo. NicoRobot es el de la solicitud de amistad: puede no ser amigo todavía, pero hace Fracciones como Ian. */
+const NPC_WHY: Record<string, string> = {
+  TomiCohete: 'TomiCohete es tu amigo', LuliVolcan: 'LuliVolcan es tu amiga', MateoDino: 'MateoDino es tu amigo',
+  CataEstrella: 'CataEstrella es tu amiga', JuanchiRayo: 'JuanchiRayo es tu amigo', MartuLuna: 'MartuLuna es tu amiga',
+  NicoRobot: 'NicoRobot hace Fracciones como vos',
+}
+const npcWhy = (nick: string) => NPC_WHY[nick] ?? 'Es de tus amigos'
+
 /* ---------- pools de demo ---------- */
 // Noticias de amigos: NO viven acá — las publica cada NPC en friendsFake (friendNews(), en el orden de intercalado).
 // Lecturas: URLs reales de la lista blanca (verificadas con el lector moderado).
-const ARTICLES: { title: string; url: string; source: string; snippet: string; reason: string }[] = [
-  { title: 'Apolo 11: el viaje a la Luna', url: 'https://es.wikipedia.org/wiki/Apolo_11', source: 'es.wikipedia.org', snippet: 'La misión que llevó a los primeros seres humanos a pisar la Luna, en julio de 1969.', reason: 'el espacio' },
-  { title: 'Cómo es nuestro sol con respecto a otras estrellas', url: 'https://spaceplace.nasa.gov/sun-compare/sp/', source: 'NASA Space Place', snippet: 'Nuestro sol es impresionante, pero ¿cómo se compara con las demás estrellas de la galaxia?', reason: 'el espacio' },
-  { title: 'Estrellas fugaces', url: 'https://www.esa.int/kids/es/Aprende/Nuestro_Universo/Cometas_y_meteoritos/Estrellas_fugaces', source: 'ESA Kids', snippet: '¿Qué son en realidad las estrellas fugaces y por qué aparecen en lluvias?', reason: 'el espacio' },
-  { title: 'El cinturón de asteroides', url: 'https://es.wikipedia.org/wiki/Cintur%C3%B3n_de_asteroides', source: 'es.wikipedia.org', snippet: 'Entre Marte y Júpiter hay millones de rocas girando alrededor del Sol.', reason: 'el espacio' },
-  { title: '¿Qué es un cometa?', url: 'https://concepto.de/cometas/', source: 'concepto.de', snippet: 'Cuerpos celestes con núcleo de hielo y polvo que desarrollan una cola brillante.', reason: 'el espacio' },
-  { title: 'La Vía Láctea', url: 'https://es.wikipedia.org/wiki/V%C3%ADa_L%C3%A1ctea', source: 'es.wikipedia.org', snippet: 'La galaxia espiral donde vive el sistema solar, con cientos de miles de millones de estrellas.', reason: 'el espacio' },
+const ARTICLES: { title: string; url: string; source: string; snippet: string; topic: string }[] = [
+  { title: 'Apolo 11: el viaje a la Luna', url: 'https://es.wikipedia.org/wiki/Apolo_11', source: 'es.wikipedia.org', snippet: 'La misión que llevó a los primeros seres humanos a pisar la Luna, en julio de 1969.', topic: 'el espacio' },
+  { title: 'Cómo es nuestro sol con respecto a otras estrellas', url: 'https://spaceplace.nasa.gov/sun-compare/sp/', source: 'NASA Space Place', snippet: 'Nuestro sol es impresionante, pero ¿cómo se compara con las demás estrellas de la galaxia?', topic: 'el espacio' },
+  { title: 'Estrellas fugaces', url: 'https://www.esa.int/kids/es/Aprende/Nuestro_Universo/Cometas_y_meteoritos/Estrellas_fugaces', source: 'ESA Kids', snippet: '¿Qué son en realidad las estrellas fugaces y por qué aparecen en lluvias?', topic: 'el espacio' },
+  { title: 'El cinturón de asteroides', url: 'https://es.wikipedia.org/wiki/Cintur%C3%B3n_de_asteroides', source: 'es.wikipedia.org', snippet: 'Entre Marte y Júpiter hay millones de rocas girando alrededor del Sol.', topic: 'el espacio' },
+  { title: '¿Qué es un cometa?', url: 'https://concepto.de/cometas/', source: 'concepto.de', snippet: 'Cuerpos celestes con núcleo de hielo y polvo que desarrollan una cola brillante.', topic: 'el espacio' },
+  { title: 'La Vía Láctea', url: 'https://es.wikipedia.org/wiki/V%C3%ADa_L%C3%A1ctea', source: 'es.wikipedia.org', snippet: 'La galaxia espiral donde vive el sistema solar, con cientos de miles de millones de estrellas.', topic: 'el espacio' },
 ]
 // Rutas recomendadas: los cursos existentes (mismo arte que la UI).
 const ROUTES: RouteCourse[] = [
@@ -89,7 +149,21 @@ const ROUTES: RouteCourse[] = [
   { id: 'body', name: 'Mi cuerpo', units: 5, img: 'c_body', bg: ['#E5487A', '#9E2350'] },
   { id: 'frac', name: 'Fracciones', units: 7, img: 'c_fractions', bg: ['#F26B3A', '#B8431C'] },
 ]
+const ROUTE_WHY: Record<string, string> = {
+  solar: 'Porque te interesa el espacio', ocean: 'Porque te gustan los animales del mar', body: 'Para conocer cómo funciona tu cuerpo',
+  frac: 'Para seguir jugando con los números', eng: 'Para sumar palabras en inglés',
+}
+/** El tema de videos de cada curso (la grilla acompaña la ruta que el chico tiene en curso). */
+const COURSE_TOPIC: Record<string, string> = { solar: 'el sistema solar', ocean: 'animales del océano', body: 'órganos del cuerpo', frac: 'fracciones', eng: 'inglés para niños' }
 const timeOf = (i: number) => (i < 2 ? 'hace 1 h' : i < 4 ? 'hace 3 h' : i < 8 ? 'hoy' : i < 13 ? 'ayer' : i < 19 ? 'hace 2 días' : 'esta semana')
+/** La misma escala en horas (para ubicar lo que se repartió en el cierre de liga). */
+const ageOf = (i: number) => (i < 2 ? 1 : i < 4 ? 3 : i < 8 ? 8 : i < 13 ? 30 : i < 19 ? 54 : 100)
+/** Cada unidad de Practicar cierra con un trofeo de +30 (XP y ⚡ 1:1): el MISMO valor que XP.trophy de practice.ts. */
+const TROPHY_EC = 30
+/** "Videos cortitos" de la edición de la noche. */
+const SHORT_SEC = 6 * 60
+/** Las noticias de amigos que en realidad son de ligas (medallas, ascensos): se reparten en el cierre. */
+const LEAGUEISH: ReadonlySet<NewsIcon> = new Set<NewsIcon>(['medal', 'league'])
 
 /** La noticia de MI liga: el ciclo completo. Semana del seed, con medalla en el cierre pasado →
  *  "🥈 ¡La semana pasada saliste 2º en la Liga Cometa! Esta semana competís con otros 11 chicos de tu nivel. Cierra el domingo."
@@ -109,125 +183,244 @@ function leagueNews(): { name: string; desc: string } {
   if (lw) return { name: l.name, desc: `La semana pasada saliste ${lw.pos}º en la ${l.name}. Esta semana ${others}. ${closes}` }
   return { name: l.name, desc: `Por tus resultados, esta semana ${others}. ${closes}` }
 }
+const LEAGUE_WHY = 'Te la asignaron por tus resultados'
 
-/* ---------- armado (una vez por proceso y cada vez que la familia cambia sus temas) ---------- */
-let built: FeedItem[] | null = null
-let builtFor = ''
-let topicsUsed: string[] = []
-/** El motivo de una sugerencia de la familia (tema blanco de la Zona de padres). */
-const familyReason = (t: string) => `Porque a tu familia le interesa: ${t}`
+/* ---------- armado de los pools (una vez por proceso y cada vez que la familia cambia sus temas o palabras) ---------- */
+interface PoolVideo { video: VideoCard; reason: string }
+interface Pool {
+  /** Videos del día (1-25 min) y los de la noche (hasta 6 min), cada uno con su "por qué". */
+  vids: PoolVideo[]; short: PoolVideo[]
+  arts: { n: number; title: string; url: string; source: string; snippet: string; reason: string }[]
+  routes: { course: RouteCourse; reason: string }[]
+  news: { n: number; friend: { nick: string; color: string }; text: string; icon: NewsIcon }[]
+}
+let pool: Pool | null = null
+let poolFor = ''
 /** Lo que la familia no quiere ver: pega con uno de sus temas NEGROS o trae una de sus palabras (fail-closed). */
 function familyFilter(): (text: string) => boolean {
   const fam = familyTopics(), famTerms = familyBlockedTerms()
   return (text: string) => topicHit(text, fam.black) !== null || matchBlockedWord(text, famTerms) !== null
 }
-function build(): FeedItem[] {
+const videoText = (v: CatalogVideo) => `${v.title} ${v.channelTitle} ${v.tags.join(' ')} ${v.description.slice(0, 300)}`
+function build(): Pool {
   const fam = familyTopics()
   const famTerms = familyBlockedTerms()
   const key = JSON.stringify([fam, famTerms])
-  if (built && builtFor === key) return built
-  builtFor = key
+  if (pool && poolFor === key) return pool
+  poolFor = key
+  shelfMemo.clear()
   // Temas de la familia: lo que pega con uno NEGRO (o trae una palabra bloqueada de la familia) no se sirve (título,
   // canal, tags y descripción: fail-closed); lo que pega con uno BLANCO en su TÍTULO lleva el motivo de la familia (solo
-  // coincidencias fuertes: si no, media home diría "Porque a tu familia…" y dejaría de guiar para dirigir).
+  // coincidencias fuertes: si no, media edición diría "Porque a tu familia…" y dejaría de guiar para dirigir).
   const blocked = familyFilter()
   const why = (title: string, base: string) => { const w = topicHit(title, fam.white); return w ? familyReason(w) : base }
-  const videoText = (v: CatalogVideo) => `${v.title} ${v.channelTitle} ${v.tags.join(' ')} ${v.description.slice(0, 300)}`
-  const seen = new Set<string>()
-  const pickVideo = (q: string) => (searchVideos(q, 8) as CatalogVideo[]).find(h => !seen.has(h.videoId) && h.duration >= 60 && h.duration <= 1500 && !blocked(videoText(h)))
-  const okTopics: string[] = []
-  // Sugerencias de la familia (temas blancos de la Zona de padres): hasta 2 videos por tema y 5 en total.
   const famQs = fam.white.filter(q => !blocked(q))
-  const famMax = Math.min(5, famQs.length * 2)
-  const famVids: { video: VideoCard; reason: string }[] = []
-  for (let round = 0; round < 2 && famVids.length < famMax; round++) {
-    for (const q of famQs) {
-      if (famVids.length >= famMax) break
-      const hit = pickVideo(q)
-      if (!hit) continue
-      seen.add(hit.videoId)
-      famVids.push({ video: toVideoResult(hit), reason: familyReason(q) })
-      if (!okTopics.includes(q)) okTopics.push(q)
-    }
-  }
-  // Videos del catálogo aprobado. Temas blancos del padre INTERCALADOS con temas generales
-  // (si no, un tema de la config domina toda la home) — 1 video por tema por ronda.
-  const white = whiteTopics().map(t => t.name)
-  const fallback = ['el sistema solar', 'dinosaurios', 'volcanes', 'tiburones', 'inventos', 'fracciones']
-  const queries: string[] = []
-  for (let i = 0; i < Math.max(white.length, fallback.length); i++) {
-    if (white[i]) queries.push(white[i])
-    if (fallback[i]) queries.push(fallback[i])
-  }
-  const qs = [...new Set(queries)].filter(q => !blocked(q))
-  const baseVids: { video: VideoCard; reason: string }[] = []
-  for (let round = 0; round < 2 && baseVids.length + famVids.length < 14; round++) {
-    for (const q of qs) {
-      if (baseVids.length + famVids.length >= 14) break
-      const hit = pickVideo(q)
-      if (!hit) continue
-      seen.add(hit.videoId)
-      baseVids.push({ video: toVideoResult(hit), reason: why(hit.title, q) })
-      if (!okTopics.includes(q)) okTopics.push(q)
-    }
-  }
-  // Las sugerencias de la familia GUÍAN sin dirigir: uno de cada tres videos, empezando por el primero.
-  const vids: { video: VideoCard; reason: string }[] = []
-  while (famVids.length || baseVids.length) {
-    const next = (vids.length % 3 === 0 ? famVids.shift() : baseVids.shift()) ?? famVids.shift() ?? baseVids.shift()
-    if (next) vids.push(next)
-  }
-  topicsUsed = okTopics
-
-  // Lecturas, rutas y noticias sin lo que pega con un tema negro. Los ids conservan el lugar en su pool (las
-  // reacciones de las noticias van por id: no se corren cuando se filtra una).
-  const arts = ARTICLES.map((a, i) => ({ ...a, n: i + 1 })).filter(a => !blocked(`${a.title} ${a.snippet} ${a.reason}`))
-  const routes = ROUTES.filter(c => !blocked(c.name))
-  const news = friendNews().map((e, i) => ({ ...e, n: i + 1 })).filter(e => !blocked(e.text))
-
-  // Intercalado: social → video → lectura → video → ruta/liga → …
-  const pattern = ['friend', 'video', 'article', 'video', 'route', 'friend', 'video', 'article', 'league'] as const
-  const idx = { friend: 0, video: 0, article: 0, route: 0, league: 0 }
-  const items: FeedItem[] = []
-  for (let page = 0; page < 3; page++) {
-    for (const kind of pattern) {
-      const i = items.length
-      if (kind === 'video' && idx.video < vids.length) {
-        const v = vids[idx.video++]
-        items.push({ kind, id: `fv-${v.video.id}`, time: timeOf(i), reason: v.reason, video: v.video })
-      } else if (kind === 'article' && idx.article < arts.length) {
-        const { n, ...a } = arts[idx.article++]
-        items.push({ kind, id: `fa-${n}`, time: timeOf(i), ...a, reason: why(a.title, a.reason) })
-      } else if (kind === 'route' && idx.route < routes.length) {
-        const c = routes[idx.route++]
-        items.push({ kind, id: `fr-${c.id}`, time: timeOf(i), reason: why(c.name, 'Por tus temas de interés'), course: c })
-      } else if (kind === 'friend' && idx.friend < news.length) {
-        const e = news[idx.friend++]
-        items.push({ kind, id: `ff-${e.n}`, time: timeOf(i), friend: e.friend, text: e.text, icon: e.icon, reactions: [] })
-      } else if (kind === 'league' && idx.league === 0) {
-        idx.league = 1
-        // La liga se ASIGNA por resultados: la noticia cuenta el ciclo (cierre pasado + dónde competís esta semana),
-        // no invita a unirse. El texto se vuelve a armar al servir (getFeed), así sigue al ciclo real.
-        items.push({ kind, id: 'fl-cometa', time: timeOf(i), ...leagueNews() })
+  const qs = INTERESTS.filter(q => !blocked(q))
+  const pickVids = (maxSec: number): PoolVideo[] => {
+    const seen = new Set<string>()
+    const lim = maxSec < 1500 ? 30 : 8 // los cortitos son menos: se mira más hondo en cada tema
+    const pick = (q: string) => searchVideos(q, lim).find(h => !seen.has(h.videoId) && h.duration >= 60 && h.duration <= maxSec && !blocked(videoText(h)))
+    // Sugerencias de la familia (temas blancos de la Zona de padres): hasta 2 videos por tema y 5 en total.
+    const famMax = Math.min(5, famQs.length * 2)
+    const famVids: PoolVideo[] = []
+    for (let round = 0; round < 2 && famVids.length < famMax; round++) {
+      for (const q of famQs) {
+        if (famVids.length >= famMax) break
+        const hit = pick(q)
+        if (!hit) continue
+        seen.add(hit.videoId)
+        famVids.push({ video: toVideoResult(hit), reason: familyReason(q) })
       }
     }
+    // Los temas de chico, de a uno por tema por ronda (si no, un tema domina toda la edición).
+    const base: PoolVideo[] = []
+    for (let round = 0; round < 2 && base.length + famVids.length < 14; round++) {
+      for (const q of qs) {
+        if (base.length + famVids.length >= 14) break
+        const hit = pick(q)
+        if (!hit) continue
+        seen.add(hit.videoId)
+        base.push({ video: toVideoResult(hit), reason: why(hit.title, kidWhy(q)) })
+      }
+    }
+    // Las sugerencias de la familia GUÍAN sin dirigir: uno de cada tres videos, empezando por el primero.
+    const out: PoolVideo[] = []
+    while (famVids.length || base.length) {
+      const next = (out.length % 3 === 0 ? famVids.shift() : base.shift()) ?? famVids.shift() ?? base.shift()
+      if (next) out.push(next)
+    }
+    return out
   }
-  return (built = items)
+  // Lecturas, rutas y noticias sin lo que pega con un tema negro. Los ids conservan el lugar en su pool (las reacciones de
+  // las noticias van por id: no se corren cuando se filtra una).
+  const arts = ARTICLES.map((a, n) => ({ a, n: n + 1 }))
+    .filter(({ a }) => !blocked(`${a.title} ${a.snippet} ${a.topic}`))
+    .map(({ a, n }) => ({ n, title: a.title, url: a.url, source: a.source, snippet: a.snippet, reason: why(a.title, kidWhy(a.topic)) }))
+  const routes = ROUTES.filter(c => !blocked(c.name)).map(course => ({ course, reason: why(course.name, ROUTE_WHY[course.id] ?? 'Por tus temas de interés') }))
+  const news = friendNews().map((e, i) => ({ ...e, n: i + 1 })).filter(e => !blocked(e.text))
+  return (pool = { vids: pickVids(1500), short: pickVids(SHORT_SEC), arts, routes, news })
 }
 
-/* "Seguí practicando": el último curso practicado (progreso real) con el nombre y el total de pasos del recorrido
-   REAL de Practicar (el progreso guarda los suyos; si el recorrido ya está armado, mandan los del recorrido). */
-function continueCard(): FeedSidebar['continue'] {
+/* ---------- la edición: franja del día + plantilla editorial ---------- */
+type Daypart = 'manana' | 'tarde' | 'noche'
+/** Franja por la hora REAL del server (mismos cortes que el subtítulo del Feed en el cliente: 6, 13 y 20 h). */
+const daypartOf = (d: Date): Daypart => { const h = d.getHours(); return h >= 6 && h < 13 ? 'manana' : h >= 13 && h < 20 ? 'tarde' : 'noche' }
+const DAYS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
+/** La madrugada (0-5 h) todavía es la noche del día anterior. */
+const dayName = (d: Date) => DAYS[(d.getDay() + (d.getHours() < 6 ? 6 : 0)) % 7]
+const DP_NAME: Record<Daypart, string> = { manana: 'mañana', tarde: 'tarde', noche: 'noche' }
+/** Lo que el resumen confiesa de la mezcla (y es verdad: lo hace la plantilla de abajo). */
+const DESC: Record<Daypart, string> = {
+  manana: 'Armé la edición con más para aprender: lecturas y rutas primero — cambia según la hora del día.',
+  tarde: 'Armé la edición con más para explorar y menos repaso — cambia según la hora del día.',
+  noche: 'Armé una edición más tranquila: un repaso sin apuro y videos cortitos — cambia según la hora del día.',
+}
+/** Cómo cambia en la franja que viene. */
+const LATER: Record<Daypart, string> = {
+  manana: 'a la tarde cambia a más para explorar',
+  tarde: 'a la nochecita cambia a repaso tranquilo',
+  noche: 'mañana arranca con más para aprender',
+}
+type Slot = 'friend' | 'article' | 'route' | 'video'
+/** La plantilla de cada franja: el orden de los tipos (se repite hasta agotar), y en qué lugar de la edición sembrada
+ *  van la grilla de videos y el resumen (primera página: noticia → 1-2 "para vos" → grilla → más social → resumen…). */
+const EDITIONS: Record<Daypart, { pattern: readonly Slot[]; shelfAfter: number; summaryAfter: number }> = {
+  manana: { pattern: ['friend', 'article', 'route', 'friend', 'article', 'video', 'friend', 'video', 'route', 'article', 'video'], shelfAfter: 3, summaryAfter: 4 },
+  tarde: { pattern: ['friend', 'route', 'friend', 'article', 'video', 'friend', 'video', 'article', 'video', 'route', 'video'], shelfAfter: 2, summaryAfter: 4 },
+  noche: { pattern: ['friend', 'article', 'friend', 'video', 'route', 'friend', 'video', 'article', 'video'], shelfAfter: 2, summaryAfter: 3 },
+}
+/** Horas desde el cierre de liga del seed (lunes 00:00 de esta semana, hora local). */
+function closeAgeHours(now = new Date()): number {
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7))
+  return (now.getTime() - monday.getTime()) / 3_600_000
+}
+
+/** La edición SEMBRADA (sin lo que entró en vivo), en orden: estable mientras no cambien la familia, los on-off ni la
+ *  franja. Las páginas se cortan por POSICIÓN acá; lo oculto con "ver menos" (y la tarjeta de liga vieja tras un cierre)
+ *  se saca DESPUÉS de cortar, así ocultar algo no corre las páginas. Los tiempos van por lugar ("hace 1 h"… "esta
+ *  semana"); lo que se repartió en el cierre de liga va fechado ahí y entra donde le toca por antigüedad. */
+function seedStream(dp: Daypart): FeedItem[] {
+  const p = build()
+  const amigos = featureOn('amigos'), ligas = featureOn('ligas')
+  const social = amigos ? p.news.filter(e => ligas || !LEAGUEISH.has(e.icon)) : []
+  const friendItem = (e: Pool['news'][number]): Of<'friend'> =>
+    ({ kind: 'friend', id: `ff-${e.n}`, time: '', reason: npcWhy(e.friend.nick), friend: e.friend, text: e.text, icon: e.icon, reactions: [] })
+  const queues: Record<Slot, FeedItem[]> = {
+    friend: social.filter(e => !LEAGUEISH.has(e.icon)).map(friendItem),
+    article: p.arts.map(({ n, ...a }): Of<'article'> => ({ kind: 'article', id: `fa-${n}`, time: '', ...a })),
+    route: p.routes.map(({ course, reason }): Of<'route'> => ({ kind: 'route', id: `fr-${course.id}`, time: '', reason, course })),
+    video: (dp === 'noche' ? p.short : p.vids).map(({ video, reason }): Of<'video'> => ({ kind: 'video', id: `fv-${video.id}`, time: '', reason, video })),
+  }
+  const { pattern } = EDITIONS[dp]
+  const out: FeedItem[] = []
+  for (let k = 0; queues.friend.length || queues.article.length || queues.route.length || queues.video.length; k++) {
+    const it = queues[pattern[k % pattern.length]].shift()
+    if (it) out.push(withTime(it, timeOf(out.length)))
+  }
+  // Lo del cierre: la tarjeta de la liga de la semana (la liga se ASIGNA por resultados: la noticia cuenta el ciclo, no
+  // invita a unirse; su texto se arma al servir) y las medallas/ascensos de los amigos.
+  const late: FeedItem[] = [
+    ...(ligas ? [{ kind: 'league', id: 'fl-cometa', time: '', reason: LEAGUE_WHY, name: '', desc: '' } as Of<'league'>] : []),
+    ...social.filter(e => LEAGUEISH.has(e.icon)).map(friendItem),
+  ].map(it => ({ ...it, time: lastCloseLabel() }))
+  const h = closeAgeHours()
+  let at = 0
+  while (at < out.length && ageOf(at) <= h) at++
+  out.splice(at, 0, ...late)
+  return out
+}
+
+/** La ruta en curso del chico: el progreso real + el recorrido real de Practicar (los mismos números que Practicar). */
+function currentCourse(): { courseId: string; name: string; done: number; total: number } {
   const c = summary().continue ?? { courseId: 'solar', title: 'El sistema solar', done: 0, total: 1 }
   const p = practiceSummary(c.courseId)
-  const total = p?.total ?? c.total
-  return { courseId: c.courseId, title: p?.name ?? c.title, done: Math.min(c.done, total), total }
+  const total = Math.max(1, p?.total ?? c.total)
+  return { courseId: c.courseId, name: p?.name ?? c.title, done: Math.min(c.done, total), total }
+}
+
+/** El hero "Fijado · tu siguiente paso": SIEMPRE la siguiente mejor acción de aprendizaje (nunca comercio). De día,
+ *  seguir la ruta en curso; de noche, un repaso tranquilo de esa ruta (lo que promete el resumen). Si la terminó (o la
+ *  familia bloqueó su tema), una ruta nueva para empezar en Aprender. */
+function nextStep(dp: Daypart): Of<'next'> {
+  const blocked = familyFilter()
+  const c = currentCourse()
+  const coins = featureOn('tienda') ? ` · al cerrar la unidad, +${TROPHY_EC} ⚡` : '' // sin Tienda no se nombra la moneda
+  const left = Math.max(0, c.total - c.done)
+  if (left === 0 || blocked(c.name)) {
+    const other = ROUTES.find(r => r.id !== c.courseId && !blocked(r.name))
+    if (!other) return { kind: 'next', id: 'fn-aprender', time: 'ahora', reason: 'Para elegir qué aprender hoy', title: 'Elegí qué aprender hoy', meta: 'En Aprender están todas tus rutas', action: { label: 'Ver rutas', to: '/aprender' } }
+    return {
+      kind: 'next', id: `fn-${other.id}`, time: 'ahora', title: `Empezá ${other.name}`, meta: `${other.units} unidades para descubrir${coins}`,
+      reason: left === 0 ? `Terminaste ${c.name}: ¡vamos por otra!` : 'Es una ruta para arrancar algo nuevo', action: { label: 'Empezar', to: `/aprender/${other.id}` },
+    }
+  }
+  const to = `/practicar/${c.courseId}`
+  if (dp === 'noche') {
+    return { kind: 'next', id: `fn-${c.courseId}`, time: 'ahora', title: `Repasá ${c.name}, sin apuro`, meta: `Vas ${c.done} de ${c.total} pasos · un repaso cortito antes de dormir`, reason: 'A la noche, un repaso tranquilo te ayuda a recordar', action: { label: 'Repasar', to } }
+  }
+  return {
+    kind: 'next', id: `fn-${c.courseId}`, time: 'ahora', title: `Seguí con ${c.name}`,
+    meta: c.done === 0 ? `Arrancá por el primero de ${c.total} pasos${coins}` : `Vas ${c.done} de ${c.total} pasos${coins}`,
+    reason: c.done === 0 ? 'Es la ruta que elegiste' : `La empezaste y te quedan ${left} pasos`, action: { label: 'Seguir', to },
+  }
+}
+
+/** El tema de la grilla de videos: la primera sugerencia de la familia; si no hay, el de la ruta en curso (la grilla
+ *  la acompaña); si no, el primer tema de chico. */
+function shelfTopic(): { topic: string; reason: string } {
+  const blocked = familyFilter()
+  const fam = familyTopics().white.find(t => !blocked(t))
+  if (fam) return { topic: fam, reason: familyReason(fam) }
+  const c = currentCourse()
+  const t = COURSE_TOPIC[c.courseId]
+  if (t && !blocked(t) && !blocked(c.name)) return { topic: t, reason: `Porque estás aprendiendo ${c.name}` }
+  const first = INTERESTS.find(q => !blocked(q)) ?? INTERESTS[0]
+  return { topic: first, reason: kidWhy(first) }
+}
+const shelfMemo = new Map<string, Of<'videos'> | null>()
+/** La grilla "Videos para vos": 3 del tema (que no estén sueltos en la edición; de noche, cortitos) + el total REAL de
+ *  ese tema en el buscador de videos (lo que muestra "Ver todos"). */
+function shelfOf(dp: Daypart, stream: readonly FeedItem[]): Of<'videos'> | null {
+  const { topic, reason } = shelfTopic()
+  const key = `${poolFor}|${dp}|${topic}|${reason}`
+  if (shelfMemo.has(key)) return shelfMemo.get(key)!
+  const used = new Set(stream.flatMap(it => (it.kind === 'video' ? [it.video.id] : [])))
+  const blocked = familyFilter()
+  const max = dp === 'noche' ? SHORT_SEC : 1500
+  const vids = searchVideos(topic, 40).filter(v => !used.has(v.videoId) && v.duration >= 60 && v.duration <= max && !blocked(videoText(v))).slice(0, 3)
+  const shelf: Of<'videos'> | null = vids.length
+    ? { kind: 'videos', id: 'fvs', time: 'hoy', reason, title: 'Videos para vos', total: Math.max(vids.length, searchVideos(topic).length), videos: vids.map(toVideoResult), topic }
+    : null
+  shelfMemo.set(key, shelf)
+  return shelf
+}
+
+/** El resumen de la edición: título por la franja REAL, la mezcla CONTADA de lo que se sirve (toda la edición, sin lo
+ *  oculto) y cómo cambia en la franja que viene. */
+function summaryOf(dp: Daypart, now: Date, served: readonly FeedItem[], shelf: Of<'videos'> | null): Of<'summary'> {
+  const n = { rutas: 0, videos: shelf?.videos.length ?? 0, lecturas: 0, amigos: 0, liga: 0 }
+  for (const it of served) {
+    if (it.kind === 'route') n.rutas++
+    else if (it.kind === 'video') n.videos++
+    else if (it.kind === 'article') n.lecturas++
+    else if (it.kind === 'league') n.liga++
+    else if (it.kind === 'friend') { if (LEAGUEISH.has(it.icon)) n.liga++; else n.amigos++ }
+  }
+  const mix = [
+    { label: n.rutas === 1 ? 'ruta' : 'rutas', n: n.rutas },
+    { label: n.videos === 1 ? 'video' : 'videos', n: n.videos },
+    { label: n.lecturas === 1 ? 'lectura' : 'lecturas', n: n.lecturas },
+    { label: 'de amigos', n: n.amigos },
+    { label: 'de la liga', n: n.liga },
+  ].filter(m => m.n > 0)
+  return { kind: 'summary', id: 'fsum', title: `Tu ${DP_NAME[dp]} de ${dayName(now)}`, desc: DESC[dp], mix, later: LATER[dp] }
 }
 
 /* ---------- demo vivo: lo que entra en vivo (RAM) ---------- */
 /** Una noticia que entró en vivo: en qué semana del ciclo y cuándo (para fecharla al servir). */
 interface Fresh { item: FeedItem; week: number; at: number }
-/** Del más nuevo al más viejo: va ARRIBA del feed. */
+/** Del más nuevo al más viejo: va ARRIBA de la primera página (debajo del hero). */
 let fresh: Fresh[] = []
 let freshSeq = 0
 let bursts = 0
@@ -236,14 +429,23 @@ let usedNews = new Set<string>()
 let lastBurstKeys: string[] = []
 const MAX_FRESH = 90
 
-/** Vuelve al seed: sin noticias en vivo y sin reacciones de Ian (registrarlo en POST /api/demo/reset). */
+/** Vuelve al seed: sin noticias en vivo, sin reacciones de Ian y sin nada oculto (registrado en POST /api/demo/reset). */
 export function resetFeed(): void {
   fresh = []; freshSeq = 0; bursts = 0; usedNews = new Set(); lastBurstKeys = []
   reactions.clear()
+  hidden.clear()
 }
 
 /** Lo que miran los filtros de la familia en una noticia en vivo (la de la liga no se filtra: es el ciclo de Ian). */
 const freshText = (it: FeedItem) => (it.kind === 'friend' ? it.text : it.kind === 'route' ? it.course.name : '')
+/** Los on-off del padre sobre lo que entró en vivo: sin Amigos nada social (noticias ni rutas compartidas), sin Ligas
+ *  nada de ligas. */
+function liveAllowed(it: FeedItem, amigos: boolean, ligas: boolean): boolean {
+  if (it.kind === 'league') return ligas
+  if (it.kind === 'friend') return amigos && (ligas || !LEAGUEISH.has(it.icon))
+  if (it.kind === 'route') return amigos
+  return true
+}
 /** Reacciones de arranque de una noticia en vivo (las de los demás ya están; la de Ian, ninguna: mine false). */
 const preset = (id: string, counts: number[]) => reactions.set(id, EMOJIS.map((emoji, i) => ({ emoji, count: Math.max(0, counts[i] ?? 0), mine: false })))
 /** Conteos chicos y creíbles, estables por id (al menos uno). */
@@ -257,11 +459,11 @@ function cheerCounts(id: string): number[] {
   return [3 + (h % 4), 2 + ((h >>> 3) % 4), 1 + ((h >>> 6) % 3), 1 + ((h >>> 9) % 3)]
 }
 /** Cada emoji queda pegado a la palabra de antes (espacio duro): nunca baja solo a otra línea. */
-const glue = (text: string) => text.replace(/ (?=\p{Extended_Pictographic})/gu, '\u00A0')
-function newsItem(nick: string, color: string, text: string, icon: NewsIcon, counts: (id: string) => number[] = smallCounts): FeedItem {
+const glue = (text: string) => text.replace(/ (?=\p{Extended_Pictographic})/gu, ' ')
+function newsItem(nick: string, color: string, text: string, icon: NewsIcon, reason: string, counts: (id: string) => number[] = smallCounts): FeedItem {
   const id = `fx-${++freshSeq}`
   preset(id, counts(id))
-  return { kind: 'friend', id, time: 'recién', friend: { nick, color }, text: glue(text), icon, reactions: [] }
+  return { kind: 'friend', id, time: 'recién', reason, friend: { nick, color }, text: glue(text), icon, reactions: [] }
 }
 function pushFresh(items: FeedItem[], week: number) {
   const at = Date.now()
@@ -287,15 +489,15 @@ export function injectLeagueClose(r: CloseNews): number {
   const toLeague = (l: { name: string; emoji: string }) => `${l.name} ${l.emoji}`
   if (r.me.medal && amigos) {
     const text = `ganó la medalla de ${MEDAL_NAME[r.me.medal]} ${MEDAL_EMOJI[r.me.medal]} en la ${r.from.name}${r.movement === 'sube' ? ` y subió a la ${toLeague(r.to)}` : ''}`
-    if (!blocked(text)) out.push(newsItem(r.me.nick, r.me.color, text, 'medal', cheerCounts))
+    if (!blocked(text)) out.push(newsItem(r.me.nick, r.me.color, text, 'medal', 'Es tu medalla: la ven tus amigos en su feed', cheerCounts))
   }
   fresh = fresh.filter(f => f.item.kind !== 'league')
-  out.push({ kind: 'league', id: `fl-w${r.week}`, time: 'recién', name: r.to.name, desc: '' })
+  out.push({ kind: 'league', id: `fl-w${r.week}`, time: 'recién', reason: LEAGUE_WHY, name: r.to.name, desc: '' })
   if (amigos) {
     for (const p of r.podium.slice(0, 2)) {
       const tail = p.up ? (p.withMe ? ` y sube con vos a la ${toLeague(p.up)}` : ` y subió a la ${toLeague(p.up)}`) : ''
       const text = `ganó la medalla de ${MEDAL_NAME[p.medal]} ${MEDAL_EMOJI[p.medal]} en tu ${r.from.name}${tail}`
-      if (!blocked(text)) out.push(newsItem(p.nick, p.color, text, 'medal'))
+      if (!blocked(text)) out.push(newsItem(p.nick, p.color, text, 'medal', p.withMe ? 'Sube de liga con vos' : 'Compitió en tu liga la semana pasada'))
     }
   }
   pushFresh(out, r.week)
@@ -303,9 +505,8 @@ export function injectLeagueClose(r: CloseNews): number {
 }
 
 /* ---------- "Simular NPCs": lo que publican los NPCs del demo ---------- */
-/** Los amigos de Ian (MISMOS nicks que friendsFake —ese módulo no se toca: van como datos acá—; el color sale de
- *  friendNews() cuando el amigo tiene noticias, así coincide con Amigos). NicoRobot es el de la solicitud de amistad:
- *  hace Fracciones como Ian. Ligas de cada uno: las de su perfil en Amigos. */
+/** El color de cada amigo de Ian (MISMOS nicks que friendsFake): sale de friendNews() cuando el amigo tiene noticias,
+ *  así coincide con el dock. Ligas de cada uno: las de su perfil. */
 const FRIEND_COLOR: Record<string, string> = {
   TomiCohete: '#3A5BD9', LuliVolcan: '#F26B3A', MateoDino: '#13A39A', CataEstrella: '#E5487A', JuanchiRayo: '#F2A81D', MartuLuna: '#8A5CF5', NicoRobot: '#18A957',
 }
@@ -351,8 +552,8 @@ function raceText(ev: NpcRace): string {
   return `practicó un montón: +${ev.gain} XP en tu ${ev.league} 💪`
 }
 
-/** Botón "Simular NPCs" (Home): los NPCs "viven" un rato. Mete ARRIBA del feed 4-6 noticias frescas y variadas, con
- *  reacciones de arranque (para que Ian sume la suya):
+/** Botón "Simular NPCs" (Feed): los NPCs "viven" un rato. Deja listas 4-6 noticias frescas y variadas (entran ARRIBA de
+ *  la primera página cuando el chico toca la píldora "N novedades ↑"), con reacciones de arranque:
  *  - la carrera de tu liga: 1-2 compañeros de tu tabla practican DE VERDAD (su XP sube en Ligas: leaguesFake.npcPractice);
  *  - una ráfaga sí, una no: un amigo comparte una ruta (kind 'route', curso real);
  *  - logros de los amigos del pool (rachas, medallas e insignias de Practicar, unidades, podio en su liga), sin repetir.
@@ -369,7 +570,7 @@ export function simulateNpcs(): { added: number } {
   if (ligas) {
     for (const ev of npcPractice(r, r() < 0.5 ? 1 : 2)) {
       const text = raceText(ev)
-      if (!blocked(text)) { out.push(newsItem(ev.nick, ev.color, text, 'league')); who.add(ev.nick) }
+      if (!blocked(text)) { out.push(newsItem(ev.nick, ev.color, text, 'league', 'Compite en tu liga esta semana')); who.add(ev.nick) }
     }
   }
   if (n % 2 === 1) {
@@ -389,7 +590,7 @@ export function simulateNpcs(): { added: number } {
       if (out.length >= want) break
       if (who.has(e.nick) || usedNews.has(e.key)) continue
       usedNews.add(e.key); who.add(e.nick); picked.push(e.key)
-      out.push(newsItem(e.nick, friendColor(e.nick), e.text, e.icon))
+      out.push(newsItem(e.nick, friendColor(e.nick), e.text, e.icon, npcWhy(e.nick)))
     }
   }
   pickFrom(shuffle(pool, r))
@@ -400,40 +601,46 @@ export function simulateNpcs(): { added: number } {
   lastBurstKeys = picked
   const items = shuffle(out, r)
   pushFresh(items, week)
-  console.log(`[feed] Simular NPCs #${n}: +${items.length} noticias`)
+  console.log(`[feed] Simular NPCs #${n}: +${items.length} noticias (esperan la píldora del Feed)`)
   return { added: items.length }
 }
 
 /* ---------- servir ---------- */
+/** Ítems de la edición sembrada por página (la primera suma el hero, lo que entró en vivo, la grilla y el resumen). */
 const PAGE = 9
+/** Un ítem listo para salir: la liga con su texto del ciclo (se asignó en el cierre) y las noticias con sus reacciones. */
+function serve(it: FeedItem): FeedItem {
+  if (it.kind === 'league') return { ...it, ...leagueNews(), time: lastCloseLabel() }
+  if (it.kind === 'friend') return { ...it, reactions: reactionsOf(it.id).map(r => ({ ...r })) }
+  return it
+}
 export function getFeed(after?: string | null): FeedResponse {
-  const week = cycleWeek()
-  const blocked = familyFilter()
-  // Lo que entró en vivo va arriba, con los mismos filtros vivos de la familia; lo de esta semana se fecha por la hora real
-  // ("recién", "hace 5 min"), lo de semanas anteriores por semanas.
+  const now = new Date()
+  const dp = daypartOf(now), week = cycleWeek(), motion = feedMotion()
+  const stream = seedStream(dp)
+  // Lo que se saca DESPUÉS de cortar (no corre las páginas): lo oculto con "ver menos" y, tras un cierre simulado, la
+  // tarjeta de liga del seed (la de la semana nueva entró en vivo). Tras un cierre lo sembrado es "de la semana pasada".
+  const keep = (it: FeedItem) => !hidden.has(it.id) && (week === 0 || it.kind !== 'league')
+  const dated = (it: FeedItem): FeedItem => (week > 0 ? withTime(it, weeksAgoLabel(week)) : it)
+  const nextOf = (end: number) => (end < stream.length ? String(end) : null)
+  const off = Math.max(0, Math.floor(Number(after ?? 0)) || 0)
+  if (off > 0) return { items: stream.slice(off, off + PAGE).filter(keep).map(it => serve(dated(it))), next: nextOf(off + PAGE), motion }
+
+  // Primera página. Lo que entró en vivo va arriba (debajo del hero), con los MISMOS filtros vivos de la familia y los
+  // on-off; lo de esta semana se fecha por la hora real ("recién", "hace 5 min"), lo de semanas anteriores por semanas.
+  const blocked = familyFilter(), amigos = featureOn('amigos'), ligas = featureOn('ligas')
   const live = fresh
-    .filter(f => f.item.kind === 'league' || !blocked(freshText(f.item)))
-    .map((f): FeedItem => ({ ...f.item, time: f.week === week ? sinceLabel(f.at) : weeksAgoLabel(week - f.week) }))
-  // Después de un cierre simulado, la tarjeta de la liga de la semana es la del cierre (arriba): la del seed se va, y lo
-  // del seed pasa a ser de "la semana pasada" (o de hace N semanas).
-  const seed = build()
-    .filter(it => week === 0 || it.kind !== 'league')
-    .map((it): FeedItem => {
-      if (week > 0) return { ...it, time: weeksAgoLabel(week) }
-      // Medallas y ascensos salen del cierre semanal: van fechados en el último cierre, no "hace 1 h".
-      return it.kind === 'friend' && (it.icon === 'medal' || it.icon === 'league') ? { ...it, time: lastCloseLabel() } : it
-    })
-  const all = [...live, ...seed]
-  const off = Math.max(0, Number(after ?? 0) || 0)
-  const items = all.slice(off, off + PAGE).map((it): FeedItem => {
-    if (it.kind === 'league') return { ...it, ...leagueNews(), time: lastCloseLabel() } // la liga se asignó en el cierre
-    if (it.kind !== 'friend') return it
-    return { ...it, reactions: reactionsOf(it.id).map(r => ({ ...r })) }
-  })
-  const next = off + PAGE < all.length ? String(off + PAGE) : null
-  if (off > 0) return { items, next }
-  return {
-    items, next,
-    sidebar: { league: leagueSidebar(), continue: continueCard(), topics: topicsUsed.slice(0, 6) },
+    .filter(f => !hidden.has(f.item.id) && liveAllowed(f.item, amigos, ligas) && (f.item.kind === 'league' || !blocked(freshText(f.item))))
+    .map(f => serve(withTime(f.item, f.week === week ? sinceLabel(f.at) : weeksAgoLabel(week - f.week))))
+  const shelf = shelfOf(dp, stream)
+  const sum = summaryOf(dp, now, [...live, ...stream.filter(keep)], shelf)
+  const { shelfAfter, summaryAfter } = EDITIONS[dp]
+  const head = stream.slice(0, PAGE)
+  const items: FeedItem[] = [nextStep(dp), ...live]
+  for (let i = 0; i <= head.length; i++) {
+    if (i === Math.min(shelfAfter, head.length) && shelf) items.push(shelf)
+    if (i === Math.min(summaryAfter, head.length)) items.push(sum)
+    if (i < head.length && keep(head[i])) items.push(serve(dated(head[i])))
   }
+  return { items: items.filter(it => !hidden.has(it.id)), next: nextOf(PAGE), motion }
 }
