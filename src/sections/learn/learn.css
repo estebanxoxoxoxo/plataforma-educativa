@@ -43,3 +43,13 @@
 .rc svg{width:14px;height:14px}
 .rc.video{background:#E7ECFD;color:#2843A8}.rc.lect{background:#E2F5F3;color:#0B6B66}
 .cprep{margin-top:18px;animation:fadein .6s both}
+
+/* ---- encabezado de Aprender con el botón Crear a la altura del título (pedido 12-oct) ---- */
+.lp-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.lp-head .h2{margin:0}
+.lp-create{display:inline-flex;align-items:center;gap:8px;min-height:42px;padding:9px 18px;border-radius:11px;
+  background:#8A2B7E;color:#fff;font-family:var(--display);font-weight:800;font-size:15.5px;line-height:1;
+  box-shadow:0 3px 0 #5E1A55;transition:background .2s,transform .12s,box-shadow .12s;cursor:pointer}
+.lp-create svg{width:18px;height:18px}
+.lp-create:hover{background:#6E1F64}
+.lp-create:active{transform:translateY(2px);box-shadow:0 1px 0 #5E1A55}

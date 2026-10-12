@@ -10,6 +10,7 @@ import { JourneyPage } from './sections/practice/containers/JourneyPage';
 import { PracticePage } from './sections/practice/containers/PracticePage';
 import { CalendarPage } from './sections/calendar/containers/CalendarPage';
 import { CreatePage } from './sections/create/containers/CreatePage';
+import { MyTubePage } from './sections/mytube/containers/MyTubePage';
 import { FriendsPage } from './sections/friends/containers/FriendsPage';
 import { ChatDock } from './sections/friends/containers/ChatDock';
 import { LeaguesPage } from './sections/leagues/containers/LeaguesPage';
@@ -18,7 +19,6 @@ import { ChannelPage } from './sections/space/containers/ChannelPage';
 import { DrivePage } from './sections/space/containers/DrivePage';
 import { PlaylistPage } from './sections/space/containers/PlaylistPage';
 import { TrashPage } from './sections/space/containers/TrashPage';
-import { VideosPage } from './sections/space/containers/VideosPage';
 import { StorePage } from './sections/store/containers/StorePage';
 import { FeatureGate } from './sections/parent/containers/FeatureGate';
 import { ParentPage } from './sections/parent/containers/ParentPage';
@@ -30,8 +30,10 @@ import { UserProvider, useUser } from './hooks/user';
 const OldArticle = () => <Navigate to={`/buscar/articulo/${encodeURIComponent(useParams().id ?? '')}`} replace />;
 const OldVideo = () => <Navigate to={`/buscar/video/${useParams().id ?? ''}`} replace />;
 /* Rutas viejas de Mi espacio → ahora viven dentro de Videos. */
-const OldCanal = () => <Navigate to={`/espacio/videos/canal/${useParams().id ?? ''}`} replace />;
-const OldLista = () => <Navigate to={`/espacio/videos/lista/${useParams().id ?? ''}`} replace />;
+const OldCanal = () => <Navigate to={`/mytube/canal/${useParams().id ?? ''}`} replace />;
+const OldLista = () => <Navigate to={`/mytube/lista/${useParams().id ?? ''}`} replace />;
+const MtCanal = OldCanal;
+const MtLista = OldLista;
 
 function Layout() {
   const user = useUser();
@@ -68,9 +70,13 @@ export default function App() {
           <Route path="espacio/carpetas" element={<DrivePage />} />
           <Route path="espacio/carpetas/:folderId" element={<DrivePage />} />
           <Route path="espacio/papelera" element={<TrashPage />} />
-          <Route path="espacio/videos" element={<VideosPage />} />
-          <Route path="espacio/videos/canal/:id" element={<ChannelPage />} />
-          <Route path="espacio/videos/lista/:id" element={<PlaylistPage />} />
+          {/* MyTube (W5): la sección nueva; las rutas viejas de Videos redirigen acá */}
+          <Route path="mytube" element={<MyTubePage />} />
+          <Route path="mytube/canal/:id" element={<ChannelPage />} />
+          <Route path="mytube/lista/:id" element={<PlaylistPage />} />
+          <Route path="espacio/videos" element={<Navigate to="/mytube" replace />} />
+          <Route path="espacio/videos/canal/:id" element={<MtCanal />} />
+          <Route path="espacio/videos/lista/:id" element={<MtLista />} />
           {/* redirecciones de la estructura vieja (canales y listas sueltos) */}
           <Route path="espacio/canales" element={<Navigate to="/espacio/videos" replace />} />
           <Route path="espacio/listas" element={<Navigate to="/espacio/videos?tab=listas" replace />} />

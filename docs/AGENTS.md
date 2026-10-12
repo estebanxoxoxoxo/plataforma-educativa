@@ -34,13 +34,17 @@ framework en `server/` (puerto 8787, proxy `/api` de Vite). El usuario demo es I
 7. Ligas: se ASIGNAN por resultados (nunca se eligen/buscan), 12 participantes, y el puntaje
    semanal es UNO solo (mismo número en liga, zona y país). El ciclo semanal (closesInDays real +
    lastWeek/medalla) tiene UNA sola fuente: server/src/leaguesFake.ts — no lo dupliques.
-8. Menú actual (EN ESTE ORDEN, 12-oct-2026, SIN submenús): Home (= el FEED, la home en `/`) ·
-   Buscar (`/buscar/*`) · Chat (`/chat`) · Aprender (se vuelve Learn con W3: aprender+practicar
-   colapsados) · Tienda (`/tienda`) · Amigos · Ligas (solapas Mi liga|Tu zona|País con ?tab=) ·
-   Mi espacio (`/espacio/carpetas` DIRECTO, sin submenú) · Calendario (`/calendario`) · Crear AL
-   FINAL (`/crear`, porte Smarty). Practicar y Repasar YA NO están en el menú (decisiones 12-oct:
-   Repasar vuela con W4; Practicar se colapsa en Learn): `/practicar*` sigue vivo (el feed entra por «Seguí practicando») y `/espacio/videos` sin link hasta MyTube (W5); `/repasar*` YA NO EXISTE (redirige a /aprender): su código se eliminó entero. "Home" es el feed,
-   NO el chat. Si cambiás rutas, dejá redirecciones de las viejas.
+8. Menú actual (EN ESTE ORDEN, 12-oct-2026 tarde, SIN submenús): Feed (= el feed de
+   recomendaciones, la home en `/`; antes se llamó Home y Descubrir) · Buscar (`/buscar/*`) ·
+   Chat (`/chat`) · Aprender (su encabezado lleva el botón "Crear" → `/crear`, que marca Aprender
+   como sección activa; con W3 se vuelve Learn: aprender+practicar colapsados) · Ligas (solapas
+   con ?tab=) · Mi espacio (`/espacio/carpetas` directo) · MyTube (`/mytube`; las rutas viejas
+   `/espacio/videos*` REDIRIGEN acá) · Calendario (`/calendario`) · Tienda AL FINAL (`/tienda`).
+   AMIGOS YA NO ES SECCIÓN (12-oct): los amigos siguen existiendo — viven en el dock de Mensajes,
+   se BUSCAN por nombre de usuario en Buscar y las solicitudes llegan como notificación destacada
+   en la zona PINNEADA de arriba del Feed (tanda F2). `/practicar*` sigue vivo (entra el feed por
+   «Seguí practicando»); `/repasar*` no existe (redirige a /aprender). "Feed" es el feed, NO el
+   chat. Si cambiás rutas, dejá redirecciones de las viejas.
 9. **La economía del demo vive en RAM** (pedido de Esteban): XP/Energy Coin/canjes NO se persisten
    a disco; cada carga de página hace POST /api/demo/reset (ver src/hooks/user.tsx) y todo vuelve a
    los valores iniciales (seed). Si tu módulo guarda estado económico, exponé un reset() y

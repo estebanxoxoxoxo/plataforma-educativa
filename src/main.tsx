@@ -7,6 +7,7 @@ import './styles/shell.css';
 import './sections/home/home.css';
 import './sections/discover/discover.css';
 import './sections/space/space.css';
+import './sections/mytube/mytube.css';
 import './sections/learn/learn.css';
 import './sections/practice/practice.css';
 import './sections/calendar/calendar.css';

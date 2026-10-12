@@ -157,6 +157,15 @@ export const IcNavLearn = filled(<>
   <path d="M27.2 9.2A1.2 1.2 0 0026 8h-6.4c-1.3 0-2.5.6-2.9 1.6V24.4c.7-.6 1.8-.9 3-.9H26a1.2 1.2 0 001.2-1.2z" fill={NK.blueL} />
   <path d="M7.5 12h5M7.5 15.5h5M7.5 19h3.5M19.5 12h5M19.5 15.5h5M19.5 19h3.5" stroke={NK.blueM} strokeWidth="1.6" strokeLinecap="round" />
 </>);
+/** MyTube: tele retro celeste con antenas y play coral (la sección de videos del porte Smarty). */
+export const IcNavMyTube = filled(<>
+  <path d="M10.5 8.5L7 3.8M21.5 8.5L25 3.8" stroke={NK.ink} strokeWidth="2.6" strokeLinecap="round" fill="none" />
+  <rect x="3.5" y="8" width="25" height="19" rx="4" fill={NK.sky} />
+  <rect x="6.5" y="11" width="15" height="13" rx="2.5" fill={NK.skyL} />
+  <path d="M12.6 14.2l5.4 3.3-5.4 3.3z" fill={NK.coral} />
+  <circle cx="25" cy="13.5" r="1.6" fill="#fff" />
+  <circle cx="25" cy="18.5" r="1.6" fill={NK.goldL} />
+</>);
 /** Crear: chispas de varita (estrella grande dorada + chispitas), como el "Crear" del POC. */
 export const IcNavCreate = filled(<>
   <path d="M13.2 3.6l2.5 6.1 6.1 2.5-6.1 2.5-2.5 6.1-2.5-6.1-6.1-2.5 6.1-2.5z" fill={NK.gold} />

@@ -6,31 +6,30 @@ import { BrandMark } from './BrandMark';
 import { MiniPlayer } from './MiniPlayer';
 import { ProfileCard } from './ProfileCard';
 import {
-  IcNavCalendar, IcNavChat, IcNavCreate, IcNavDiscover, IcNavFriends, IcNavLeagues, IcNavLearn,
+  IcNavCalendar, IcNavChat, IcNavDiscover, IcNavMyTube, IcNavLeagues, IcNavLearn,
   IcNavSearch, IcNavSpace, IcNavStore,
 } from './icons';
 
-type Sec = 'home' | 'search' | 'chat' | 'space' | 'store' | 'learn' | 'friends' | 'leagues' | 'calendar' | 'create';
+type Sec = 'home' | 'search' | 'chat' | 'space' | 'store' | 'learn' | 'leagues' | 'mytube' | 'calendar';
 // Orden definido por Esteban (9-oct-2026): Home primero, Mi espacio al final.
 // El submenú de Mi espacio se engancha por sec, no por posición.
 const NAV: { sec: Sec; label: string; to: string; Icon: ComponentType }[] = [
-  // Home ES el feed de recomendaciones (el "descubrir" de la visión, tipo YouTube/Instagram); sec 'home', ruta /.
-  { sec: 'home', label: 'Home', to: '/', Icon: IcNavDiscover },
+  // Feed (pedido 12-oct: el nuevo nombre de Home) = el feed de recomendaciones; sec 'home', ruta /.
+  { sec: 'home', label: 'Feed', to: '/', Icon: IcNavDiscover },
   { sec: 'search', label: 'Buscar', to: '/buscar', Icon: IcNavSearch },
   // El chat es otra puerta para encontrar cosas, conversando. Sin submenús.
   { sec: 'chat', label: 'Chat', to: '/chat', Icon: IcNavChat },
   // Aprender se vuelve Learn (W3 del porte: aprender+practicar COLAPSADOS). Practicar y Repasar ya
   // salieron del menú (decisiones 12-oct): sus rutas siguen vivas por URL hasta que el porte las absorba.
   { sec: 'learn', label: 'Aprender', to: '/aprender', Icon: IcNavLearn },
-  // Tienda: premios que publica el padre y se canjean con la Energy Coin cosechada practicando.
-  { sec: 'store', label: 'Tienda', to: '/tienda', Icon: IcNavStore },
-  { sec: 'friends', label: 'Amigos', to: '/amigos', Icon: IcNavFriends },
   { sec: 'leagues', label: 'Ligas', to: '/ligas', Icon: IcNavLeagues },
   { sec: 'space', label: 'Mi espacio', to: '/espacio/carpetas', Icon: IcNavSpace },
+  // MyTube (W5 del porte): reemplaza al viejo Mi espacio -> Videos.
+  { sec: 'mytube', label: 'MyTube', to: '/mytube', Icon: IcNavMyTube },
   // Calendario: las clases con los profes que contrató el padre (pedido 11-oct: "después de Mi espacio").
   { sec: 'calendar', label: 'Calendario', to: '/calendario', Icon: IcNavCalendar },
-  // Crear: el creador de rutas del porte Smarty (decisión 12-oct: en la zona del chico, como el POC).
-  { sec: 'create', label: 'Crear', to: '/crear', Icon: IcNavCreate },
+  // Tienda AL FINAL (pedido 12-oct): premios del padre canjeables con la Energy Coin.
+  { sec: 'store', label: 'Tienda', to: '/tienda', Icon: IcNavStore },
 ];
 
 function activeFrom(path: string): { sec?: Sec; sub?: string } {
@@ -39,15 +38,16 @@ function activeFrom(path: string): { sec?: Sec; sub?: string } {
   if (path.startsWith('/chat')) return { sec: 'chat' };
   // Mi espacio sin submenú (pedido 12-oct): la navegación interna es por carpetas; /espacio/videos
   // sigue ruteable sin link hasta que aterrice MyTube (W5 del porte).
+  if (path.startsWith('/espacio/videos') || path.startsWith('/mytube')) return { sec: 'mytube' };
   if (path.startsWith('/espacio')) return { sec: 'space' };
   if (path.startsWith('/tienda')) return { sec: 'store' };
   if (path.startsWith('/aprender')) return { sec: 'learn' };
   // /practicar y /repasar siguen ruteables sin ítem: se marcan como parte de Aprender.
   if (path.startsWith('/practicar') || path.startsWith('/repasar')) return { sec: 'learn' };
-  if (path.startsWith('/amigos')) return { sec: 'friends' };
   if (path.startsWith('/ligas')) return { sec: 'leagues' };
   if (path.startsWith('/calendario')) return { sec: 'calendar' };
-  if (path.startsWith('/crear')) return { sec: 'create' };
+  // /crear vive DENTRO de Aprender (botón en su encabezado, pedido 12-oct)
+  if (path.startsWith('/crear')) return { sec: 'learn' };
   return {};
 }
 

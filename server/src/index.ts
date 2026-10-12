@@ -33,6 +33,7 @@ import { teachersRoutes } from './teachersFake'
 import { simulateNpcs } from './feedFake'
 import { learnRoutesRoutes } from './learnRoutes'
 import { createRoutes } from './create'
+import { mytubeRoutes } from './mytube'
 import { readJson, send } from './web'
 import type { Msg } from './llm'
 
@@ -94,6 +95,8 @@ createServer(async (req, res) => {
     // Porte Smarty: rutas de Learn (catálogo) y la auditoría de facts de /crear
     if (url.pathname.startsWith('/api/learn-routes')) return await learnRoutesRoutes(req, res, url)
     if (url.pathname.startsWith('/api/create/')) return await createRoutes(req, res, url)
+    // MyTube (porte Smarty W5): canal enriquecido del chico + ingesta del padre
+    if (url.pathname.startsWith('/api/mytube/')) return await mytubeRoutes(req, res, url)
     if (url.pathname.startsWith('/api/practice/')) return await practiceRoutes(req, res, url)
     if (url.pathname.startsWith('/api/progress/')) return progressRoutes(req, res, url)
     if (url.pathname.startsWith('/api/market')) return await market.marketRoutes(req, res, url)
