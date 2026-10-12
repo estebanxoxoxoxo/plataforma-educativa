@@ -35,12 +35,13 @@ framework en `server/` (puerto 8787, proxy `/api` de Vite). El usuario demo es I
    semanal es UNO solo (mismo número en liga, zona y país). El ciclo semanal (closesInDays real +
    lastWeek/medalla) tiene UNA sola fuente: server/src/leaguesFake.ts — no lo dupliques.
 8. Menú actual (EN ESTE ORDEN, 12-oct-2026, SIN submenús): Home (= el FEED, la home en `/`) ·
-   Buscar (`/buscar/*`) · Chat (`/chat`) · Aprender · Practicar · Repasar (`/repasar`; VUELA cuando
-   aterrice W4 del porte) · Tienda (`/tienda`) · Amigos · Ligas (solapas Mi liga|Tu zona|País con
-   ?tab=) · Mi espacio (`/espacio/carpetas` DIRECTO — pedido 12-oct: sin submenú, se navega por
-   carpetas; `/espacio/videos` sigue ruteable sin link hasta que MyTube lo reemplace en W5) ·
-   Calendario (`/calendario`) · Crear AL FINAL (`/crear`, porte Smarty). "Home" es el feed, NO el
-   chat. Si cambiás rutas, dejá redirecciones de las viejas.
+   Buscar (`/buscar/*`) · Chat (`/chat`) · Aprender (se vuelve Learn con W3: aprender+practicar
+   colapsados) · Tienda (`/tienda`) · Amigos · Ligas (solapas Mi liga|Tu zona|País con ?tab=) ·
+   Mi espacio (`/espacio/carpetas` DIRECTO, sin submenú) · Calendario (`/calendario`) · Crear AL
+   FINAL (`/crear`, porte Smarty). Practicar y Repasar YA NO están en el menú (decisiones 12-oct:
+   Repasar vuela con W4; Practicar se colapsa en Learn): `/practicar*`, `/repasar*` y
+   `/espacio/videos` siguen ruteables sin link hasta que el porte los absorba. "Home" es el feed,
+   NO el chat. Si cambiás rutas, dejá redirecciones de las viejas.
 9. **La economía del demo vive en RAM** (pedido de Esteban): XP/Energy Coin/canjes NO se persisten
    a disco; cada carga de página hace POST /api/demo/reset (ver src/hooks/user.tsx) y todo vuelve a
    los valores iniciales (seed). Si tu módulo guarda estado económico, exponé un reset() y

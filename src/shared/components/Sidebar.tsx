@@ -7,10 +7,10 @@ import { MiniPlayer } from './MiniPlayer';
 import { ProfileCard } from './ProfileCard';
 import {
   IcNavCalendar, IcNavChat, IcNavCreate, IcNavDiscover, IcNavFriends, IcNavLeagues, IcNavLearn,
-  IcNavPractice, IcNavRecall, IcNavSearch, IcNavSpace, IcNavStore,
+  IcNavSearch, IcNavSpace, IcNavStore,
 } from './icons';
 
-type Sec = 'home' | 'search' | 'chat' | 'space' | 'store' | 'learn' | 'practice' | 'recall' | 'friends' | 'leagues' | 'calendar' | 'create';
+type Sec = 'home' | 'search' | 'chat' | 'space' | 'store' | 'learn' | 'friends' | 'leagues' | 'calendar' | 'create';
 // Orden definido por Esteban (9-oct-2026): Home primero, Mi espacio al final.
 // El submenú de Mi espacio se engancha por sec, no por posición.
 const NAV: { sec: Sec; label: string; to: string; Icon: ComponentType }[] = [
@@ -19,10 +19,9 @@ const NAV: { sec: Sec; label: string; to: string; Icon: ComponentType }[] = [
   { sec: 'search', label: 'Buscar', to: '/buscar', Icon: IcNavSearch },
   // El chat es otra puerta para encontrar cosas, conversando. Sin submenús.
   { sec: 'chat', label: 'Chat', to: '/chat', Icon: IcNavChat },
+  // Aprender se vuelve Learn (W3 del porte: aprender+practicar COLAPSADOS). Practicar y Repasar ya
+  // salieron del menú (decisiones 12-oct): sus rutas siguen vivas por URL hasta que el porte las absorba.
   { sec: 'learn', label: 'Aprender', to: '/aprender', Icon: IcNavLearn },
-  { sec: 'practice', label: 'Practicar', to: '/practicar', Icon: IcNavPractice },
-  // Repasar = las cartas diarias del Active Recall (visión, audio 17): refresca lo que quedó flojo.
-  { sec: 'recall', label: 'Repasar', to: '/repasar', Icon: IcNavRecall },
   // Tienda: premios que publica el padre y se canjean con la Energy Coin cosechada practicando.
   { sec: 'store', label: 'Tienda', to: '/tienda', Icon: IcNavStore },
   { sec: 'friends', label: 'Amigos', to: '/amigos', Icon: IcNavFriends },
@@ -43,8 +42,8 @@ function activeFrom(path: string): { sec?: Sec; sub?: string } {
   if (path.startsWith('/espacio')) return { sec: 'space' };
   if (path.startsWith('/tienda')) return { sec: 'store' };
   if (path.startsWith('/aprender')) return { sec: 'learn' };
-  if (path.startsWith('/practicar')) return { sec: 'practice' };
-  if (path.startsWith('/repasar')) return { sec: 'recall' };
+  // /practicar y /repasar siguen ruteables sin ítem: se marcan como parte de Aprender.
+  if (path.startsWith('/practicar') || path.startsWith('/repasar')) return { sec: 'learn' };
   if (path.startsWith('/amigos')) return { sec: 'friends' };
   if (path.startsWith('/ligas')) return { sec: 'leagues' };
   if (path.startsWith('/calendario')) return { sec: 'calendar' };
