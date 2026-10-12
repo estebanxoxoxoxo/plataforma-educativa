@@ -130,3 +130,27 @@ IndexedDB se guardan en nuestro server manteniendo formas y semántica de persis
 - La app del POC corre en :5173; su wizard quedó en el paso 2 (clave de OpenAI: la carga Esteban, o
   importa su respaldo en el paso 1 para traer la config real).
 - Innerith web en :5188 (preview) + API :8787.
+- **W2 (motor de actividades) — HECHA 12-oct, sin commitear.** Árbol nuevo `src/learn/` espejo de
+  `app/src/learn/` del POC @ `47f434b`: núcleo `activity/*`, los 5 tipos `activities/*` (engines,
+  módulos, configs, generadores, porteros), `kits/dragdrop/*`, `react/useActivity.ts`, los 5 Boards,
+  `registry.ts`, `definitions.ts` (12 seeds + hook de importadas), `recallActivity.ts` (solo el ARMADOR
+  `buildRecallActivity`), `visual/*` y `audio/*` (+ `engine/*`). Fidelidad: de los 72 archivos portados,
+  61 son idénticos al POC salvo especificadores de import (`.ts` fuera: Innerith no permite importar
+  con extensión); los otros 11: clases Tailwind→`lrn-` y lucide→íconos de Innerith (5 Boards +
+  VisualStage), paths (gameManifest, sceneDirector, ytScenePlayer) y dos cortes de ALCANCE
+  (definitions, recallActivity). Desvíos/seams documentados en cada archivo: `hydrateImportedDefinitions` (Dexie)
+  NO se porta → la hidratación desde `api` la cablea W3 con `registerImportedDefinitions(filas.map(r=>r.def))`;
+  `recallableTargets` + `lib/recall` (urgencia) → W4; `sceneDirector`/`ytScenePlayer` portados FIELES
+  pero SIN MONTAR (el director lee el fondo de `audio/bgAudioPort.ts`, inerte hasta que W3 lo enchufe
+  al MiniPlayer con `bindBgAudio`; `ytScenePlayer` usa `src/shared/lib/ytBridge`). Quirks portados
+  tal cual y fijados por tests: trampas 6, 13 (inflado del multi con hijos MC), 17 (`quiz-relampago`,
+  `multi-actividad`), 38, 39, 40. Assets: los 9 WAV a `public/learn/audio/` (SHA-256 idénticos;
+  `baseUrl` `/learn/audio/`). Estilos mínimos en `src/learn/learn-engine.css` (prefijo `lrn-`, lo
+  importa cada Board; estética fina = W3). Tests: `npm test` (vitest 4, devDependency) → 9 suites /
+  107 tests verdes (6 suites portadas del POC + 3 nuevas: opción múltiple, fidelidad, armador de
+  recall). Humo Edge headless (harness en el scratchpad): partida completa de flashcards, MC, quiz,
+  dominó (drag real) y un multi de 2 hijos, ERR []. **Pendiente W3:** montar los Boards en el
+  ActivityOverlay (lobby/cuenta/resultado, `makeSeed`), cablear hidratación de importadas y
+  resultados al server, integrar SceneDirector/escenas con el MiniPlayer, estética fina de los Boards.
+  Hallazgo a decidir (no tocado): en pantallas hi-DPI el canvas de partículas del VisualStage se ve
+  al doble de tamaño (pasa igual en el POC: `absolute inset-0` no estira un `<canvas>`).

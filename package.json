@@ -9,7 +9,8 @@
     "dev:api": "tsx watch --env-file=server/.env server/src/index.ts",
     "import:smarty": "node server/scripts/import-smarty.mjs",
     "build": "tsc -b && tsc -p tsconfig.server.json && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run"
   },
   "dependencies": {
     "@mozilla/readability": "^0.6.0",
@@ -31,6 +32,7 @@
     "concurrently": "^10.0.5",
     "tsx": "^4.23.15",
     "typescript": "~5.8.3",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "vitest": "^4.1.11"
   }
 }

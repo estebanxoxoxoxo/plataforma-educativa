@@ -1,0 +1,128 @@
+/* Motor de actividades de Learn (porte Smarty, tanda W2): estilos MÍNIMOS para que los Boards y el
+   VisualStage rindan y se jueguen YA. Prefijo propio lrn- (grepeado: sin choques). Usa los tokens de
+   base.css (--ink, --muted, --blue, --blue-d, --gold, --display, --body). La estética fina sobre el
+   sistema de Innerith la ajusta W3. Ojo: Innerith resetea los botones (sin fondo/borde/padding y
+   text-align heredado) → acá cada botón declara lo suyo. Lo importa cada Board (y el VisualStage);
+   W3 puede moverlo a main.tsx según la convención de secciones. */
+
+/* ── comunes ───────────────────────────────────────────────────────────── */
+.lrn-count{margin:0 0 8px;font-size:14px;font-weight:700;color:var(--muted)}
+.lrn-count.is-center{text-align:center}
+.lrn-help{margin:16px 0 0;font-size:12.5px;font-weight:700;color:#8A93AD;text-align:center;min-height:16px}
+.lrn-help.is-left{margin-top:12px;text-align:left}
+.lrn-done{margin:24px 0 0;text-align:center;font-weight:700;color:#A5ACBD}
+.lrn-btn{font-size:18px;font-weight:800;padding:16px;border-radius:12px;border:1.5px solid #D9E0FA;background:#fff;text-align:center;transition:background .15s,border-color .15s,scale .1s}
+.lrn-btn:disabled{cursor:default}
+.lrn-btn:not(:disabled):active{scale:.95}
+.lrn-cta{width:100%;font-size:18px;font-weight:800;padding:16px;border-radius:16px;background:var(--blue);color:#fff;text-align:center;transition:opacity .15s,background .15s,scale .1s}
+.lrn-cta:not(:disabled):hover{opacity:.95}
+.lrn-cta:not(:disabled):active{scale:.99}
+.lrn-cta.is-off{background:#E6E9F1;color:#A5ACBD;cursor:not-allowed}
+
+/* ── Flashcards ────────────────────────────────────────────────────────── */
+.lrn-fc{max-width:448px;margin:0 auto}
+.lrn-fc-card{width:100%;min-height:12rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:40px 24px;border-radius:16px;border:1.5px solid #D9E0FA;background:#F4F6FE;text-align:center;transition:border-color .2s,background .2s,scale .1s}
+.lrn-fc-card:not(:disabled):hover{border-color:var(--blue)}
+.lrn-fc-card:not(:disabled):active{scale:.99}
+.lrn-fc-card:disabled{cursor:default}
+.lrn-fc-card.is-revealed{border-color:var(--blue);background:#E8EDFE}
+.lrn-fc-front{font-family:var(--display);font-size:24px;font-weight:800;line-height:1.2;color:var(--ink)}
+.lrn-fc-back{font-family:var(--display);font-size:30px;font-weight:800;line-height:1.15;color:var(--blue)}
+.lrn-fc-hint{font-size:14px;font-weight:700;color:#8A93AD}
+.lrn-fc-tap{font-size:12px;font-weight:700;color:#A5ACBD}
+.lrn-grade{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+.lrn-btn-no{border-color:#F4B4B7;color:#B32D33}
+.lrn-btn-no:not(:disabled):hover{background:#FFF3F3}
+.lrn-btn-yes{border-color:#9BDDB5;color:#0F7F40}
+.lrn-btn-yes:not(:disabled):hover{background:#EFFAF3}
+.lrn-btn-flip{display:block;width:100%;margin-top:16px;color:var(--ink)}
+.lrn-btn-flip:not(:disabled):hover{border-color:var(--blue)}
+
+/* ── Opción múltiple (envío diferido + flip 3D) ────────────────────────── */
+.lrn-mc{max-width:512px;margin:0 auto}
+.lrn-mc-prompt{margin:0;font-family:var(--display);font-size:24px;font-weight:800;line-height:1.3;text-align:center;color:var(--ink);text-wrap:balance}
+@media (min-width:640px){.lrn-mc-prompt{font-size:30px}}
+.lrn-mc-modehint{margin:4px 0 16px;font-size:12px;font-weight:700;text-align:center;color:#8A93AD}
+.lrn-mc-shortcuts{display:flex;gap:8px;justify-content:center;margin-bottom:12px}
+.lrn-chip{font-size:14px;font-weight:800;padding:6px 16px;border-radius:999px;border:1.5px solid #D9E0FA;color:var(--muted);text-align:center;transition:border-color .15s,background .15s,scale .1s}
+.lrn-chip:not(:disabled):hover{border-color:var(--blue)}
+.lrn-chip:not(:disabled):active{scale:.95}
+.lrn-chip.is-on{border-color:var(--blue);background:#E8EDFE;color:var(--ink)}
+.lrn-mc-grid{display:grid;gap:12px;grid-template-columns:1fr 1fr;grid-auto-rows:1fr}
+.lrn-mc-opt{perspective:1000px;height:100%}
+.lrn-mc-flip{position:relative;display:block;width:100%;height:100%;text-align:left;border-radius:16px;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.4,0,.2,1),scale .1s}
+.lrn-mc-flip:not(:disabled):active{scale:.99}
+.lrn-mc-flip:disabled{cursor:default}
+.lrn-mc-face{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;width:100%;height:100%;min-height:6.5rem;padding:16px;border-radius:16px;border:2px solid;-webkit-backface-visibility:hidden;backface-visibility:hidden}
+.lrn-mc-front{border-color:#D9E0FA;background:#fff}
+.lrn-mc-front:hover{border-color:var(--blue)}
+.lrn-mc-front.is-selected{border-color:var(--blue);background:#E8EDFE}
+.lrn-mc-ind{display:grid;place-items:center;flex:none;width:24px;height:24px;border:2px solid #C5CCDB;color:transparent}
+.lrn-mc-ind.is-single{border-radius:50%}
+.lrn-mc-ind.is-multi{border-radius:6px}
+.lrn-mc-ind.is-on{background:var(--blue);border-color:var(--blue);color:#fff}
+.lrn-mc-text{font-size:18px;font-weight:700;text-align:center;color:var(--ink);text-wrap:balance}
+.lrn-mc-back{position:absolute;inset:0;transform:rotateY(180deg)}
+.lrn-mc-back .lrn-mc-text{color:inherit}
+.lrn-mc-backicon{display:grid;place-items:center;flex:none;width:24px;height:24px}
+.lrn-mc-skipicon{opacity:.5}
+.lrn-mc-was{flex:none;font-size:12px;font-weight:800;opacity:.8}
+.lrn-v-hit{border-color:#18A957;background:#EFFAF3;color:#0F7F40}
+.lrn-v-wrongpick{border-color:#E5484D;background:#FFF3F3;color:#B32D33}
+.lrn-v-missed{border-color:var(--gold);background:#FFF6E0;color:#8A5A00}
+.lrn-v-skip{border-color:#E4E8F1;background:#F7F8FB;color:#A5ACBD}
+.lrn-mc-actions{margin-top:20px}
+@media (prefers-reduced-motion: reduce){.lrn-mc-flip{transition:none}}
+
+/* ── Quiz relámpago ────────────────────────────────────────────────────── */
+.lrn-quiz{max-width:448px;margin:0 auto}
+.lrn-quiz-prompt{padding:40px 0;border-radius:16px;background:#EEF1F8;font-family:var(--display);font-size:36px;font-weight:800;text-align:center;letter-spacing:.025em;font-variant-numeric:tabular-nums;color:var(--ink)}
+.lrn-quiz-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+.lrn-quiz-opt{padding:20px 0;border-radius:12px;border:1.5px solid #D9E0FA;background:#fff;font-size:24px;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;color:var(--ink);transition:border-color .15s,scale .1s}
+.lrn-quiz-opt:not(:disabled):hover{border-color:var(--blue)}
+.lrn-quiz-opt:not(:disabled):active{scale:.95}
+.lrn-quiz-opt:disabled{cursor:default}
+.lrn-quiz-opt.is-ruled{opacity:.4;text-decoration:line-through;border-color:#F4B4B7;color:#A5ACBD}
+
+/* ── Dominó (DragDropKit) ──────────────────────────────────────────────── */
+.lrn-dom-track{display:flex;align-items:center;gap:6px;overflow-x:auto;padding:12px;border-radius:16px;background:#EEF1F8;min-height:104px}
+.lrn-dom-end{flex:none;width:84px;min-height:84px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:12px;border:2px dashed #C9D3FA;transition:border-color .15s,background .15s}
+.lrn-dom-end.is-valid{border-color:var(--blue)}
+.lrn-dom-end.is-over-ok{border-color:var(--blue);background:#E8EDFE}
+.lrn-dom-end.is-over-bad{border-color:#E5484D;background:#FFF3F3}
+.lrn-dom-endlabel{padding:0 4px;font-size:16px;font-weight:800;line-height:1.2;text-align:center;color:#B07A06}
+.lrn-dom-endhint{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#A5ACBD}
+.lrn-dom-placed{flex:none;display:flex;border-radius:12px;border:1.5px solid #D9E0FA;background:#fff;overflow:hidden}
+.lrn-dom-placed>.lrn-dom-half+.lrn-dom-half{border-left:1.5px solid #D9E0FA}
+.lrn-dom-half{flex:1;display:flex;align-items:center;justify-content:center;padding:6px 8px;line-height:1.2;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
+.lrn-dom-half.v-expr{color:#0E5F8A}
+.lrn-dom-half.v-number{color:#B07A06;font-weight:800}
+.lrn-dom-half.v-term{color:var(--ink)}
+.lrn-dom-handtitle{margin:16px 0 8px;font-family:var(--display);font-size:15px;font-weight:800;color:var(--blue-d)}
+.lrn-dom-hand{display:flex;flex-wrap:wrap;gap:8px}
+.lrn-dom-tile{flex:none;width:88px;min-height:84px;display:flex;flex-direction:column;border-radius:12px;border:1.5px solid #D9E0FA;background:#fff;user-select:none;-webkit-user-select:none;cursor:grab}
+.lrn-dom-tile>.lrn-dom-half+.lrn-dom-half{border-top:1.5px solid #D9E0FA}
+.lrn-dom-tile.is-wrong{border-color:#E5484D;box-shadow:0 0 0 2px #FBD0D2}
+.lrn-dom-tile.is-hint{border-color:var(--gold);box-shadow:0 0 0 2px #FCE3B0}
+.lrn-dom-tile.is-dragging{opacity:.95;box-shadow:0 20px 25px -5px rgba(0,0,0,.1),0 8px 10px -6px rgba(0,0,0,.1)}
+.lrn-dom-empty{margin:0;font-size:14px;font-weight:700;color:#A5ACBD}
+.lrn-hintbtn{margin-top:4px;display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:8px;border:1.5px solid #D9E0FA;font-size:14px;font-weight:800;color:var(--blue-d);transition:scale .1s}
+.lrn-hintbtn:disabled{opacity:.4;cursor:default}
+.lrn-hintbtn:not(:disabled):active{scale:.95}
+
+/* ── Multi-actividad ───────────────────────────────────────────────────── */
+.lrn-multi{max-width:672px;margin:0 auto}
+.lrn-multi-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;font-size:14px;font-weight:700;color:var(--muted)}
+.lrn-multi-title{font-weight:800;color:var(--ink)}
+.lrn-multi-count{font-variant-numeric:tabular-nums}
+
+/* ── VisualStage: traducción LITERAL de lo que computaban las utilidades Tailwind v4 del POC ──
+   (incluido el translate -50%/-50% del flotante, que en v4 es la propiedad individual translate y
+   se compone con el transform que anima WAAPI). */
+.lrn-stage{position:relative;isolation:isolate;overflow:hidden}
+.lrn-stage-moods{position:absolute;inset:0;pointer-events:none}
+.lrn-stage-mood{position:absolute;inset:0;transition:opacity .5s cubic-bezier(.4,0,.2,1)}
+.lrn-stage-canvas{position:absolute;inset:0;z-index:40;pointer-events:none;display:block}
+.lrn-stage-flash{position:absolute;inset:0;z-index:40;opacity:0;pointer-events:none}
+.lrn-stage-pop{position:absolute;z-index:60;font-size:24px;line-height:1.333;font-weight:800;font-variant-numeric:tabular-nums;pointer-events:none;translate:-50% -50%}
+.lrn-stage-body{position:relative;z-index:1;height:100%}
