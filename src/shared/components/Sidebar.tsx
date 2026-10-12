@@ -2,6 +2,7 @@ import type { ComponentType } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { User } from '../../api/types';
 import { featureAllows, useFeatures } from '../../sections/parent/lib/features';
+import { scheduleAllows, useSchedules } from '../../sections/parent/lib/schedules';
 import { BrandMark } from './BrandMark';
 import { MiniPlayer } from './MiniPlayer';
 import { ProfileCard } from './ProfileCard';
@@ -61,10 +62,14 @@ export function Sidebar({ user }: { user?: User }) {
   const go = useNavigate();
   const { sec } = activeFrom(pathname);
   const features = useFeatures();
+  const schedules = useSchedules();
 
   const item = (n: (typeof NAV)[number]) => {
     // Tienda, Ligas, Amigos y Chat los puede apagar el padre: apagados (o sin saber todavía) no existen.
     if (!featureAllows(features, n.to)) return null;
+    // Horarios por sección (porte Smarty W7): fuera de su franja la sección sale del menú (el tick de 30 s la saca y la
+    // vuelve a poner sin recargar). El Feed no tiene horario.
+    if (!scheduleAllows(schedules, n.to)) return null;
     const on = sec === n.sec;
     return (
       <button key={n.sec} className={`nav-item${on ? ' on' : ''}`} data-sec={n.sec} aria-current={on ? 'page' : undefined} onClick={() => go(n.to)}>

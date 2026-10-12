@@ -243,3 +243,52 @@ IndexedDB se guardan en nuestro server manteniendo formas y semántica de persis
   lo rechaza; (2) el chip de canal del reproductor → `/mytube/canal/:id` (única puerta a un canal no seguido en el POC);
   (3) retirar `GET /api/space/channels|channel` (+ `api.channels/channel`, `Channel`, `ChannelDetail`) del contrato.
   QA: E2E Edge (101 checks, ERR []) + prueba aislada de Completar canales y de la trampa del entryId.
+- **W6+W7 (After Day + Horarios por sección) — HECHA 12-oct, sin commitear.** Port exacto de `AfterDay.tsx`,
+  `lib/afterday.ts`, `AfterDayTab` (Admin → Listas), `lib/featureSchedule.ts`, `HorariosEditor` (Ajustes) y el filtrado +
+  guard de ruta de `ChildShell.tsx`, sobre el contrato congelado (45766b7). **After Day** (`sections/afterday/**`, `ad-`):
+  grilla 2/3/4 (los sm/lg del POC, por ventana) del más nuevo al más viejo; tarjeta = miniatura + título o "Audio" + play; la
+  que suena resaltada (nota musical); tocar = `playTrack(…, 0, audioOnly=true)` → cola de UN track (con repetir 'all' se repite
+  ese), tocar otra la reemplaza, NUNCA abre el reproductor; vacío con los textos del POC; relee al volver el foco (el liveQuery
+  del POC). `bgAudio` sumó `audioOnly` (lo fija cada `playQueue`/`playTrack`, default false: el "Escuchar de fondo" del
+  reproductor lo apaga, como el POC) y el MiniPlayer esconde "Abrir el video" con él. **Padre**: «Música de After Day» al pie
+  de Zona de padres → YouTube (link + nombre opcional + Agregar, "✓ Agregado: …", lista con miniatura, nombre o "(sin
+  nombre)", videoId y Quitar) con la SESIÓN (`GET /api/parent/music`, `POST music/add`, `POST music/remove` en `parent.ts`).
+  **Server** `afterday.ts`: `extractVideoId` del POC tal cual (copia del parseYtUrl + el fallback `v=`/youtu.be: un
+  `watch?v=X&list=PL…` es el video X), "No es un link de un video de YouTube" / "Ese video ya está en la lista.", thumb
+  hqdefault, `music.json` atómico fuera del reset. **Horarios**: `server/src/schedule.ts` = `isFeatureOpen`/`nextOpenLabel`
+  EXACTOS (cruce de medianoche, from == to = 24 h, fail-open) + `checkPatch` (secciones conocidas, 7 días, HH:MM) +
+  `patchSchedules` + `sectionForApi`; `index.ts` responde `403 {error:'horario', section, opensAt}` ANTES de rutear (Chat/Tienda
+  APAGADOS responden su propio 403: gana el apagado). Cliente: `sections/parent/lib/scheduleRules.ts` (reglas puras, espejo del
+  server, con tests) + `lib/schedules.ts` (store junto a features/limits: GET al montar, tick de 30 s que relee y evalúa con
+  la hora del server —delta `serverNow − Date.now()`—, foco, BroadcastChannel, y al ENTRAR a una sección con el dato > 15 s
+  espera la lectura nueva, como useFeatureGate); el Sidebar filtra; `ScheduleGate` va compuesto DENTRO de `FeatureGate` (App.tsx
+  intacto) con la pantalla "cerrado" del POC (copy.fueraDeHorario + "Se abre de nuevo a las HH:MM." si hoy abre más tarde) con el
+  estilo de FeatureOff y "Ir al Feed". Editor del padre debajo de los topes de volumen: "Restringir {sección} por horario",
+  Lun→Dom guardado por getDay(), abierto/cerrado + desde "a" hasta; "Guardar horarios" manda SOLO lo tocado.
+  **Quirks portados tal cual:** After Day no filtra palabras bloqueadas; el audio que sonaba sigue al cerrarse la franja (la
+  sección se va del menú y la vista pasa a "cerrado"); el `v=` de cualquier dominio pasa como videoId; sin nombre = "Audio" en
+  la tarjeta y "Música" en el MiniPlayer; tocar la tarjeta que ya suena no la reinicia (y si estaba en pausa la marca "sonando"
+  sin mandar play: `playQueue` con el mismo id no re-monta el iframe, igual que el POC); el editor normaliza por día; "se abre
+  a las…" solo mira hoy; un horario inválido deja la sección ABIERTA. `bgAudioEnabled` no existe en Innerith (nada que portar).
+  **Desvíos** (además de a/b): (1) el server es la verdad Y el candado (403) — el POC solo escondía la vista en localStorage;
+  (2) título por noembed cuando el padre no pone nombre (decisión del contrato; el POC no buscaba título); (3) mapa del
+  enforcement afinado respecto del brief para no cerrar lo que el POC no cerraba (overlays del shell): `/api/article` (lector:
+  lo usan Feed, Mi espacio, chat y las postas de lectura de Aprender) y `/api/video` nunca se gatean; `/api/teachers*` es la
+  pantalla Profesores del PADRE (como `/api/mytube/admin/*`, siempre pasa); de `/api/space/*` solo se gatea el Drive
+  (`/api/space/drive*` menos crear carpeta) — Seguir y Mis listas son de MyTube y `save`/`folders`/crear carpeta son del
+  selector "¿Dónde lo guardás?" (el FolderPicker del POC, que crea carpetas); en el cliente `/buscar/articulo/:id` y
+  `/buscar/video/:id` tampoco se cierran con Buscar; (4) validación: un día ABIERTO de una sección restringida necesita sus dos
+  horas (el server exige HH:MM; en el POC una hora vacía dejaba el día abierto entero); en días cerrados o secciones sin
+  restringir una hora vacía vuelve al default; (5) "sin restringir" con una semana propia se guarda (el editor del POC la
+  recuerda) y con la de fábrica se borra la entrada (equivale a no tener horario: el archivo queda limpio); (6) sin el "nada
+  disponible" del POC: el Feed nunca se cierra; (7) el día y la hora se leen en la zona horaria del navegador (el contrato trae
+  el instante del server, no su zona; en el demo es la misma máquina); (8) el panel suma una línea al pie ("El Feed no tiene
+  horario… la música sigue hasta que {chico} la pare") — se puede quitar. QA: tsc -b --force, tsc server, build, `npm test`
+  (12 suites, 134 tests: +horarios), unidad del server en el scratchpad (≈100 casos: franja, mapa API→sección, patch, parser),
+  humo de API (35) y E2E Edge (≈100 checks de los 9 pedidos, incluido el tick que cierra After Day sin recargar con el audio
+  sonando; 1280/1024/820), ERR []. Estado restaurado: `schedules.json` = `{}` y `music.json` = `[]` (sin seed). **Pendiente
+  (coordinador):** (1) ¿seed de After Day para el demo? (hoy nace vacía); (2) confirmar los ajustes al mapa de enforcement del
+  desvío 3; (3) con la Tienda fuera de franja el guardarropas de "Tu avatar" (ProfileCard lee `/api/market`) dice "No pude ver tu
+  ropa ahora…"; (4) el Feed sigue ofreciendo rutas y ⚡ de secciones cerradas (llevan a "cerrado"); (5) una vista que monta con
+  el dato apenas viejo puede pedir su API y ver un 403 un instante antes de que el portón la cierre (el 403 no dispara una
+  relectura: haría falta tocar `src/api`); (6) zona horaria de la familia.

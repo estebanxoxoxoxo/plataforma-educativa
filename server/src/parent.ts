@@ -33,6 +33,15 @@
 //   POST /api/parent/alerts/seen {id}             → {ok}
 //   GET  /api/parent/presets                      → {presets: ParentPreset[], current}
 //   POST /api/parent/presets/apply {id}           → {ok, config, features}
+//   GET  /api/parent/music                        → {tracks}  (After Day, porte Smarty W6: la lista de audio de la familia;
+//                                                   la lógica y music.json viven en afterday.ts)
+//   POST /api/parent/music/add {url, title?}      → {ok:true, track} | {ok:false, error}  (rechazos de negocio con 200: "No es
+//                                                   un link de un video de YouTube" / "Ese video ya está en la lista.")
+//   POST /api/parent/music/remove {videoId}       → {ok}
+//   POST /api/parent/schedules {patch}            → {schedules, serverNow}  (Horarios por sección, W7: el patch trae el horario
+//                                                   COMPLETO de cada sección tocada —o null = sin horario—; forma inválida → 400.
+//                                                   La lógica, la validación y schedules.json viven en schedule.ts)
+//   After Day y los horarios NO forman parte de los presets: tocarlos no deja la configuración como "propia".
 // EXTENSIONES ADITIVAS (no rompen el contrato; pendientes de formalizar en types.ts por el coordinador):
 //   · GET /api/parent/activity suma `items` y `protections` (v1; ya formalizados como opcionales).
 //   · GET /api/parent/presets: cada preset trae además `spec` = qué deja configurado (features, temas, palabras,
@@ -59,15 +68,18 @@
 // o con resetUnlockAttempts() (registrado en POST /api/demo/reset).
 //
 // IMPORTS CRUZADOS: market.ts y filters.ts leen de acá (featureOn, premios, palabras/temas de la familia) y acá se lee
-// de market.ts (canjes en RAM), de space.ts y de videos.ts (que a su vez importan filters.ts). Es seguro porque NINGUNO
+// de market.ts (canjes en RAM), de space.ts y de videos.ts (que a su vez importan filters.ts). afterday.ts y schedule.ts
+// (W6/W7) solo importan config.ts y web.ts: no vuelven hacia acá. Es seguro porque NINGUNO
 // llama al otro en el nivel superior del módulo (solo dentro de funciones): el orden de evaluación da igual. Mantener
 // esa regla: nada de llamadas a market/filters/space/videos al cargar este módulo, ni de ellos hacia acá.
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { addTrack, allTracks, removeTrack } from './afterday'
 import { SERVER_ROOT, blackTopics, config, ov, whiteTopics, whitelistSites } from './config'
 import { deliverRedemption, listRedemptions, redeemedCount, stockLeft } from './market'
+import { checkPatch, patchSchedules } from './schedule'
 import { summary } from './progress'
 import { allSavedForParent } from './space'
 import { catalogSize } from './videos'
@@ -625,11 +637,11 @@ function activity() {
 const parseId = (b: Input): number | null => { const n = toInt(b.id); return n !== null && n > 0 ? n : null }
 
 /* ---------- rutas ---------- */
-const GETS = new Set(['/api/parent/features', '/api/parent/limits', '/api/parent/activity', '/api/parent/config', '/api/parent/alerts', '/api/parent/presets'])
+const GETS = new Set(['/api/parent/features', '/api/parent/limits', '/api/parent/activity', '/api/parent/config', '/api/parent/alerts', '/api/parent/presets', '/api/parent/music'])
 const POSTS = new Set([
   '/api/parent/unlock', '/api/parent/lock', '/api/parent/features', '/api/parent/items', '/api/parent/items/update', '/api/parent/items/archive',
   '/api/parent/deliver', '/api/parent/topics', '/api/parent/words', '/api/parent/volume', '/api/parent/alerts/seen', '/api/parent/presets/apply',
-  '/api/parent/feed-motion',
+  '/api/parent/feed-motion', '/api/parent/music/add', '/api/parent/music/remove', '/api/parent/schedules',
 ])
 const NO_SESSION = { error: 'La sesión de la Zona de padres venció o no es válida: ingresá el PIN de nuevo.' }
 
@@ -657,6 +669,7 @@ export async function parentRoutes(req: IncomingMessage, res: ServerResponse, ur
       case '/api/parent/config': return send(res, 200, configView())
       case '/api/parent/alerts': return send(res, 200, { alerts: alertList() })
       case '/api/parent/presets': return send(res, 200, { presets: PRESETS.map(presetView), current: store.preset })
+      case '/api/parent/music': return send(res, 200, { tracks: allTracks() })
     }
     return send(res, 405, { error: 'Método no permitido: usá POST.' })
   }
@@ -724,6 +737,18 @@ export async function parentRoutes(req: IncomingMessage, res: ServerResponse, ur
     case '/api/parent/presets/apply': {
       const r = applyPreset(b.id)
       return r.ok ? send(res, 200, { ok: true, config: configView(), features: features() }) : send(res, r.status, { ok: false, error: r.error })
+    }
+    // After Day (W6): lo que no es un link de video (o falta) es un rechazo de negocio más, con el texto del POC.
+    case '/api/parent/music/add':
+      return send(res, 200, await addTrack(typeof b.url === 'string' ? b.url : '', typeof b.title === 'string' ? b.title : undefined))
+    case '/api/parent/music/remove':
+      return send(res, 200, { ok: typeof b.videoId === 'string' && b.videoId !== '' && removeTrack(b.videoId) })
+    // Horarios por sección (W7): forma inválida (sección desconocida, otra cantidad de días, horas que no son HH:MM) → 400.
+    case '/api/parent/schedules': {
+      const c = checkPatch(b.patch)
+      if (!c.ok) return send(res, 400, { error: c.error })
+      const s = patchSchedules(c.value)
+      return s ? send(res, 200, { schedules: s, serverNow: Date.now() }) : send(res, 500, { error: 'No pude guardar los horarios. Probá de nuevo.' })
     }
   }
   return send(res, 404, { error: 'not found' })

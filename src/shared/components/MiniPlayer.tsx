@@ -70,9 +70,12 @@ export function MiniPlayer() {
                   aria-label={`Repetir: ${bg.repeat === 'off' ? 'no' : bg.repeat === 'one' ? 'una' : 'todas'}`}>
                   <IcRepeat />{bg.repeat === 'one' && <b className="mp-one">1</b>}
                 </button>
-                <button className="mp-b" aria-label="Abrir el video" onClick={() => { go(`/buscar/video/${bg.video!.id}`); setOpen(false); }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M9 5H5v4M15 5h4v4M9 19H5v-4M15 19h4v-4" /></svg>
-                </button>
+                {/* After Day (audioOnly, como el MiniPlayer del POC): solo audio de fondo, nunca a pantalla completa. */}
+                {!bg.audioOnly && (
+                  <button className="mp-b" aria-label="Abrir el video" onClick={() => { go(`/buscar/video/${bg.video!.id}`); setOpen(false); }}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M9 5H5v4M15 5h4v4M9 19H5v-4M15 19h4v-4" /></svg>
+                  </button>
+                )}
                 <button className="mp-b stop" aria-label="Parar el audio" onClick={stopMusic}><IcClose /></button>
               </div>
               {bg.duration > 0 && (

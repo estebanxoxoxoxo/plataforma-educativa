@@ -26,6 +26,9 @@ export type BgAudioState = {
   repeat: RepeatMode; // off = para al terminar la cola · one = repite el track · all = loopea la cola
   ducked: boolean; // pausada automáticamente por un video en primer plano (no por el chico)
   ambient: Record<AmbientKey, { on: boolean; volume: number }>; // ruidos sintetizados, en paralelo
+  /** After Day (porte Smarty W6, el `audioOnly` del backgroundAudio del POC): lo que suena es SOLO audio de fondo — el
+   *  MiniPlayer no ofrece "Abrir el video". Lo fija cada playQueue/playTrack (default false: cualquier otro caller lo apaga). */
+  audioOnly: boolean;
   currentTime: number; // posición (s) del track, para la barra de seek del MiniPlayer
   duration: number; // duración (s) del track (0 hasta el primer infoDelivery)
   at: number; // Date.now() del último reporte (para interpolar suave entre mensajes)
@@ -60,7 +63,7 @@ function persistAmbientVol() {
 
 let state: BgAudioState = {
   video: null, queue: [], index: 0, playing: false,
-  volume: initVolume(), repeat: initRepeat(), ducked: false, ambient: initAmbient(),
+  volume: initVolume(), repeat: initRepeat(), ducked: false, ambient: initAmbient(), audioOnly: false,
   currentTime: 0, duration: 0, at: 0,
 };
 let iframe: HTMLIFrameElement | null = null;
@@ -132,15 +135,17 @@ function goToIndex(i: number) {
 
 /* ---- API (se dispara desde gestos de usuario → autoplay OK) ---- */
 
-/** Reproduce una COLA como audio de fondo desde startIndex. Un track suelto = playTrack. */
-export function playQueue(tracks: BgTrack[], startIndex = 0, fromSeconds = 0) {
+/** Reproduce una COLA como audio de fondo desde startIndex. Un track suelto = playTrack. `audioOnly` = After Day (sin
+ *  "Abrir el video" en el MiniPlayer); como en el POC, cada llamada lo fija (los demás callers lo dejan en false). */
+export function playQueue(tracks: BgTrack[], startIndex = 0, fromSeconds = 0, audioOnly = false) {
   if (!tracks.length) return;
   const index = Math.max(0, Math.min(startIndex, tracks.length - 1));
   startAt = fromSeconds > 1 ? Math.floor(fromSeconds) : 0;
-  state = { ...state, queue: tracks, index, video: tracks[index], playing: true, ducked: false, currentTime: startAt, duration: 0, at: Date.now() };
+  state = { ...state, queue: tracks, index, video: tracks[index], playing: true, ducked: false, audioOnly, currentTime: startAt, duration: 0, at: Date.now() };
   emit();
 }
-export function playTrack(track: BgTrack, fromSeconds = 0) { playQueue([track], 0, fromSeconds); }
+/** Un track suelto = cola de 1 (After Day, "Escuchar de fondo" del reproductor, el SceneDirector de Learn). */
+export function playTrack(track: BgTrack, fromSeconds = 0, audioOnly = false) { playQueue([track], 0, fromSeconds, audioOnly); }
 export function nextTrack() {
   if (state.index < state.queue.length - 1) goToIndex(state.index + 1);
   else if (state.repeat === 'all' && state.queue.length) goToIndex(0);

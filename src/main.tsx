@@ -8,6 +8,7 @@ import './sections/home/home.css';
 import './sections/discover/discover.css';
 import './sections/space/space.css';
 import './sections/mytube/mytube.css';
+import './sections/afterday/afterday.css';
 import './sections/learn/learn.css';
 import './sections/calendar/calendar.css';
 import './sections/create/create.css';

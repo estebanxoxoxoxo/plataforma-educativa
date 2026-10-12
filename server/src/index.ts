@@ -29,7 +29,7 @@ import { identityRoutes } from './identity'
 import { teachersRoutes } from './teachersFake'
 import { simulateNpcs } from './feedFake'
 import { afterdayRoutes } from './afterday'
-import { scheduleRoutes } from './schedule'
+import { closedSectionFor, scheduleRoutes } from './schedule'
 import { learnRoutesRoutes } from './learnRoutes'
 import { learnResultsRoutes } from './learnResults'
 import { createRoutes } from './create'
@@ -86,6 +86,16 @@ createServer(async (req, res) => {
       resetLeagues() // el ciclo de liga simulado (cierres de semana del botón de demo) vuelve al seed
       resetFeed() // las noticias en vivo (cierres, ráfagas de NPCs) y las reacciones vuelven al seed
       return send(res, 200, { ok: true })
+    }
+
+    // --- HORARIOS POR SECCIÓN (porte Smarty W7): fuera de la franja que fijó el padre, la API de esa sección responde 403
+    //     ANTES de rutear (el POC solo escondía la vista; acá el server es el candado). Qué prefijo es de qué sección —y qué
+    //     no se gatea nunca: Feed, amigos, progreso, ligas, Zona de padres, demo, lector y reproductor— en
+    //     schedule.ts:sectionForApi. Capas independientes: si la familia APAGÓ la sección (Chat/Tienda), gana el apagado
+    //     (responde la ruta con su propio 403); el horario rige solo si está prendida.
+    const closed = closedSectionFor(url.pathname)
+    if (closed && !((closed.key === 'chat' || closed.key === 'tienda') && !featureOn(closed.key))) {
+      return send(res, 403, { error: 'horario', section: closed.key, opensAt: closed.opensAt })
     }
 
     // --- Dominios con módulo propio (cada uno maneja sus subrutas y métodos) ---

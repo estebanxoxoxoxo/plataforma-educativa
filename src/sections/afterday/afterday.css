@@ -1,0 +1,54 @@
+/* After Day (porte Smarty W6) — prefijo de sección: ad- (regla 5 de AGENTS: grepeado en todo el css de src, sin choques).
+   El ancho de página lo da .view. Color de la sección: el violeta del menú (shell.css: --sec-bd #8A5CF5 · --sec-fg #5B36B8,
+   7.4:1 con blanco). La grilla es la del POC: 2 columnas, 3 desde 640 px y 4 desde 1024 px de ventana (sm/lg de Tailwind). */
+
+/* minmax(0,1fr) + filas max-content: el mismo resguardo contra el grid blowout que .mt-view (regla 5). */
+.ad-view{display:grid;grid-template-columns:minmax(0,1fr);grid-auto-rows:max-content;align-content:start;gap:20px}
+.ad-head{display:grid;gap:2px}
+
+.ad-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (min-width:640px){ .ad-grid{grid-template-columns:repeat(3,minmax(0,1fr))} }
+@media (min-width:1024px){ .ad-grid{grid-template-columns:repeat(4,minmax(0,1fr))} }
+
+/* ---- tarjeta: miniatura 16:9 con el play encima y el título debajo; la que suena, con borde y aro violeta ---- */
+.ad-card{display:grid;grid-template-rows:auto 1fr;min-width:0;text-align:left;background:#fff;border:1px solid var(--card-line);border-radius:9px;overflow:hidden;cursor:pointer;
+  transition:box-shadow .25s,transform .2s,border-color .25s}
+.ad-card:hover{box-shadow:0 12px 26px -14px rgba(27,34,56,.35);transform:translateY(-2px)}
+.ad-card:active{transform:scale(.98)}
+.ad-card.is-on{border-color:#8A5CF5;box-shadow:0 0 0 3px #E2D8FD}
+.ad-th{position:relative;display:block;aspect-ratio:16/9;background:#F0ECFD;overflow:hidden}
+.ad-th img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .3s}
+.ad-card:hover .ad-th img{transform:scale(1.04)}
+/* velo al pasar el mouse (el group-hover:bg-black/20 del POC); debajo del botón */
+.ad-th::after{content:'';position:absolute;inset:0;background:rgba(14,18,32,0);transition:background-color .2s}
+.ad-card:hover .ad-th::after{background:rgba(14,18,32,.2)}
+.ad-play{position:absolute;left:50%;top:50%;z-index:1;width:44px;height:44px;margin:-22px 0 0 -22px;display:grid;place-items:center;border-radius:50%;
+  background:rgba(255,255,255,.92);color:#5B36B8;box-shadow:0 2px 10px rgba(14,18,32,.28)}
+.ad-play svg{width:20px;height:20px}
+.ad-card.is-on .ad-play{background:#fff}
+.ad-card.is-on .ad-play svg{animation:ad-pulse 1.4s ease-in-out infinite}
+@keyframes ad-pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.ad-t{padding:10px 12px 12px;font-size:13.5px;font-weight:800;line-height:1.3;color:#1B2238;overflow-wrap:anywhere;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ad-card.is-on .ad-t{color:#5B36B8}
+
+/* ---- esqueleto ---- */
+.ad-card.is-sk{cursor:default}
+.ad-card.is-sk:hover{box-shadow:none;transform:none}
+.ad-sk{background:linear-gradient(90deg,#E6E9F1 0%,#F1F3F8 50%,#E6E9F1 100%);background-size:200% 100%;animation:shim 1.3s linear infinite}
+i.ad-sk{display:block;height:12px;margin:12px 12px 14px;width:70%;border-radius:4px}
+
+/* ---- vacío y error ---- */
+.ad-none{display:grid;justify-items:center;gap:12px;padding:56px 24px;text-align:center;color:#6A7390;font-weight:700;font-size:15px;line-height:1.55}
+.ad-none svg{width:44px;height:44px;color:#B9A5F8}
+.ad-none p{margin:0}
+.ad-none small{display:block;font-size:13.5px;font-weight:600}
+.ad-fail{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:10px 14px;padding:18px 20px;border:1px dashed #D3D9E6;border-radius:9px;background:#fff}
+.ad-fail p{margin:0;color:#6A7390;font-weight:700;font-size:14.5px}
+.ad-retry{padding:8px 16px;border-radius:999px;background:#F0ECFD;color:#5B36B8;font-weight:800;font-size:14px;cursor:pointer;transition:background-color .2s}
+.ad-retry:hover{background:#E2D8FD}
+
+@media (prefers-reduced-motion: reduce){
+  .ad-card,.ad-th img,.ad-th::after{transition:none}
+  .ad-card.is-on .ad-play svg,.ad-sk{animation:none}
+}
