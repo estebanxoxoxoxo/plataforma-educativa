@@ -36,8 +36,8 @@ framework en `server/` (puerto 8787, proxy `/api` de Vite). El usuario demo es I
    lastWeek/medalla) tiene UNA sola fuente: server/src/leaguesFake.ts — no lo dupliques.
 8. Menú actual (EN ESTE ORDEN, 12-oct-2026 tarde, SIN submenús): Feed (= el feed de
    recomendaciones, la home en `/`; antes se llamó Home y Descubrir) · Buscar (`/buscar/*`) ·
-   Chat (`/chat`) · Aprender (su encabezado lleva el botón "Crear" → `/crear`, que marca Aprender
-   como sección activa; con W3 se vuelve Learn: aprender+practicar colapsados) · Calendario (`/calendario`) · Tienda (`/tienda`) · Mi espacio (`/espacio/carpetas` directo) · MyTube AL FONDO (`/mytube`; las rutas viejas `/espacio/videos*` REDIRIGEN acá).
+   Chat (`/chat`) · MyTube (`/mytube`; las rutas viejas `/espacio/videos*` redirigen acá) · Aprender (su encabezado lleva el botón "Crear" → `/crear`, que marca Aprender
+   como sección activa; con W3 se vuelve Learn: aprender+practicar colapsados) · Calendario (`/calendario`) · Tienda (`/tienda`) · Mi espacio AL FONDO (`/espacio/carpetas` directo).
    LIGAS TAMPOCO ES PUNTO DE MENÚ (12-oct): la posición vive SIEMPRE en la BARRA SUPERIOR estilo
    GT7 (src/shared/components/TopBar.tsx: liga → link a /ligas · ⚡ Energy Coins · fecha/hora
    compacta · campana de notificaciones con las solicitudes y los no-leídos del dock; respeta los

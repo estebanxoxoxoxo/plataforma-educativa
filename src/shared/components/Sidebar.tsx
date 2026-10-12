@@ -19,15 +19,16 @@ const NAV: { sec: Sec; label: string; to: string; Icon: ComponentType }[] = [
   { sec: 'search', label: 'Buscar', to: '/buscar', Icon: IcNavSearch },
   // El chat es otra puerta para encontrar cosas, conversando. Sin submenús.
   { sec: 'chat', label: 'Chat', to: '/chat', Icon: IcNavChat },
+  // MyTube después de Chat (pedido 12-oct).
+  { sec: 'mytube', label: 'MyTube', to: '/mytube', Icon: IcNavMyTube },
   // Aprender se vuelve Learn (W3 del porte: aprender+practicar COLAPSADOS). Practicar y Repasar ya
   // salieron del menú (decisiones 12-oct): sus rutas siguen vivas por URL hasta que el porte las absorba.
   { sec: 'learn', label: 'Aprender', to: '/aprender', Icon: IcNavLearn },
   // Calendario: las clases con los profes que contrató el padre (pedido 11-oct: "después de Mi espacio").
   { sec: 'calendar', label: 'Calendario', to: '/calendario', Icon: IcNavCalendar },
   { sec: 'store', label: 'Tienda', to: '/tienda', Icon: IcNavStore },
-  // Mi espacio y MyTube AL FONDO (pedido 12-oct).
+  // Mi espacio AL FONDO (pedido 12-oct).
   { sec: 'space', label: 'Mi espacio', to: '/espacio/carpetas', Icon: IcNavSpace },
-  { sec: 'mytube', label: 'MyTube', to: '/mytube', Icon: IcNavMyTube },
 ];
 
 function activeFrom(path: string): { sec?: Sec; sub?: string } {
