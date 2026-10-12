@@ -157,6 +157,13 @@ export const IcNavLearn = filled(<>
   <path d="M27.2 9.2A1.2 1.2 0 0026 8h-6.4c-1.3 0-2.5.6-2.9 1.6V24.4c.7-.6 1.8-.9 3-.9H26a1.2 1.2 0 001.2-1.2z" fill={NK.blueL} />
   <path d="M7.5 12h5M7.5 15.5h5M7.5 19h3.5M19.5 12h5M19.5 15.5h5M19.5 19h3.5" stroke={NK.blueM} strokeWidth="1.6" strokeLinecap="round" />
 </>);
+/** Campana de notificaciones de la barra superior (trazo blanco: vive sobre fondo tinta). */
+export const IcBell = (props: P) => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+    <path d="M18 8a6 6 0 10-12 0c0 7-3 8-3 8h18s-3-1-3-8" />
+    <path d="M13.7 21a2 2 0 01-3.4 0" />
+  </svg>
+);
 /** MyTube: tele retro celeste con antenas y play coral (la sección de videos del porte Smarty). */
 export const IcNavMyTube = filled(<>
   <path d="M10.5 8.5L7 3.8M21.5 8.5L25 3.8" stroke={NK.ink} strokeWidth="2.6" strokeLinecap="round" fill="none" />

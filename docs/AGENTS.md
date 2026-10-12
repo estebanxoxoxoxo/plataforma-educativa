@@ -37,10 +37,12 @@ framework en `server/` (puerto 8787, proxy `/api` de Vite). El usuario demo es I
 8. Menú actual (EN ESTE ORDEN, 12-oct-2026 tarde, SIN submenús): Feed (= el feed de
    recomendaciones, la home en `/`; antes se llamó Home y Descubrir) · Buscar (`/buscar/*`) ·
    Chat (`/chat`) · Aprender (su encabezado lleva el botón "Crear" → `/crear`, que marca Aprender
-   como sección activa; con W3 se vuelve Learn: aprender+practicar colapsados) · Ligas (solapas
-   con ?tab=) · Mi espacio (`/espacio/carpetas` directo) · MyTube (`/mytube`; las rutas viejas
+   como sección activa; con W3 se vuelve Learn: aprender+practicar colapsados) · Mi espacio (`/espacio/carpetas` directo) · MyTube (`/mytube`; las rutas viejas
    `/espacio/videos*` REDIRIGEN acá) · Calendario (`/calendario`) · Tienda AL FINAL (`/tienda`).
-   AMIGOS YA NO ES SECCIÓN (12-oct): los amigos siguen existiendo — viven en el dock de Mensajes,
+   LIGAS TAMPOCO ES PUNTO DE MENÚ (12-oct): la posición vive SIEMPRE en la BARRA SUPERIOR estilo
+   GT7 (src/shared/components/TopBar.tsx: liga → link a /ligas · ⚡ Energy Coins · fecha/hora
+   compacta · campana de notificaciones con las solicitudes y los no-leídos del dock; respeta los
+   apagados del padre). AMIGOS YA NO ES SECCIÓN (12-oct): los amigos siguen existiendo — viven en el dock de Mensajes,
    se BUSCAN por nombre de usuario en Buscar y las solicitudes llegan como notificación destacada
    en la zona PINNEADA de arriba del Feed (tanda F2). `/practicar*` sigue vivo (entra el feed por
    «Seguí practicando»); `/repasar*` no existe (redirige a /aprender). "Feed" es el feed, NO el

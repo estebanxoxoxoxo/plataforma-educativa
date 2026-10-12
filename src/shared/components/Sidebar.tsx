@@ -6,11 +6,11 @@ import { BrandMark } from './BrandMark';
 import { MiniPlayer } from './MiniPlayer';
 import { ProfileCard } from './ProfileCard';
 import {
-  IcNavCalendar, IcNavChat, IcNavDiscover, IcNavMyTube, IcNavLeagues, IcNavLearn,
+  IcNavCalendar, IcNavChat, IcNavDiscover, IcNavMyTube, IcNavLearn,
   IcNavSearch, IcNavSpace, IcNavStore,
 } from './icons';
 
-type Sec = 'home' | 'search' | 'chat' | 'space' | 'store' | 'learn' | 'leagues' | 'mytube' | 'calendar';
+type Sec = 'home' | 'search' | 'chat' | 'space' | 'store' | 'learn' | 'mytube' | 'calendar';
 // Orden definido por Esteban (9-oct-2026): Home primero, Mi espacio al final.
 // El submenú de Mi espacio se engancha por sec, no por posición.
 const NAV: { sec: Sec; label: string; to: string; Icon: ComponentType }[] = [
@@ -22,7 +22,6 @@ const NAV: { sec: Sec; label: string; to: string; Icon: ComponentType }[] = [
   // Aprender se vuelve Learn (W3 del porte: aprender+practicar COLAPSADOS). Practicar y Repasar ya
   // salieron del menú (decisiones 12-oct): sus rutas siguen vivas por URL hasta que el porte las absorba.
   { sec: 'learn', label: 'Aprender', to: '/aprender', Icon: IcNavLearn },
-  { sec: 'leagues', label: 'Ligas', to: '/ligas', Icon: IcNavLeagues },
   { sec: 'space', label: 'Mi espacio', to: '/espacio/carpetas', Icon: IcNavSpace },
   // MyTube (W5 del porte): reemplaza al viejo Mi espacio -> Videos.
   { sec: 'mytube', label: 'MyTube', to: '/mytube', Icon: IcNavMyTube },
@@ -44,7 +43,6 @@ function activeFrom(path: string): { sec?: Sec; sub?: string } {
   if (path.startsWith('/aprender')) return { sec: 'learn' };
   // /practicar y /repasar siguen ruteables sin ítem: se marcan como parte de Aprender.
   if (path.startsWith('/practicar') || path.startsWith('/repasar')) return { sec: 'learn' };
-  if (path.startsWith('/ligas')) return { sec: 'leagues' };
   if (path.startsWith('/calendario')) return { sec: 'calendar' };
   // /crear vive DENTRO de Aprender (botón en su encabezado, pedido 12-oct)
   if (path.startsWith('/crear')) return { sec: 'learn' };

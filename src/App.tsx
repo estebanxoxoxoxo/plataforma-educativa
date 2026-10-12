@@ -24,6 +24,7 @@ import { FeatureGate } from './sections/parent/containers/FeatureGate';
 import { ParentPage } from './sections/parent/containers/ParentPage';
 import { BgAudioHost } from './shared/audio/BgAudioHost';
 import { Sidebar } from './shared/components/Sidebar';
+import { TopBar } from './shared/components/TopBar';
 import { UserProvider, useUser } from './hooks/user';
 
 /* Rutas viejas /descubrir/{articulo,video}/:id → /buscar/… (conservan el :id). */
@@ -41,7 +42,11 @@ function Layout() {
     <div className="app">
       <Sidebar user={user} />
       {/* FeatureGate: las secciones que el padre apagó (Tienda, Ligas, Amigos, Chat) no se abren ni por URL */}
-      <main className="main"><FeatureGate><Outlet /></FeatureGate></main>
+      <main className="main">
+        {/* Barra superior GT7 (pedido 12-oct): liga (link a /ligas) · ⚡ · reloj · campana */}
+        <TopBar />
+        <div className="main-body"><FeatureGate><Outlet /></FeatureGate></div>
+      </main>
       {/* iframe oculto del audio de fondo: vive acá para sobrevivir el cambio de sección */}
       <BgAudioHost />
       <ChatDock />
