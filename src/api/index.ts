@@ -245,8 +245,11 @@ export const api = {
          server (misma lógica del factAudit del POC; claves jamás al cliente). ---- */
   /** Resultados de Learn (W3): todas las filas (el cliente deriva progreso/urgencia por target, como el POC). */
   learnResults: () => http<{ rows: ActivityResultRow[] }>('/api/learn/results'),
-  /** Graba una partida terminada (el recordResult del POC; fire-and-forget en el overlay). */
-  recordLearnResult: (input: ActivityResultInput) => http<{ row: ActivityResultRow }>('/api/learn/results', input),
+  /** Graba una partida terminada (el recordResult del POC; fire-and-forget en el overlay).
+   *  `awarded` = ⚡/XP acreditados SOLO la primera vez que ese target queda logrado (economía Innerith). */
+  recordLearnResult: (input: ActivityResultInput) => http<{ row: ActivityResultRow; awarded?: { ec: number; xp: number } }>('/api/learn/results', input),
+  /** TODAS las definiciones del catálogo en un viaje (hidratación del motor al entrar a Learn). */
+  learnDefinitions: () => http<{ definitions: DefinitionRecipeData[] }>('/api/learn-routes/definitions'),
   learnRoutes: () => http<{ routes: LearnRouteListItem[] }>('/api/learn-routes'),
   learnRoute: (id: string) => http<{ route: LearnRouteData; definitions: DefinitionRecipeData[]; /** opaco: lo necesita la reapertura en /crear */ editorial?: unknown }>(`/api/learn-routes/one?id=${encodeURIComponent(id)}`),
   importRouteBundle: (bundle: RouteBundle) => http<ImportBundleResult>('/api/learn-routes/import', { bundle }),
