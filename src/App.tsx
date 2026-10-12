@@ -11,6 +11,7 @@ import { PracticePage } from './sections/practice/containers/PracticePage';
 import { RecallPage } from './sections/recall/containers/RecallPage';
 import { RecallSessionPage } from './sections/recall/containers/RecallSessionPage';
 import { CalendarPage } from './sections/calendar/containers/CalendarPage';
+import { CreatePage } from './sections/create/containers/CreatePage';
 import { FriendsPage } from './sections/friends/containers/FriendsPage';
 import { ChatDock } from './sections/friends/containers/ChatDock';
 import { LeaguesPage } from './sections/leagues/containers/LeaguesPage';
@@ -89,6 +90,8 @@ export default function App() {
           <Route path="amigos" element={<FriendsPage />} />
           {/* Calendario: las clases con los profes contratados en la Zona de padres */}
           <Route path="calendario" element={<CalendarPage />} />
+          {/* Crear: el creador de rutas del porte Smarty (zona del chico, como el POC) */}
+          <Route path="crear" element={<CreatePage />} />
           <Route path="ligas" element={<LeaguesPage />} />
           {/* Zona de padres: portón de adulto + funcionalidades, premios, actividad y protecciones */}
           <Route path="padres/*" element={<ParentPage />} />

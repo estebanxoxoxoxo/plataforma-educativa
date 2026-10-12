@@ -71,7 +71,33 @@
 W2 puede correr en paralelo con W1 (no comparten archivos). W3 depende de W1+W2. W4 de W3.
 W5/W6/W7 son independientes entre sí y de la línea Learn.
 
-## 4. Decisiones abiertas (para hablar con Esteban)
+## 4. Decisiones — RESUELTAS por Esteban (12-oct-2026)
+
+1. **/crear vive en la ZONA DEL CHICO**, como en el POC (punto de menú propio).
+2. **Los 5 cursos actuales se convierten a rutas** (bundles seed): un solo modelo mental.
+3. **Active Recall se copia EXACTO** ("tiene toda su lógica: toma de todas las rutas y genera un
+   repaso con mezcla de todo; examinarlo extremadamente bien"). **El Repasar actual de Innerith
+   VUELA** (menú, sección y server propio se retiran cuando aterrice W4). Nota de fidelidad: en el
+   código del POC la raíz del AR es sin fin y por urgencia, no hay gating "diario" — se porta lo
+   que el código hace.
+4. **Progreso (`activityResults`): mismo método que el POC.** El POC lo PERSISTE (IndexedDB del
+   navegador; sobrevive a recargas; en el respaldo va como ámbito "sesión"). En Innerith → persiste
+   del lado del server (archivo append-only, patrón space.json), FUERA del reset del demo.
+   [Informado a Esteban: el método del POC es persistencia local, no RAM.]
+5. **Los quirks documentados del POC se portan EXACTO por ahora** (rendirse=lograda, % ponderado
+   por racha, recall que destraba comprensiones, etc.). Cada uno queda citado en el informe de su
+   tanda como "fiel al POC".
+6. **MyTube exacto como está en el POC** (mirando el POC en profundidad): followed-only, sin
+   buscador propio, ChannelView con playlists del canal, ingesta y mantenimiento del padre. Lo que
+   Innerith tenía de más en Videos (grilla "Para descubrir", buscador, suscriptores) se retira al
+   aterrizar W5.
+
+**Desvíos forzados (no negociables de Innerith, documentados):** (a) las claves JAMÁS van al
+cliente → la auditoría de facts (que el POC corre en el navegador con la key de Ajustes) se porta
+con la MISMA lógica pero ejecutada en nuestro server; (b) los datos que el POC guarda en
+IndexedDB se guardan en nuestro server manteniendo formas y semántica de persistencia.
+
+## 4-bis. Decisiones abiertas originales (histórico)
 
 1. **¿Dónde vive /crear?** En el POC está en el menú del chico ("pensado para el adulto", URL sin
    guardia). Propuesta: en la Zona de padres v1, y más adelante habilitable al chico por permiso

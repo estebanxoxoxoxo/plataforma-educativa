@@ -165,6 +165,13 @@ export const IcNavPractice = filled(<g transform="rotate(-40 16 16)">
   <rect x="7" y="7.4" width="5.6" height="17.2" rx="2.8" fill={NK.orange} />
   <rect x="19.4" y="7.4" width="5.6" height="17.2" rx="2.8" fill={NK.orange} />
 </g>);
+/** Crear: chispas de varita (estrella grande dorada + chispitas), como el "Crear" del POC. */
+export const IcNavCreate = filled(<>
+  <path d="M13.2 3.6l2.5 6.1 6.1 2.5-6.1 2.5-2.5 6.1-2.5-6.1-6.1-2.5 6.1-2.5z" fill={NK.gold} />
+  <path d="M13.2 7.4l1.4 3.4 3.4 1.4-3.4 1.4-1.4 3.4-1.4-3.4-3.4-1.4 3.4-1.4z" fill={NK.goldL} />
+  <path d="M24.4 16.6l1.5 3.6 3.6 1.5-3.6 1.5-1.5 3.6-1.5-3.6-3.6-1.5 3.6-1.5z" fill={NK.violet} />
+  <path d="M22.6 4.4l1 2.4 2.4 1-2.4 1-1 2.4-1-2.4-2.4-1 2.4-1z" fill={NK.sky} />
+</>);
 /** Calendario: almanaque con encabezado coral, anillas y la clase de hoy marcada en dorado. */
 export const IcNavCalendar = filled(<>
   <rect x="3.5" y="7" width="25" height="21" rx="3" fill="#FDECEA" />

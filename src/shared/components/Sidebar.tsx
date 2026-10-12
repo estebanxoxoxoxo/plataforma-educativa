@@ -6,11 +6,11 @@ import { BrandMark } from './BrandMark';
 import { MiniPlayer } from './MiniPlayer';
 import { ProfileCard } from './ProfileCard';
 import {
-  IcNavCalendar, IcNavChat, IcNavDiscover, IcNavFolder, IcNavFriends, IcNavLeagues, IcNavLearn,
+  IcNavCalendar, IcNavChat, IcNavCreate, IcNavDiscover, IcNavFolder, IcNavFriends, IcNavLeagues, IcNavLearn,
   IcNavPractice, IcNavRecall, IcNavSearch, IcNavSpace, IcNavStore, IcNavTv,
 } from './icons';
 
-type Sec = 'home' | 'search' | 'chat' | 'space' | 'store' | 'learn' | 'practice' | 'recall' | 'friends' | 'leagues' | 'calendar';
+type Sec = 'home' | 'search' | 'chat' | 'space' | 'store' | 'learn' | 'practice' | 'recall' | 'friends' | 'leagues' | 'calendar' | 'create';
 // Orden definido por Esteban (9-oct-2026): Home primero, Mi espacio al final.
 // El submenú de Mi espacio se engancha por sec, no por posición.
 const NAV: { sec: Sec; label: string; to: string; Icon: ComponentType }[] = [
@@ -30,6 +30,8 @@ const NAV: { sec: Sec; label: string; to: string; Icon: ComponentType }[] = [
   { sec: 'space', label: 'Mi espacio', to: '/espacio/carpetas', Icon: IcNavSpace },
   // Calendario: las clases con los profes que contrató el padre (pedido 11-oct: "después de Mi espacio").
   { sec: 'calendar', label: 'Calendario', to: '/calendario', Icon: IcNavCalendar },
+  // Crear: el creador de rutas del porte Smarty (decisión 12-oct: en la zona del chico, como el POC).
+  { sec: 'create', label: 'Crear', to: '/crear', Icon: IcNavCreate },
 ];
 
 function activeFrom(path: string): { sec?: Sec; sub?: string } {
@@ -46,6 +48,7 @@ function activeFrom(path: string): { sec?: Sec; sub?: string } {
   if (path.startsWith('/amigos')) return { sec: 'friends' };
   if (path.startsWith('/ligas')) return { sec: 'leagues' };
   if (path.startsWith('/calendario')) return { sec: 'calendar' };
+  if (path.startsWith('/crear')) return { sec: 'create' };
   return {};
 }
 

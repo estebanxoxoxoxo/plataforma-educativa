@@ -321,6 +321,39 @@ export type CalendarEvent = {
   /** epoch ms del inicio */ start: number; durationMin: number;
 };
 
+/* ---------- Porte Smarty · Learn: rutas, definiciones y bundles (formas EXACTAS del POC,
+   docs/porte-smarty/02 §3.1 y 01 §bundle; el server las persiste como CATÁLOGO) ---------- */
+export type LearnReading = { url: string; title: string; kind?: 'article' | 'video'; videoId?: string };
+export type LearnPosta = {
+  id: string; title: string;
+  kind?: 'activity' | 'recall';
+  definitionId?: string;
+  /** Clave de maestría: el progreso se DERIVA agregando resultados por target. */ target: string;
+  /** Contenido que se muestra antes de la actividad (lectura o video). */ reading?: LearnReading;
+  /** [0,1]; sin él, la posta se logra con jugarla. */ passThreshold?: number;
+  moduleId?: string;
+};
+export type LearnModule = { id: string; title: string; emoji?: string; source?: LearnReading };
+export type LearnRouteData = {
+  id: string; title: string; description: string; emoji: string;
+  postas: LearnPosta[]; modules?: LearnModule[];
+  /** dataURL JPEG 640x360 (portada subida en /crear) */ cover?: string;
+  category?: string;
+};
+export type DefinitionRecipeData = {
+  id: string; typeId: string; title: string; target: string;
+  generatorId: string; params: unknown; mode: 'untimed' | 'timed'; durationSec: number;
+};
+/** route-bundle.json: el ÚNICO contrato route-lab → app (se importa tal cual). */
+export type RouteBundle = {
+  kind: 'smarty-route-bundle'; schemaVersion: 1;
+  route: LearnRouteData & { version?: number };
+  definitions: DefinitionRecipeData[];
+  requires?: unknown; review?: unknown;
+};
+export type LearnRouteListItem = { id: string; title: string; emoji: string; category?: string; cover?: string; importedAt: number; postas: number };
+export type ImportBundleResult = { ok: boolean; error?: string; routeId?: string };
+
 /* ---------- Guardarropas (ropa del avatar) + regalos (audios 26, 29, 41-42) ---------- */
 /** Id de accesorio del set dibujado del cliente (Avatar.tsx). */
 export type AccessoryId = string;

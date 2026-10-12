@@ -37,6 +37,7 @@
 .nav-item[data-sec="practice"]{--sec-bg:#FEEDE5;--sec-bd:#F58A5E;--sec-fg:#B03F18}
 .nav-item[data-sec="recall"]{--sec-bg:#DFF5EC;--sec-bd:#3FBF8E;--sec-fg:#116947}
 .nav-item[data-sec="calendar"]{--sec-bg:#FDECEA;--sec-bd:#F08A7E;--sec-fg:#9E2B22}
+.nav-item[data-sec="create"]{--sec-bg:#FBEAF8;--sec-bd:#D98AD0;--sec-fg:#8A2B7E}
 .nav-item[data-sec="friends"]{--sec-bg:#F1EAFE;--sec-bd:#A88AF7;--sec-fg:#5431B3}
 .nav-item[data-sec="leagues"]{--sec-bg:#FFF3D9;--sec-bd:#F4B740;--sec-fg:#7F5300}
 

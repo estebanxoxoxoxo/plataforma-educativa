@@ -57,6 +57,16 @@ framework en `server/` (puerto 8787, proxy `/api` de Vite). El usuario demo es I
    mismo archivo y sirve un módulo viejo. Si el navegador no refleja tu cambio, verificá el módulo
    servido y hacé un `touch` del archivo para forzar la recarga.
 
+## Porte Smarty (tandas W1-W7)
+Si tu tanda es del PORTE de la POC de Smarty: lectura OBLIGATORIA de `docs/porte-smarty/00-mapa-porte.md`
+(plan + decisiones de Esteban) y del informe de tu subsistema (01/02/03), y del CÓDIGO FUENTE del POC
+(`C:\Users\esteb\Desktop\snapshot-personal-2026-10-03\snapshot-personal-2026-10-03\smarty-poc`, rama
+develop ya servida — SOLO LECTURA ahí). Regla suprema: **funcionalidad EXACTA, sin recortes ni mejoras
+creativas; los quirks documentados se portan tal cual (decisión 12-oct)**. La estética NO se copia: se
+usa el sistema visual de Innerith. Desvíos permitidos SOLO los dos forzados del §4 del mapa (claves al
+server, IndexedDB→server) y cualquier otro se frena y se reporta. `innerith-ui/route-lab/` es copia
+literal del POC: NO se edita salvo pedido explícito.
+
 ## Seguridad (crítico)
 - Claves de API SOLO en `server/.env`; config real en `server/data/` — ambos gitignored. JAMÁS
   imprimir claves, moverlas al cliente, ni commitear esos paths. Verificá `git status` antes de

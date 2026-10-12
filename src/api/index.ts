@@ -5,7 +5,7 @@
 import * as M from './mock';
 import type {
   AnswerResult, Answer, ArticleResponse, AvatarLook, CalendarEvent, ChannelDetail, Channel, ChatReply, ChatTurn, CloseWeekResult, Course, DriveFolder, DriveItem, DriveView,
-  EcTx, FeedReaction, FeedResponse, FolderNode, FriendThread, CourseDetail, Exercise, Friend, FriendRequest, GiftResult, HireResult, Identity, NewMarketItem, SendMessageResult,
+  DefinitionRecipeData, EcTx, FeedReaction, FeedResponse, FolderNode, FriendThread, CourseDetail, Exercise, Friend, FriendRequest, GiftResult, HireResult, Identity, ImportBundleResult, LearnRouteData, LearnRouteListItem, NewMarketItem, RouteBundle, SendMessageResult,
   ParentActivity, ParentAlert, ParentConfig, ParentFeatures, ParentItemPatch, ParentPreset, ParentTopics, ParentVolume, ParentWords,
   AssignedLeague, GeoRanking, GeoScope, ImageResult, Journey, LeagueStanding, MarketItem, PageResult, Playlist, PlaylistDetail,
   ProgressSummary, RecallAnswerResult, RecallFinish, RecallSession, RecallSummary, Redemption, SavePayload, SearchResponse, SimulateNpcsResult, Tab, Teacher, TeacherSlot, TrashView, User, Video, VideoResult,
@@ -239,4 +239,15 @@ export const api = {
 
   /* ---- Guardarropas: regalar ropa a un amigo (gasta EC; el NPC se la pone y agradece en el hilo) ---- */
   giftToFriend: (itemId: number, friendId: string) => http<GiftResult>('/api/market/gift', { itemId, friendId }),
+
+  /* ---- Porte Smarty · rutas de Learn (CATÁLOGO persistido en el server) + /crear (tanda W1).
+         route-lab se llama DIRECTO desde el navegador como en el POC (URL configurable en la vista,
+         default http://localhost:5203): no lleva claves. La auditoría de facts sí va por NUESTRO
+         server (misma lógica del factAudit del POC; claves jamás al cliente). ---- */
+  learnRoutes: () => http<{ routes: LearnRouteListItem[] }>('/api/learn-routes'),
+  learnRoute: (id: string) => http<{ route: LearnRouteData; definitions: DefinitionRecipeData[] }>(`/api/learn-routes/one?id=${encodeURIComponent(id)}`),
+  importRouteBundle: (bundle: RouteBundle) => http<ImportBundleResult>('/api/learn-routes/import', { bundle }),
+  deleteLearnRoute: (id: string) => http<{ ok: boolean }>('/api/learn-routes/delete', { id }),
+  /** Formas aditivas espejo del factAudit del POC: las define la tanda W1 y el coordinador las formaliza al cierre. */
+  auditFacts: (payload: unknown) => http<unknown>('/api/create/audit', { payload }),
 };

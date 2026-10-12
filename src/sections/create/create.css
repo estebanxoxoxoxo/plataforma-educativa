@@ -1,0 +1,5 @@
+/* Crear — prefijo de sección: cr- (regla 5 de AGENTS: grepear toda clase nueva; ojo con el
+   asterisco-barra en comentarios). El ancho de página lo da .view: NADA de max-width propio, y se
+   respeta su padding inferior (el dock de Mensajes vive abajo a la derecha).
+   Color de la sección: el fucsia del menú (shell.css: --sec-bd #D98AD0 · --sec-fg #8A2B7E).
+   La tanda W1 escribe acá todos sus estilos. */

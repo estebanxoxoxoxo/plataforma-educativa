@@ -32,6 +32,8 @@ import { recallRoutes, resetRecall } from './recall'
 import { identityRoutes } from './identity'
 import { teachersRoutes } from './teachersFake'
 import { simulateNpcs } from './feedFake'
+import { learnRoutesRoutes } from './learnRoutes'
+import { createRoutes } from './create'
 import { readJson, send } from './web'
 import type { Msg } from './llm'
 
@@ -92,6 +94,9 @@ createServer(async (req, res) => {
     if (url.pathname === '/api/identity') return await identityRoutes(req, res, url)
     // Profesores (marketplace del padre) + el calendario del chico: teachersFake.ts
     if (url.pathname.startsWith('/api/teachers') || url.pathname === '/api/calendar') return await teachersRoutes(req, res, url)
+    // Porte Smarty: rutas de Learn (catálogo) y la auditoría de facts de /crear
+    if (url.pathname.startsWith('/api/learn-routes')) return await learnRoutesRoutes(req, res, url)
+    if (url.pathname.startsWith('/api/create/')) return await createRoutes(req, res, url)
     if (url.pathname.startsWith('/api/practice/')) return await practiceRoutes(req, res, url)
     if (url.pathname.startsWith('/api/progress/')) return progressRoutes(req, res, url)
     if (url.pathname.startsWith('/api/market')) return await market.marketRoutes(req, res, url)
