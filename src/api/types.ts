@@ -339,6 +339,17 @@ export type ImportBundleResult = {
   ok: boolean; error?: string; routeId?: string;
   /** El ImportResult del POC. */ title?: string; postas?: number; definitions?: number;
 };
+/* Resultados de Learn (W3): el `activityResults` del POC (append-only, por TARGET; el progreso se
+   DERIVA de estas filas en el cliente, como el POC). Persisten en el server FUERA del reset del demo. */
+export type ActivityResultRow = {
+  id: number; target: string; source: string; typeId: string; definitionId?: string;
+  outcome: 'completed' | 'timeout' | 'aborted'; score: number; maxScore: number; pct: number;
+  finishedAt: number; skills?: Record<string, { attempts: number; correct: number }>; seed?: number;
+  /** true = fila AGREGADA de un multi (sus hijos ya grabaron): la economía no la cuenta dos veces. */
+  rollup?: boolean;
+};
+/** Lo que graba el cliente (el server asigna id y finishedAt). */
+export type ActivityResultInput = Omit<ActivityResultRow, 'id' | 'finishedAt'>;
 
 /* ---------- Auditoría de veracidad de un fact (port del factAudit del POC, corre en NUESTRO server) ---------- */
 export type AuditFact = { statement?: string; front?: string; back?: string; quote?: string; kind?: string };

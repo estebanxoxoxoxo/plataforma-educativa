@@ -4,6 +4,7 @@
 // (lista/generación). Cada llamada se loguea en la consola (→ / ←).
 import * as M from './mock';
 import type {
+  ActivityResultInput, ActivityResultRow,
   AnswerResult, Answer, ArticleResponse, AuditFact, AuditResult, AvatarLook, CalendarEvent, ChannelDetail, Channel, ChatReply, ChatTurn, CloseWeekResult, Course, DriveFolder, DriveItem, DriveView,
   DefinitionRecipeData, EcTx, FeedMotion, FeedReaction, FeedResponse, FolderNode, FriendThread, CourseDetail, Exercise, Friend, FriendRequest, GiftResult, HireResult, Identity, ImportBundleResult, LearnRouteData, LearnRouteListItem, NewMarketItem, RouteBundle, SendMessageResult,
   ParentActivity, ParentAlert, ParentConfig, ParentFeatures, ParentItemPatch, ParentPreset, ParentTopics, ParentVolume, ParentWords,
@@ -242,6 +243,10 @@ export const api = {
          route-lab se llama DIRECTO desde el navegador como en el POC (URL configurable en la vista,
          default http://localhost:5203): no lleva claves. La auditoría de facts sí va por NUESTRO
          server (misma lógica del factAudit del POC; claves jamás al cliente). ---- */
+  /** Resultados de Learn (W3): todas las filas (el cliente deriva progreso/urgencia por target, como el POC). */
+  learnResults: () => http<{ rows: ActivityResultRow[] }>('/api/learn/results'),
+  /** Graba una partida terminada (el recordResult del POC; fire-and-forget en el overlay). */
+  recordLearnResult: (input: ActivityResultInput) => http<{ row: ActivityResultRow }>('/api/learn/results', input),
   learnRoutes: () => http<{ routes: LearnRouteListItem[] }>('/api/learn-routes'),
   learnRoute: (id: string) => http<{ route: LearnRouteData; definitions: DefinitionRecipeData[]; /** opaco: lo necesita la reapertura en /crear */ editorial?: unknown }>(`/api/learn-routes/one?id=${encodeURIComponent(id)}`),
   importRouteBundle: (bundle: RouteBundle) => http<ImportBundleResult>('/api/learn-routes/import', { bundle }),

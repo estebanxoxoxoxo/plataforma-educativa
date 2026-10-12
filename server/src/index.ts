@@ -32,6 +32,7 @@ import { identityRoutes } from './identity'
 import { teachersRoutes } from './teachersFake'
 import { simulateNpcs } from './feedFake'
 import { learnRoutesRoutes } from './learnRoutes'
+import { learnResultsRoutes } from './learnResults'
 import { createRoutes } from './create'
 import { mytubeRoutes } from './mytube'
 import { readJson, send } from './web'
@@ -94,6 +95,7 @@ createServer(async (req, res) => {
     if (url.pathname.startsWith('/api/teachers') || url.pathname === '/api/calendar') return await teachersRoutes(req, res, url)
     // Porte Smarty: rutas de Learn (catálogo) y la auditoría de facts de /crear
     if (url.pathname.startsWith('/api/learn-routes')) return await learnRoutesRoutes(req, res, url)
+    if (url.pathname.startsWith('/api/learn/')) return await learnResultsRoutes(req, res, url)
     if (url.pathname.startsWith('/api/create/')) return await createRoutes(req, res, url)
     // MyTube (porte Smarty W5): canal enriquecido del chico + ingesta del padre
     if (url.pathname.startsWith('/api/mytube/')) return await mytubeRoutes(req, res, url)
