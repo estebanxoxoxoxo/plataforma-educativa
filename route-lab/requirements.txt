@@ -1,0 +1,11 @@
+# El pipeline (etapas + CLI) corre con la stdlib de Python 3.11 (urllib, json,
+# graphlib, difflib). El SERVER agrega:
+fastapi>=0.110
+uvicorn[standard]>=0.29
+
+# Opcionales — mejoran, no habilitan:
+rapidfuzz>=3.0    # fuzzy matching de quotes más rápido que difflib (fallback stdlib)
+# openai>=1.0     # no hace falta: core/llm.py hace el POST HTTP crudo a la Responses API
+
+# Fuentes de VIDEO (camino YouTube de ingest): transcript en idioma original.
+youtube-transcript-api>=1.2

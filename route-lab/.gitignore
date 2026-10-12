@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.env
+.venv/
+# los outputs de los jobs son runtime, no fuente — el repo queda source-only
+jobs/

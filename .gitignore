@@ -8,3 +8,8 @@ dist/
 # backend: datos descifrados y secretos (nunca al repo)
 server/data/
 server/.env
+
+# route-lab (copiado tal cual de smarty-poc): entorno y secretos locales
+route-lab/.env
+route-lab/.venv/
+route-lab/**/__pycache__/
