@@ -14,9 +14,9 @@ import { MyTubePage } from './sections/mytube/containers/MyTubePage';
 import { ChatDock } from './sections/friends/containers/ChatDock';
 import { LeaguesPage } from './sections/leagues/containers/LeaguesPage';
 import { FeedPage } from './sections/home/containers/FeedPage';
-import { ChannelPage } from './sections/space/containers/ChannelPage';
+import { ChannelView } from './sections/mytube/containers/ChannelView';
 import { DrivePage } from './sections/space/containers/DrivePage';
-import { PlaylistPage } from './sections/space/containers/PlaylistPage';
+import { ListView } from './sections/mytube/containers/ListView';
 import { TrashPage } from './sections/space/containers/TrashPage';
 import { StorePage } from './sections/store/containers/StorePage';
 import { FeatureGate } from './sections/parent/containers/FeatureGate';
@@ -76,8 +76,8 @@ export default function App() {
           <Route path="espacio/papelera" element={<TrashPage />} />
           {/* MyTube (W5): la sección nueva; las rutas viejas de Videos redirigen acá */}
           <Route path="mytube" element={<MyTubePage />} />
-          <Route path="mytube/canal/:id" element={<ChannelPage />} />
-          <Route path="mytube/lista/:id" element={<PlaylistPage />} />
+          <Route path="mytube/canal/:id" element={<ChannelView />} />
+          <Route path="mytube/lista/:id" element={<ListView />} />
           <Route path="espacio/videos" element={<Navigate to="/mytube" replace />} />
           <Route path="espacio/videos/canal/:id" element={<MtCanal />} />
           <Route path="espacio/videos/lista/:id" element={<MtLista />} />

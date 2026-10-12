@@ -5,6 +5,8 @@ import { NavLink } from 'react-router-dom';
 const TABS = [
   { to: '/padres', label: 'Funcionalidades', end: true },
   { to: '/padres/temas', label: 'Temas y palabras', end: false },
+  // Porte Smarty W5: videos, playlists y canales de YouTube de la familia (se suman al catálogo; canales de MyTube).
+  { to: '/padres/youtube', label: 'YouTube', end: false },
   { to: '/padres/limites', label: 'Límites', end: false },
   { to: '/padres/avisos', label: 'Avisos', end: false },
   { to: '/padres/premios', label: 'Premios', end: false },

@@ -16,10 +16,11 @@ import { PresetsPanel } from './PresetsPanel';
 import { RewardsPanel } from './RewardsPanel';
 import { TeachersPanel } from './TeachersPanel';
 import { TopicsPanel } from './TopicsPanel';
+import { YouTubePanel } from './YouTubePanel';
 
 /** Zona de padres (/padres/*): primero el portón (PIN de la familia, lo valida el server y abre una sesión de API);
  *  pasado, la configuración de la cuenta del chico en secciones con URL propia — /padres (presets + funcionalidades),
- *  /padres/temas, /padres/limites, /padres/avisos, /padres/premios, /padres/profesores (marketplace de profes: genera el
+ *  /padres/temas, /padres/youtube (porte Smarty W5: ingesta de YouTube + canales de MyTube), /padres/limites, /padres/avisos, /padres/premios, /padres/profesores (marketplace de profes: genera el
  *  Calendario del chico), /padres/actividad y /padres/protecciones.
  *  Estética sobria de adulto (parent.css, pz-). Si la sesión vence (401), vuelve al portón con el motivo. */
 export function ParentPage() {
@@ -109,6 +110,7 @@ function ParentZone({ kid }: { kid: string }) {
           <Route index element={<><PresetsPanel kid={kid} /><FeaturesPanel kid={kid} /></>} />
           <Route path="presets" element={<Navigate to="/padres" replace />} />
           <Route path="temas" element={<TopicsPanel kid={kid} />} />
+          <Route path="youtube" element={<YouTubePanel kid={kid} />} />
           <Route path="limites" element={<LimitsPanel kid={kid} />} />
           <Route path="avisos" element={<AlertsPanel kid={kid} alerts={alerts} failed={alertsFailed} busy={seenBusy}
             onSeen={(id) => void markSeen([id])} onSeenAll={() => void markSeen(unseen.map((a) => a.id))} onRetry={() => void loadAlerts()} />} />

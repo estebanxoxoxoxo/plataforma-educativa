@@ -180,3 +180,35 @@ IndexedDB se guardan en nuestro server manteniendo formas y semántica de persis
   corre con `.\.venv\Scripts\python.exe -m uvicorn server:app --port 5203`. El :5203 de Esteban sirve
   desde la carpeta del POC (arrancó antes de la copia): la QA usó la copia del repo en un puerto efímero
   para no escribir jobs en el POC.
+- **W5 (MyTube) — HECHA 12-oct, sin commitear.** Port exacto de `MyTube.tsx`, `ChannelView.tsx`, `MisListas.tsx`
+  (ListView), `lib/mytube.ts`, `lib/youtube.ts` y la solapa YouTube de `pages.tsx`. **Chico** (`sections/mytube/**`,
+  `mt-`): `/mytube` con solapas Canales | Mis listas en estado local (viaja en el state del historial, nunca en la URL;
+  arranca en Canales); Canales = SOLO seguidos con contenido, sin buscador ni "Para descubrir"; `/mytube/canal/:id` con
+  @handle, descripción curada en dos líneas expandible, Seguir/Siguiendo, Videos (N) de a 40 + «Ver más» de a 60 y
+  Playlists (N) en acordeón, sin suscriptores; `/mytube/lista/:id` (Reproducir todo → cola, Escuchar de fondo → cola
+  entera al MiniPlayer y cierra, ↑/↓ con el vecino visible, ✕, ⋮ Renombrar/Borrar con el texto del POC). Los overlays del
+  POC son rutas: «Volver» = Atrás si se vino de MyTube. **Server** (`server/src/mytube.ts`): la capa que el catálogo plano
+  no tiene —entidades de canal, playlists propias y la ingesta del padre— en `server/data/mytube.json` (atómico,
+  catálogo: fuera del reset); el canal se ENRIQUECE ON-DEMAND la primera vez (channels.list → descripción curada con el
+  modelo juez, sin pisar la del padre → playlists propias solo donde el POC las sincronizaba) y queda cacheado; los
+  videos de la familia se SUMAN al catálogo global al servir. **Padre** (Zona de padres → YouTube): lote de URLs con el
+  parser exacto, tabla de entradas con Reingestar/Eliminar, Completar canales, Quitar duplicados, tope por entrada y
+  «Canales de MyTube» con la descripción editable. **Aditivos** (a formalizar en types.ts; cliente provisorio en
+  `sections/mytube/lib/mytubeApi.ts`): `/api/mytube/{channels, channel, channel/videos, channel/playlist}` y
+  `/api/mytube/admin/{state, channels, add, reingest, remove, backfill, dedup, cap, channel-desc, usage}` (detalle en el
+  README y en la cabecera de `mytube.ts`). **Quirks portados tal cual:** Canales por channelId y con conteo que no
+  descuenta palabras; «1 videos»; Playlists (N) sin mirar palabras; videos de una playlist ordenados por videoId (bug del
+  `anyOf`); todo video (también los de una playlist y los de una lista) se abre SUELTO; un video = un entryId (borrar una
+  entrada se lleva los que otra posterior compartía); reingestar no borra; `followed` cae con el canal; descripción vacía
+  del padre se re-cura en la próxima ingesta; `Number(cap) || 0`. **Desvíos** (además de a/b): el catálogo base es de solo
+  lectura (reingestar/completar solo refrescan filas de la familia); canal del catálogo base sin entidad → título del
+  catálogo; editar la descripción de un canal sin entidad la crea; textos que nombraban la pantalla del POC: «(Ajustes)»
+  → «(falta en el servidor)», «Agregar a lista» → «＋ Lista» (el botón del reproductor de Innerith), y el vacío de
+  entradas aclara que existe el catálogo base. **Retirado** (cero zonas muertas): `space/containers/{VideosPage,
+  ChannelPage,PlaylistPage}`, `space/cards/{ChannelCard,PlaylistCard,VideoTile}`, `space/components/{ChannelsPane,
+  PlaylistsPane}` y sus bloques de `space.css`. **Pendiente (coordinador):** (1) enchufar `familyCatalog` en `videos.ts`
+  (getCatalogVideo/getVideo/searchVideos) para que Buscar, el reproductor, el chat, Mis listas y Drive vean los videos de
+  la familia — hasta entonces un video que sumó la familia y no está en `catalog.json` se ve en MyTube pero el reproductor
+  lo rechaza; (2) el chip de canal del reproductor → `/mytube/canal/:id` (única puerta a un canal no seguido en el POC);
+  (3) retirar `GET /api/space/channels|channel` (+ `api.channels/channel`, `Channel`, `ChannelDetail`) del contrato.
+  QA: E2E Edge (101 checks, ERR []) + prueba aislada de Completar canales y de la trampa del entryId.

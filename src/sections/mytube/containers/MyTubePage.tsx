@@ -1,3 +1,32 @@
-// MyTube — STUB del coordinador (tanda W5 lo reemplaza con el port EXACTO del POC).
-// Mientras la tanda vuela, delega en las vistas viejas de Mi espacio → Videos para no dejar un hueco.
-export { VideosPage as MyTubePage } from '../../space/containers/VideosPage';
+import { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { UnderlineTabs } from '../../../shared/components/UnderlineTabs';
+import type { MtHomeState, MtTab } from '../lib/nav';
+import { ChannelsPane } from './ChannelsPane';
+import { ListsPane } from './ListsPane';
+
+const TABS: { id: MtTab; label: string }[] = [
+  { id: 'canales', label: 'Canales' },
+  { id: 'listas', label: 'Mis listas' },
+];
+
+/** MyTube (porte EXACTO de MyTube.tsx del POC): dos solapas, Canales | Mis listas, en estado LOCAL (no en la URL) que
+ *  arranca en Canales. Sin buscador ni grilla para descubrir: a un canal que no se sigue solo se llega desde el
+ *  reproductor. La solapa queda anotada en el estado de esta entrada del historial, así al volver de un canal o una lista
+ *  sigue donde estaba (en el POC esas vistas son overlays y MyTube nunca se desmonta). */
+export function MyTubePage() {
+  const go = useNavigate();
+  const loc = useLocation();
+  const [tab, setTab] = useState<MtTab>(() => ((loc.state as MtHomeState | null)?.tab === 'listas' ? 'listas' : 'canales'));
+  const change = (t: MtTab) => {
+    setTab(t);
+    go(loc.pathname, { replace: true, state: { tab: t } satisfies MtHomeState });
+  };
+  return (
+    <section className="view mt-view" id="v-mytube">
+      <h2 className="h2">MyTube</h2>
+      <UnderlineTabs tabs={TABS} value={tab} onChange={change} className="mt-tabs" tabClass="mt-tab" inkClass="mt-ink" />
+      {tab === 'listas' ? <ListsPane /> : <ChannelsPane />}
+    </section>
+  );
+}
