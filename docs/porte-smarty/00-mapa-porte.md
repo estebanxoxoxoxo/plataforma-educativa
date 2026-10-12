@@ -126,7 +126,8 @@ IndexedDB se guardan en nuestro server manteniendo formas y semántica de persis
   excluidos solo `.venv`, `__pycache__` y `.env`); `.gitignore` actualizado; `.env.example`
   restaurado con la plantilla de HEAD; venv propio creado e instalado; `.env` local con la key
   (nunca impresa). El :5203 hoy lo sirve una instancia de Esteban (python PID externo, modo `real`);
-  la del repo se levanta con `cd route-lab && .\.venv\Scripts\uvicorn.exe server:app --port 5203`.
+  la del repo se levanta con `cd route-lab && .\.venv\Scripts\python.exe -m uvicorn server:app --port 5203`
+  (OJO: `uvicorn.exe` directo lo bloquea el Control de aplicaciones de Windows en esta máquina).
 - La app del POC corre en :5173; su wizard quedó en el paso 2 (clave de OpenAI: la carga Esteban, o
   importa su respaldo en el paso 1 para traer la config real).
 - Innerith web en :5188 (preview) + API :8787.
@@ -154,3 +155,28 @@ IndexedDB se guardan en nuestro server manteniendo formas y semántica de persis
   resultados al server, integrar SceneDirector/escenas con el MiniPlayer, estética fina de los Boards.
   Hallazgo a decidir (no tocado): en pantallas hi-DPI el canvas de partículas del VisualStage se ve
   al doble de tamaño (pasa igual en el POC: `absolute inset-0` no estira un `<canvas>`).
+- **W1 (/crear + route-lab + catálogo + auditoría) — HECHA 12-oct, sin commitear.** `sections/create/**`
+  (+ `create.css`, prefijo `cr-`): port exacto de `RouteCreator.tsx` con `routeDraft.ts`, `parseYtUrl` y
+  `cropToCover`/`mqThumb` portados a `sections/create/lib/`; route-lab se llama DIRECTO desde el navegador
+  (`/module`, `/emit`; URL editable en la vista, recordada en `innerith.routeLabUrl` al Generar); los
+  `confirm()` del POC son una hoja de Innerith (`ConfirmSheet`) con el MISMO texto. Server:
+  `learnRoutes.ts` = el catálogo (filas Dexie `learnRoutes`/`learnDefinitions` con sus formas) en
+  `server/data/learn-routes.json` (atómico, fuera del reset), validación del importador del POC con sus
+  mensajes + reemplazo transaccional por `routeId`; `create.ts` = `factAudit` del POC en el server
+  (`gpt-5.5`, Serper + Wikipedia, 8 rondas). **Aditivos** (a formalizar en types.ts): item de lista
+  `modules`; `one` → `editorial`; resultado del import `title/definitions/postas`; bundle `editorial`
+  (+`meta`); `/api/create/audit` `{payload:{fact,lang?}}` → `{ok,result|error}`. Quirks portados tal
+  cual: 33/F1 (reabre `['flashcards']`/`'auto'`; Aplicar sobre un MC reabierto emite flashcards), F2,
+  F3, F5, F6, F7, F8, F10. QA: E2E Edge real (2 módulos chicos + 1 auditoría real) y ensayo en seco con
+  route-lab simulado, ERR []; el catálogo quedó solo con la seed. **Pendiente W3:** (1) sumar al import
+  el acuñado seco COMPLETO (generador + portero, `buildDefinition(id, 1)`): hoy el server valida Tipo y
+  generador registrados pero NO el contenido (p. ej. una tarjeta vacía pasa); el registry de W2 importa
+  los Boards (.tsx/CSS), así que el server no lo puede cargar tal cual; (2) la hidratación del motor
+  necesita las definiciones de TODAS las rutas (hoy: `one` por ruta). **Seed:** el bundle real de
+  poc-solar es `route-lab/jobs/poc-solar/60-route-bundle.json` (`fixtures/poc-solar.json` es la salida
+  LLM enlatada del modo stub, no un bundle) y `jobs/` lo ignora el `.gitignore` de route-lab → en un
+  clon limpio el catálogo arranca vacío (a decidir: versionar una copia del bundle fuera de `jobs/`).
+  **Operativo:** en esta máquina el Control de aplicaciones de Windows bloquea `.venv\Scripts\uvicorn.exe`;
+  corre con `.\.venv\Scripts\python.exe -m uvicorn server:app --port 5203`. El :5203 de Esteban sirve
+  desde la carpeta del POC (arrancó antes de la copia): la QA usó la copia del repo en un puerto efímero
+  para no escribir jobs en el POC.

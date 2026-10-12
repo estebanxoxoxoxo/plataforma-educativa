@@ -4,7 +4,7 @@
 // (lista/generación). Cada llamada se loguea en la consola (→ / ←).
 import * as M from './mock';
 import type {
-  AnswerResult, Answer, ArticleResponse, AvatarLook, CalendarEvent, ChannelDetail, Channel, ChatReply, ChatTurn, CloseWeekResult, Course, DriveFolder, DriveItem, DriveView,
+  AnswerResult, Answer, ArticleResponse, AuditFact, AuditResult, AvatarLook, CalendarEvent, ChannelDetail, Channel, ChatReply, ChatTurn, CloseWeekResult, Course, DriveFolder, DriveItem, DriveView,
   DefinitionRecipeData, EcTx, FeedReaction, FeedResponse, FolderNode, FriendThread, CourseDetail, Exercise, Friend, FriendRequest, GiftResult, HireResult, Identity, ImportBundleResult, LearnRouteData, LearnRouteListItem, NewMarketItem, RouteBundle, SendMessageResult,
   ParentActivity, ParentAlert, ParentConfig, ParentFeatures, ParentItemPatch, ParentPreset, ParentTopics, ParentVolume, ParentWords,
   AssignedLeague, GeoRanking, GeoScope, ImageResult, Journey, LeagueStanding, MarketItem, PageResult, Playlist, PlaylistDetail,
@@ -245,9 +245,9 @@ export const api = {
          default http://localhost:5203): no lleva claves. La auditoría de facts sí va por NUESTRO
          server (misma lógica del factAudit del POC; claves jamás al cliente). ---- */
   learnRoutes: () => http<{ routes: LearnRouteListItem[] }>('/api/learn-routes'),
-  learnRoute: (id: string) => http<{ route: LearnRouteData; definitions: DefinitionRecipeData[] }>(`/api/learn-routes/one?id=${encodeURIComponent(id)}`),
+  learnRoute: (id: string) => http<{ route: LearnRouteData; definitions: DefinitionRecipeData[]; /** opaco: lo necesita la reapertura en /crear */ editorial?: unknown }>(`/api/learn-routes/one?id=${encodeURIComponent(id)}`),
   importRouteBundle: (bundle: RouteBundle) => http<ImportBundleResult>('/api/learn-routes/import', { bundle }),
   deleteLearnRoute: (id: string) => http<{ ok: boolean }>('/api/learn-routes/delete', { id }),
-  /** Formas aditivas espejo del factAudit del POC: las define la tanda W1 y el coordinador las formaliza al cierre. */
-  auditFacts: (payload: unknown) => http<unknown>('/api/create/audit', { payload }),
+  /** Audita UN fact contra fuentes (el factAudit del POC corrido en nuestro server; errores de negocio con 200 + ok:false). */
+  auditFacts: (payload: { fact: AuditFact; lang?: string }) => http<{ ok: true; result: AuditResult } | { ok: false; error: string }>('/api/create/audit', { payload }),
 };

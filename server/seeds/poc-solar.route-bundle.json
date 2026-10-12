@@ -1,0 +1,203 @@
+{
+  "kind": "smarty-route-bundle",
+  "schemaVersion": 1,
+  "route": {
+    "id": "ruta.poc-solar",
+    "title": "Ruta: Júpiter",
+    "emoji": "🪐",
+    "postas": [
+      {
+        "id": "p1",
+        "title": "El Sol",
+        "kind": "activity",
+        "definitionId": "ruta.poc-solar.d1",
+        "target": "ruta.poc-solar.t.el-sol"
+      },
+      {
+        "id": "p2",
+        "title": "El sistema solar",
+        "kind": "activity",
+        "definitionId": "ruta.poc-solar.d2",
+        "target": "ruta.poc-solar.t.sistema-solar"
+      },
+      {
+        "id": "p3",
+        "title": "Gigantes gaseosos",
+        "kind": "activity",
+        "definitionId": "ruta.poc-solar.d3",
+        "target": "ruta.poc-solar.t.gigantes-gaseosos"
+      },
+      {
+        "id": "p4",
+        "title": "Júpiter",
+        "kind": "activity",
+        "definitionId": "ruta.poc-solar.d4",
+        "target": "ruta.poc-solar.t.jupiter"
+      },
+      {
+        "id": "r4",
+        "title": "Repaso",
+        "kind": "recall",
+        "target": "ruta.poc-solar.recall-4"
+      },
+      {
+        "id": "rend",
+        "title": "Repaso final",
+        "kind": "recall",
+        "target": "ruta.poc-solar.recall-final"
+      }
+    ],
+    "version": 1
+  },
+  "definitions": [
+    {
+      "id": "ruta.poc-solar.d1",
+      "typeId": "flashcards",
+      "title": "El Sol",
+      "target": "ruta.poc-solar.t.el-sol",
+      "generatorId": "static",
+      "params": {
+        "cards": [
+          {
+            "id": "ss-sol-luz",
+            "front": "¿Qué cuerpo del sistema solar emite luz propia?",
+            "back": "el Sol",
+            "skill": "ruta.poc-solar.t.el-sol"
+          },
+          {
+            "id": "ss-sol-masa",
+            "front": "¿Qué porcentaje de la masa del sistema solar concentra el Sol?",
+            "back": "99,86 %",
+            "skill": "ruta.poc-solar.t.el-sol"
+          }
+        ]
+      },
+      "mode": "untimed",
+      "durationSec": 90
+    },
+    {
+      "id": "ruta.poc-solar.d2",
+      "typeId": "flashcards",
+      "title": "El sistema solar",
+      "target": "ruta.poc-solar.t.sistema-solar",
+      "generatorId": "static",
+      "params": {
+        "cards": [
+          {
+            "id": "ss-ocho",
+            "front": "¿Cuántos planetas tiene el sistema solar?",
+            "back": "ocho",
+            "skill": "ruta.poc-solar.t.sistema-solar"
+          },
+          {
+            "id": "ss-edad",
+            "front": "¿Hace cuánto se formó el sistema solar?",
+            "back": "unos 4600 millones de años",
+            "skill": "ruta.poc-solar.t.sistema-solar"
+          }
+        ]
+      },
+      "mode": "untimed",
+      "durationSec": 90
+    },
+    {
+      "id": "ruta.poc-solar.d3",
+      "typeId": "flashcards",
+      "title": "Gigantes gaseosos",
+      "target": "ruta.poc-solar.t.gigantes-gaseosos",
+      "generatorId": "static",
+      "params": {
+        "cards": [
+          {
+            "id": "jup-gaseoso",
+            "front": "¿Qué tipo de planeta es Júpiter?",
+            "back": "un gigante gaseoso",
+            "skill": "ruta.poc-solar.t.gigantes-gaseosos"
+          },
+          {
+            "id": "ss-gaseosos",
+            "front": "¿De qué están compuestos Júpiter y Saturno?",
+            "back": "helio e hidrógeno",
+            "skill": "ruta.poc-solar.t.gigantes-gaseosos"
+          }
+        ]
+      },
+      "mode": "untimed",
+      "durationSec": 90
+    },
+    {
+      "id": "ruta.poc-solar.d4",
+      "typeId": "flashcards",
+      "title": "Júpiter",
+      "target": "ruta.poc-solar.t.jupiter",
+      "generatorId": "static",
+      "params": {
+        "cards": [
+          {
+            "id": "jup-grande",
+            "front": "¿Cuál es el planeta más grande del sistema solar?",
+            "back": "Júpiter",
+            "skill": "ruta.poc-solar.t.jupiter"
+          },
+          {
+            "id": "jup-quinto",
+            "front": "¿En qué posición está Júpiter respecto al Sol?",
+            "back": "el quinto",
+            "skill": "ruta.poc-solar.t.jupiter"
+          },
+          {
+            "id": "jup-mancha",
+            "front": "¿Qué es la Gran Mancha Roja de Júpiter?",
+            "back": "un enorme anticiclón",
+            "skill": "ruta.poc-solar.t.jupiter"
+          },
+          {
+            "id": "jup-rotacion",
+            "front": "¿Cuánto tarda Júpiter en girar sobre su eje?",
+            "back": "menos de diez horas",
+            "skill": "ruta.poc-solar.t.jupiter"
+          },
+          {
+            "id": "ss-jup",
+            "front": "¿Cuáles son los dos planetas más grandes del sistema solar?",
+            "back": "Júpiter y Saturno",
+            "skill": "ruta.poc-solar.t.jupiter"
+          }
+        ]
+      },
+      "mode": "untimed",
+      "durationSec": 90
+    }
+  ],
+  "requires": {
+    "types": {
+      "flashcards": {
+        "contractVersion": 1,
+        "generators": [
+          "static"
+        ]
+      }
+    }
+  },
+  "meta": {
+    "origin": "route-lab@poc",
+    "jobId": "poc-solar",
+    "sources": [
+      "Sistema solar",
+      "Jupiter (planeta)"
+    ],
+    "learner": {
+      "edad": 10,
+      "nivel": "medio"
+    }
+  },
+  "review": {
+    "moderation": {
+      "method": "blocklist-stub",
+      "items_checked": 33,
+      "flagged": 0
+    },
+    "finalApprovedAt": null,
+    "note": "moderación real (juez LLM) sin cablear en la PoC; esto es solo lista negra"
+  }
+}

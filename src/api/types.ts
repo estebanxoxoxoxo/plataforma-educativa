@@ -344,15 +344,33 @@ export type DefinitionRecipeData = {
   id: string; typeId: string; title: string; target: string;
   generatorId: string; params: unknown; mode: 'untimed' | 'timed'; durationSec: number;
 };
-/** route-bundle.json: el ÚNICO contrato route-lab → app (se importa tal cual). */
+/** route-bundle.json: el ÚNICO contrato route-lab → app (se importa tal cual).
+ *  `editorial`/`meta` (opacos) viajan con el bundle del creador: la reapertura los necesita. */
 export type RouteBundle = {
   kind: 'smarty-route-bundle'; schemaVersion: 1;
   route: LearnRouteData & { version?: number };
   definitions: DefinitionRecipeData[];
   requires?: unknown; review?: unknown;
+  editorial?: unknown; meta?: unknown;
 };
-export type LearnRouteListItem = { id: string; title: string; emoji: string; category?: string; cover?: string; importedAt: number; postas: number };
-export type ImportBundleResult = { ok: boolean; error?: string; routeId?: string };
+export type LearnRouteListItem = {
+  id: string; title: string; emoji: string; category?: string; cover?: string; importedAt: number; postas: number;
+  /** Cuántos módulos tiene (solo las rutas con módulos se editan en /crear). */ modules?: number;
+};
+export type ImportBundleResult = {
+  ok: boolean; error?: string; routeId?: string;
+  /** El ImportResult del POC. */ title?: string; postas?: number; definitions?: number;
+};
+
+/* ---------- Auditoría de veracidad de un fact (port del factAudit del POC, corre en NUESTRO server) ---------- */
+export type AuditFact = { statement?: string; front?: string; back?: string; quote?: string; kind?: string };
+export type AuditSource = { title: string; url: string; snippet: string; /** 'si' | 'no' | 'parcial' (como lo marque el modelo) */ agrees: string };
+export type AuditResult = {
+  /** 'confirmado' | 'contradicho' | los estados intermedios del POC */ status: string;
+  /** 0-100 */ confidence: number;
+  summary: string; correction?: string;
+  sources: AuditSource[]; model: string; auditedAt: number;
+};
 
 /* ---------- Guardarropas (ropa del avatar) + regalos (audios 26, 29, 41-42) ---------- */
 /** Id de accesorio del set dibujado del cliente (Avatar.tsx). */
