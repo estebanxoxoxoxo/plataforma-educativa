@@ -12,15 +12,12 @@
 // EL CATÁLOGO QUE VE MYTUBE = catálogo global (server/data/catalog.json, 94.923 videos, SOLO LECTURA: catalog.json no se
 // toca) + las filas de la familia (store.videos, con entryId). Se SUMAN al servir (merge en estos endpoints). Un videoId
 // existe una sola vez: la ingesta no re-agrega lo que ya está en cualquiera de los dos (saveVideos del POC).
-// SEAM para el coordinador (Buscar, reproductor, chat, Mis listas y Drive leen el catálogo por videos.ts, que esta tanda
-// no puede tocar): `familyCatalog` (abajo) es la capa lista para enchufar. Si videos.ts exporta
-// `setFamilyCatalog(layer)`, este módulo se registra solo al arrancar (detección en runtime; sin esa función no pasa nada).
-// Parche propuesto en el reporte de la tanda: getCatalogVideo/getVideo consultan `layer.get(id)` y searchVideos suma un
-// índice chico de `layer.all()` (se rehace cuando cambia `layer.version()`); allChannels/videosOfChannel NO cambian
-// (solo los usa este módulo y las rutas viejas /api/space/channel*).
+// `familyCatalog` (abajo) es la capa de los videos de la familia, ENCHUFADA en videos.ts (consolidación 12-oct):
+// este módulo se registra solo al arrancar vía `setFamilyCatalog` (detección en runtime). Buscar, el reproductor, el
+// chat, Mis listas y Drive ven el catálogo ampliado; allChannels/videosOfChannel siguen solo sobre el base porque
+// MyTube hace su propio merge (sumarlos acá duplicaría conteos).
 //
-// Contrato HTTP (formas ADITIVAS espejo del POC; el coordinador las formaliza en src/api/types.ts al cierre — el cliente
-// vive por ahora en src/sections/mytube/lib/mytubeApi.ts):
+// Contrato HTTP (formas espejo del POC, FORMALIZADAS en src/api/types.ts como Mt*; cliente = api.mt*):
 //   Lado chico
 //   GET  /api/mytube/channels → { channels: [{ channelId, title, thumb?, videos }] }
 //        SOLO los canales que el chico sigue Y tienen ≥1 video aprobado (followedChannels del POC), ordenados por

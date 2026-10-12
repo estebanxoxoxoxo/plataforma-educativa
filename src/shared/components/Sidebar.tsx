@@ -42,7 +42,7 @@ function activeFrom(path: string): { sec?: Sec; sub?: string } {
   if (path.startsWith('/espacio')) return { sec: 'space' };
   if (path.startsWith('/tienda')) return { sec: 'store' };
   if (path.startsWith('/aprender')) return { sec: 'learn' };
-  // /practicar y /repasar siguen ruteables sin ítem: se marcan como parte de Aprender.
+  // /practicar* y /repasar* ya no existen (W3+W4): redirigen a /aprender en App; el instante del redirect marca Aprender.
   if (path.startsWith('/practicar') || path.startsWith('/repasar')) return { sec: 'learn' };
   if (path.startsWith('/calendario')) return { sec: 'calendar' };
   // /crear vive DENTRO de Aprender (botón en su encabezado, pedido 12-oct)

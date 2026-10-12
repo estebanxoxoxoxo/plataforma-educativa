@@ -4,8 +4,7 @@ import { api } from '../../../api';
 import type { Article } from '../../../api/types';
 import { lastSearch } from '../../../hooks/user';
 import { FolderSheet } from '../../../shared/components/FolderSheet';
-import { IcBookmark, IcSparkDouble } from '../../../shared/components/icons';
-import { GenerateCourseModal } from '../components/GenerateCourseModal';
+import { IcBookmark } from '../../../shared/components/icons';
 import { ModerationOverlay, type ModState } from '../components/ModerationOverlay';
 import { WikiArticle } from '../components/WikiArticle';
 
@@ -20,8 +19,6 @@ export function ArticlePage() {
   const [article, setArticle] = useState<Article | undefined>(pre);
   const [mod, setMod] = useState<ModState>(pre ? 'none' : 'check');
   const [blockedOnOpen, setBlockedOnOpen] = useState(false);
-  const [requested, setRequested] = useState(false);
-  const [modal, setModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
 
@@ -43,10 +40,6 @@ export function ArticlePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  useEffect(() => {
-    if (article) api.courseRequested(article.topic).then(setRequested);
-  }, [article]);
-
   // Cada link también se modera antes de abrirse.
   const openLink = async (target: string) => {
     setMod('check');
@@ -56,20 +49,12 @@ export function ArticlePage() {
     go(`/buscar/articulo/${encodeURIComponent(target)}`, { state: { article: r.article, backTo: st?.backTo, backLabel: st?.backLabel } });
   };
 
-  const generate = async () => {
-    if (!article || requested) return;
-    setRequested(true);
-    await api.generateCourse(article.topic);
-    setModal(true);
-  };
-
   return (
     <section className="view" id="v-article">
       <div className="abar">
         <button className="back" style={{ color: '#0B6B66' }} onClick={() => go(back.to)}>{back.label}</button>
         <div className="abar-acts">
           <button className="asave" disabled={!article} onClick={() => setSaving(true)}><IcBookmark />Guardar</button>
-          <button className={`gen${requested ? ' off' : ''}`} disabled={requested || !article} onClick={generate}><IcSparkDouble />Generar curso sobre este tema</button>
         </div>
       </div>
       <div className="aview">
@@ -78,7 +63,6 @@ export function ArticlePage() {
         </div>
         <ModerationOverlay state={mod} onOk={() => (blockedOnOpen && !article ? go(back.to) : setMod('none'))} />
       </div>
-      <GenerateCourseModal open={modal} topic={article?.topic ?? ''} onClose={() => setModal(false)} />
       {article && <FolderSheet open={saving} title="¿Dónde lo guardás?" cta="Guardar acá"
         onPick={async (folderId, folderName) => {
           const r = await api.saveItem({ folderId, article: { url: article.id, title: article.title, source: article.siteName } }).catch(() => null);

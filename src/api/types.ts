@@ -22,7 +22,6 @@ export type SearchResponse<T> = { query: string; items: Moderated<T>[]; related?
 export type Article = {
   /** = URL de origen */ id: string;
   url: string;
-  /** Tema para "Generar curso" */ topic: string;
   title: string;
   siteName?: string;
   hero?: string;
@@ -78,57 +77,13 @@ export type MtIngestResult = { ok: true; added: number; title: string } | { ok: 
 export type Playlist = { id: number; name: string; count: number; cover?: string };
 export type PlaylistDetail = { id: number; name: string; videos: VideoResult[] };
 
-export type Course = {
-  id: string; name: string; units: number; progress: number;
-  img: string; bg: [string, string]; isNew?: boolean;
-};
-/** Un capítulo de Aprender = UN contenido real y aprobado (video del catálogo o lectura de un sitio aprobado). */
-export type Chapter = {
-  title: string;
-  kind: 'video' | 'lectura';
-  /** Texto del tag: "Video · 4:13" / "Lectura" */ label: string;
-  /** Canal o sitio de origen */ source: string;
-  target: { type: 'video'; id: string } | { type: 'article'; url: string };
-};
-export type CourseDetail = Course & {
-  chapters: number;
-  unitList: { title: string; chapters: Chapter[] }[];
-};
-
-export type ExType = 'open' | 'mc' | 'vf';
-export type NodeType = ExType | 'trophy' | 'skip';
-export type JourneyItem =
-  | { kind: 'div'; title: string }
-  | { kind: 'node'; n: number; type: NodeType;
-      /** De qué trata (pregunta / afirmación) */ prompt?: string;
-      seconds?: number; xp: number;
-      /** Solo hitos: nombre de la insignia */ badge?: string };
-export type Journey = {
-  courseId: string; courseName: string; courseImg: string; courseBg: [string, string];
-  unitLabel: string; title: string; items: JourneyItem[]; done: number;
-};
-
-export type Exercise =
-  | { n: number; type: 'open'; progress: number; seconds: number; question: string; placeholder: string }
-  | { n: number; type: 'mc'; progress: number; seconds: number; question: string; hint: string; options: string[] }
-  | { n: number; type: 'vf'; progress: number; seconds: number; statement: string };
-
-export type Answer = { kind: 'open'; text: string } | { kind: 'mc'; selected: string[] } | { kind: 'vf'; value: boolean } | { kind: 'timeout' };
-export type AnswerResult = {
-  correct: boolean; title: string; detail: string;
-  /** Solo pregunta abierta */ ai?: { verdict: string; feedback: string };
-  /** Solo multiple choice / VF: opciones correctas para pintar */ correctOptions?: string[];
-  /** Premio REAL al acertar (contrato con server/src/progress.ts): puntos de este ejercicio,
-   *  XP acumulada en la semana y saldo de Energy Coin resultante. */
-  xp?: number; xpWeek?: number; ec?: number;
-};
-
 /* ---------- Progreso real: XP semanal (el puntaje ÚNICO de liga/zona/país) + Energy Coin ---------- */
 export type ProgressSummary = {
   xpWeek: number;
   /** Saldo de Energy Coin (⚡) para gastar en la Tienda */ ec: number;
   streakDays: number;
   /** Para "Seguí practicando" (null si nunca practicó) */
+  /** La última RUTA de Learn jugada con postas pendientes (courseId = id de ruta desde W3). */
   continue: { courseId: string; title: string; done: number; total: number } | null;
 };
 export type EcTx = { id: number; ts: number; kind: 'earn' | 'spend'; amount: number; label: string };
@@ -251,7 +206,7 @@ export type FeedMotion = 'calmo' | 'normal' | 'vivo';
 export type FeedItem =
   | { kind: 'video'; id: string; time: string; reason: string; video: VideoResult }
   | { kind: 'article'; id: string; time: string; reason: string; title: string; url: string; source: string; snippet?: string }
-  | { kind: 'route'; id: string; time: string; reason: string; course: { id: string; name: string; units: number; img: string; bg: [string, string] } }
+  | { kind: 'route'; id: string; time: string; reason: string; course: { id: string; name: string; /** postas */ units: number; img: string; bg: [string, string]; emoji?: string } }
   | { kind: 'friend'; id: string; time: string; reason?: string; friend: { nick: string; color: string }; text: string; icon: 'medal' | 'streak' | 'badge' | 'route' | 'league'; reactions: FeedReaction[] }
   | { kind: 'league'; id: string; time: string; reason?: string; name: string; desc: string }
   /* v6 — bloques nuevos del hilo (el server arma la mezcla; el cliente solo dibuja): */

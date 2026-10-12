@@ -335,7 +335,7 @@ export function StorePage() {
         {data && view === 'tienda' && (
           <>
             <WalletHero ec={data.ec} wishCount={data.wishOrder.length} pending={pending}
-              onPractice={() => go('/practicar')} onWishes={() => setParams({ vista: 'deseos' })}
+              onPractice={() => go('/aprender')} onWishes={() => setParams({ vista: 'deseos' })}
               onRedemptions={() => setParams({ vista: 'canjes' })} onMoves={() => setParams({ vista: 'movimientos' })} />
 
             <section className="st-sec" aria-labelledby="st-premios-h">

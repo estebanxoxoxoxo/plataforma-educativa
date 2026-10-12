@@ -1,15 +1,13 @@
-// Cliente de API. Casi todo va al backend real (server/): búsqueda, artículos, imágenes, videos, chat,
-// Mi espacio, práctica (ejercicios del contenido real), progreso/Energy Coin, Tienda, y ligas/feed/amigos como
-// FAKES de servidor (amigos: NPCs con moderación real). Solo queda simulado en el navegador: cursos
-// (lista/generación). Cada llamada se loguea en la consola (→ / ←).
-import * as M from './mock';
+// Cliente de API. Todo va al backend real (server/): búsqueda, artículos, imágenes, videos, chat,
+// Mi espacio, Learn (rutas + resultados), progreso/Energy Coin, Tienda, y ligas/feed/amigos como
+// FAKES de servidor (amigos: NPCs con moderación real). Cada llamada se loguea en la consola (→ / ←).
 import type {
   ActivityResultInput, ActivityResultRow,
-  AnswerResult, Answer, ArticleResponse, AuditFact, AuditResult, AvatarLook, CalendarEvent, ChatReply, ChatTurn, CloseWeekResult, ConnectResult, Course, DriveFolder, DriveItem, DriveView,
-  DefinitionRecipeData, EcTx, FeedMotion, FeedReaction, FeedResponse, FolderNode, FriendThread, CourseDetail, Exercise, Friend, FriendRequest, GiftResult, HireResult, Identity, ImportBundleResult, LearnRouteData, LearnRouteListItem,
+  ArticleResponse, AuditFact, AuditResult, AvatarLook, CalendarEvent, ChatReply, ChatTurn, CloseWeekResult, ConnectResult, DriveFolder, DriveItem, DriveView,
+  DefinitionRecipeData, EcTx, FeedMotion, FeedReaction, FeedResponse, FolderNode, FriendThread, Friend, FriendRequest, GiftResult, HireResult, Identity, ImportBundleResult, LearnRouteData, LearnRouteListItem,
   MtAdminChannel, MtAdminState, MtChannelCard, MtChannelDetail, MtIngestResult, MtVideo, NewMarketItem, PeopleSearchResponse, RouteBundle, SendMessageResult,
   ParentActivity, ParentAlert, ParentConfig, ParentFeatures, ParentItemPatch, ParentPreset, ParentTopics, ParentVolume, ParentWords,
-  AssignedLeague, GeoRanking, GeoScope, ImageResult, Journey, LeagueStanding, MarketItem, PageResult, Playlist, PlaylistDetail,
+  AssignedLeague, GeoRanking, GeoScope, ImageResult, LeagueStanding, MarketItem, PageResult, Playlist, PlaylistDetail,
   ProgressSummary, Redemption, SavePayload, SearchResponse, SimulateNpcsResult, Tab, Teacher, TeacherSlot, TrashView, User, Video, VideoResult,
 } from './types';
 
@@ -18,9 +16,6 @@ export type SearchMap = { pages: PageResult; images: ImageResult; videos: VideoR
 /** Hilo con un amigo (o lo nuevo del polling) + si está escribiendo (hay una respuesta en camino).
  *  ADITIVO de server/src/friendsFake.ts: pendiente de formalizar en types.ts. */
 
-const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
-const jitter = (ms: number) => ms * (0.85 + Math.random() * 0.3);
-const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
@@ -56,25 +51,6 @@ async function http<T>(path: string, body?: unknown): Promise<T> {
   console.debug(`%c[api] ← ${method} ${path}`, 'color:#3A5BD9', data);
   return data;
 }
-
-async function call<T>(method: string, path: string, latency: number, fn: () => T): Promise<T> {
-  console.debug(`%c[api] → ${method} ${path}`, 'color:#13A39A;font-weight:bold');
-  await sleep(jitter(latency));
-  const res = fn();
-  console.debug(`%c[api] ← ${method} ${path}`, 'color:#3A5BD9', res);
-  return structuredClone(res);
-}
-
-/* ---------- "base de datos" en memoria ---------- */
-const db = {
-  generated: [] as Course[],
-};
-const allCourses = () => [...db.generated, ...M.COURSES];
-const findCourse = (id: string) => {
-  const c = allCourses().find((x) => x.id === id);
-  if (!c) throw new ApiError(404, `Curso ${id} no existe`);
-  return c;
-};
 
 /* ---------- endpoints ---------- */
 export const api = {
@@ -179,42 +155,6 @@ export const api = {
   playlistAdd: (id: number, videoId: string) => http<{ ok: boolean; count?: number; existed?: boolean }>('/api/space/playlists/add', { id, videoId }),
   playlistRemove: (id: number, videoId: string) => http<{ ok: boolean }>('/api/space/playlists/remove', { id, videoId }),
   playlistSwap: (id: number, a: string, b: string) => http<{ ok: boolean }>('/api/space/playlists/swap', { id, a, b }),
-
-  /* cursos */
-  courseRequested: (topic: string) => call<boolean>('GET', `/courses/requests?topic=${topic}`, 200, () => db.generated.some((c) => c.name === topic)),
-  generateCourse: (topic: string) => call<{ topic: string; etaMinutes: number }>('POST', '/courses/generate', 800, () => {
-    if (!db.generated.some((c) => c.name === topic)) {
-      const look = M.GEN_COURSE[topic] ?? M.GEN_COURSE.Dinosaurios;
-      const id = `gen-${norm(topic).replace(/\W+/g, '-')}`;
-      db.generated.unshift({ id, name: topic, units: 4, progress: 0, isNew: true, ...look });
-      // El backend arma el temario (modelo) y busca un contenido aprobado por capítulo, en segundo plano.
-      void http(`/api/learn/course?id=${encodeURIComponent(id)}&name=${encodeURIComponent(topic)}`).catch(() => {});
-    }
-    return { topic, etaMinutes: 5 };
-  }),
-  courses: () => call<Course[]>('GET', '/courses', 650, allCourses),
-  /** Detalle de un curso: el temario y un contenido real por capítulo los resuelve el backend
-   *  (videos del catálogo aprobado, lecturas de sitios aprobados ya revisadas por el juez). */
-  course: async (id: string): Promise<CourseDetail> => {
-    const c = await call('GET', `/courses/${id}`, 150, () => findCourse(id));
-    const r = await http<{ units: CourseDetail['unitList'] }>(`/api/learn/course?id=${encodeURIComponent(id)}&name=${encodeURIComponent(c.name)}`);
-    return { ...c, units: r.units.length, unitList: r.units, chapters: r.units.reduce((n, u) => n + u.chapters.length, 0) };
-  },
-
-  /* practicar — backend real (server/src/practice.ts): ejercicios generados del contenido aprobado de cada curso
-     (regla de oro: solo datos que están en el material), corregidos en el servidor; cada acierto suma XP + Energy Coin. */
-  journey: async (courseId: string): Promise<Journey> => {
-    // El catálogo de cursos todavía es demo (M.COURSES + generados en memoria): de ahí salen el arte de la tarjeta
-    // y el nombre que el server necesita la primera vez que arma la práctica de un curso generado.
-    const c = allCourses().find((x) => x.id === courseId);
-    const j = await http<Journey>(`/api/practice/journey?course=${encodeURIComponent(courseId)}${c ? `&name=${encodeURIComponent(c.name)}` : ''}`);
-    return c ? { ...j, courseImg: c.img, courseBg: c.bg } : j;
-  },
-  exercise: (courseId: string, n: number) => http<Exercise>(`/api/practice/exercise?course=${encodeURIComponent(courseId)}&n=${n}`),
-  /** Corrige en el servidor (la abierta la analiza un modelo). Si acierta el paso que toca, trae el premio (xp/xpWeek/ec). */
-  submit: (courseId: string, n: number, a: Answer) => http<AnswerResult>('/api/practice/answer', { course: courseId, n, answer: a }),
-  completeNode: (courseId: string, n: number) => http<{ done: number }>('/api/practice/complete', { course: courseId, n }),
-
 
   /** Turno del chat: el backend corre el pipeline de moderación de Smarty (sin streaming: nada se
    *  muestra antes del juez de salida). `history` es el contexto ya "en cuarentena". */

@@ -114,12 +114,9 @@
 /* Artículo (formato Wikipedia) + moderación + generar curso */
 /* El lector no tiene padding propio (sus barras van a todo el ancho) y el scroll vive en .ascroll: sin canaleta acá.
    La barra y el área de lectura usan el MISMO padding que .view (var(--view-pad-x), heredada) y reservan la misma
-   canaleta de scroll: "‹ volver" cae en el arranque de la columna y "Generar curso" en su final, como en las demás. */
+   canaleta de scroll: "‹ volver" cae en el arranque de la columna y "Guardar" en su final, como en las demás. */
 #v-article{padding:0;display:flex;flex-direction:column;overflow:hidden;scrollbar-gutter:auto}
 .abar{flex:none;display:flex;align-items:center;justify-content:space-between;padding:18px var(--view-pad-x);overflow:hidden;scrollbar-gutter:stable;border-bottom:1px solid #E4E8F1;background:#fff;position:relative;z-index:2}
-.gen{display:inline-flex;align-items:center;gap:10px;background:#13A39A;color:#fff;font-weight:800;font-size:16px;padding:13px 20px;border-radius:7px;box-shadow:0 4px 0 #0B6B66;transition:background .3s,color .3s,box-shadow .3s}
-.gen svg{width:20px;height:20px}
-.gen.off{background:#E8EAF0;color:#A5ACBD;box-shadow:0 4px 0 #CBD0DB;cursor:default}
 .aview{position:relative;flex:1;min-height:0;overflow:hidden;background:#fff}
 .ascroll{position:absolute;inset:0;overflow-y:auto;padding:0 var(--view-pad-x);scrollbar-gutter:stable}
 
@@ -170,17 +167,6 @@
 .modov.block .mic{background:#FFF0F0;color:#D63B41}
 .modov.block .mic::after,.modov.block .mbar{display:none}
 .modov.block .mok{display:inline-block}
-
-/* modal "generar curso" */
-.genov{position:absolute;inset:0;z-index:4;background:rgba(27,34,56,.4);display:grid;place-items:center;opacity:0;visibility:hidden;transition:opacity .35s,visibility 0s .35s}
-.genov.show{opacity:1;visibility:visible;transition:opacity .35s}
-.gcard{width:470px;background:#fff;border-radius:11px;padding:26px 28px;display:grid;gap:16px;box-shadow:0 24px 50px -16px rgba(27,34,56,.45)}
-.gcard .k{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#0B6B66}
-.gcard .k svg{width:16px;height:16px}
-.gcard h3{margin:-6px 0 0;font-family:var(--display);font-weight:800;font-size:26px;line-height:1.1}
-.gdone{display:grid;gap:14px}
-.gdone p{margin:0;font-size:16px;font-weight:600;line-height:1.5;color:#2E3650}
-.gok{justify-self:end;background:#13A39A;color:#fff;font-weight:800;padding:12px 22px;border-radius:7px;box-shadow:0 4px 0 #0B6B66}
 
 /* Reproductor de video. Excepción de la columna: 760 centrado sobre el mismo eje (16:9 + datos entran en el alto de
    una notebook y la vista se centra también en vertical); en ventanas chicas ocupa la columna entera. */

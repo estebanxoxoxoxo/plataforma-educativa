@@ -152,7 +152,7 @@ a.tb-ec:hover{background:rgba(255,255,255,.24)}
 @media (max-width:980px){ .tb-name{display:none} }
 
 /* ── Columna de contenido: el MISMO ancho y la MISMA alineación en todas las secciones ──
-   Estándar = Descubrir (el feed, /): un bloque de hasta --content-w (1040px) CENTRADO en el área principal, con al menos
+   Estándar = el Feed (/): un bloque de hasta --content-w (1040px) CENTRADO en el área principal, con al menos
    --view-px (40px) de aire a cada lado (tokens en base.css). Lo resuelve el padding horizontal de .view: los % del
    padding se calculan sobre el ancho de .main (su bloque contenedor), así que max(40px, (100% − 1040px) / 2) deja el
    content box de CUALQUIER vista exactamente sobre la columna, sin envoltorios ni max-width por sección:

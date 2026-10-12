@@ -238,7 +238,8 @@ export function routeTitle(id: string): string | undefined {
 /* ---------- vistas ---------- */
 const countOf = (x: unknown) => (Array.isArray(x) ? x.length : 0)
 function listItems() {
-  return [...routes.values()].sort(byId).map((r) => ({
+  // enabled !== false: el filtro de useImportedRoutes del POC (hoy sin efecto: el import siempre fuerza true).
+  return [...routes.values()].filter((r) => r.enabled !== false).sort(byId).map((r) => ({
     id: r.id,
     title: r.route.title,
     emoji: r.route.emoji,

@@ -73,7 +73,7 @@ export interface FriendRequest { id: string; nick: string; color: string; note?:
 export type SendMessageResult = { status: 'ok'; msg: FriendMessage } | { status: 'blocked'; notice: string }
 /** Íconos de las noticias de amigos del feed (los mismos de FeedItem 'friend'). */
 export type NewsIcon = 'medal' | 'streak' | 'badge' | 'route' | 'league'
-/* ADITIVOS (tanda F2): Buscar → Personas. Espejo en src/sections/discover/lib/people.ts hasta que el coordinador los pase a
+/* Buscar → Personas (tanda F2): formas FORMALIZADAS en src/api/types.ts (consolidación 12-oct). Espejo server de
    src/api/types.ts. friend = ya son amigos · incoming = él le mandó una solicitud a Ian · sent = Ian se la mandó y espera. */
 export type PersonRelation = 'friend' | 'incoming' | 'sent' | 'none'
 export interface PersonResult { id: string; nick: string; color: string; status: string; accessory: string | null; relation: PersonRelation }

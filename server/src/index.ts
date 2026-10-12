@@ -15,7 +15,7 @@ import { config } from './config'
 import { getArticle } from './articles'
 import { queryTokens, searchPages } from './search'
 import { searchImages } from './images'
-import { allChannels, getVideo, loadChannelMeta, loadVideoMeta, searchVideos, toVideoResult, videosOfChannel } from './videos'
+import { getVideo, loadVideoMeta, searchVideos, toVideoResult } from './videos'
 import { sendChildMessage } from './chat'
 import { feedLess, getFeed, reactFeed, resetFeed } from './feedFake'
 import { friendsRoutes, resetFriends } from './friendsFake'
@@ -154,23 +154,7 @@ createServer(async (req, res) => {
       if (url.pathname === '/api/space/drive') return send(res, 200, space.driveView(Number(url.searchParams.get('folder') ?? 0) || 0))
       if (url.pathname === '/api/space/folders') return send(res, 200, space.folderTree())
       if (url.pathname === '/api/space/drive/trash') return send(res, 200, space.trashView())
-      if (url.pathname === '/api/space/channels') {
-        const follows = new Set(space.followedIds())
-        return send(res, 200, { channels: allChannels().map(c => ({ ...c, followed: follows.has(c.id) })) })
-      }
-      if (url.pathname === '/api/space/channel') {
-        const id = url.searchParams.get('id') ?? ''
-        const c = allChannels().find(x => x.id === id)
-        if (!c) return send(res, 404, { error: 'canal' })
-        const vids = videosOfChannel(id)
-        const shown = vids.slice(0, 120)
-        await loadVideoMeta(shown.map(v => v.videoId))
-        const m = await loadChannelMeta(id)
-        return send(res, 200, {
-          channel: { ...c, followed: space.isFollowed(id), thumb: m.thumb, subscribers: m.subscribers != null ? new Intl.NumberFormat('es-AR', { notation: 'compact', maximumFractionDigits: 1 }).format(m.subscribers) + ' de suscriptores' : '' },
-          total: vids.length, videos: shown.map(toVideoResult),
-        })
-      }
+      // /api/space/channels|channel se RETIRARON (12-oct): MyTube (W5) lee /api/mytube/* desde entonces.
       if (url.pathname === '/api/space/playlists') return send(res, 200, space.playlists())
       if (url.pathname === '/api/space/playlist') {
         const d = space.playlistDetail(Number(url.searchParams.get('id') ?? 0) || 0)

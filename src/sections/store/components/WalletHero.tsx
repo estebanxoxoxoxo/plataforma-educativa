@@ -52,7 +52,7 @@ export function WalletHero({ ec, wishCount, pending, onPractice, onWishes, onRed
         <span className="st-unit">Energy Coins</span>
         <p className="st-earn">
           Los ganás practicando.{' '}
-          <a className="st-link" href="/practicar" onClick={(e) => { e.preventDefault(); onPractice(); }}>Ir a Practicar →</a>
+          <a className="st-link" href="/aprender" onClick={(e) => { e.preventDefault(); onPractice(); }}>Ir a Aprender →</a>
         </p>
       </div>
 

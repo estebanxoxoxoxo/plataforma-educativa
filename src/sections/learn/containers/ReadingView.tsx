@@ -64,12 +64,12 @@ export function ReadingView({ url, title, onClose, ctaLabel, onCta }: {
 
   /* Un link del cuerpo: los anclas de la misma página y lo que no es http(s) no hacen nada; el resto abre el lector
      anidado (el server decide si se puede leer). */
-  function followLink(raw: string) {
+  function followLink(raw: string, text?: string) {
     let u: URL;
     try { u = new URL(raw, url); } catch { return; }
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return;
     if (u.href.split('#')[0] === url.split('#')[0]) return; // ancla en la misma página
-    setChild({ url: u.href, title: u.href });
+    setChild({ url: u.href, title: text?.trim() || u.href }); // el texto del link, como el POC (URL de respaldo)
   }
 
   return (

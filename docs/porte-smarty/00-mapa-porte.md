@@ -180,7 +180,7 @@ IndexedDB se guardan en nuestro server manteniendo formas y semántica de persis
   corre con `.\.venv\Scripts\python.exe -m uvicorn server:app --port 5203`. El :5203 de Esteban sirve
   desde la carpeta del POC (arrancó antes de la copia): la QA usó la copia del repo en un puerto efímero
   para no escribir jobs en el POC.
-- **W3+W4 (Learn colapsado + Active Recall) — HECHA 12-oct, sin commitear.** Aprender ES Learn (`sections/learn/**`,
+- **W3+W4 (Learn colapsado + Active Recall) — HECHA 12-oct, sin commitear.** REVISIÓN DE FIDELIDAD (revisor independiente POC↔port, 12-oct) — diferencias asumidas y documentadas: (1) sin "(Beta)" en el subtítulo; (2) skeleton + "Reintentar" si el catálogo no carga (el POC leía Dexie local, sin fallas); (3) la fila grabada: `finishedAt` lo sella el SERVER (contrato), `pct` se clampa a [0,1] y un target vacío da 400 — la urgencia del recall puede moverse por latencia/relojes (demo: misma máquina, nulo); (4) CORREGIDO al cierre: el lector anidado se titula con el TEXTO del link (como el POC), con la URL de respaldo; (5) si falla el guardado de un resultado se pierde con console.error (sin retry: pendiente conocido) y si falla la hidratación de definiciones el botón raíz no aparece hasta reentrar; (6) CORREGIDO al cierre: GET /api/learn-routes filtra `enabled !== false` (paridad useImportedRoutes; hoy sin efecto). Aprender ES Learn (`sections/learn/**`,
   prefijo `ln-`): port EXACTO de `Learn.tsx`, `RutaView.tsx`, `ActivityOverlay.tsx`, `lib/learn.ts` (resolveRoute y
   compañía), `lib/recall.ts` (→ `src/learn/recall.ts`, con `skillMastery`), `recallableTargets` (→ `src/learn/recallActivity.ts`),
   `overlayNav` (useOverlay), `routeCover` y las fases `ReadingView`/`VideoReadingView`. **Mosaico** de las rutas del catálogo
@@ -225,7 +225,7 @@ IndexedDB se guardan en nuestro server manteniendo formas y semántica de persis
   videos de la familia se SUMAN al catálogo global al servir. **Padre** (Zona de padres → YouTube): lote de URLs con el
   parser exacto, tabla de entradas con Reingestar/Eliminar, Completar canales, Quitar duplicados, tope por entrada y
   «Canales de MyTube» con la descripción editable. **Aditivos** (a formalizar en types.ts; cliente provisorio en
-  `sections/mytube/lib/mytubeApi.ts`): `/api/mytube/{channels, channel, channel/videos, channel/playlist}` y
+  `src/api/index.ts`, formalizado en la consolidación del 12-oct): `/api/mytube/{channels, channel, channel/videos, channel/playlist}` y
   `/api/mytube/admin/{state, channels, add, reingest, remove, backfill, dedup, cap, channel-desc, usage}` (detalle en el
   README y en la cabecera de `mytube.ts`). **Quirks portados tal cual:** Canales por channelId y con conteo que no
   descuenta palabras; «1 videos»; Playlists (N) sin mirar palabras; videos de una playlist ordenados por videoId (bug del
