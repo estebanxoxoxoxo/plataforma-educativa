@@ -24,9 +24,10 @@ const NAV: { sec: Sec; label: string; to: string; Icon: ComponentType }[] = [
   // Aprender se vuelve Learn (W3 del porte: aprender+practicar COLAPSADOS). Practicar y Repasar ya
   // salieron del menú (decisiones 12-oct): sus rutas siguen vivas por URL hasta que el porte las absorba.
   { sec: 'learn', label: 'Aprender', to: '/aprender', Icon: IcNavLearn },
-  // Calendario: las clases con los profes que contrató el padre (pedido 11-oct: "después de Mi espacio").
-  { sec: 'calendar', label: 'Calendario', to: '/calendario', Icon: IcNavCalendar },
+  // Tienda después de Aprender y Calendario detrás (pedido 12-oct, noche).
   { sec: 'store', label: 'Tienda', to: '/tienda', Icon: IcNavStore },
+  // Calendario: las clases con los profes que contrató el padre.
+  { sec: 'calendar', label: 'Calendario', to: '/calendario', Icon: IcNavCalendar },
   // Mi espacio AL FONDO (pedido 12-oct).
   { sec: 'space', label: 'Mi espacio', to: '/espacio/carpetas', Icon: IcNavSpace },
 ];
