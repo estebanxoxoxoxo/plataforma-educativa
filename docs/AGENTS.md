@@ -39,8 +39,7 @@ framework en `server/` (puerto 8787, proxy `/api` de Vite). El usuario demo es I
    colapsados) · Tienda (`/tienda`) · Amigos · Ligas (solapas Mi liga|Tu zona|País con ?tab=) ·
    Mi espacio (`/espacio/carpetas` DIRECTO, sin submenú) · Calendario (`/calendario`) · Crear AL
    FINAL (`/crear`, porte Smarty). Practicar y Repasar YA NO están en el menú (decisiones 12-oct:
-   Repasar vuela con W4; Practicar se colapsa en Learn): `/practicar*`, `/repasar*` y
-   `/espacio/videos` siguen ruteables sin link hasta que el porte los absorba. "Home" es el feed,
+   Repasar vuela con W4; Practicar se colapsa en Learn): `/practicar*` sigue vivo (el feed entra por «Seguí practicando») y `/espacio/videos` sin link hasta MyTube (W5); `/repasar*` YA NO EXISTE (redirige a /aprender): su código se eliminó entero. "Home" es el feed,
    NO el chat. Si cambiás rutas, dejá redirecciones de las viejas.
 9. **La economía del demo vive en RAM** (pedido de Esteban): XP/Energy Coin/canjes NO se persisten
    a disco; cada carga de página hace POST /api/demo/reset (ver src/hooks/user.tsx) y todo vuelve a

@@ -8,8 +8,6 @@ import { LearnPage } from './sections/learn/containers/LearnPage';
 import { ExercisePage } from './sections/practice/containers/ExercisePage';
 import { JourneyPage } from './sections/practice/containers/JourneyPage';
 import { PracticePage } from './sections/practice/containers/PracticePage';
-import { RecallPage } from './sections/recall/containers/RecallPage';
-import { RecallSessionPage } from './sections/recall/containers/RecallSessionPage';
 import { CalendarPage } from './sections/calendar/containers/CalendarPage';
 import { CreatePage } from './sections/create/containers/CreatePage';
 import { FriendsPage } from './sections/friends/containers/FriendsPage';
@@ -84,9 +82,8 @@ export default function App() {
           <Route path="practicar" element={<PracticePage />} />
           <Route path="practicar/:id" element={<JourneyPage />} />
           <Route path="practicar/:id/ejercicio/:n" element={<ExercisePage />} />
-          {/* Repasar: las cartas diarias (Active Recall es solo el nombre interno) */}
-          <Route path="repasar" element={<RecallPage />} />
-          <Route path="repasar/sesion" element={<RecallSessionPage />} />
+          {/* Repasar se eliminó (12-oct): el Active Recall exacto del POC llega DENTRO de Learn (W4) */}
+          <Route path="repasar/*" element={<Navigate to="/aprender" replace />} />
           <Route path="amigos" element={<FriendsPage />} />
           {/* Calendario: las clases con los profes contratados en la Zona de padres */}
           <Route path="calendario" element={<CalendarPage />} />

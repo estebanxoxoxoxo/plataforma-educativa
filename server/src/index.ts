@@ -28,7 +28,6 @@ import { progressRoutes, resetProgress } from './progress'
 import * as market from './market'
 import { leaguesRoutes } from './leaguesFake'
 import { featureOn, parentRoutes, resetUnlockAttempts } from './parent'
-import { recallRoutes, resetRecall } from './recall'
 import { identityRoutes } from './identity'
 import { teachersRoutes } from './teachersFake'
 import { simulateNpcs } from './feedFake'
@@ -83,14 +82,12 @@ createServer(async (req, res) => {
       resetUnlockAttempts()
       ;(market as { resetMarket?: () => void }).resetMarket?.()
       resetFriends() // el grafo social del demo (amigos aceptados, solicitudes, hilos) también vuelve al seed
-      resetRecall() // el ledger de Repasar (fuerza por fact) también es RAM: vuelve al seed
       resetLeagues() // el ciclo de liga simulado (cierres de semana del botón de demo) vuelve al seed
       resetFeed() // las noticias en vivo (cierres, ráfagas de NPCs) y las reacciones vuelven al seed
       return send(res, 200, { ok: true })
     }
 
     // --- Dominios con módulo propio (cada uno maneja sus subrutas y métodos) ---
-    if (url.pathname.startsWith('/api/recall/')) return await recallRoutes(req, res, url)
     if (url.pathname === '/api/identity') return await identityRoutes(req, res, url)
     // Profesores (marketplace del padre) + el calendario del chico: teachersFake.ts
     if (url.pathname.startsWith('/api/teachers') || url.pathname === '/api/calendar') return await teachersRoutes(req, res, url)

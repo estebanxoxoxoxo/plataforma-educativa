@@ -8,7 +8,7 @@
    ?stage (1280×720 escalado), donde una media query vería la ventana y no el escenario.
    Ojo: @container mide el content box de .side (alto − 32px de padding vertical). */
 .side{container:side/size;background:#FFFFFF;border-right:1px solid #E4E8F1;padding:18px 16px 14px;display:flex;flex-direction:column;min-height:0;
-  --ni-h:50px;--ni-gap:8px;--ni-ic:30px;--ni-px:12px;--ni-tx:16px;--ni-fs:14px;--si-h:36px;--si-ic:18px;--si-m:6px;--si-inset:10px;--ft-h:44px;--ft-gap:14px}
+  --ni-h:50px;--ni-gap:8px;--ni-ic:30px;--ni-px:12px;--ni-tx:16px;--ni-fs:14px;--ft-h:44px;--ft-gap:14px}
 .brand{flex:none;display:flex;align-items:center;gap:10px;height:40px;margin-bottom:22px;padding-left:calc(2px + var(--ni-px) + (var(--ni-ic) - 34px) / 2);border-radius:12px;font-family:var(--display);font-weight:800;font-size:22px}
 .side nav{display:flex;flex-direction:column;gap:var(--ni-gap);margin-bottom:var(--ft-gap)}
 /* Cada ítem con su posible submenú debajo (el orden del menú no afecta al submenú). */
@@ -21,7 +21,7 @@
 .nav-item svg{width:var(--ni-ic);height:var(--ni-ic);flex:none}
 /* Baloo 2 reserva mucho descendente: con line-height 1 las MAYÚSCULAS quedan ópticamente altas respecto
    del ícono (pedido 9-oct). El span (Sidebar) permite bajar SOLO la etiqueta, sin mover el ícono. */
-.nav-item span,.sub-item span{transform:translateY(2px)}
+.nav-item span{transform:translateY(2px)}
 .nav-item:hover{background:#F1F3F8;color:#47506B}
 .nav-item.on{background:var(--sec-bg);border-color:var(--sec-bd);color:var(--sec-fg)}
 /* Por sección: relleno suave · borde · etiqueta (etiqueta ≥4.5:1 sobre su relleno; la inactiva #6A7390 da 4.7:1
@@ -34,33 +34,10 @@
 .nav-item[data-sec="space"]{--sec-bg:#E1F2FB;--sec-bd:#57B6E6;--sec-fg:#0E5F8A}
 .nav-item[data-sec="store"]{--sec-bg:#EAF7DC;--sec-bd:#7DC447;--sec-fg:#3B6E12}
 .nav-item[data-sec="learn"]{--sec-bg:#E8EDFE;--sec-bd:#7B93F0;--sec-fg:#2843A8}
-.nav-item[data-sec="practice"]{--sec-bg:#FEEDE5;--sec-bd:#F58A5E;--sec-fg:#B03F18}
-.nav-item[data-sec="recall"]{--sec-bg:#DFF5EC;--sec-bd:#3FBF8E;--sec-fg:#116947}
 .nav-item[data-sec="calendar"]{--sec-bg:#FDECEA;--sec-bd:#F08A7E;--sec-fg:#9E2B22}
 .nav-item[data-sec="create"]{--sec-bg:#FBEAF8;--sec-bd:#D98AD0;--sec-fg:#8A2B7E}
 .nav-item[data-sec="friends"]{--sec-bg:#F1EAFE;--sec-bd:#A88AF7;--sec-fg:#5431B3}
 .nav-item[data-sec="leagues"]{--sec-bg:#FFF3D9;--sec-bd:#F4B740;--sec-fg:#7F5300}
-
-/* Submenú de Mi espacio: se despliega hacia abajo (filas 0fr → 1fr). Cerrado queda visibility:hidden al terminar
-   la animación, así el teclado no entra a ítems invisibles. .sub-in recorta: su padding de 6px por lado deja lugar
-   al anillo de foco (el margen negativo lo compensa, las filas no se corren). */
-.sub{display:grid;grid-template-rows:0fr;margin-top:calc(var(--ni-gap) * -1);visibility:hidden;transition:grid-template-rows .3s ease,visibility 0s linear .3s}
-.sub.open{grid-template-rows:1fr;visibility:visible;transition:grid-template-rows .3s ease,visibility 0s}
-.sub-in{min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:2px;margin:0 -6px;padding:0 calc(6px + var(--si-inset))}
-/* Cada fila es un poco MENOS ancha que el .nav-item padre y CENTRADA con él: inset simétrico de --si-inset por
-   lado (mismo eje central). width:100% explícito porque un <button> con width:auto se encoge a su contenido.
-   El interior repite el trazado del padre (padding y gap salen de las mismas variables de densidad) y se corre
-   con la caja. */
-.sub-item{flex:none;align-self:stretch;width:100%;display:flex;align-items:center;height:var(--si-h);border-radius:10px;
-  gap:calc(var(--ni-tx) + (var(--ni-ic) - var(--si-ic)) / 2);
-  padding:0 calc(2px + var(--ni-px)) 0 calc(2px + var(--ni-px) + (var(--ni-ic) - var(--si-ic)) / 2);
-  font-family:var(--display);font-weight:800;font-size:12px;line-height:1;letter-spacing:.06em;text-transform:uppercase;color:#6A7390;
-  transition:background-color .2s ease,color .2s ease;cursor:pointer}
-.sub-item:first-child{margin-top:var(--si-m)}
-.sub-item:last-child{margin-bottom:var(--si-m)}
-.sub-item svg{width:var(--si-ic);height:var(--si-ic);flex:none}
-.sub-item:hover{background:#F1F3F8;color:#47506B}
-.sub-item.on{background:#E1F2FB;color:#0E5F8A}
 
 /* Mini-reproductor de sonido de fondo (música + ruidos), arriba del perfil. Mismo lenguaje que el menú
    (etiqueta en mayúsculas, radio 14) pero como tarjeta con borde gris: se lee como control, no como sección. */
@@ -108,13 +85,13 @@
    Compacta (barra < 816px, p. ej. ?stage 720: entra con ~13px de aire) y apretada (barra < 710px, laptops
    1366×768 con las barras del navegador; entra desde ~620px). Las dos consultas se acumulan. */
 @container side (max-height:783px){
-  .side > *{--ni-h:46px;--ni-gap:4px;--ni-ic:28px;--ni-tx:14px;--si-h:32px;--si-m:5px;--ft-h:40px;--ft-gap:8px}
+  .side > *{--ni-h:46px;--ni-gap:4px;--ni-ic:28px;--ni-tx:14px;--ft-h:40px;--ft-gap:8px}
   .brand{height:36px;margin-bottom:12px}
   .profile{margin-top:6px;padding:6px 10px}
   .profile .av{width:32px;height:32px;font-size:16px}
 }
 @container side (max-height:677px){
-  .side > *{--ni-h:40px;--ni-gap:2px;--ni-ic:26px;--ni-tx:12px;--ni-fs:13px;--si-h:28px;--si-ic:16px;--ft-h:36px}
+  .side > *{--ni-h:40px;--ni-gap:2px;--ni-ic:26px;--ni-tx:12px;--ni-fs:13px;--ft-h:36px}
   .brand{height:34px;margin-bottom:10px;font-size:20px}
   .profile{padding:4px 10px}
   /* Último recurso (barra < ~620px): el menú scrollea y el pie queda a la vista. El padding compensado deja
@@ -123,7 +100,7 @@
 }
 
 @media (prefers-reduced-motion: reduce){
-  .nav-item,.sub,.sub-item,.mp-toggle{transition:none}
+  .nav-item,.mp-toggle{transition:none}
   .mp-dot{animation:none}
 }
 

@@ -8,7 +8,7 @@ import type {
   DefinitionRecipeData, EcTx, FeedReaction, FeedResponse, FolderNode, FriendThread, CourseDetail, Exercise, Friend, FriendRequest, GiftResult, HireResult, Identity, ImportBundleResult, LearnRouteData, LearnRouteListItem, NewMarketItem, RouteBundle, SendMessageResult,
   ParentActivity, ParentAlert, ParentConfig, ParentFeatures, ParentItemPatch, ParentPreset, ParentTopics, ParentVolume, ParentWords,
   AssignedLeague, GeoRanking, GeoScope, ImageResult, Journey, LeagueStanding, MarketItem, PageResult, Playlist, PlaylistDetail,
-  ProgressSummary, RecallAnswerResult, RecallFinish, RecallSession, RecallSummary, Redemption, SavePayload, SearchResponse, SimulateNpcsResult, Tab, Teacher, TeacherSlot, TrashView, User, Video, VideoResult,
+  ProgressSummary, Redemption, SavePayload, SearchResponse, SimulateNpcsResult, Tab, Teacher, TeacherSlot, TrashView, User, Video, VideoResult,
 } from './types';
 
 export type { FriendThread } from './types';
@@ -186,12 +186,6 @@ export const api = {
   submit: (courseId: string, n: number, a: Answer) => http<AnswerResult>('/api/practice/answer', { course: courseId, n, answer: a }),
   completeNode: (courseId: string, n: number) => http<{ done: number }>('/api/practice/complete', { course: courseId, n }),
 
-  /* ---- Repasar (Active Recall es el nombre interno) — server/src/recall.ts: el ledger por fact (RAM,
-         seed + resultados reales de Practicar) arma la sesión diaria de cartas; los aciertos suman XP real. ---- */
-  recall: () => http<RecallSummary>('/api/recall/summary'),
-  recallSession: (extra?: boolean) => http<RecallSession>('/api/recall/session', { extra: !!extra }),
-  recallAnswer: (sessionId: number, cardId: number, a: Answer) => http<RecallAnswerResult>('/api/recall/answer', { sessionId, cardId, answer: a }),
-  recallFinish: (sessionId: number) => http<RecallFinish>('/api/recall/finish', { sessionId }),
 
   /** Turno del chat: el backend corre el pipeline de moderación de Smarty (sin streaming: nada se
    *  muestra antes del juez de salida). `history` es el contexto ya "en cuarentena". */

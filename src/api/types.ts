@@ -229,43 +229,6 @@ export type FeedSidebar = {
 };
 export type FeedResponse = { items: FeedItem[]; next: string | null; sidebar?: FeedSidebar };
 
-/* ---------- Repasar (nombre interno: Active Recall; visión audio 17) ----------
-   El server contabiliza la fuerza de cada FACT (lo que el chico sabe de cada dato puntual que practicó)
-   y arma una sesión diaria de cartas con lo que tiene flojo, mezclando cursos. El ledger del demo vive
-   en RAM (seed rico + resultados reales de Practicar en vivo) y vuelve al seed con cada carga. */
-export type RecallLevel = 'floja' | 'mejorando' | 'firme';
-export type RecallCourseState = {
-  courseId: string; name: string;
-  /** Facts por reforzar (flojas + mejorando) / total del curso */ weak: number; total: number;
-  /** Fuerza media 0-100 */ avg: number;
-};
-export type RecallSummary = {
-  /** La sesión de hoy: pendiente | hecha (ya la completó) | sin-material (nunca practicó nada) */
-  today: { state: 'pendiente' | 'hecha' | 'sin-material'; cards: number; courses: string[] };
-  weak: number; improving: number; firm: number; total: number;
-  perCourse: RecallCourseState[];
-  /** Días seguidos repasando (seed demo) */ streakDays: number;
-};
-/** Una carta de la sesión: un ejercicio (misma forma que Practicar) + de qué curso y fact viene. */
-export type RecallCard = {
-  id: number; factId: number;
-  course: { id: string; name: string };
-  ex: Exercise;
-};
-export type RecallSession = { id: number; cards: RecallCard[]; total: number };
-/** Resultado de una carta: la corrección de siempre + cómo quedó la fuerza del fact (y la cita
- *  textual del material de donde sale, regla de oro). */
-export type RecallAnswerResult = AnswerResult & {
-  cite: string;
-  fact: { id: number; level: RecallLevel; strength: number; delta: number };
-};
-export type RecallFinish = {
-  correct: number; total: number;
-  /** Facts que subieron de nivel en esta sesión */ improved: number;
-  xpSession: number;
-  facts: { id: number; statement: string; course: string; level: RecallLevel }[];
-};
-
 /* ---------- Identidad (avatar propio; visión audios 26, 32, 41-42) ----------
    Avatar dibujado determinístico (sin assets externos). `null` = el default típico: la inicial
    sobre un color. En el demo el 80% de los usuarios se ve con avatar dibujado y el 20% con iniciales. */

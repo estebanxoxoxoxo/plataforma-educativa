@@ -30,7 +30,6 @@ import { judgeText } from './judge'
 import { getCourse, type Chapter, type ResolvedCourse } from './learn'
 import { complete, parseJudgeJson, spotlight } from './llm'
 import { addXp, courseDone, setCourseProgress, summary } from './progress'
-import * as recall from './recall'
 import { getCatalogVideo } from './videos'
 import { readJson, send } from './web'
 
@@ -278,8 +277,7 @@ async function limited<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 /* ---------- ejercicios: validación determinística ---------- */
-/** Exportado para Repasar (recall.ts): sus cartas son estos mismos ejercicios. */
-export interface GenEx {
+interface GenEx {
   type: ExType
   /** vf */ statement?: string; answer?: boolean
   /** mc / open */ question?: string
@@ -665,7 +663,7 @@ function exerciseOf(node: Extract<NodeRef, { kind: 'ex' }>) {
 }
 
 /* ---------- corrección (grade y Answer se exportan: Repasar corrige sus cartas con la misma lógica) ---------- */
-export type Answer = { kind: 'open'; text: string } | { kind: 'mc'; selected: string[] } | { kind: 'vf'; value: boolean } | { kind: 'timeout' }
+type Answer = { kind: 'open'; text: string } | { kind: 'mc'; selected: string[] } | { kind: 'vf'; value: boolean } | { kind: 'timeout' }
 interface AnswerResult { correct: boolean; title: string; detail: string; ai?: { verdict: string; feedback: string }; correctOptions?: string[]; xp?: number; xpWeek?: number; ec?: number }
 
 function parseAnswer(a: unknown): Answer | null {
@@ -700,7 +698,7 @@ async function gradeOpen(ex: GenEx, text: string): Promise<{ correct: boolean; f
   }
 }
 
-export async function grade(ex: GenEx, a: Answer): Promise<AnswerResult> {
+async function grade(ex: GenEx, a: Answer): Promise<AnswerResult> {
   const mcKey = () => (ex.correct!.length ? ex.correct! : ['__none__'])
   if (a.kind === 'timeout') {
     return { correct: false, title: 'Se terminó el tiempo', detail: ex.badText, correctOptions: ex.type === 'mc' ? mcKey() : ex.type === 'vf' ? [String(ex.answer)] : undefined }
@@ -761,11 +759,6 @@ export async function practiceRoutes(req: IncomingMessage, res: ServerResponse, 
       const a = parseAnswer(b.answer)
       if (node.kind !== 'ex' || !a) return send(res, 400, { error: 'respuesta inválida' })
       const r = await grade(node.ex, a)
-      // Repasar: CADA respuesta corregida (acierte o no) mueve la fuerza de ese dato en el ledger de recall.ts.
-      recall.recordResult({
-        courseId: pr.info.id, courseName: pr.info.name, unit: node.unit + 1, key: exKey(node.ex), kind: node.ex.type,
-        text: node.ex.type === 'vf' ? node.ex.statement! : node.ex.question!, evidence: node.ex.evidence, correct: r.correct, ex: node.ex,
-      })
       // Premio REAL solo la primera vez que se resuelve el paso que toca (repasar uno hecho no suma de nuevo).
       if (r.correct && n === doneOf(pr)) {
         const p = addXp(XP[node.ex.type], label(pr))

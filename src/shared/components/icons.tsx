@@ -157,14 +157,6 @@ export const IcNavLearn = filled(<>
   <path d="M27.2 9.2A1.2 1.2 0 0026 8h-6.4c-1.3 0-2.5.6-2.9 1.6V24.4c.7-.6 1.8-.9 3-.9H26a1.2 1.2 0 001.2-1.2z" fill={NK.blueL} />
   <path d="M7.5 12h5M7.5 15.5h5M7.5 19h3.5M19.5 12h5M19.5 15.5h5M19.5 19h3.5" stroke={NK.blueM} strokeWidth="1.6" strokeLinecap="round" />
 </>);
-/** Practicar: mancuerna naranja (el naranja de la sección; celeste quedaba pegada al libro azul). */
-export const IcNavPractice = filled(<g transform="rotate(-40 16 16)">
-  <rect x="6" y="14.5" width="20" height="3" rx="1.5" fill={NK.ink} />
-  <rect x="2.6" y="10.6" width="5" height="10.8" rx="2.5" fill={NK.orangeD} />
-  <rect x="24.4" y="10.6" width="5" height="10.8" rx="2.5" fill={NK.orangeD} />
-  <rect x="7" y="7.4" width="5.6" height="17.2" rx="2.8" fill={NK.orange} />
-  <rect x="19.4" y="7.4" width="5.6" height="17.2" rx="2.8" fill={NK.orange} />
-</g>);
 /** Crear: chispas de varita (estrella grande dorada + chispitas), como el "Crear" del POC. */
 export const IcNavCreate = filled(<>
   <path d="M13.2 3.6l2.5 6.1 6.1 2.5-6.1 2.5-2.5 6.1-2.5-6.1-6.1-2.5 6.1-2.5z" fill={NK.gold} />
@@ -186,16 +178,6 @@ export const IcNavCalendar = filled(<>
   </g>
   <rect x="20.4" y="17" width="4.6" height="4.6" rx="1.3" fill={NK.gold} />
 </>);
-/** Repasar: dos tarjetas de memoria (la verde asoma inclinada atrás) con el tilde de "esta ya la sé". */
-export const IcNavRecall = filled(<>
-  <g transform="rotate(10 20 10)"><rect x="10" y="3.6" width="18.5" height="13.5" rx="2.4" fill={NK.green} /></g>
-  <rect x="3.2" y="9.8" width="21.5" height="16" rx="2.6" fill="#fff" />
-  <rect x="4.9" y="11.5" width="18.1" height="12.6" rx="1.8" fill="#E9FAF2" />
-  <circle cx="10" cy="16" r="2.9" fill={NK.green} />
-  <path d="M8.7 16l1 1 1.7-1.9" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-  <path d="M14.8 14.6h6M14.8 17.6h4.5" stroke="#9BD9BE" strokeWidth="1.7" strokeLinecap="round" />
-  <path d="M7.4 21.4h12" stroke="#BFE9D6" strokeWidth="1.7" strokeLinecap="round" />
-</>);
 /** Amigos: dos caritas (violeta atrás, dorada adelante con aro blanco que las separa). */
 export const IcNavFriends = filled(<>
   <circle cx="21.4" cy="10.8" r="8.8" fill={NK.violet} />
@@ -215,19 +197,6 @@ export const IcNavLeagues = filled(<>
   <path d={SHIELD} fill={NK.gold} />
   <path d="M19.6 5.2l5.2 1.1L12.6 26.9l-4-3z" fill={NK.goldL} />
   <path d={SHIELD + SHIELD_IN} fill={NK.goldD} fillRule="evenodd" />
-</>);
-/** Sub-ítem Carpetas (16-18 px): carpetita amarilla. */
-export const IcNavFolder = filled(<>
-  <path d="M3 9.4A2.6 2.6 0 015.6 6.8h6.6a2.6 2.6 0 011.9.8l2.4 2.6h9.9A2.6 2.6 0 0129 12.8v1.6H3z" fill={NK.fTab} />
-  <rect x="3" y="11.6" width="26" height="15.4" rx="2.8" fill={NK.fBody} />
-  <path d="M3 14.4a2.8 2.8 0 012.8-2.8h20.4a2.8 2.8 0 012.8 2.8v1.4H3z" fill={NK.fHi} />
-</>);
-/** Sub-ítem Videos: tele celeste con antena. */
-export const IcNavTv = filled(<>
-  <path d="M11 4l5 4.6L21 4" stroke={NK.ink} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-  <rect x="3" y="8.5" width="26" height="19" rx="4.2" fill={NK.sky} />
-  <rect x="6.6" y="12" width="18.8" height="12" rx="2.2" fill={NK.skyL} />
-  <path d="M14 14.8v6.4l5.6-3.2z" fill={NK.sky} />
 </>);
 /** Botón "Sonido de fondo" del pie del menú (el IcHeadphones de trazo sigue en el reproductor y en Listas). */
 export const IcNavHeadphones = filled(<>
