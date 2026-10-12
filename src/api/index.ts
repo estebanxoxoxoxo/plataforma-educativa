@@ -5,8 +5,9 @@
 import * as M from './mock';
 import type {
   ActivityResultInput, ActivityResultRow,
-  AnswerResult, Answer, ArticleResponse, AuditFact, AuditResult, AvatarLook, CalendarEvent, ChannelDetail, Channel, ChatReply, ChatTurn, CloseWeekResult, Course, DriveFolder, DriveItem, DriveView,
-  DefinitionRecipeData, EcTx, FeedMotion, FeedReaction, FeedResponse, FolderNode, FriendThread, CourseDetail, Exercise, Friend, FriendRequest, GiftResult, HireResult, Identity, ImportBundleResult, LearnRouteData, LearnRouteListItem, NewMarketItem, RouteBundle, SendMessageResult,
+  AnswerResult, Answer, ArticleResponse, AuditFact, AuditResult, AvatarLook, CalendarEvent, ChatReply, ChatTurn, CloseWeekResult, ConnectResult, Course, DriveFolder, DriveItem, DriveView,
+  DefinitionRecipeData, EcTx, FeedMotion, FeedReaction, FeedResponse, FolderNode, FriendThread, CourseDetail, Exercise, Friend, FriendRequest, GiftResult, HireResult, Identity, ImportBundleResult, LearnRouteData, LearnRouteListItem,
+  MtAdminChannel, MtAdminState, MtChannelCard, MtChannelDetail, MtIngestResult, MtVideo, NewMarketItem, PeopleSearchResponse, RouteBundle, SendMessageResult,
   ParentActivity, ParentAlert, ParentConfig, ParentFeatures, ParentItemPatch, ParentPreset, ParentTopics, ParentVolume, ParentWords,
   AssignedLeague, GeoRanking, GeoScope, ImageResult, Journey, LeagueStanding, MarketItem, PageResult, Playlist, PlaylistDetail,
   ProgressSummary, Redemption, SavePayload, SearchResponse, SimulateNpcsResult, Tab, Teacher, TeacherSlot, TrashView, User, Video, VideoResult,
@@ -23,6 +24,16 @@ const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
+}
+
+/** Evento global: la Energy Coin se movió (compra, canje, regalo, premio de Learn). Lo escucha la
+ *  barra superior para refrescar el ⚡ al instante (pedido tras la tanda F2). */
+export const EC_CHANGED_EVT = 'innerith:ec-changed';
+function ecBump<T>(p: Promise<T>): Promise<T> {
+  return p.then((r) => {
+    try { window.dispatchEvent(new Event(EC_CHANGED_EVT)); } catch { /* fuera del navegador: nada */ }
+    return r;
+  });
 }
 
 /** Sesión de la Zona de padres: el token lo da POST /api/parent/unlock (va por fetch directo en
@@ -96,7 +107,7 @@ export const api = {
   market: () => http<{ items: MarketItem[]; ec: number }>('/api/market'),
   /** Canjea un premio. OJO: para los ítems de ROPA (kind 'ropa') la entrega es instantánea al
    *  guardarropas y la respuesta NO trae `redemption` (los canjes pendientes son solo de premios del padre). */
-  redeem: (itemId: number) => http<{ ok: boolean; ec: number; redemption?: Redemption; error?: string }>('/api/market/redeem', { itemId }),
+  redeem: (itemId: number) => ecBump(http<{ ok: boolean; ec: number; redemption?: Redemption; error?: string }>('/api/market/redeem', { itemId })),
   redemptions: () => http<{ redemptions: Redemption[] }>('/api/market/redemptions'),
   /** Marca/desmarca un premio en la lista de deseos (toggle si no viene value). */
   wish: (itemId: number, value?: boolean) => http<{ wishlist: number[] }>('/api/market/wish', { itemId, value }),
@@ -143,8 +154,21 @@ export const api = {
   /** Guarda un video / artículo / imagen en una carpeta ("¿Dónde lo guardás?"). */
   saveItem: (p: SavePayload) => http<{ item: DriveItem; existed?: boolean }>('/api/space/save', p),
 
-  channels: () => http<{ channels: Channel[] }>('/api/space/channels'),
-  channel: (id: string) => http<ChannelDetail>(`/api/space/channel?id=${encodeURIComponent(id)}`),
+  /* ---- MyTube (porte Smarty W5): server/src/mytube.ts; Mis listas y Seguir usan el CRUD existente ---- */
+  mtChannels: () => http<{ channels: MtChannelCard[] }>('/api/mytube/channels'),
+  mtChannel: (id: string) => http<MtChannelDetail>(`/api/mytube/channel?id=${encodeURIComponent(id)}`),
+  mtChannelVideos: (id: string, offset: number, limit: number) =>
+    http<{ videos: MtVideo[]; total: number }>(`/api/mytube/channel/videos?id=${encodeURIComponent(id)}&offset=${offset}&limit=${limit}`),
+  mtChannelPlaylist: (playlistId: string) => http<{ videos: MtVideo[] }>(`/api/mytube/channel/playlist?id=${encodeURIComponent(playlistId)}`),
+  mtAdminState: () => http<MtAdminState>('/api/mytube/admin/state'),
+  mtAdminChannels: () => http<{ channels: MtAdminChannel[] }>('/api/mytube/admin/channels'),
+  mtAdd: (youtubeUrl: string) => http<MtIngestResult>('/api/mytube/admin/add', { url: youtubeUrl }),
+  mtReingest: (id: number) => http<MtIngestResult>('/api/mytube/admin/reingest', { id }),
+  mtRemove: (id: number) => http<{ ok: boolean }>('/api/mytube/admin/remove', { id }),
+  mtBackfill: () => http<{ ok: true; completados: number; canales: number } | { ok: false; error: string }>('/api/mytube/admin/backfill', {}),
+  mtDedup: () => http<{ ok: true; removed: number } | { ok: false; error: string }>('/api/mytube/admin/dedup', {}),
+  mtSetCap: (cap: string) => http<{ ok: boolean; videoCap: number }>('/api/mytube/admin/cap', { cap }),
+  mtSetChannelDesc: (channelId: string, desc: string) => http<{ ok: boolean }>('/api/mytube/admin/channel-desc', { channelId, desc }),
   toggleFollow: (channelId: string, value?: boolean) => http<{ followed: boolean }>('/api/space/follow', { channelId, value }),
 
   playlists: () => http<{ playlists: Playlist[] }>('/api/space/playlists'),
@@ -207,6 +231,9 @@ export const api = {
   acceptRequest: (id: string) => http<{ friend: Friend }>('/api/friends/requests/accept', { id }),
   /** "Ahora no": la solicitud desaparece (vuelve con la próxima carga de página: demo). */
   declineRequest: (id: string) => http<{ ok: boolean }>('/api/friends/requests/decline', { id }),
+  /* Buscar → Personas (tanda F2): búsqueda por nick y solicitud saliente ("Quiero contactarlo"). */
+  searchPeople: (q: string) => http<PeopleSearchResponse>(`/api/friends/search?q=${encodeURIComponent(q)}`),
+  askToConnect: (id: string) => http<ConnectResult>('/api/friends/requests/send', { id }),
   thread: (id: string) => http<FriendThread>(`/api/friends/thread?id=${encodeURIComponent(id)}`),
   /** Moderación en tiempo real: `blocked` = el mensaje NO llegó y `notice` le explica al chico cómo decirlo mejor. */
   sendMessage: (id: string, text: string) => http<SendMessageResult>('/api/friends/send', { id, text }),
@@ -237,7 +264,7 @@ export const api = {
   calendar: () => http<{ events: CalendarEvent[] }>('/api/calendar'),
 
   /* ---- Guardarropas: regalar ropa a un amigo (gasta EC; el NPC se la pone y agradece en el hilo) ---- */
-  giftToFriend: (itemId: number, friendId: string) => http<GiftResult>('/api/market/gift', { itemId, friendId }),
+  giftToFriend: (itemId: number, friendId: string) => ecBump(http<GiftResult>('/api/market/gift', { itemId, friendId })),
 
   /* ---- Porte Smarty · rutas de Learn (CATÁLOGO persistido en el server) + /crear (tanda W1).
          route-lab se llama DIRECTO desde el navegador como en el POC (URL configurable en la vista,
@@ -247,7 +274,7 @@ export const api = {
   learnResults: () => http<{ rows: ActivityResultRow[] }>('/api/learn/results'),
   /** Graba una partida terminada (el recordResult del POC; fire-and-forget en el overlay).
    *  `awarded` = ⚡/XP acreditados SOLO la primera vez que ese target queda logrado (economía Innerith). */
-  recordLearnResult: (input: ActivityResultInput) => http<{ row: ActivityResultRow; awarded?: { ec: number; xp: number } }>('/api/learn/results', input),
+  recordLearnResult: (input: ActivityResultInput) => ecBump(http<{ row: ActivityResultRow; awarded?: { ec: number; xp: number } }>('/api/learn/results', input)),
   /** TODAS las definiciones del catálogo en un viaje (hidratación del motor al entrar a Learn). */
   learnDefinitions: () => http<{ definitions: DefinitionRecipeData[] }>('/api/learn-routes/definitions'),
   learnRoutes: () => http<{ routes: LearnRouteListItem[] }>('/api/learn-routes'),

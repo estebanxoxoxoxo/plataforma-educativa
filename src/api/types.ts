@@ -58,8 +58,22 @@ export type SavePayload = {
   image?: { url: string; caption?: string; source?: string };
 };
 
-export type Channel = { id: string; name: string; videos: number; cover: string; followed: boolean };
-export type ChannelDetail = { channel: Channel & { thumb?: string; subscribers?: string }; total: number; videos: VideoResult[] };
+/* ---------- MyTube (porte Smarty W5): formas espejo del POC, servidas por server/src/mytube.ts ---------- */
+/** Un video aprobado como lo dibuja MyTube (subconjunto de YtVideo del POC). */
+export type MtVideo = { videoId: string; title: string; thumb: string; /** segundos */ duration?: number; /** epoch ms */ addedAt?: number; channelId?: string; channelTitle?: string };
+/** Tarjeta de Canales: SOLO seguidos con contenido, orden por channelId; `videos` cuenta sin descontar palabras bloqueadas. */
+export type MtChannelCard = { channelId: string; title: string; thumb?: string; videos: number };
+export type MtChannel = { channelId: string; title: string; handle?: string; /** curada (o la del padre) */ desc?: string; thumb?: string };
+export type MtChannelPlaylist = { playlistId: string; title: string };
+/** `channel: null` = no existe (sin videos aprobados). `pending` = enriquecimiento on-demand en curso: volver a pedir. */
+export type MtChannelDetail = { channel: MtChannel | null; followed: boolean; total: number; playlists: MtChannelPlaylist[]; pending: boolean };
+/* panel del padre (públicos como /api/teachers; la pantalla vive tras el portón) */
+export type MtEntryType = 'video' | 'playlist' | 'canal';
+export type MtEntry = { id: number; type: MtEntryType; url: string; title: string; /** = videoIds.length */ videos: number; channelId?: string; createdAt: number };
+export type MtAdminState = { entries: MtEntry[]; /** videos aprobados: catálogo base + familia */ total: number; /** 0 = sin tope */ videoCap: number };
+export type MtAdminChannel = { channelId: string; title: string; handle?: string; thumb?: string; desc: string; followed: boolean };
+/** `error` = el código del POC (URL_INVALIDA, YA_EXISTE, SIN_KEY_YOUTUBE, …) o el mensaje de la falla. */
+export type MtIngestResult = { ok: true; added: number; title: string } | { ok: false; error: string };
 
 export type Playlist = { id: number; name: string; count: number; cover?: string };
 export type PlaylistDetail = { id: number; name: string; videos: VideoResult[] };
@@ -171,6 +185,19 @@ export type Friend = {
 export type FriendMessage = { id: string; from: 'me' | 'them'; text: string };
 /** Solicitud de amistad entrante (NPCs del demo). */
 export type FriendRequest = { id: string; nick: string; color: string; note?: string };
+/* Buscar → Personas (tanda F2): formas espejo del server fake de amigos. */
+/** friend = ya son amigos · incoming = él le pidió contacto a Ian · sent = Ian se lo pidió y espera · none = nada todavía. */
+export type PersonRelation = 'friend' | 'incoming' | 'sent' | 'none';
+/** Un chico encontrado por su nombre de usuario (MODERACIÓN: nada de texto libre — solo nick y estado fijo del demo). */
+export type PersonResult = {
+  id: string; nick: string; color: string;
+  /** Su línea de estado ("Practicando: Fracciones"). */ status: string;
+  /** La prenda que tiene puesta (id del set de ropa) o null. */ accessory: string | null;
+  relation: PersonRelation;
+};
+export type PeopleSearchResponse = { query: string; people: PersonResult[] };
+/** `ok:false` = rechazo de negocio con el motivo; `friend` = quedaron amigos al toque (él ya había pedido contacto). */
+export type ConnectResult = { ok: boolean; relation: PersonRelation; error?: string; friend?: Friend };
 /** Un hilo con un amigo: mensajes + si el amigo está "escribiendo…" (respuesta del NPC en camino). */
 export type FriendThread = { messages: FriendMessage[]; typing: boolean };
 /** Enviar un mensaje pasa por moderación en tiempo real (visión, audio 24): si no corresponde,

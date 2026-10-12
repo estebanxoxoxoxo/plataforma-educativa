@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../../api';
+import { EC_CHANGED_EVT, api } from '../../api';
 import type { AssignedLeague, Friend, FriendRequest } from '../../api/types';
 import { chatFriendsChanged, openChat, useChatDock } from '../../sections/friends/lib/chatDock';
 import { useFeatures } from '../../sections/parent/lib/features';
@@ -40,14 +40,20 @@ export function TopBar() {
   const tiendaOn = features?.tienda === true;
   const amigosOn = features?.amigos === true;
 
+  // Con un apagado del padre NO se pide lo apagado (antes salían 403 a consola con Amigos off).
   const load = useCallback(async () => {
-    const [lg, pr, rq, fr] = await Promise.allSettled([api.myLeague(), api.progress(), api.requests(), api.friends()]);
+    const [lg, pr, rq, fr] = await Promise.allSettled([
+      ligasOn ? api.myLeague() : Promise.reject(new Error('off')),
+      api.progress(),
+      amigosOn ? api.requests() : Promise.reject(new Error('off')),
+      amigosOn ? api.friends() : Promise.reject(new Error('off')),
+    ]);
     if (!alive.current) return;
     if (lg.status === 'fulfilled') setLeague(lg.value);
     if (pr.status === 'fulfilled') setEc(pr.value.ec);
-    if (rq.status === 'fulfilled') setRequests(rq.value.requests);
-    if (fr.status === 'fulfilled') setFriends(fr.value.friends);
-  }, []);
+    setRequests(rq.status === 'fulfilled' ? rq.value.requests : []);
+    setFriends(fr.status === 'fulfilled' ? fr.value.friends : []);
+  }, [ligasOn, amigosOn]);
 
   useEffect(() => {
     alive.current = true;
@@ -59,14 +65,21 @@ export function TopBar() {
     window.addEventListener('focus', wake);
     document.addEventListener('visibilitychange', wake);
     window.addEventListener(LEAGUE_CLOSED_EVT, closed);
+    window.addEventListener(EC_CHANGED_EVT, closed); // compra/canje/regalo/premio: el ⚡ al instante
     return () => {
       alive.current = false;
       clearInterval(clock); clearInterval(poll);
       window.removeEventListener('focus', wake);
       document.removeEventListener('visibilitychange', wake);
       window.removeEventListener(LEAGUE_CLOSED_EVT, closed);
+      window.removeEventListener(EC_CHANGED_EVT, closed);
     };
   }, [load]);
+
+  // Cambió el grafo social (se aceptó/rechazó una solicitud en la zona pinneada, en Personas o acá):
+  // la campana se refresca al instante en vez de esperar el poll de 60 s.
+  const { friendsRev } = dock;
+  useEffect(() => { void load(); }, [friendsRev, load]);
 
   // La campana se cierra con Esc o clickeando afuera.
   useEffect(() => {
@@ -90,10 +103,10 @@ export function TopBar() {
       setRequests((rs) => rs.filter((x) => x.id !== r.id));
       setOpen(false);
       openChat(r.id);
-    } catch { /* la próxima recarga de la campana lo reintenta */ }
+    } catch { void load(); /* 404 = ya respondida en otro lado: resincronizar saca el ítem */ }
   }
   async function decline(r: FriendRequest) {
-    try { await api.declineRequest(r.id); setRequests((rs) => rs.filter((x) => x.id !== r.id)); } catch { /* ídem */ }
+    try { await api.declineRequest(r.id); setRequests((rs) => rs.filter((x) => x.id !== r.id)); } catch { void load(); }
   }
 
   return (
