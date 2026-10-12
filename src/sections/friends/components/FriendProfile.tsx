@@ -2,10 +2,14 @@ import type { Friend } from '../../../api/types';
 import { Avatar, accessoryArticle, accessoryById, lookFor, wornLabel } from '../../../shared/components/Avatar';
 import { IcChat, IcClose } from '../../../shared/components/icons';
 
-/** Detalle de un amigo (el panel de la derecha que abre ⓘ). Si lleva ropa puesta (en el demo: un regalo de Ian), se ve
- *  en su avatar y lo dice debajo del nombre. `onGift` (solo con la Tienda prendida) lleva a la ropa de la Tienda para
- *  regalarle una prenda (la hoja de regalo vive allá, con los precios y la billetera a la vista). */
-export const FriendProfile = ({ f, onClose, onMessage, onGift }: { f: Friend; onClose: () => void; onMessage: () => void; onGift?: () => void }) => {
+/** Perfil de un amigo (antes, el panel ⓘ de /amigos; desde el 12-oct vive en la hoja que abre el dock de Mensajes
+ *  —FriendProfileSheet—): avatar, desde cuándo son amigos, XP/racha/liga y cursos en común. Si lleva ropa puesta (en el
+ *  demo: un regalo de Ian), se ve en su avatar y lo dice debajo del nombre. `onGift` (solo con la Tienda prendida) lleva
+ *  a la ropa de la Tienda para regalarle una prenda (la hoja de regalo vive allá, con los precios y la billetera a la
+ *  vista). `headingId` = id del nombre (lo usa la hoja como título del diálogo). */
+export const FriendProfile = ({ f, headingId, onClose, onMessage, onGift }: {
+  f: Friend; headingId?: string; onClose: () => void; onMessage: () => void; onGift?: () => void;
+}) => {
   const wearing = accessoryById(f.accessory);
   return (
     <div className="fpbody">
@@ -13,7 +17,7 @@ export const FriendProfile = ({ f, onClose, onMessage, onGift }: { f: Friend; on
       <div className="fprof">
         <Avatar name={f.nick} color={f.color} look={lookFor(f.nick)} accessory={f.accessory} />
         <div>
-          <h3>{f.nick}</h3>
+          <h3 id={headingId}>{f.nick}</h3>
           <small>Amigos desde {f.since}</small>
           {wearing && <span className="fwear" data-acc={wearing.id}><span aria-hidden="true">{wearing.emoji}</span> Tiene {wornLabel(wearing).toLowerCase()} {accessoryArticle(wearing)}</span>}
         </div>

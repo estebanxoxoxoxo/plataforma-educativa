@@ -1,14 +1,14 @@
 import type { KeyboardEvent, RefObject } from 'react';
 import type { Friend } from '../../../api/types';
 import { Avatar, lookFor } from '../../../shared/components/Avatar';
-import { IcDownSm, IcUpSm } from '../../../shared/components/icons';
+import { IcDownSm, IcSearchG, IcUpSm } from '../../../shared/components/icons';
 import { MyAvatar } from '../../../shared/components/ProfileCard';
 import type { DockWin } from '../lib/chatDock';
 
 type Props = {
   /** Nombre de Ian (las iniciales de su avatar si no eligió personaje). */
   me: string;
-  /** Amigos aceptados (null = cargando). Las solicitudes NO van acá: viven en /amigos. */
+  /** Amigos aceptados (null = cargando). Las solicitudes NO van acá: llegan como destacado en la zona pinneada del Feed. */
   friends: Friend[] | null;
   failed: boolean;
   open: boolean;
@@ -21,15 +21,18 @@ type Props = {
   onToggle: () => void;
   onPick: (id: string) => void;
   onRetry: () => void;
+  /** "Buscar personas": lleva a Buscar → Personas (ahí se encuentra gente por su nombre de usuario). */
+  onFind: () => void;
 };
 
 const plural = (n: number) => `${n} ${n === 1 ? 'amigo' : 'amigos'}`;
 
 /** La barra «Mensajes» del dock (estilo LinkedIn): fija abajo a la derecha, minimizada por defecto (una tira con el
  *  avatar de Ian, "Mensajes", cuántos amigos tiene y el chevron). Desplegada muestra la lista de conversaciones —avatar
- *  (el mismo look que en todos lados), nombre y su línea de estado—; tocar una abre su ventana a la izquierda.
+ *  (el mismo look que en todos lados), nombre y su línea de estado—; tocar una abre su ventana a la izquierda. Al pie,
+ *  "Buscar personas" (Amigos ya no es sección: a la gente se la busca por su nombre de usuario en Buscar → Personas).
  *  Esc con el foco adentro la pliega y el foco vuelve a la tira. */
-export function ChatListBar({ me, friends, failed, open, wins, hidden, barRef, onToggle, onPick, onRetry }: Props) {
+export function ChatListBar({ me, friends, failed, open, wins, hidden, barRef, onToggle, onPick, onRetry, onFind }: Props) {
   const winOf = (id: string) => wins.find((w) => w.id === id);
   const hiddenUnread = hidden.some((id) => (winOf(id)?.unread ?? 0) > 0);
   const onKey = (e: KeyboardEvent) => {
@@ -67,7 +70,7 @@ export function ChatListBar({ me, friends, failed, open, wins, hidden, barRef, o
           ) : !friends ? (
             <div className="fdk-sk" role="status" aria-label="Cargando tus conversaciones">{[0, 1, 2].map((i) => <span key={i}><i /><b /></span>)}</div>
           ) : friends.length === 0 ? (
-            <p className="fdk-empty">Todavía no tenés amigos en Innerith. Cuando aceptes una solicitud, vas a poder escribirle desde acá.</p>
+            <p className="fdk-empty">Todavía no tenés amigos en Innerith. Buscá a otros chicos por su nombre de usuario: cuando acepten, les vas a poder escribir desde acá.</p>
           ) : (
             <ul className="fdk-items">
               {friends.map((f) => {
@@ -89,6 +92,9 @@ export function ChatListBar({ me, friends, failed, open, wins, hidden, barRef, o
             </ul>
           )}
         </div>
+      )}
+      {open && (
+        <button className="fdk-find" type="button" onClick={onFind}><IcSearchG />Buscar personas</button>
       )}
     </section>
   );

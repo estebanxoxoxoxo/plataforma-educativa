@@ -1,57 +1,12 @@
-/* Amigos (ancho y alineación: la columna estándar de .view, shell.css).
-   Por defecto la lista ocupa TODO el ancho de la columna. El detalle de un amigo (ⓘ) entra con transición: la lista se
-   achica animada hasta la mitad (.3s sobre su ancho y el hueco) y recién ahí aparece el panel de la derecha; cerrar lo
-   invierte (el panel se va → la lista se expande). Con una columna angosta (≤ 703 px, ventanas de ~1024) la lista cede
-   ancho para que el panel nunca baje de 340 — el mismo fix del viejo minmax, ahora como container query.
-   La mensajería vive en el DOCK de mensajes (estilo LinkedIn, al final de este archivo): fijo abajo a la derecha en
-   TODA la app, montado en el Layout. Las burbujas del hilo (.fthread, .fm, .fmod…) son las de siempre. */
+/* Amigos — desde el 12-oct NO es sección (pedido de Esteban): los amigos VIVEN en el dock de Mensajes (estilo LinkedIn,
+   containers/ChatDock.tsx), fijo abajo a la derecha en TODA la app, montado en el Layout. Las solicitudes llegan como
+   destacado en la zona pinneada del Feed (home.css, .fpin) y a la gente se la busca en Buscar → Personas (discover.css,
+   .ppl). Acá: el perfil de un amigo (la hoja que abre su ventana), el hilo (.fthread, .fm, .fmod…) y el dock. */
 
-/* ---- solicitudes de amistad: arriba, a ancho completo; se pliegan (filas 1fr → 0fr) al aceptar/rechazar ---- */
-.freqs{display:grid;grid-template-rows:1fr;margin-top:20px;transition:grid-template-rows .3s ease,opacity .25s ease,margin-top .3s ease}
-.freqs.out{grid-template-rows:0fr;opacity:0;margin-top:0}
-.freqs-clip{min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:10px}
-.freqs .lbl{margin:0}
-.freq{display:grid;grid-template-rows:1fr;transition:grid-template-rows .3s ease,opacity .25s ease}
-.freq.out{grid-template-rows:0fr;opacity:0}
-.freq-clip{min-height:0;overflow:hidden}
-.freq-card{display:flex;align-items:center;gap:14px;background:#FBF9FF;border:1.5px solid #E3D9FD;border-radius:8px;padding:12px 14px}
-.freq-card .av3{width:44px;height:44px;font-size:19px}
-.freq-card .grow{flex:1;min-width:0}
-.freq-line{margin:0;font-size:15px;font-weight:700;color:#2E3650}
-.freq-line b{color:#1B2238}
-.freq-note{margin:3px 0 0;font-size:14px;font-weight:600;color:#47506B;line-height:1.4}
-.freq-acts{flex:none;display:flex;gap:8px}
-.freq-ok,.freq-no{height:38px;padding:0 16px;border-radius:7px;font-weight:800;font-size:14px;transition:background .2s,border-color .2s,color .2s}
-.freq-ok{background:#8A5CF5;color:#fff}
-.freq-ok:hover{background:#7748EE}
-.freq-no{background:#fff;border:1.5px solid #D9DEEA;color:#47506B}
-.freq-no:hover{border-color:#A88AF7;color:#5431B3}
-.freq-ok:disabled,.freq-no:disabled{opacity:.55;cursor:default}
-
-/* ---- lista + detalle ---- */
-.fwrap{container-type:inline-size;display:flex;align-items:flex-start;gap:0;margin-top:20px;transition:gap .3s ease}
-.fwrap.split{gap:24px}
-.flist{flex:none;width:100%;min-width:0;display:flex;flex-direction:column;gap:10px;transition:width .3s ease}
-.fwrap.split .flist{width:calc(50% - 12px)}
-@container (max-width:703px){
-  .fwrap.split .flist{width:calc(100% - 364px)}
-}
-.fr{display:flex;align-items:center;gap:14px;background:#fff;border:1.5px solid #E7EAF2;border-radius:8px;padding:10px 12px 10px 14px;cursor:pointer;transition:border-color .2s,box-shadow .2s}
-.fr:hover{border-color:#D9CCFB}
-.fr.sel{border-color:#8A5CF5;box-shadow:0 0 0 3px #EFE8FE}
-.fr.fresh{animation:fr-in .45s ease,fr-glow 2s ease .45s backwards}
-.fr .av3{width:44px;height:44px;font-size:19px}
-.fr .grow{flex:1;min-width:0}
-.fr b{display:block;font-size:16px}
-.fr small{display:block;color:#6A7390;font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ib{flex:none;width:40px;height:40px;border-radius:6px;display:grid;place-items:center;background:#F1F3F8;color:#47506B;transition:background .2s,color .2s}
-.ib svg{width:20px;height:20px}
-.ib:hover,.ib.active{background:#EFE8FE;color:#5431B3}
-.fretry{margin-top:12px;padding:9px 16px;border-radius:8px;border:1.5px solid #D9DEEA;background:#fff;font-weight:800;font-size:14px;color:#5431B3}
-
-/* el panel aparece DESPUÉS de que la lista se achicó (delay .3s) y se va antes de que se expanda */
-.fpanel{position:relative;flex:1 1 0;min-width:0;background:#fff;border:1.5px solid #E7EAF2;border-radius:10px;padding:22px 24px;animation:fp-in .28s ease .3s both}
-.fpanel.out{animation:fp-out .2s ease both}
+/* ---- perfil de un amigo: la hoja que abre su ventana del dock (ⓘ o su nombre), patrón global .shov/.shcard ----
+   Vive DENTRO de .fdk (z 55): su velo tapa el contenido, el menú y las demás ventanas del dock. */
+.fdk-pov{animation:fadein .2s ease both}
+.fdk-psheet{position:relative;width:min(460px,94vw);padding:22px 24px;animation:popin .25s ease both}
 .fpbody{display:flex;flex-direction:column;gap:16px;animation:fadein .25s ease}
 .fpx{position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:7px;display:grid;place-items:center;color:#6A7390;transition:background .2s,color .2s}
 .fpx:hover{background:#F1F3F8;color:#47506B}
@@ -132,6 +87,14 @@
 .fdk-win.min .fdk-head{border-bottom:0}
 .fdk-who{flex:1;min-width:0;align-self:stretch;display:flex;align-items:center;gap:10px;padding-right:4px;border-radius:9px;text-align:left}
 .fdk-who .av3{width:32px;height:32px;font-size:14px}
+/* ventana abierta: el avatar y el nombre (solo su texto) abren su perfil, como en LinkedIn; la línea de estado y el resto
+   de la barra la minimizan, como siempre */
+.fdk-pav{flex:none;display:grid;border-radius:50%;transition:box-shadow .2s}
+.fdk-pav:hover{box-shadow:0 0 0 3px #E3D9FD}
+.fdk-pname{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:inherit;color:inherit;text-align:left;border-radius:4px}
+.fdk-pname:hover{color:#5431B3;text-decoration:underline;text-underline-offset:2px}
+.fdk-info{color:#6A7390}
+.fdk-info:hover{color:#5431B3}
 .fdk-nm{flex:1;min-width:0;display:block}
 .fdk-nm b{display:block;font-size:15px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fdk-nm small{display:block;font-size:12.5px;font-weight:700;color:#6A7390;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -158,7 +121,6 @@
 .fdk-item.on{background:#FAF8FF}
 .fdk-item .av3{width:42px;height:42px;font-size:18px}
 .fdk-item .fdk-nm b{font-size:15.5px}
-.fdk-dot{flex:none;width:9px;height:9px;margin-right:6px;border-radius:50%;background:#8A5CF5}
 .fdk-empty{margin:16px 10px;text-align:center;font-size:14px;font-weight:700;line-height:1.45;color:#6A7390}
 .fdk-empty p{margin:0}
 .fdk-retry{margin-top:10px;padding:8px 14px;border-radius:8px;border:1.5px solid #D9DEEA;background:#fff;font-weight:800;font-size:13.5px;color:#5431B3}
@@ -167,16 +129,16 @@
 .fdk-sk i,.fdk-sk b{flex:none;background:linear-gradient(90deg,#E6E9F1 0%,#F1F3F8 50%,#E6E9F1 100%);background-size:200% 100%;animation:shim 1.3s linear infinite}
 .fdk-sk i{width:42px;height:42px;border-radius:50%}
 .fdk-sk b{width:60%;height:12px;border-radius:4px}
+/* al pie de la lista desplegada: "Buscar personas" → Buscar → Personas (a la gente se la busca por su nombre de usuario) */
+.fdk-find{flex:none;display:flex;align-items:center;justify-content:center;gap:8px;height:44px;margin:0 8px 8px;border-radius:9px;border:1.5px dashed #D9CCFB;background:#FBF9FF;color:#5431B3;font-weight:800;font-size:14px;transition:background .2s,border-color .2s}
+.fdk-find:hover{background:#F3EDFF;border-color:#A88AF7}
+.fdk-find svg{width:17px;height:17px;flex:none}
 /* el anillo de foco va por dentro: estas piezas llenan su caja (y la lista recorta lo que se sale) */
 .fdk-who:focus-visible,.fdk-lhead:focus-visible,.fdk-item:focus-visible{outline-offset:-3px}
 
-@keyframes fp-in{from{opacity:0;transform:translateX(16px)}}
-@keyframes fp-out{to{opacity:0;transform:translateX(16px)}}
-@keyframes fr-in{from{opacity:0;transform:translateY(-8px)}}
-@keyframes fr-glow{from{border-color:#A88AF7;background:#F7F3FF}}
 @keyframes fdk-in{from{opacity:0;transform:translateY(24px)}}
 
 @media (prefers-reduced-motion: reduce){
-  .fwrap,.flist,.freqs,.freq,.fdk-win.min{transition:none}
-  .fpanel,.fpanel.out,.fpbody,.fr.fresh,.fdk-win,.fm,.fmod,.fdk-sk i,.fdk-sk b{animation:none}
+  .fdk-win.min{transition:none}
+  .fdk-pov,.fdk-psheet,.fpbody,.fdk-win,.fm,.fmod,.fdk-sk i,.fdk-sk b{animation:none}
 }

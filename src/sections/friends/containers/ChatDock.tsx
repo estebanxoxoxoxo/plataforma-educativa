@@ -1,17 +1,21 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ApiError, api } from '../../../api';
 import type { Friend } from '../../../api/types';
 import { useUser } from '../../../hooks/user';
 import { refreshFeatures, useFeatures } from '../../parent/lib/features';
 import { ChatListBar } from '../components/ChatListBar';
 import { ChatWindow, type ChatEntry } from '../components/ChatWindow';
+import { FriendProfileSheet } from '../components/FriendProfileSheet';
 import {
-  DOCK, bumpUnread, closeChat, minimizeChat, openChat, resetChatDock, setDockWidth, toggleChatList, useChatDock, type DockWin,
+  DOCK, bumpUnread, chatArrived, closeChat, minimizeChat, openChat, resetChatDock, setChatListOpen, setDockWidth, toggleChatList,
+  useChatDock, type DockWin,
 } from '../lib/chatDock';
 
 /** Cada cuánto cada ventana (abierta o minimizada) pregunta por las respuestas nuevas de su amigo. */
 const POLL_MS = 1500;
+/** Mientras Ian espera que acepten una solicitud suya (Buscar → Personas), cada cuánto el dock mira la lista de amigos. */
+const AWAIT_POLL_MS = 2000;
 
 /** Un 403 de /api/friends* = la familia apagó Amigos desde otro lado: se vuelve a preguntar por los on-off y el dock
  *  desaparece solo (fail-closed). Una vez cada 3 s como mucho, aunque haya varias ventanas sondeando. */
@@ -23,6 +27,9 @@ function onApiError(e: unknown) {
 /** Dock de mensajería estilo LinkedIn (VISION §8; pedido de Esteban): vive en el Layout, así que está en TODA la app y
  *  sobrevive al cambio de sección. Abajo a la derecha: la barra «Mensajes» (minimizada por defecto) y, a su izquierda,
  *  las ventanas de conversación —cada apertura nueva entra pegada a la barra, la fila crece hacia la izquierda—.
+ *  DESDE EL 12-OCT LOS AMIGOS VIVEN ACÁ (Amigos dejó de ser sección): el perfil de cada amigo se abre desde su ventana
+ *  (ⓘ o su nombre) en una hoja con racha, liga, cursos en común y "Regalale ropa"; la lista lleva a "Buscar personas";
+ *  y cuando alguien acepta una solicitud que Ian mandó desde Buscar → Personas, su conversación llega sola, minimizada.
  *  Con Amigos apagado por la familia (o mientras no se sabe: patrón hide-until-known de useFeatures) NO existe; al
  *  apagarse se cierra todo. En la Zona de padres (/padres/*) no se muestra (las ventanas siguen vivas, ocultas). */
 export function ChatDock() {
@@ -35,6 +42,8 @@ export function ChatDock() {
 function Dock() {
   const dock = useChatDock();
   const user = useUser();
+  const go = useNavigate();
+  const shopOn = useFeatures()?.tienda === true;
   const { pathname } = useLocation();
   const parentZone = pathname === '/padres' || pathname.startsWith('/padres/');
   const [friends, setFriends] = useState<Friend[] | null>(null);
@@ -42,8 +51,8 @@ function Dock() {
   const root = useRef<HTMLDivElement>(null);
   const bar = useRef<HTMLButtonElement>(null);
 
-  // Los amigos aceptados (misma lista y mismo orden que /amigos; las solicitudes se quedan allá). Se vuelven a pedir al
-  // desplegar la lista y cuando cambian (se aceptó una solicitud). Una lectura vieja no pisa a una más nueva.
+  // Los amigos aceptados (el recién aceptado primero; las solicitudes van a la zona pinneada del Feed). Se vuelven a pedir
+  // al desplegar la lista y cuando cambia el grafo social (friendsRev). Una lectura vieja no pisa a una más nueva.
   const seq = useRef(0);
   const load = useCallback(() => {
     const n = ++seq.current;
@@ -54,6 +63,32 @@ function Dock() {
   }, []);
   useEffect(() => { load(); }, [load, dock.friendsRev]);
   useEffect(() => { if (dock.listOpen) load(); }, [dock.listOpen, load]);
+
+  // Solicitudes que Ian mandó (Buscar → Personas): mientras alguna espera, se mira la lista seguido; cuando el chico
+  // aparece como amigo, su conversación entra sola, minimizada, y su saludo llega como no leído (chatArrived).
+  const waiting = dock.awaiting.length > 0;
+  useEffect(() => {
+    if (!waiting) return;
+    const t = window.setInterval(load, AWAIT_POLL_MS);
+    return () => window.clearInterval(t);
+  }, [waiting, load]);
+  useEffect(() => {
+    if (!friends) return;
+    for (const id of dock.awaiting) if (friends.some((f) => f.id === id)) chatArrived(id);
+  }, [friends, dock.awaiting]);
+
+  /* ---------- el perfil de un amigo (hoja), desde su ventana ---------- */
+  const [profileId, setProfileId] = useState<string | null>(null);
+  const [fresh, setFresh] = useState<Friend | null>(null);
+  const closeProfile = useCallback(() => setProfileId(null), []);
+  const openProfile = (id: string) => {
+    setProfileId(id);
+    setFresh(null);
+    // El perfil fresco (racha, ropa puesta) llega del server; mientras tanto se ve el de la lista (son los mismos datos).
+    api.friend(id).then((f) => setFresh(f), onApiError);
+  };
+  // Cambiar de sección (p. ej. "Regalale ropa" → la Tienda) la cierra.
+  useEffect(() => { setProfileId(null); }, [pathname]);
 
   // Una ventana de alguien que no está en la lista (p. ej. recién aceptado): una lectura más; si con la lista nueva
   // sigue sin estar (ya no es amigo), su ventana se cierra.
@@ -90,6 +125,11 @@ function Dock() {
     '--fdk-minw': `${DOCK.minPref}px`, '--fdk-minmin': `${DOCK.minMin}px`,
   } as CSSProperties;
   const byId = new Map((friends ?? []).map((f) => [f.id, f]));
+  // La hoja muestra el perfil fresco si ya llegó; si no, el de la lista. Si ese amigo ya no está (o su ventana se cerró),
+  // no hay hoja.
+  const listed = profileId ? byId.get(profileId) : undefined;
+  const profile = listed && dock.wins.some((w) => w.id === profileId) ? (fresh?.id === profileId ? fresh : listed) : null;
+  const findPeople = () => { setChatListOpen(false); go('/buscar?tab=people'); };
 
   return (
     <div ref={root} className="fdk" hidden={parentZone} style={vars}>
@@ -97,11 +137,16 @@ function Dock() {
         const f = byId.get(w.id);
         return f ? (
           <Conversation key={w.id} f={f} win={w} hidden={dock.hidden.includes(w.id)}
-            focusKey={dock.focus?.id === w.id ? dock.focus.n : 0} onClose={close} />
+            focusKey={dock.focus?.id === w.id ? dock.focus.n : 0} onClose={close} onProfile={() => openProfile(w.id)} />
         ) : null;
       })}
       <ChatListBar me={user?.name ?? ''} friends={friends} failed={failed} open={dock.listOpen} wins={dock.wins} hidden={dock.hidden}
-        barRef={bar} onToggle={toggleChatList} onPick={openChat} onRetry={load} />
+        barRef={bar} onToggle={toggleChatList} onPick={openChat} onRetry={load} onFind={findPeople} />
+      {profile && (
+        <FriendProfileSheet key={profile.id} f={profile} onClose={closeProfile}
+          onMessage={() => { closeProfile(); openChat(profile.id); }}
+          onGift={shopOn ? () => { closeProfile(); go(`/tienda?regalar=${encodeURIComponent(profile.id)}#ropa`); } : undefined} />
+      )}
     </div>
   );
 }
@@ -109,8 +154,8 @@ function Dock() {
 /** Una conversación del dock: trae el hilo y, mientras la ventana exista (abierta O minimizada), sondea lo nuevo; lo que
  *  llega con la ventana minimizada suma a su badge. Mandar pasa por la moderación en tiempo real del server (audio 24):
  *  si no sale, el mensaje NUNCA entra al hilo, el Moderador explica por qué y el texto queda en el campo. */
-function Conversation({ f, win, hidden, focusKey, onClose }: {
-  f: Friend; win: DockWin; hidden: boolean; focusKey: number; onClose: (id: string, hadFocus: boolean) => void;
+function Conversation({ f, win, hidden, focusKey, onClose, onProfile }: {
+  f: Friend; win: DockWin; hidden: boolean; focusKey: number; onClose: (id: string, hadFocus: boolean) => void; onProfile: () => void;
 }) {
   const id = f.id;
   const [entries, setEntries] = useState<ChatEntry[]>([]);
@@ -168,6 +213,6 @@ function Conversation({ f, win, hidden, focusKey, onClose }: {
   return (
     <ChatWindow f={f} entries={entries} typing={typing} sending={sending} minimized={win.min} unread={win.unread} hidden={hidden}
       focusKey={focusKey} onSend={send} onMinimize={() => minimizeChat(id)} onRestore={() => openChat(id)}
-      onClose={(had) => onClose(id, had)} />
+      onClose={(had) => onClose(id, had)} onProfile={onProfile} />
   );
 }

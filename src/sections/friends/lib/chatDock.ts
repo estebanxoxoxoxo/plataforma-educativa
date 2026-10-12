@@ -6,6 +6,12 @@
 //   server no trackea leídos) y si la lista de conversaciones está desplegada.
 //   QUÉ NO GUARDA: el hilo. Lo trae y lo sondea cada ventana mientras exista, abierta o minimizada (containers/ChatDock).
 //   Una conversación sin ventana no se sondea: no hay badge para ella (no son 7 pollers).
+// AMIGOS YA NO ES SECCIÓN (tanda F2, 12-oct): los amigos VIVEN acá. Además de las ventanas, el store sabe:
+//   - `friendsRev`: sube cuando cambió el grafo social (se aceptó/rechazó una solicitud en la zona pinneada del Feed, en
+//     Buscar → Personas o en la campana, o llegó un amigo nuevo): el dock, el Feed y Personas vuelven a pedir lo suyo.
+//   - `awaiting`: las solicitudes que Ian MANDÓ ("Quiero contactarlo") y todavía no se aceptaron. Mientras haya alguna, el
+//     dock sondea la lista de amigos; cuando el chico aparece, entra su ventana MINIMIZADA (su saludo llega como no leído:
+//     badge) sin robarle el foco a lo que Ian está haciendo (chatArrived).
 // EL LUGAR: el dock mide su ancho disponible (setDockWidth) y en CADA cambio se reparte (fit, abajo):
 //   1. si no entran, se minimizan las expandidas MÁS VIEJAS (por último uso; nunca la recién abierta/restaurada);
 //   2. las barras minimizadas se encogen con elipsis hasta DOCK.minMin (eso lo hace el CSS: flex-shrink);
@@ -49,8 +55,10 @@ export type DockSnap = {
   focus: { id: string; n: number } | null;
   /** Ancho disponible medido (0 = todavía no se midió: no se reparte). */
   width: number;
-  /** Sube cuando cambió la lista de amigos (p. ej. se aceptó una solicitud): el dock la vuelve a pedir. */
+  /** Sube cuando cambió el grafo social (amigos o solicitudes): el dock, el Feed y Personas vuelven a pedir lo suyo. */
   friendsRev: number;
+  /** Ids de los chicos a los que Ian les mandó una solicitud y todavía no la aceptaron (el dock los espera). */
+  awaiting: string[];
 };
 
 /* ---------- reparto del lugar (puro) ---------- */
@@ -83,7 +91,7 @@ export function fitDock(wins: DockWin[], width: number): { wins: DockWin[]; hidd
 }
 
 /* ---------- store ---------- */
-let snap: DockSnap = { wins: [], hidden: [], listOpen: false, focus: null, width: 0, friendsRev: 0 };
+let snap: DockSnap = { wins: [], hidden: [], listOpen: false, focus: null, width: 0, friendsRev: 0, awaiting: [] };
 const listeners = new Set<() => void>();
 let clock = 0;
 function emit(next: DockSnap) {
@@ -138,13 +146,32 @@ export function setDockWidth(px: number) {
   if (w > 0 && w !== snap.width) emit({ ...snap, width: w });
 }
 
-/** Cambió la lista de amigos (p. ej. Ian aceptó una solicitud en /amigos): el dock la vuelve a pedir. */
+/** Cambió el grafo social (Ian aceptó o rechazó una solicitud en la zona pinneada del Feed, en Buscar → Personas o en la
+ *  campana; un regalo le cambió la ropa a un amigo): el dock vuelve a pedir la lista y los demás que escuchan friendsRev,
+ *  lo suyo. */
 export function chatFriendsChanged() {
   emit({ ...snap, friendsRev: snap.friendsRev + 1 });
 }
 
+/** Ian le mandó una solicitud a alguien ("Quiero contactarlo"): el dock lo espera hasta que la acepte. */
+export function chatAwait(id: string) {
+  if (!snap.awaiting.includes(id)) emit({ ...snap, awaiting: [...snap.awaiting, id] });
+}
+
+/** Ese chico aceptó la solicitud de Ian (el dock lo vio aparecer en la lista): deja de esperarse, el grafo cambió
+ *  (friendsRev) y su conversación entra a la fila MINIMIZADA, la más nueva: su saludo llega por el sondeo de la ventana
+ *  y suma al badge. Sin foco: no interrumpe lo que Ian está haciendo. Si ya tenía ventana, no se toca. */
+export function chatArrived(id: string) {
+  // Su "último uso" queda apenas debajo de la ventana que Ian está usando: si falta lugar, la que se cuida es la de Ian
+  // (fitDock nunca minimiza la más reciente) y la recién llegada es la última minimizada en ocultarse.
+  const top = snap.wins.reduce((m, w) => Math.max(m, w.act), 0);
+  const act = snap.wins.length ? top - 0.5 : ++clock;
+  const wins = snap.wins.some((w) => w.id === id) ? snap.wins : [...snap.wins, { id, min: true, unread: 0, act }];
+  emit({ ...snap, wins, awaiting: snap.awaiting.filter((x) => x !== id), friendsRev: snap.friendsRev + 1 });
+}
+
 /** Amigos apagado por la familia: se cierra todo (al volver a prenderlo, el dock arranca de cero, minimizado). */
 export function resetChatDock() {
-  if (!snap.wins.length && !snap.listOpen && !snap.focus) return;
-  emit({ ...snap, wins: [], listOpen: false, focus: null });
+  if (!snap.wins.length && !snap.listOpen && !snap.focus && !snap.awaiting.length) return;
+  emit({ ...snap, wins: [], listOpen: false, focus: null, awaiting: [] });
 }

@@ -27,6 +27,36 @@
 .results{margin-top:18px}
 .sempty{margin-top:28px;font:15px Arial,sans-serif;color:#4D5156}
 
+/* ---- Personas (tanda F2): chicos de Innerith por su nombre de usuario (containers/PeopleResults, cards/PersonCard).
+   La tipografía Google del resto de Buscar; el violeta es lo social (el del dock de Mensajes y la zona pinneada del
+   Feed). De cada chico, solo su avatar, su nick y su línea de estado. ---- */
+.ppl{margin-top:14px;display:grid}
+.ppl-row{display:flex;align-items:center;gap:16px;min-height:78px;padding:12px 4px;border-bottom:1px solid #EFF1F3;animation:popin .3s ease both}
+.ppl-row:last-child{border-bottom:0}
+.ppl-row .av3{width:52px;height:52px;font-size:22px}
+.ppl-txt{flex:1;min-width:0;display:grid;gap:2px}
+.ppl-nick{font:400 20px/26px Arial,sans-serif;color:#1F1F1F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ppl-status{font:14px/20px Arial,sans-serif;color:#4D5156;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ppl-tag{justify-self:start;margin-top:3px;padding:2px 9px;border-radius:999px;background:#EFE8FE;color:#5431B3;font:700 12px/18px Arial,sans-serif}
+.ppl-btn{flex:none;display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 18px;border-radius:19px;font:700 14px Arial,sans-serif;white-space:nowrap;transition:background .2s,border-color .2s,color .2s}
+.ppl-btn svg{width:17px;height:17px;flex:none}
+.ppl-btn--go{background:#8A5CF5;color:#fff}
+.ppl-btn--go:hover:not(:disabled){background:#7748EE}
+.ppl-btn--go:disabled{opacity:.6;cursor:progress}
+.ppl-btn--sent{background:#F1F3F4;color:#5F6368;cursor:default}
+.ppl-btn--friend{background:#fff;border:1px solid #D9CCFB;color:#5431B3}
+.ppl-btn--friend:hover{background:#F7F3FF;border-color:#A88AF7}
+.ppl-msg{margin:0 0 6px;padding:8px 12px;border-radius:6px;background:#FFF4E5;color:#8A5A00;font:700 13.5px Arial,sans-serif}
+/* esqueleto mientras busca (el brillo es el global .sk de base.css) */
+.ppl-row.sk{animation:none}
+.ppl-row.sk .ph-a{flex:none;width:52px;height:52px;border-radius:50%}
+.ppl-row.sk .ph-b{flex:1;display:grid;gap:9px}
+.ppl-row.sk .ph-b i:nth-child(1){width:28%;height:14px}
+.ppl-row.sk .ph-b i:nth-child(2){width:42%;height:10px}
+@media (prefers-reduced-motion: reduce){
+  .ppl-row{animation:none}
+}
+
 /* páginas (y videos): cada resultado ocupa el renglón entero de la columna; el texto arranca y termina donde el input */
 .pages .it,.vids .it{background:none;border:0;border-radius:5px;padding:8px 0;margin-bottom:20px}
 /* el recuadro rosa de "Filtrado" se infla 12px hacia afuera por lado sin mover el esqueleto: margen y padding se

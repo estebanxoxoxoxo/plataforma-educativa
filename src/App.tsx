@@ -11,7 +11,6 @@ import { PracticePage } from './sections/practice/containers/PracticePage';
 import { CalendarPage } from './sections/calendar/containers/CalendarPage';
 import { CreatePage } from './sections/create/containers/CreatePage';
 import { MyTubePage } from './sections/mytube/containers/MyTubePage';
-import { FriendsPage } from './sections/friends/containers/FriendsPage';
 import { ChatDock } from './sections/friends/containers/ChatDock';
 import { LeaguesPage } from './sections/leagues/containers/LeaguesPage';
 import { FeedPage } from './sections/home/containers/FeedPage';
@@ -95,7 +94,9 @@ export default function App() {
           <Route path="practicar/:id/ejercicio/:n" element={<ExercisePage />} />
           {/* Repasar se eliminó (12-oct): el Active Recall exacto del POC llega DENTRO de Learn (W4) */}
           <Route path="repasar/*" element={<Navigate to="/aprender" replace />} />
-          <Route path="amigos" element={<FriendsPage />} />
+          {/* Amigos dejó de ser sección (12-oct, tanda F2): los amigos viven en el dock de Mensajes, se buscan en
+              Buscar → Personas y las solicitudes llegan a la zona pinneada del Feed. La ruta vieja va al Feed. */}
+          <Route path="amigos/*" element={<Navigate to="/" replace />} />
           {/* Calendario: las clases con los profes contratados en la Zona de padres */}
           <Route path="calendario" element={<CalendarPage />} />
           {/* Crear: el creador de rutas del porte Smarty (zona del chico, como el POC) */}

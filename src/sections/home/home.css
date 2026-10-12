@@ -1,4 +1,4 @@
-/* =================== Descubrir · Feed (la home, ruta /) =================== */
+/* =================== Feed (la home, ruta /; antes se llamó Home y Descubrir) =================== */
 #v-feed{background:linear-gradient(180deg,#FFFFFF 0,#F6F7FB 200px)}
 /* El feed es la REFERENCIA de la columna estándar (1040, centrada): ahora la da .view para todas (shell.css). */
 .feed{display:grid;grid-template-columns:minmax(0,1fr) 288px;gap:30px;align-items:start}
@@ -6,6 +6,40 @@
 .fhead{margin-bottom:18px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px 16px;flex-wrap:wrap}
 .fhead-txt{min-width:0}
 .fitems{display:grid;gap:12px}
+
+/* ---- zona PINNEADA (tanda F2): notificaciones destacadas ARRIBA del stream (components/PinnedZone, lib/highlights).
+   Hoy: "X quiere contactarse con vos" (solicitudes de amistad) con Aceptar / "Ahora no" ahí mismo. Violeta = lo social
+   (el mismo del dock de Mensajes y del perfil de un amigo). Cada destacado se pliega al irse (filas 1fr → 0fr, con su
+   recorte adentro) y, si se van todos, la zona entera; sin destacados la zona no se monta. ---- */
+.fpin{display:grid;grid-template-rows:1fr;margin-bottom:16px;animation:fpin-in .4s cubic-bezier(.2,.8,.3,1) backwards;transition:grid-template-rows .38s ease,opacity .3s ease,margin-bottom .38s ease}
+.fpin.out{grid-template-rows:0fr;opacity:0;margin-bottom:0}
+.fpin-clip{min-height:0;overflow:hidden}
+.fpin-box{display:grid;gap:8px;padding:10px 12px 12px;border-radius:14px;border:1px solid #DCCFFC;background:linear-gradient(135deg,#F9F6FF 0%,#EFE8FE 100%)}
+.fpin-head{display:flex;align-items:center;gap:6px;margin:0 2px;font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#5431B3}
+.fpin-head span{font-size:13px;letter-spacing:0}
+.fpin-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.fpin-item{display:grid;grid-template-rows:1fr;transition:grid-template-rows .38s ease,opacity .3s ease}
+.fpin-item.out{grid-template-rows:0fr;opacity:0}
+.fpin-iclip{min-height:0;overflow:hidden}
+.fpin-card{display:flex;flex-wrap:wrap;align-items:center;gap:12px 14px;padding:12px 14px;border-radius:10px;background:#fff;box-shadow:0 10px 22px -20px rgba(84,49,179,.75)}
+.fpin-card .av3{width:48px;height:48px;font-size:21px}
+.fpin-body{flex:1 1 240px;min-width:0}
+.fpin-line{margin:0;font-size:15.5px;font-weight:700;line-height:1.35;color:#2E3650}
+.fpin-line b{color:#1B2238}
+.fpin-note{margin:3px 0 0;font-size:14px;font-weight:600;line-height:1.45;color:#47506B}
+.fpin-acts{flex:none;display:flex;gap:8px;margin-left:auto}
+.fpin-ok,.fpin-no{height:38px;padding:0 18px;border-radius:8px;font-weight:800;font-size:14px;transition:background .2s,border-color .2s,color .2s}
+.fpin-ok{background:#8A5CF5;color:#fff}
+.fpin-ok:hover:not(:disabled){background:#7748EE}
+.fpin-no{background:#fff;border:1.5px solid #D9DEEA;color:#47506B}
+.fpin-no:hover:not(:disabled){border-color:#A88AF7;color:#5431B3}
+.fpin-ok:disabled,.fpin-no:disabled{opacity:.55;cursor:default}
+.fpin-done{flex:none;margin:0 0 0 auto;padding:8px 12px;border-radius:8px;background:#E2F5F3;color:#0B6B66;font-weight:800;font-size:14px;animation:popin .3s ease both}
+@keyframes fpin-in{from{opacity:0;transform:translateY(-8px)}}
+@media (prefers-reduced-motion: reduce){
+  .fpin,.fpin-item{transition:none}
+  .fpin,.fpin-done{animation:none}
+}
 
 /* tarjeta base */
 .fcard{position:relative;display:flex;gap:14px;align-items:center;width:100%;text-align:left;background:#fff;border:1px solid #E6E9F1;border-radius:12px;padding:14px 16px;transition:border-color .2s,box-shadow .2s,transform .2s}

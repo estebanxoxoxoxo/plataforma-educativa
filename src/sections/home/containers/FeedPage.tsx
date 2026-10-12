@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../../../api';
+import { ApiError, api } from '../../../api';
 import type { FeedItem, FeedReaction, FeedSidebar } from '../../../api/types';
 import { useUser } from '../../../hooks/user';
+import { chatFriendsChanged, openChat, useChatDock } from '../../friends/lib/chatDock';
 import { useFeatures } from '../../parent/lib/features';
 import { FeedArticleCard } from '../cards/FeedArticleCard';
 import { FeedRouteCard } from '../cards/FeedRouteCard';
@@ -11,25 +12,36 @@ import { FriendEventCard } from '../cards/FriendEventCard';
 import { LeagueInviteCard } from '../cards/LeagueInviteCard';
 import { FeedAside } from '../components/FeedAside';
 import { FeedSkeleton } from '../components/FeedSkeleton';
+import { PinnedZone } from '../components/PinnedZone';
 import { SimulateNpcsChip } from '../components/SimulateNpcsChip';
+import { type Highlight, type PinPhase, mergeContacts } from '../lib/highlights';
 import { MIN_VISIBLE, feedItemVisible } from '../lib/visibility';
 
 /** Páginas que el feed pide solo, seguidas, para llenar lo que ocultaron los flags (tope anti-bucle). */
 const AUTO_MAX = 4;
 /** Cuánto queda a la vista el "+N novedades" del botón de demo. */
 const NOTE_MS = 4500;
+/** Zona pinneada: lo que dura el festejo de "¡Ya son amigos!" y lo que tarda en plegarse un destacado (o la zona). */
+const PIN_DONE_MS = 1600;
+const PIN_OUT_MS = 380;
+/** Con movimiento reducido no hay animaciones: los destacados se van directo. */
+const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
 
-/** Home = Feed: recomendaciones de contenido + noticias sociales (VISION §3).
+/** Feed (la home, `/`; antes "Home" y "Descubrir"): recomendaciones de contenido + noticias sociales (VISION §3).
  *  Contenedor puro: todos los datos salen de api.feed / api.feedReact (hoy, server fake).
  *  Respeta los on-off del padre (useFeatures): con Ligas apagadas no hay noticias de ligas ni "Tu liga";
  *  con Amigos apagados no hay noticias de amigos. Si una página queda con menos de MIN_VISIBLE tarjetas
  *  visibles, se pide la siguiente sola (el feed nunca queda vacío por los flags).
+ *  ARRIBA del stream, la zona PINNEADA de destacados (tanda F2, lib/highlights.ts): hoy, "X quiere contactarse con vos"
+ *  (las solicitudes de api.requests(), con Aceptar / "Ahora no" ahí mismo). Aceptar abre su conversación en el dock; sin
+ *  solicitudes (o con Amigos apagado) la zona no existe.
  *  Junto al saludo, el botón de DEMO "Simular NPCs" (regla 9 de docs/AGENTS.md; solo con Amigos prendido: lo que
  *  genera es social): el server mete una ráfaga de noticias y el feed se vuelve a pedir; lo nuevo entra arriba. */
 export function FeedPage() {
   const user = useUser();
   const go = useNavigate();
   const features = useFeatures();
+  const amigosOn = features?.amigos === true;
   const [items, setItems] = useState<FeedItem[] | null>(null);
   const [sidebar, setSidebar] = useState<FeedSidebar | null>(null);
   const [next, setNext] = useState<string | null>(null);
@@ -43,6 +55,58 @@ export function FeedPage() {
   const [npc, setNpc] = useState<{ busy: boolean; note: string | null; failed: boolean }>({ busy: false, note: null, failed: false });
   const noteTimer = useRef<number>(undefined);
   useEffect(() => () => window.clearTimeout(noteTimer.current), []);
+
+  /* ---------- zona pinneada: destacados ("X quiere contactarse con vos") ---------- */
+  const [pins, setPins] = useState<Highlight[]>([]);
+  const pinTimers = useRef<number[]>([]);
+  useEffect(() => () => pinTimers.current.forEach((t) => window.clearTimeout(t)), []);
+  const pinLater = (fn: () => void, ms: number) => { pinTimers.current.push(window.setTimeout(fn, ms)); };
+  // Se piden al entrar y cada vez que cambia el grafo social (se respondió una solicitud acá, en la campana o en Buscar →
+  // Personas): lo que se está respondiendo o yéndose se queda hasta terminar su animación.
+  const { friendsRev } = useChatDock();
+  useEffect(() => {
+    if (!amigosOn) { setPins([]); return; }
+    let alive = true;
+    api.requests().then((r) => { if (alive) setPins((cur) => mergeContacts(cur, r.requests)); }, () => { /* sin destacados: no hay zona */ });
+    return () => { alive = false; };
+  }, [amigosOn, friendsRev]);
+  const setPin = useCallback((key: string, patch: Partial<{ phase: PinPhase; accepted: boolean }>) =>
+    setPins((cur) => cur.map((h) => (h.key === key ? { ...h, ...patch } : h))), []);
+  /** El destacado se pliega y después sale de la lista (con movimiento reducido, directo). */
+  const dropPin = (key: string) => {
+    if (reducedMotion()) { setPins((cur) => cur.filter((h) => h.key !== key)); return; }
+    setPin(key, { phase: 'out' });
+    pinLater(() => setPins((cur) => cur.filter((h) => h.key !== key)), PIN_OUT_MS);
+  };
+  // Aceptar: el destacado festeja un instante y se va; el dock suma al amigo nuevo y abre su conversación (su saludo
+  // llega con "escribiendo…"). Si la solicitud ya no estaba (se respondió en otro lado), el destacado se va sin más.
+  const acceptPin = async (h: Highlight) => {
+    if (h.kind !== 'contact' || h.phase !== 'idle') return;
+    setPin(h.key, { phase: 'busy' });
+    try {
+      const { friend } = await api.acceptRequest(h.req.id);
+      setPin(h.key, { accepted: true });
+      chatFriendsChanged();
+      openChat(friend.id);
+      pinLater(() => dropPin(h.key), reducedMotion() ? 900 : PIN_DONE_MS);
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) { dropPin(h.key); chatFriendsChanged(); }
+      else setPin(h.key, { phase: 'idle' }); // queda para reintentar
+    }
+  };
+  // "Ahora no": se va (vuelve con la próxima carga de página: demo).
+  const declinePin = async (h: Highlight) => {
+    if (h.kind !== 'contact' || h.phase !== 'idle') return;
+    setPin(h.key, { phase: 'busy' });
+    try {
+      await api.declineRequest(h.req.id);
+      dropPin(h.key);
+      chatFriendsChanged();
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) { dropPin(h.key); chatFriendsChanged(); }
+      else setPin(h.key, { phase: 'idle' });
+    }
+  };
 
   /** Primera página (de cero): la del arranque, "Reintentar" y el refetch después de la ráfaga. */
   const firstPage = async () => {
@@ -110,8 +174,8 @@ export function FeedPage() {
     } catch { /* se mantiene lo optimista */ }
   };
 
-  // El contenido se abre en el lector / reproductor (/buscar/…), con "volver" al feed (Home).
-  const back = { backTo: '/', backLabel: '‹ Home' };
+  // El contenido se abre en el lector / reproductor (/buscar/…), con "volver" al Feed.
+  const back = { backTo: '/', backLabel: '‹ Feed' };
   const h = {
     video: (v: { id: string }) => go(`/buscar/video/${v.id}`, { state: back }),
     article: (url: string) => go(`/buscar/articulo/${encodeURIComponent(url)}`, { state: back }),
@@ -132,8 +196,11 @@ export function FeedPage() {
               <h2 className="h2">Hola, {user?.name ?? ''} 👋</h2>
               <p className="lede">Novedades y recomendaciones para vos.</p>
             </div>
-            {features?.amigos === true && <SimulateNpcsChip busy={npc.busy} note={npc.note} failed={npc.failed} onClick={() => void simulateNpcs()} />}
+            {amigosOn && <SimulateNpcsChip busy={npc.busy} note={npc.note} failed={npc.failed} onClick={() => void simulateNpcs()} />}
           </header>
+          {amigosOn && pins.length > 0 && (
+            <PinnedZone items={pins} onAccept={(h) => void acceptPin(h)} onDecline={(h) => void declinePin(h)} />
+          )}
           {error && <div className="fempty"><p>No pude cargar las novedades ahora mismo.</p><button className="hbtn" onClick={load}>Reintentar</button></div>}
           {!items && !error && <FeedSkeleton />}
           {shown && (

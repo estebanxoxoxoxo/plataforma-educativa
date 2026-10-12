@@ -29,6 +29,22 @@
 //   POST /api/friends/send {id, text}       → SendMessageResult                (blocked = el mensaje NO entró al hilo)
 //   GET  /api/friends/new?id=               → { messages: FriendMessage[]; typing: boolean }  (polling: lo nuevo listo)
 //   `typing` (el amigo está escribiendo: hay una respuesta en camino) es ADITIVO: pendiente de formalizar en types.ts.
+// AMIGOS YA NO ES SECCIÓN (tanda F2, 12-oct; pedido de Esteban): los amigos viven en el dock de Mensajes, las solicitudes
+// entrantes llegan como destacado en la zona pinneada del Feed y a la gente se la BUSCA por nombre de usuario (Buscar →
+// Personas). Para eso hay un POOL de chicos del demo que no son amigos de Ian (NPCs con `pool`) y dos rutas ADITIVAS
+// (formas espejadas acá abajo, PersonResult/ConnectResult; pendientes de formalizar en types.ts + api/index.ts):
+//   GET  /api/friends/search?q=             → { query: string; people: PersonResult[] }
+//        Por nick, parcial, sin mayúsculas ni acentos ("colibri" → GeroColibrí); mínimo 2 letras, hasta 12 resultados.
+//        MODERACIÓN: de cada chico SOLO viaja su nick, su línea de estado (texto fijo del demo), el color de su avatar, la
+//        ropa que tiene puesta y la relación con Ian. Nada de texto libre (ni la nota de una solicitud). Una búsqueda con
+//        una palabra bloqueada de la familia no devuelve a nadie.
+//   POST /api/friends/requests/send {id}    → ConnectResult  ("Quiero contactarlo": solicitud SALIENTE)
+//        relation 'sent' (quedó pendiente) · 'friend' (ya eran amigos: ok:false con el motivo; o ese chico ya le había
+//        mandado una a Ian: quedan amigos al toque, ok:true + friend) · 404 si ese chico no existe.
+//        DEMO: el NPC acepta SOLO a los 4-8 s. La aceptación se resuelve al LEER (settleOutgoing, al entrar cualquier
+//        pedido de /api/friends*): pasa a amigos (primero en la lista) y saluda en su hilo con su `hello` plantillado (sin
+//        modelo; pasa por las palabras bloqueadas de la familia) tras un "escribiendo…" corto, así el dock lo recibe por
+//        el sondeo de su ventana. RAM: resetFriends() lo vuelve todo al seed (salientes incluidas).
 // REGALOS DE ROPA (tanda W; audios 29 y 41-42, "los noviecitos regalándose cosas"): Ian le compra una prenda a un amigo en
 // la Tienda (POST /api/market/gift → market.ts, que cobra) y acá el NPC la guarda en SU guardarropas, SE LA PONE
 // (Friend.accessory: la ven la lista de Amigos, el detalle y el dock) y agradece en su hilo con un mensaje PLANTILLADO
@@ -57,6 +73,11 @@ export interface FriendRequest { id: string; nick: string; color: string; note?:
 export type SendMessageResult = { status: 'ok'; msg: FriendMessage } | { status: 'blocked'; notice: string }
 /** Íconos de las noticias de amigos del feed (los mismos de FeedItem 'friend'). */
 export type NewsIcon = 'medal' | 'streak' | 'badge' | 'route' | 'league'
+/* ADITIVOS (tanda F2): Buscar → Personas. Espejo en src/sections/discover/lib/people.ts hasta que el coordinador los pase a
+   src/api/types.ts. friend = ya son amigos · incoming = él le mandó una solicitud a Ian · sent = Ian se la mandó y espera. */
+export type PersonRelation = 'friend' | 'incoming' | 'sent' | 'none'
+export interface PersonResult { id: string; nick: string; color: string; status: string; accessory: string | null; relation: PersonRelation }
+export interface ConnectResult { ok: boolean; relation: PersonRelation; error?: string; friend?: Friend }
 
 /* ---------- parámetros ---------- */
 /** Respuestas de NPC con modelo por carga de página (después: frases plantilladas). */
@@ -83,9 +104,16 @@ interface Npc extends Omit<Friend, 'since' | 'accessory'> {
   thanks: string
   /** Si viene, el NPC arranca como SOLICITUD de amistad pendiente (no es amigo hasta que Ian la acepta). */
   request?: { note: string; greeting: string }
+  /** Del POOL de Buscar → Personas (tanda F2): arranca sin ser amigo ni haber mandado solicitud; Ian lo encuentra por su
+   *  nick y le pide contacto. */
+  pool?: true
+  /** Su saludo (plantilla con su voz, sin modelo) cuando ACEPTA una solicitud de Ian. Sin esto: HELLO_DEFAULT. */
+  hello?: string
 }
 // Los 6 amigos de siempre (mismos nicks, colores y datos que tenía el mock del navegador) + 1 NPC nuevo que le manda
-// solicitud a Ian: NicoRobot, que arma robots con Arduino (afín al laboratorio de electrónica que Ian arma con el papá).
+// solicitud a Ian: NicoRobot, que arma robots con Arduino (afín al laboratorio de electrónica que Ian arma con el papá)
+// + el POOL de Buscar → Personas (f8-f14): chicos del demo que todavía no son amigos de Ian (nicks propios: ninguno se
+// cruza con los de ligas, zona, país ni el feed — un chico es UNA identidad en todo el demo).
 const NPCS: Npc[] = [
   {
     id: 'f1', nick: 'TomiCohete', color: '#3A5BD9', status: 'Practicando: El sistema solar', xp: '3.120', streak: '12 días', league: 'Liga Cometa', since: 'marzo', commonCourses: ['El sistema solar', 'Dinosaurios'],
@@ -125,6 +153,51 @@ const NPCS: Npc[] = [
       note: '¡Hola! Hacemos el mismo curso de Fracciones y yo armo robots con Arduino 🤖 ¿Querés que seamos amigos?',
       greeting: '¡Gracias por aceptarme! ¿Vos también armás cosas o hacés experimentos?',
     },
+    // si Ian le dijo "Ahora no" y después lo busca y le pide contacto él
+    hello: '¡Hola, Ian! Qué bueno que me escribiste. ¿Vos también armás cosas o hacés experimentos?',
+  },
+  /* ---- POOL de Buscar → Personas (tanda F2) ---- */
+  {
+    id: 'f8', nick: 'TriniPiano', color: '#E5487A', status: 'Practicando: Inglés inicial', xp: '2.050', streak: '6 días', league: 'Liga Cometa', commonCourses: ['Inglés inicial'],
+    age: 9, girl: true, persona: 'Toca el piano desde los 6 años y aprende inglés con canciones. Le encanta la música tranquila para estudiar y se inventa melodías cortitas. Dulce y un poco soñadora.',
+    thanks: '¡Gracias, Ian! Me puse {el} para practicar piano 🎹',
+    pool: true, hello: '¡Hola, Ian! Qué lindo que me escribiste 🎹 ¿Vos escuchás música mientras estudiás?',
+  },
+  {
+    id: 'f9', nick: 'FedeAjedrez', color: '#3A5BD9', status: 'Racha de 9 días', xp: '3.380', streak: '9 días', league: 'Liga Estrella', commonCourses: ['Fracciones'],
+    age: 10, girl: false, persona: 'Juega al ajedrez todos los días y le encantan los acertijos de matemática; dice que las fracciones son como mover piezas en el tablero. Pensativo y buen compañero.',
+    thanks: '¡Gracias, Ian! Con {el} me siento campeón de ajedrez ♟️',
+    pool: true, hello: '¡Hola, Ian! Gracias por escribirme. ¿Sabés jugar al ajedrez? ♟️',
+  },
+  {
+    id: 'f10', nick: 'MicaPincel', color: '#13A39A', status: 'Practicando: Animales del océano', xp: '1.720', streak: '4 días', league: 'Liga Chispa', commonCourses: ['Animales del océano'],
+    age: 9, girl: true, persona: 'Dibuja y pinta animales del océano (las tortugas marinas son sus favoritas) y llena cuadernos con ballenas y pulpos. Creativa y muy observadora.',
+    thanks: '¡Gracias, Ian! Me puse {el} y me dibujé así en mi cuaderno 🎨',
+    pool: true, hello: '¡Hola, Ian! Me encantó que me escribas. ¿Cuál es tu animal del océano favorito? 🐢',
+  },
+  {
+    id: 'f11', nick: 'GeroColibrí', color: '#18A957', status: 'Terminó la unidad 1 de Dinosaurios', xp: '2.640', streak: '11 días', league: 'Liga Cometa', commonCourses: ['Dinosaurios', 'El sistema solar'],
+    age: 10, girl: false, persona: 'Mira pájaros con los binoculares de su abuelo y le fascina que las aves sean dinosaurios; sabe un montón de colibríes. Curioso y paciente.',
+    thanks: '¡Gracias, Ian! Con {el} salgo a mirar pájaros re canchero 🐦',
+    pool: true, hello: '¡Hola, Ian! Gracias por escribirme. ¿Sabías que los pájaros son dinosaurios? 🐦',
+  },
+  {
+    id: 'f12', nick: 'LeaTelescopio', color: '#8A5CF5', status: 'Practicando: El sistema solar', xp: '2.990', streak: '7 días', league: 'Liga Cometa', commonCourses: ['El sistema solar'],
+    age: 10, girl: true, persona: 'Mira la Luna y los planetas con un telescopio chiquito desde el patio y anota todo en su cuaderno de astronomía. Tranquila y muy detallista.',
+    thanks: '¡Gracias, Ian! Me puse {el} para mirar las estrellas esta noche 🔭',
+    pool: true, hello: '¡Hola, Ian! Qué bueno que me escribiste 🔭 ¿Viste la Luna anoche?',
+  },
+  {
+    id: 'f13', nick: 'NahueGol', color: '#1C9BD6', status: 'Racha de 3 días', xp: '1.510', streak: '3 días', league: 'Liga Chispa', commonCourses: ['Inglés inicial', 'Fracciones'],
+    age: 9, girl: false, persona: 'Juega al fútbol en el club del barrio y practica inglés relatando goles. Fracciones le cuesta un poco pero no se rinde. Divertido y con mucha energía.',
+    thanks: '¡Gooool, Ian! Gracias por {el}, ya {lo} tengo {puesto} ⚽',
+    pool: true, hello: '¡Hola, Ian! ¡Gracias por escribirme! ¿Te gusta el fútbol? ⚽',
+  },
+  {
+    id: 'f14', nick: 'ConiCiencia', color: '#F2A81D', status: 'Practicando: Mi cuerpo', xp: '2.330', streak: '5 días', league: 'Liga Cometa', commonCourses: ['Mi cuerpo', 'Animales del océano'],
+    age: 10, girl: true, persona: 'Hace experimentos en la cocina con su mamá (el volcán de bicarbonato es su favorito) y quiere ser científica. Preguntona y entusiasta.',
+    thanks: '¡Gracias, Ian! Me puse {el} para mi próximo experimento 🧪',
+    pool: true, hello: '¡Hola, Ian! Gracias por escribirme 🧪 ¿Alguna vez hiciste un experimento en tu casa?',
   },
 ]
 /* Noticias de los amigos que publica el feed (feedFake las intercala EN ESTE ORDEN). Son también memoria del NPC: su
@@ -155,6 +228,14 @@ const THANKS_SAFE = '¡Muchas gracias por el regalo, Ian! 😄'
 const GIFT_SAFE = '🎁 ¡Te mandé un regalo!'
 /** Demora del "¡gracias!" (el NPC aparece "escribiendo…" un ratito, como con cualquier respuesta). */
 const THANKS_MIN_MS = 1800, THANKS_SPAN_MS = 1200
+/** "Quiero contactarlo" (demo): el NPC acepta solo entre 4 y 8 s después, y su saludo aparece 2,5 s más tarde (antes:
+ *  "escribiendo…"), contados desde que el server ve la aceptación — así la ventana que abre el dock lo recibe por el sondeo. */
+const ACCEPT_MIN_MS = 4000, ACCEPT_SPAN_MS = 4000, HELLO_MS = 2500
+/** Saludo de un NPC que no trae el suyo, y el de reemplazo si la familia bloqueó una palabra de la plantilla. */
+const HELLO_DEFAULT = '¡Hola, Ian! Gracias por escribirme. ¿Qué estás practicando?'
+const HELLO_SAFE = '¡Hola, Ian! Gracias por escribirme.'
+/** Buscar → Personas: largo mínimo de la búsqueda (en letras, sin espacios), tope de resultados y largo máximo del pedido. */
+const SEARCH_MIN = 2, SEARCH_MAX = 12, SEARCH_Q_MAX = 40
 
 /* ---------- estado del demo (RAM) ---------- */
 interface Pending { at: number; msg: FriendMessage }
@@ -166,7 +247,9 @@ interface State {
   friends: string[]
   /** Ids de NPCs con solicitud pendiente. */
   requests: string[]
-  /** Mes en que Ian aceptó a cada NPC de una solicitud. */
+  /** Solicitudes SALIENTES ("Quiero contactarlo" en Buscar → Personas): id del NPC → cuándo la acepta (ms). */
+  outgoing: Record<string, number>
+  /** Mes en que Ian y cada NPC se hicieron amigos (solicitud aceptada de un lado o del otro). */
   since: Record<string, string>
   chats: Record<string, Chat>
   /** Respuestas con modelo en esta carga de página (tope COST_CAP). */
@@ -176,7 +259,10 @@ interface State {
   wearing: Record<string, string>
 }
 function seed(): State {
-  const s: State = { seq: 1, friends: NPCS.filter(n => !n.request).map(n => n.id), requests: NPCS.filter(n => n.request).map(n => n.id), since: {}, chats: {}, npcCalls: 0, wardrobe: {}, wearing: {} }
+  const s: State = {
+    seq: 1, friends: NPCS.filter(n => !n.request && !n.pool).map(n => n.id), requests: NPCS.filter(n => n.request).map(n => n.id),
+    outgoing: {}, since: {}, chats: {}, npcCalls: 0, wardrobe: {}, wearing: {},
+  }
   for (const [id, lines] of Object.entries(SEED_THREADS)) {
     s.chats[id] = { messages: lines.map(text => ({ id: `m${s.seq++}`, from: 'them' as const, text })), pending: [], busy: false, again: false }
   }
@@ -473,11 +559,75 @@ function decline(id: string): boolean {
   return true
 }
 
+/* ---------- Buscar → Personas: el pool de chicos del demo + "Quiero contactarlo" (tanda F2) ---------- */
+/** Sin mayúsculas ni acentos ni espacios: "Colibri" encuentra a GeroColibrí. */
+const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\s+/g, '')
+
+const relationOf = (id: string): PersonRelation =>
+  isFriend(id) ? 'friend' : state.requests.includes(id) ? 'incoming' : id in state.outgoing ? 'sent' : 'none'
+
+/** Las solicitudes salientes cuya hora llegó se ACEPTAN (demo: el NPC dice que sí solo). Se resuelve al leer —al entrar
+ *  cualquier pedido de /api/friends* o un regalo—, así no hay timers sueltos y resetFriends() lo limpia todo. El NPC pasa
+ *  a la lista (primero, como un aceptado) y su saludo queda en la cola con un "escribiendo…" corto. */
+function settleOutgoing() {
+  const now = Date.now()
+  for (const [id, at] of Object.entries(state.outgoing)) {
+    if (at > now) continue
+    delete state.outgoing[id]
+    const n = npcOf(id)
+    if (!n || isFriend(id)) continue
+    state.requests = state.requests.filter(x => x !== id)
+    state.friends.unshift(id)
+    state.since[id] = monthNow()
+    const hello = n.hello ?? HELLO_DEFAULT
+    const word = matchBlockedWord(hello)
+    chatOf(id).pending.push({ at: now + HELLO_MS, msg: { id: nextId(), from: 'them', text: word ? HELLO_SAFE : hello } })
+    log(`${n.nick} ACEPTÓ la solicitud de Ian (demo) → ${state.friends.length} amigos; saluda en su hilo${word ? ` (plantilla sin la palabra bloqueada «${word}»)` : ''}`)
+  }
+}
+
+/** Busca en TODOS los chicos del demo (amigos, solicitantes y el pool) por nick. Orden: el nick empieza con lo buscado →
+ *  una palabra del nick empieza con eso (TomiCohete: "cohete") → lo contiene; a igualdad, alfabético. */
+function searchPeople(q: string): PersonResult[] {
+  const k = fold(q)
+  if (k.length < SEARCH_MIN) return []
+  const word = matchBlockedWord(q)
+  if (word) { log(`búsqueda de personas con una palabra bloqueada «${word}» → sin resultados`); return [] }
+  const hits = NPCS.flatMap(n => {
+    const plain = n.nick.normalize('NFD').replace(/\p{M}/gu, '')
+    const i = plain.toLowerCase().indexOf(k)
+    if (i < 0) return []
+    return [{ n, rank: i === 0 ? 0 : /\p{Lu}/u.test(plain[i]) ? 1 : 2 }]
+  })
+  hits.sort((a, b) => a.rank - b.rank || a.n.nick.localeCompare(b.n.nick, 'es'))
+  return hits.slice(0, SEARCH_MAX).map(({ n }) => ({
+    id: n.id, nick: n.nick, color: n.color, status: n.status, accessory: state.wearing[n.id] ?? null, relation: relationOf(n.id),
+  }))
+}
+
+/** "Quiero contactarlo": una solicitud de Ian para ese chico. null = no existe (404). */
+function sendRequest(id: string): ConnectResult | null {
+  const n = npcOf(id)
+  if (!n) return null
+  if (isFriend(id)) return { ok: false, relation: 'friend', error: `¡${n.nick} ya es tu amigo!` }
+  // Él ya le había pedido contacto a Ian: con que Ian también quiera, quedan amigos (es aceptar su solicitud).
+  if (state.requests.includes(id)) {
+    const f = accept(id)
+    return f ? { ok: true, relation: 'friend', friend: f } : null
+  }
+  if (!(id in state.outgoing)) {
+    state.outgoing[id] = Date.now() + ACCEPT_MIN_MS + Math.random() * ACCEPT_SPAN_MS
+    log(`Ian le mandó una solicitud a ${n.nick} ("Quiero contactarlo") → la acepta en ${Math.round((state.outgoing[id] - Date.now()) / 100) / 10} s (demo)`)
+  }
+  return { ok: true, relation: 'sent' }
+}
+
 /* ---------- regalos de ropa (los cobra market.ts: POST /api/market/gift) ---------- */
 /** ¿Se le puede regalar esa prenda a ese amigo? Amigos apagado → 403; no es amigo → 404; ya la tiene → 200 (rechazo de
  *  negocio, con el motivo para el chico). market.ts lo pregunta ANTES de cobrar. `el` = "la gorra", para el texto. */
 export function giftCheck(id: string, accessory: string, el: string): { ok: true; nick: string } | { ok: false; status: number; error: string } {
   if (!featureOn('amigos')) return { ok: false, status: 403, error: OFF.error }
+  settleOutgoing() // un amigo recién aceptado (Buscar → Personas) ya cuenta
   const n = isFriend(id) ? npcOf(id) : undefined
   if (!n) return { ok: false, status: 404, error: 'Ese amigo no está en tu lista.' }
   if (state.wardrobe[id]?.includes(accessory)) return { ok: false, status: 200, error: `¡${n.nick} ya tiene ${el}! Elegí otro regalo.` }
@@ -507,8 +657,8 @@ export function receiveGift(id: string, accessory: string, t: { el: string; lo: 
 
 /* ---------- rutas ---------- */
 const OFF = { error: 'Los amigos están apagados por tu familia' }
-const GETS = new Set(['/api/friends', '/api/friends/one', '/api/friends/requests', '/api/friends/thread', '/api/friends/new'])
-const POSTS = new Set(['/api/friends/requests/accept', '/api/friends/requests/decline', '/api/friends/send'])
+const GETS = new Set(['/api/friends', '/api/friends/one', '/api/friends/requests', '/api/friends/thread', '/api/friends/new', '/api/friends/search'])
+const POSTS = new Set(['/api/friends/requests/accept', '/api/friends/requests/decline', '/api/friends/requests/send', '/api/friends/send'])
 const validId = (v: unknown): string | null => (typeof v === 'string' && /^[\w-]{1,40}$/.test(v) ? v : null)
 
 export async function friendsRoutes(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
@@ -516,11 +666,18 @@ export async function friendsRoutes(req: IncomingMessage, res: ServerResponse, u
   if (!featureOn('amigos')) return send(res, 403, OFF)
   const path = url.pathname.replace(/\/+$/, '')
   const method = req.method ?? 'GET'
+  settleOutgoing() // las solicitudes de Ian cuya hora llegó ya son amistades (demo)
 
   if (GETS.has(path)) {
     if (method !== 'GET') return send(res, 405, { error: 'Método no permitido: usá GET.' })
     if (path === '/api/friends') return send(res, 200, { friends: state.friends.flatMap(id => { const n = npcOf(id); return n ? [toFriend(n)] : [] }) })
     if (path === '/api/friends/requests') return send(res, 200, { requests: state.requests.flatMap(id => { const n = npcOf(id); return n ? [toRequest(n)] : [] }) })
+    if (path === '/api/friends/search') {
+      const query = (url.searchParams.get('q') ?? '').replace(/\s+/g, ' ').trim().slice(0, SEARCH_Q_MAX)
+      const people = searchPeople(query)
+      log(`búsqueda de personas «${query}» → ${people.length} (${people.map(p => `${p.nick}:${p.relation}`).join(', ') || 'nadie'})`)
+      return send(res, 200, { query, people })
+    }
     const id = validId(url.searchParams.get('id'))
     const n = id && isFriend(id) ? npcOf(id) : undefined
     if (!n) return send(res, 404, { error: 'Ese amigo no existe.' })
@@ -546,6 +703,10 @@ export async function friendsRoutes(req: IncomingMessage, res: ServerResponse, u
       return f ? send(res, 200, { friend: f }) : send(res, 404, { error: 'Esa solicitud ya no está.' })
     }
     if (path === '/api/friends/requests/decline') return decline(id) ? send(res, 200, { ok: true }) : send(res, 404, { ok: false, error: 'Esa solicitud ya no está.' })
+    if (path === '/api/friends/requests/send') {
+      const r = sendRequest(id)
+      return r ? send(res, 200, r) : send(res, 404, { ok: false, relation: 'none', error: 'Ese chico no está en Innerith.' })
+    }
     // /api/friends/send
     const n = isFriend(id) ? npcOf(id) : undefined
     if (!n) return send(res, 404, { error: 'Ese amigo no existe.' })
