@@ -188,10 +188,13 @@ export function patchSchedules(patch: SchedulePatch): Schedules | null {
      (POST /api/space/drive/folder), que también usa la hoja "¿Dónde lo guardás?" (como el FolderPicker del POC). Seguir
      canales y Mis listas (/api/space/follow, /api/space/playlist*) son de MyTube; guardar (/api/space/save) y el árbol de
      carpetas (/api/space/folders) son del selector compartido.
-   · calendario = /api/calendar. /api/teachers* es la pantalla Profesores de la Zona de padres: como /api/mytube/admin/*,
-     SIEMPRE pasa (el padre siempre es alcanzable).
+   · calendario = /api/calendar: la sección Calendario DEL CHICO (cada usuario lee ahí SUS clases; los horarios solo se
+     miran con un chico activo —index.ts, 14-oct—, así que al adulto no lo alcanzan).
+   · /api/mentors* (tanda U2: Buscar → Mentores y Familia → Mentorías, SOLO del adulto) NO es de ninguna sección: no
+     matchea ningún prefijo de acá —ni siquiera el de buscar, que es /api/search/*— y así tiene que quedar: como
+     /api/mytube/admin/*, lo del adulto siempre es alcanzable (y un chico igual recibe 401 ahí).
    · NUNCA se gatean: /api/feed*, /api/friends*, /api/progress*, /api/leagues*, /api/parent/*, /api/demo/*, /api/me,
-     /api/identity, /api/video, /api/article, /api/schedules, /api/teachers*, /api/mytube/admin/*. */
+     /api/identity, /api/video, /api/article, /api/schedules, /api/mentors*, /api/mytube/admin/*. */
 export function sectionForApi(pathname: string): SectionKey | null {
   const p = pathname.replace(/\/+$/, '')
   const under = (pre: string) => p === pre || p.startsWith(pre + '/')

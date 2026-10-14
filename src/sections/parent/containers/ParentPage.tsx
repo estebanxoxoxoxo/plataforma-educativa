@@ -12,10 +12,10 @@ import type { ParentDashboard } from '../lib/types';
 import { AfterDayMusicPanel } from './AfterDayMusicPanel';
 import { FeaturesPanel } from './FeaturesPanel';
 import { LimitsPanel } from './LimitsPanel';
+import { MentorshipsPanel } from './MentorshipsPanel';
 import { PresetsPanel } from './PresetsPanel';
 import { RewardsPanel } from './RewardsPanel';
 import { SchedulesPanel } from './SchedulesPanel';
-import { TeachersPanel } from './TeachersPanel';
 import { TopicsPanel } from './TopicsPanel';
 import { YouTubePanel } from './YouTubePanel';
 
@@ -23,8 +23,9 @@ import { YouTubePanel } from './YouTubePanel';
  *  (docs/USUARIOS.md §5). SIN portón: la sesión es la del usuario activo (el server la da por buena si es un adulto). La
  *  configuración de la cuenta de su dependiente en secciones con URL propia — /familia (presets + funcionalidades),
  *  /familia/temas, /familia/youtube (porte Smarty W5: ingesta de YouTube + canales de MyTube; W6: + la música de After Day),
- *  /familia/limites (topes de volumen; W7: + horarios por sección), /familia/avisos, /familia/premios, /familia/profesores
- *  (marketplace de profes: genera el Calendario del chico), /familia/actividad y /familia/protecciones.
+ *  /familia/limites (topes de volumen; W7: + horarios por sección), /familia/avisos, /familia/premios, /familia/mentorias
+ *  (tanda U2: lo contratado en Buscar → Mentores, para el adulto y sus dependientes; /familia/profesores redirige acá),
+ *  /familia/actividad y /familia/protecciones.
  *  Con un CHICO como usuario activo la ruta no existe: navega al Feed (y el server igual responde 401).
  *  Estética sobria de adulto (parent.css, pz-). */
 export function ParentPage() {
@@ -130,7 +131,9 @@ function ParentZone({ kid }: { kid: string }) {
           <Route path="avisos" element={<AlertsPanel kid={kid} alerts={alerts} failed={alertsFailed} busy={seenBusy}
             onSeen={(id) => void markSeen([id])} onSeenAll={() => void markSeen(unseen.map((a) => a.id))} onRetry={() => void loadAlerts()} />} />
           <Route path="premios" element={<RewardsPanel kid={kid} dash={dash} failed={failed} reload={load} />} />
-          <Route path="profesores" element={<TeachersPanel kid={kid} />} />
+          {/* Mentorías (U2): administra lo contratado en Buscar → Mentores; la ruta vieja de Profesores redirige acá */}
+          <Route path="mentorias" element={<MentorshipsPanel />} />
+          <Route path="profesores" element={<Navigate to="/familia/mentorias" replace />} />
           <Route path="actividad" element={<ActivityPanel kid={kid} dash={dash} failed={failed} onRetry={() => void load()} />} />
           <Route path="protecciones" element={<ProtectionsPanel kid={kid} dash={dash} failed={failed} onRetry={() => void load()} />} />
           <Route path="*" element={<Navigate to="/familia" replace />} />

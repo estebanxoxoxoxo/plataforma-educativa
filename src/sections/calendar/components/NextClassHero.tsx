@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react';
 import { IcClock } from '../../../shared/components/icons';
 import type { Hero } from '../lib/calendar';
 
-/** "Tu próxima clase" (o "Ahora mismo" si está pasando): el emoji de la materia sobre el color del profe, el título de
+/** "Tu próxima clase" (o "Ahora mismo" si está pasando): el emoji de la materia sobre el color del mentor, el título de
  *  la clase, cuándo es y cuánto falta, y una hoja de almanaque con la fecha (decorativa: repite lo que dice el texto).
  *  Pura. */
 export function NextClassHero({ hero }: { hero: Hero }) {

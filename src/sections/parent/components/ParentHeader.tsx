@@ -10,8 +10,8 @@ const TABS = [
   { to: '/familia/limites', label: 'Límites', end: false },
   { to: '/familia/avisos', label: 'Avisos', end: false },
   { to: '/familia/premios', label: 'Premios', end: false },
-  // Marketplace de profes particulares: lo que se contrata acá aparece en el Calendario del chico (/calendario).
-  { to: '/familia/profesores', label: 'Profesores', end: false },
+  // Mentorías (tanda U2): lo contratado en Buscar → Mentores, para el adulto y sus dependientes (antes, "Profesores").
+  { to: '/familia/mentorias', label: 'Mentorías', end: false },
   { to: '/familia/actividad', label: 'Actividad', end: false },
   { to: '/familia/protecciones', label: 'Protecciones', end: false },
 ];

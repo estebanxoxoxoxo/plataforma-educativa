@@ -69,7 +69,7 @@ GET  /api/users                     → { users: UserInfo[] }                   
 GET  /api/identity · POST           → por usuario activo (identity.json v2: { users: { id: {look,updatedAt} } }, migra el viejo = ian)
 GET  /api/calendar                  → las clases del usuario ACTIVO (beneficiary = acting user)  (público)
 
-GET  /api/mentors                   → MentorsResponse                                            (solo adulto; chico → 401)
+GET  /api/mentors                   → MentorsResponse                                            (solo adulto: isAdultReq; chico → 401)
 POST /api/mentors/contract {teacherId, daysPerWeek, beneficiary} → ContractResult                (solo adulto; negocio: 200+ok:false)
 POST /api/mentors/schedule {contractId, slots: TeacherSlot[]}    → ScheduleResult                (solo adulto)
 POST /api/mentors/cancel   {contractId}                          → { ok, error? }                (solo adulto)
@@ -101,7 +101,8 @@ Reglas de negocio de mentores (server, teachersFake.ts — el archivo conserva e
     leaguesFake.ts; friendsFake.ts —router Y gift—) **solo si el activo es chico**.
   - `hasParentSession(req)` (parent.ts) → `true` si el activo es ADULTO (sesión implícita: el
     portón queda dormido, el PIN no se toca ni se imprime); chico → como hoy (401 sin token).
-    Cubre /api/parent/*, /api/mytube/admin/* y los nuevos /api/mentors*.
+    Cubre /api/parent/* y /api/mytube/admin/*. Los /api/mentors* son directamente SOLO-adulto
+    (`isAdultReq`: el token dormido no los abre — un chico no ve precios ni contrata).
 - Cliente: `FeatureGate` y `ScheduleGate` devuelven `children` directo si `useUser().kind==='adult'`;
   `Sidebar` solo filtra secciones para el chico; `TopBar` trata ligas/tienda/amigos como prendidos
   para el adulto. (El feedFake sigue mezclando el contenido con los apagados del padre: el feed del
@@ -151,12 +152,22 @@ Learn y su progreso, y el contenido del Feed (salvo el saludo, que sale de /api/
 para los dos usuarios. El switch recarga la página. Cuando Esteban arme los usuarios en serio, esto
 se separa por usuario.
 
-## 8. Tandas
+## 8. Tandas — HECHAS Y COMMITEADAS (14-oct)
 
-- **U1 — usuarios, switch y Familia**: seed + header + /api/users + /api/me por usuario +
-  identity por usuario + gating por usuario (server y cliente) + chip de la TopBar + menú Familia +
-  /familia sin portón + redirecciones. Sin tocar mentores (Profesores sigue andando contra
-  /api/teachers hasta U2… NO: U1 ya saca el portón, y /api/teachers exige hasParentSession, que con
-  el adulto pasa — Profesores sigue funcionando igual dentro de /familia).
-- **U2 — mentores**: modelo v2 + endpoints + calendario por usuario + solapa Mentores + hoja de
-  contratación/post-compra + panel Mentorías + retiro de los endpoints viejos.
+- **U1 — usuarios, switch y Familia** (commit `b7d2faf`): seed + cabecera + /api/users + /api/me
+  por usuario + identity por usuario (identity.json v2) + gating por usuario (server y cliente;
+  el bypass del adulto quedó CENTRALIZADO en `useFeatures()`, decisión del implementador) + chip
+  de la TopBar + menú Familia + /familia sin portón + redirecciones. Se retiraron AdultGate, el
+  token X-Parent-Token del cliente y el link "Zona de padres" del Sidebar.
+- **U2 — mentores** (commiteada a continuación): modelo v2 (`teachers.json` migra de v1; `since`
+  por slot) + /api/mentors* + calendario por usuario + solapa Mentores (helpers compartidos en
+  `src/shared/lib/mentors.ts`) + hoja plan/beneficiario → post-compra de días → listo (MentorSheet;
+  un pendiente se retoma desde la card o desde Familia → Mentorías vía `/buscar?tab=mentors&agendar=<id>`)
+  + panel Mentorías (administración; el marketplace salió de Familia) + retiro de /api/teachers*.
+
+Bordes conocidos del demo (anotados por los implementadores): los ids de contrato se reusan
+(máx+1); no se pueden cambiar los días sin cancelar y recontratar; el adulto no ve el calendario
+del dependiente desde la UI (en Mentorías ve los días, no las fechas); con Amigos apagado el
+adulto puede escribirle a los NPC pero no contestan (la respuesta en vuelo no conoce el usuario);
+en el popover del switch los otros usuarios salen con el avatar derivado del nick, no el elegido;
+los 401 del server a un chico siguen diciendo "Volvé a entrar con el PIN".

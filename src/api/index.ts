@@ -3,12 +3,12 @@
 // FAKES de servidor (amigos: NPCs con moderación real). Cada llamada se loguea en la consola (→ / ←).
 import type {
   ActivityResultInput, ActivityResultRow,
-  AfterDayTrack, ArticleResponse, AuditFact, AuditResult, AvatarLook, CalendarEvent, ChatReply, ChatTurn, CloseWeekResult, ConnectResult, DriveFolder, DriveItem, DriveView,
-  DefinitionRecipeData, EcTx, FeatureSchedule, FeedMotion, FeedReaction, FeedResponse, FolderNode, FriendThread, Friend, FriendRequest, GiftResult, HireResult, Identity, ImportBundleResult, LearnRouteData, LearnRouteListItem,
-  MtAdminChannel, MtAdminState, MtChannelCard, MtChannelDetail, MtIngestResult, MtVideo, NewMarketItem, PeopleSearchResponse, RouteBundle, SendMessageResult,
+  AfterDayTrack, ArticleResponse, AuditFact, AuditResult, AvatarLook, CalendarEvent, ChatReply, ChatTurn, CloseWeekResult, ConnectResult, ContractResult, DriveFolder, DriveItem, DriveView,
+  DefinitionRecipeData, EcTx, FeatureSchedule, FeedMotion, FeedReaction, FeedResponse, FolderNode, FriendThread, Friend, FriendRequest, GiftResult, Identity, ImportBundleResult, LearnRouteData, LearnRouteListItem,
+  MentorPlan, MentorsResponse, MtAdminChannel, MtAdminState, MtChannelCard, MtChannelDetail, MtIngestResult, MtVideo, NewMarketItem, PeopleSearchResponse, RouteBundle, SendMessageResult,
   ParentActivity, ParentAlert, ParentConfig, ParentFeatures, ParentItemPatch, ParentPreset, ParentTopics, ParentVolume, ParentWords,
   AssignedLeague, GeoRanking, GeoScope, ImageResult, LeagueStanding, MarketItem, PageResult, Playlist, PlaylistDetail,
-  ProgressSummary, Redemption, SavePayload, SearchResponse, SchedulesResponse, SectionKey, SimulateNpcsResult, Tab, Teacher, TeacherSlot, TrashView, User, UserInfo, Video, VideoResult,
+  ProgressSummary, Redemption, SavePayload, ScheduleResult, SearchResponse, SchedulesResponse, SectionKey, SimulateNpcsResult, Tab, TeacherSlot, TrashView, User, UserInfo, Video, VideoResult,
 } from './types';
 
 export type { FriendThread } from './types';
@@ -210,12 +210,19 @@ export const api = {
   /** Los NPCs "viven" un rato: noticias frescas de logros en el feed. */
   simulateNpcs: () => http<SimulateNpcsResult>('/api/feed/simulate-npcs', {}),
 
-  /* ---- Profesores (marketplace del padre) + Calendario del chico — server FAKE teachersFake.ts;
-         las contrataciones PERSISTEN (config del padre, server/data/teachers.json) ---- */
-  teachers: () => http<{ teachers: Teacher[] }>('/api/teachers'),
-  hireTeacher: (id: string, slot: TeacherSlot) => http<HireResult>('/api/teachers/hire', { id, slot }),
-  cancelTeacher: (id: string) => http<{ ok: boolean; error?: string }>('/api/teachers/cancel', { id }),
-  /** El calendario del chico: SOLO las clases (sin precios). */
+  /* ---- Mentores (línea 14-oct, docs/USUARIOS.md §3 y §6) — server FAKE teachersFake.ts. SOLO del adulto, con la sesión
+         implícita (viaja en X-Innerith-User: un chico recibe 401). Los contratos PERSISTEN (config de la familia,
+         server/data/teachers.json v2) y los rechazos de negocio vuelven con 200 + ok:false y el motivo. ---- */
+  /** El catálogo con los contratos de la familia, las horas ocupadas por beneficiario y los nombres. */
+  mentors: () => http<MentorsResponse>('/api/mentors'),
+  /** Contrata (paga) un plan de 1-3 clases por semana para el adulto o un dependiente: nace `pending`, sin días. */
+  mentorContract: (teacherId: string, daysPerWeek: MentorPlan, beneficiary: string) =>
+    http<ContractResult>('/api/mentors/contract', { teacherId, daysPerWeek, beneficiary }),
+  /** El post-compra: los días (tantos como el plan) con su hora → `active` y las clases en el calendario del beneficiario. */
+  mentorSchedule: (contractId: number, slots: TeacherSlot[]) => http<ScheduleResult>('/api/mentors/schedule', { contractId, slots }),
+  /** Cancela un contrato (pendiente o con días): sus clases salen del calendario. */
+  mentorCancel: (contractId: number) => http<{ ok: boolean; error?: string }>('/api/mentors/cancel', { contractId }),
+  /** El calendario del usuario ACTIVO: SOLO sus clases (sin precios). */
   calendar: () => http<{ events: CalendarEvent[] }>('/api/calendar'),
 
   /* ---- Guardarropas: regalar ropa a un amigo (gasta EC; el NPC se la pone y agradece en el hilo) ---- */

@@ -105,13 +105,13 @@ export default function App() {
           {/* Amigos dejó de ser sección (12-oct, tanda F2): los amigos viven en el dock de Mensajes, se buscan en
               Buscar → Personas y las solicitudes llegan a la zona pinneada del Feed. La ruta vieja va al Feed. */}
           <Route path="amigos/*" element={<Navigate to="/" replace />} />
-          {/* Calendario: las clases con los profes contratados en Familia (la ex Zona de padres) */}
+          {/* Calendario: las clases del usuario activo con sus mentores (tanda U2: los contrata el adulto en Buscar → Mentores) */}
           <Route path="calendario" element={<CalendarPage />} />
           {/* Crear: el creador de rutas del porte Smarty (zona del chico, como el POC) */}
           <Route path="crear" element={<CreatePage />} />
           <Route path="ligas" element={<LeaguesPage />} />
           {/* Familia (línea 14-oct, docs/USUARIOS.md §5): la ex Zona de padres es ahora el punto de menú del ADULTO, sin
-              portón — funcionalidades, temas, YouTube, límites, avisos, premios, profesores, actividad y protecciones de su
+              portón — funcionalidades, temas, YouTube, límites, avisos, premios, mentorías, actividad y protecciones de su
               dependiente. Con un chico activo navega al Feed. Las rutas viejas /padres/* redirigen conservando la subruta. */}
           <Route path="familia/*" element={<ParentPage />} />
           <Route path="padres/*" element={<OldParent />} />

@@ -29,7 +29,7 @@ const NAV: { sec: Sec; label: string; to: string; Icon: ComponentType; adultOnly
   { sec: 'afterday', label: 'After Day', to: '/afterday', Icon: IcNavMoon },
   // Tienda después de Aprender y Calendario detrás (pedido 12-oct, noche).
   { sec: 'store', label: 'Tienda', to: '/tienda', Icon: IcNavStore },
-  // Calendario: las clases con los profes que contrató el padre.
+  // Calendario: las clases del usuario activo con sus mentores (los contrata el adulto en Buscar → Mentores).
   { sec: 'calendar', label: 'Calendario', to: '/calendario', Icon: IcNavCalendar },
   // Mi espacio AL FONDO (pedido 12-oct).
   { sec: 'space', label: 'Mi espacio', to: '/espacio/carpetas', Icon: IcNavSpace },

@@ -11,6 +11,8 @@
 //   GET /api/users                → los usuarios del demo (Ian, chico · Andrés, adulto y su guardián; users.ts)
 //   /api/space/*                → Mi espacio: Drive (carpetas+papelera), listas, canales seguidos (space.ts)
 //   /api/friends*                 → FAKE (demo): amigos NPC con moderación REAL y respuestas del modelo (friendsFake.ts)
+//   /api/mentors* · GET /api/calendar → FAKE (demo): mentores del ADULTO (plan, beneficiario y días) + las clases del
+//                                   usuario activo (teachersFake.ts)
 // Los CANDADOS de la familia (horarios por sección y funcionalidades apagadas) son del CHICO: con un adulto como usuario
 // activo no rigen (docs/USUARIOS.md §4; acá, market.ts, leaguesFake.ts y friendsFake.ts).
 import { createServer } from 'node:http'
@@ -106,8 +108,12 @@ createServer(async (req, res) => {
     // --- Dominios con módulo propio (cada uno maneja sus subrutas y métodos) ---
     if (url.pathname === '/api/users') return usersRoutes(req, res, url)
     if (url.pathname === '/api/identity') return await identityRoutes(req, res, url)
-    // Profesores (marketplace del padre) + el calendario del chico: teachersFake.ts
-    if (url.pathname.startsWith('/api/teachers') || url.pathname === '/api/calendar') return await teachersRoutes(req, res, url)
+    // Mentores (SOLO del adulto: Buscar → Mentores y Familia → Mentorías) + el calendario de cada usuario: teachersFake.ts
+    if (url.pathname.startsWith('/api/mentors') || url.pathname === '/api/calendar') return await teachersRoutes(req, res, url)
+    // RETIRADOS con la tanda U2 (14-oct): GET /api/teachers · POST /api/teachers/hire · POST /api/teachers/cancel (el
+    // marketplace de Profesores de Familia; hoy /api/mentors*). 404 explícito, también para los POST (que si no caerían en
+    // el 405 genérico de más abajo).
+    if (url.pathname === '/api/teachers' || url.pathname.startsWith('/api/teachers/')) return send(res, 404, { error: 'not found' })
     // Porte Smarty: rutas de Learn (catálogo) y la auditoría de facts de /crear
     if (url.pathname === '/api/afterday') return await afterdayRoutes(req, res, url)
     if (url.pathname === '/api/schedules') return await scheduleRoutes(req, res, url)

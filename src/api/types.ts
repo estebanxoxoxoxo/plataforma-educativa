@@ -75,7 +75,7 @@ export type MtChannel = { channelId: string; title: string; handle?: string; /**
 export type MtChannelPlaylist = { playlistId: string; title: string };
 /** `channel: null` = no existe (sin videos aprobados). `pending` = enriquecimiento on-demand en curso: volver a pedir. */
 export type MtChannelDetail = { channel: MtChannel | null; followed: boolean; total: number; playlists: MtChannelPlaylist[]; pending: boolean };
-/* panel del padre (con la sesión del padre, como /api/teachers: la del ADULTO activo desde el 14-oct; la pantalla vive en Familia) */
+/* panel del padre (con la sesión del padre, como /api/parent/*: la del ADULTO activo desde el 14-oct; la pantalla vive en Familia) */
 export type MtEntryType = 'video' | 'playlist' | 'canal';
 export type MtEntry = { id: number; type: MtEntryType; url: string; title: string; /** = videoIds.length */ videos: number; channelId?: string; createdAt: number };
 export type MtAdminState = { entries: MtEntry[]; /** videos aprobados: catálogo base + familia */ total: number; /** 0 = sin tope */ videoCap: number };
@@ -283,17 +283,38 @@ export type CloseWeekResult = {
 /** POST /api/feed/simulate-npcs: los NPCs "viven" un rato — noticias de logros frescas en el feed. */
 export type SimulateNpcsResult = { added: number };
 
-/* ---------- Profesores (marketplace del padre; visión audios 30 y 67) + Calendario del chico ---------- */
+/* ---------- Mentores (línea 14-oct, docs/USUARIOS.md §3 y §6; visión audios 30 y 67) + Calendario por usuario ----------
+   Reemplazan el contrato viejo de Profesores (Teacher.hired/slot y HireResult se retiraron con la tanda U2). El ADULTO los
+   busca en Buscar → Mentores (contrata un plan para él o para un dependiente y, en el post-compra, elige los días) y
+   administra lo contratado en Familia → Mentorías; cada usuario ve SUS clases en /calendario. */
 /** weekday 0=lunes … 6=domingo · hour 0-23 (en punto, demo). */
 export type TeacherSlot = { weekday: number; hour: number };
+/** Un mentor del catálogo (lo contratado viaja aparte, en Mentor.contracts). */
 export type Teacher = {
   id: string; name: string; emoji: string; color: string;
-  subject: string; /** USD por hora (lo ve SOLO el padre) */ pricePerHour: number;
+  subject: string; /** USD por hora (lo ve SOLO el adulto) */ pricePerHour: number;
   bio: string; rating: number;
-  hired: boolean; slot?: TeacherSlot | null;
 };
-export type HireResult = { ok: boolean; error?: string; teacher?: Teacher; eventsAdded?: number };
-/** Una clase en el calendario del chico (el precio NUNCA viaja acá). */
+export type MentorPlan = 1 | 2 | 3;                       // clases por semana; precio semanal = plan × pricePerHour
+export type MentorContract = {
+  id: number; teacherId: string;
+  beneficiary: string;                                    // id de usuario (el adulto o un dependiente suyo)
+  daysPerWeek: MentorPlan;
+  slots: TeacherSlot[];                                   // los días elegidos ([] si está pendiente de agenda)
+  status: 'pending' | 'active';                           // pending = pagado, falta elegir los días (post-compra)
+};
+export type Mentor = Teacher & { contracts: MentorContract[] };  // Teacher perdió hired/slot (quedan los datos de catálogo)
+export type TakenSlot = TeacherSlot & { subject: string; mentorName: string };
+export type MentorsResponse = {
+  mentors: Mentor[];
+  /** horas ya ocupadas POR BENEFICIARIO (para tachar en la agenda) */
+  taken: Record<string, TakenSlot[]>;
+  /** nombres para pintar ("para Ian"): id → nombre */
+  people: Record<string, string>;
+};
+export type ContractResult = { ok: boolean; error?: string; contract?: MentorContract };
+export type ScheduleResult = { ok: boolean; error?: string; contract?: MentorContract; eventsAdded?: number };
+/** Una clase en el calendario de un usuario (el precio NUNCA viaja acá). */
 export type CalendarEvent = {
   id: number; teacherId: string; title: string; subject: string; emoji: string; color: string;
   /** epoch ms del inicio */ start: number; durationMin: number;

@@ -16,9 +16,13 @@ export function SearchBar({ value, onChange, onSubmit, placeholder = 'Buscá lo 
   );
 }
 /** Las solapas de Buscar: las de contenido (Tab de types.ts) + Personas (tanda F2: buscar chicos por su nombre de usuario;
- *  solo con Amigos prendido por la familia). En la URL: `?tab=people`. */
-export type SearchTab = Tab | 'people';
+ *  solo con Amigos prendido por la familia) + Mentores (tanda U2: clases particulares que contrata el ADULTO; el chico no
+ *  la tiene). En la URL: `?tab=people` · `?tab=mentors`. */
+export type SearchTab = Tab | 'people' | 'mentors';
 export const SEARCH_TABS: { id: SearchTab; label: string }[] = [
   { id: 'pages', label: 'Páginas' }, { id: 'images', label: 'Imágenes' }, { id: 'videos', label: 'Videos' },
 ];
 export const PEOPLE_TAB: { id: SearchTab; label: string } = { id: 'people', label: 'Personas' };
+export const MENTORS_TAB: { id: SearchTab; label: string } = { id: 'mentors', label: 'Mentores' };
+/** ¿Es una solapa de CONTENIDO (las que gastan las búsquedas moderadas)? Personas y Mentores buscan aparte. */
+export const isContentTab = (t: SearchTab): t is Tab => t !== 'people' && t !== 'mentors';

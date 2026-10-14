@@ -4,9 +4,17 @@ Leé esto ENTERO antes de tocar código. Después: `README.md` (arquitectura y s
 `docs/VISION.md` (qué es el producto y qué existe dónde). No arranques sin leer los tres.
 
 ## Qué es esto
-Plataforma educativa para chicos (homeschooling conservador de EE.UU.; UI en español rioplatense,
-voseo, tono amable para un chico de ~9 años). UI React 19 + TS + Vite en `src/`, backend Node sin
-framework en `server/` (puerto 8787, proxy `/api` de Vite). El usuario demo es Ian (9).
+Plataforma educativa **para grandes y chicos** (homeschooling conservador de EE.UU.; UI en español
+rioplatense, voseo; para los chicos, tono amable de ~9 años). UI React 19 + TS + Vite en `src/`,
+backend Node sin framework en `server/` (puerto 8787, proxy `/api` de Vite).
+**Usuarios demo (línea 14-oct, `docs/USUARIOS.md` — LEELO si tu tanda toca usuarios, Familia,
+mentores o candados):** Ian (9, chico) y Andrés (adulto, su guardián). El usuario ACTIVO viaja en
+la cabecera `X-Innerith-User` (la pone `src/api/index.ts` desde `localStorage['innerith.user']`;
+server: `actingUser()` de `server/src/users.ts`); se cambia con el chip de la barra superior
+(switch de demo: recarga la app). **Los candados son del chico**: apagados de funcionalidades y
+horarios por sección NO rigen para un adulto (server y cliente; `useFeatures()` ya devuelve todo
+prendido para él). La sesión de Familia es la del adulto activo (implícita; el PIN del server
+quedó dormido y NUNCA se imprime).
 
 ## Reglas de arquitectura (NO negociables)
 1. **La UI es un esqueleto**: los containers llaman a `api` (`src/api/index.ts`); los componentes
@@ -35,17 +43,22 @@ framework en `server/` (puerto 8787, proxy `/api` de Vite). El usuario demo es I
 7. Ligas: se ASIGNAN por resultados (nunca se eligen/buscan), 12 participantes, y el puntaje
    semanal es UNO solo (mismo número en liga, zona y país). El ciclo semanal (closesInDays real +
    lastWeek/medalla) tiene UNA sola fuente: server/src/leaguesFake.ts — no lo dupliques.
-8. Menú actual (EN ESTE ORDEN, 12-oct-2026 tarde, SIN submenús): Feed (= el feed de
+8. Menú actual (EN ESTE ORDEN, 14-oct-2026, SIN submenús): Feed (= el feed de
    recomendaciones, la home en `/`; antes se llamó Home y Descubrir) · Buscar (`/buscar/*`) ·
    Chat (`/chat`) · MyTube (`/mytube`; las rutas viejas `/espacio/videos*` redirigen acá) · Aprender (`/aprender` = Learn desde W3+W4: aprender + practicar + Active Recall
    colapsados; la ruta abierta es estado de la vista y `?ruta=<id>` la abre directo; su encabezado lleva el botón "Crear" → `/crear`, que marca Aprender
-   como sección activa) · Tienda (`/tienda`) · Calendario (`/calendario`) · Mi espacio AL FONDO (`/espacio/carpetas` directo).
+   como sección activa) · After Day (`/afterday`) · Tienda (`/tienda`) · Calendario (`/calendario`; muestra las clases del USUARIO ACTIVO) · Mi espacio (`/espacio/carpetas` directo)
+   · **Familia (`/familia/*`) AL FONDO, SOLO PARA EL ADULTO** (línea 14-oct: la ex Zona de padres,
+   sin portón de PIN; con un chico activo la ruta navega al Feed y el link discreto del Sidebar ya
+   no existe; `/padres/*` redirige conservando subruta; la tab "Profesores" es ahora "Mentorías").
    LIGAS TAMPOCO ES PUNTO DE MENÚ (12-oct): la posición vive SIEMPRE en la BARRA SUPERIOR estilo
    GT7 (src/shared/components/TopBar.tsx: liga → link a /ligas · ⚡ Energy Coins · fecha/hora
-   compacta · campana de notificaciones con las solicitudes y los no-leídos del dock; respeta los
-   apagados del padre). AMIGOS YA NO ES SECCIÓN (12-oct): los amigos siguen existiendo — viven en el dock de Mensajes,
+   compacta · CHIP DEL USUARIO ACTIVO con el switch de demo (14-oct) · campana de notificaciones con las solicitudes y los no-leídos del dock; respeta los
+   apagados del padre cuando mira un chico). AMIGOS YA NO ES SECCIÓN (12-oct): los amigos siguen existiendo — viven en el dock de Mensajes,
    se BUSCAN por nombre de usuario en Buscar y las solicitudes llegan como notificación destacada
-   en la zona PINNEADA de arriba del Feed (tanda F2). PRACTICAR YA NO EXISTE (W3, 12-oct: los cursos viejos y su
+   en la zona PINNEADA de arriba del Feed (tanda F2). BUSCAR tiene la solapa **Mentores SOLO con
+   un adulto activo** (U2, 14-oct: catálogo + contratación con plan/beneficiario + post-compra de
+   días; la administración vive en Familia → Mentorías). PRACTICAR YA NO EXISTE (W3, 12-oct: los cursos viejos y su
    práctica se borraron): `/practicar*` y `/aprender/:id` redirigen a /aprender, y el hero del Feed ("Seguí con <ruta>")
    lleva a `/aprender?ruta=<id>`; `/repasar*` no existe (redirige a /aprender). "Feed" es el feed, NO el
    chat. Si cambiás rutas, dejá redirecciones de las viejas.
@@ -55,8 +68,9 @@ framework en `server/` (puerto 8787, proxy `/api` de Vite). El usuario demo es I
    registralo en ese endpoint. SÍ persisten los activos/preferencias del chico (space.json,
    wishlist.json, identity.json: el avatar) y la CONFIG del padre (parent.json v2: on-off de
    funcionalidades, premios de la Tienda, temas blancos/negros, palabras de la familia, topes de
-   volumen y preset aplicado; teachers.json: profes contratados — las clases NO se guardan, se
-   derivan al leer y la serie corre sola). Los AVISOS al padre
+   volumen y preset aplicado; teachers.json v2: CONTRATOS de mentorías —mentor + beneficiario +
+   plan + días; migra solo del v1— y las clases NO se guardan: se derivan al leer por slot y la
+   serie corre sola; identity.json v2: un avatar POR USUARIO). Los AVISOS al padre
    (crisis/contacto/bloqueos) viven en RAM y hoy NO se registran en el reset del demo.
    **Botones de demo ("Simular…")**: chip discreto con el prefijo CSS de su sección, que SOLO dispara
    un endpoint de demo del server fake (nada de lógica simulada en el cliente) y refetchea; el efecto

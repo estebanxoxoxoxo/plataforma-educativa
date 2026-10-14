@@ -2,18 +2,20 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { api, type SearchMap } from '../../../api';
 import type { ImageResult, SearchResponse, Tab } from '../../../api/types';
-import { lastSearch } from '../../../hooks/user';
+import { lastSearch, useUser } from '../../../hooks/user';
 import { FolderSheet } from '../../../shared/components/FolderSheet';
 import { UnderlineTabs } from '../../../shared/components/UnderlineTabs';
 import { useFeatures } from '../../parent/lib/features';
 import { ImageItem } from '../cards/ImageCard';
 import { PageItem } from '../cards/PageCard';
 import { VideoItem } from '../cards/VideoCard';
+import { MentorsNote } from '../components/MentorsNote';
 import { ModeratedResults } from '../components/ModeratedResults';
 import { PeopleNote } from '../components/PeopleNote';
 import { RelatedChips } from '../components/RelatedChips';
-import { PEOPLE_TAB, SEARCH_TABS, SearchBar, type SearchTab } from '../components/SearchBar';
+import { MENTORS_TAB, PEOPLE_TAB, SEARCH_TABS, SearchBar, isContentTab, type SearchTab } from '../components/SearchBar';
 import { WhitelistNote } from '../components/WhitelistNote';
+import { MentorResults } from './MentorResults';
 import { PeopleResults } from './PeopleResults';
 
 type TabState<T> = { res: SearchResponse<T> | null; animate: boolean };
@@ -21,26 +23,36 @@ type Results = { [K in Tab]: TabState<SearchMap[K]> };
 /** Caché por consulta: volver a una búsqueda ya hecha no re-anima. */
 const cache = new Map<string, { [K in Tab]?: SearchResponse<SearchMap[K]> }>();
 /** Buscar: Páginas, Imágenes y Videos (contenido moderado) + Personas (tanda F2: chicos de Innerith por su nombre de
- *  usuario; solo con Amigos prendido por la familia — apagado, la solapa no existe y ?tab=people cae en Páginas).
- *  Una búsqueda de contenido pide las 3 solapas en paralelo; en Personas NO se gastan búsquedas de contenido: se piden
- *  recién al volver a una solapa de contenido (y esa muestra la animación de moderación). */
+ *  usuario; solo con Amigos prendido por la familia — apagado, la solapa no existe y ?tab=people cae en Páginas) +
+ *  Mentores (tanda U2, docs/USUARIOS.md §6: clases particulares que contrata el ADULTO, para él o para un dependiente;
+ *  con un chico como usuario activo la solapa no existe y ?tab=mentors cae en Páginas). Una búsqueda de contenido pide
+ *  las 3 solapas en paralelo; en Personas y en Mentores NO se gastan búsquedas de contenido: se piden recién al volver a
+ *  una solapa de contenido (y esa muestra la animación de moderación). `?agendar=<contrato>` (lo manda Familia →
+ *  Mentorías: "Elegir los días") abre la agenda de ese contrato en Mentores y se limpia de la URL al usarse. */
 export function SearchPage() {
   const [params, setParams] = useSearchParams();
   const q = params.get('q') ?? '';
+  const agendar = params.get('agendar');
   const features = useFeatures();
   const peopleOn = features?.amigos === true;
+  // El usuario activo ya está resuelto al montar (UserProvider no pinta nada hasta saberlo); sin usuario (falló /api/me)
+  // se trata como chico: sin Mentores (fail-closed).
+  const adult = useUser()?.kind === 'adult';
   const asked = (params.get('tab') as SearchTab) || 'pages';
   // Personas: mientras no se sabe si Amigos está prendido, se espera (sin buscar contenido); apagado, Páginas.
-  const tab: SearchTab = asked === 'people' && features && !peopleOn ? 'pages' : asked;
+  // Mentores: solo el adulto; con un chico, Páginas.
+  const tab: SearchTab = (asked === 'people' && features && !peopleOn) || (asked === 'mentors' && !adult) ? 'pages' : asked;
   const isPeople = tab === 'people';
-  const tabs = peopleOn ? [...SEARCH_TABS, PEOPLE_TAB] : SEARCH_TABS;
+  const isMentors = tab === 'mentors';
+  const noContent = !isContentTab(tab);
+  const tabs = [...SEARCH_TABS, ...(peopleOn ? [PEOPLE_TAB] : []), ...(adult ? [MENTORS_TAB] : [])];
   const [input, setInput] = useState(q);
   const [results, setResults] = useState<Results | null>(null);
   const [savingImg, setSavingImg] = useState<ImageResult | null>(null);
   const go = useNavigate();
   const loc = useLocation();
   const tabAtSearch = useRef<SearchTab>(tab);
-  /** La solapa que se ve ahora (para la búsqueda de contenido que arranca al salir de Personas). */
+  /** La solapa que se ve ahora (para la búsqueda de contenido que arranca al salir de Personas o Mentores). */
   const shownTab = useRef<SearchTab>(tab);
   useLayoutEffect(() => { shownTab.current = tab; });
 
@@ -50,11 +62,11 @@ export function SearchPage() {
   // Una búsqueda pide las 3 solapas de contenido en paralelo. Solo la solapa activa muestra la animación de moderación.
   useEffect(() => {
     if (!q) { setResults(null); return; }
-    if (isPeople) return;
+    if (noContent) return;
     let alive = true;
     const hit = cache.get(q) ?? {};
     cache.set(q, hit);
-    const active = tabAtSearch.current === 'people' ? shownTab.current : tabAtSearch.current;
+    const active = isContentTab(tabAtSearch.current) ? tabAtSearch.current : shownTab.current;
     const init = (t: Tab) => ({ res: hit[t] ?? null, animate: !hit[t] && t === active });
     setResults({ pages: init('pages'), images: init('images'), videos: init('videos') } as Results);
     (['pages', 'images', 'videos'] as Tab[]).forEach((t) => {
@@ -69,35 +81,41 @@ export function SearchPage() {
       );
     });
     return () => { alive = false; };
-  }, [q, isPeople]);
+  }, [q, noContent]);
 
   const submit = (text = input) => {
-    const v = text.trim(); if (!v) return;
+    const v = text.trim();
+    // En Mentores la búsqueda vacía vale: vuelve al catálogo entero.
+    if (!v) { if (isMentors && q) setParams({ tab }); return; }
     tabAtSearch.current = tab;
     setParams({ q: v, tab });
   };
   const setTab = (t: SearchTab) => {
-    // Volviendo de Personas a una solapa de contenido, esa búsqueda puede no estar hecha: se anima la solapa nueva.
-    if (isPeople && t !== 'people') tabAtSearch.current = t;
+    // Volviendo de Personas o Mentores a una solapa de contenido, esa búsqueda puede no estar hecha: se anima la nueva.
+    if (noContent && isContentTab(t)) tabAtSearch.current = t;
     // al cambiar entre solapas de contenido los resultados ya están listos: sin animación
     setResults((r) => r && { pages: { ...r.pages, animate: false }, images: { ...r.images, animate: false }, videos: { ...r.videos, animate: false } });
     setParams(q ? { q, tab: t } : { tab: t }, { replace: true });
   };
+  /** La agenda pedida por Familia → Mentorías ya se abrió (o no aplicaba): sale de la URL sin dejar historial. */
+  const agendarUsed = () => setParams((p) => { const n = new URLSearchParams(p); n.delete('agendar'); return n; }, { replace: true });
 
-  const cur = isPeople ? undefined : results?.[tab as Tab];
+  const cur = noContent ? undefined : results?.[tab as Tab];
   const empty = cur?.res && cur.res.items.length === 0;
 
   return (
     <section className="view" id="v-search">
       <SearchBar value={input} onChange={setInput} onSubmit={() => submit()}
-        placeholder={isPeople ? 'Buscá a alguien por su nombre de usuario' : undefined} />
-      {/* key: cuando aparece Personas (se supo que Amigos está prendido) la tinta se vuelve a medir */}
+        placeholder={isPeople ? 'Buscá a alguien por su nombre de usuario' : isMentors ? 'Buscá un mentor por nombre o materia' : undefined} />
+      {/* key: cuando aparecen Personas o Mentores la tinta se vuelve a medir */}
       <UnderlineTabs key={tabs.length} tabs={tabs} value={tab} onChange={setTab} className="tabs" tabClass="tab" inkClass="ink" />
       {tab === 'pages' && <WhitelistNote />}
       {isPeople && peopleOn && <PeopleNote />}
       {isPeople && peopleOn && <PeopleResults q={q} />}
+      {isMentors && adult && <MentorsNote />}
+      {isMentors && adult && <MentorResults q={q} agendar={agendar} onAgendarUsed={agendarUsed} />}
       {tab === 'images' && results?.images.res?.related && <RelatedChips chips={results.images.res.related} onPick={(l) => { setInput(l); submit(l); }} />}
-      {!isPeople && q && results && (empty
+      {!noContent && q && results && (empty
         ? <p className="sempty">{cur?.res?.error
           ? 'No pude buscar ahora mismo. Probemos de nuevo en un ratito.'
           : tab === 'pages'

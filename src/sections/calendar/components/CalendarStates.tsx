@@ -1,7 +1,10 @@
+import { Link } from 'react-router-dom';
+
 /** Estados del Calendario sin clases para mostrar. Puros. */
 
-/** Vacío: todavía no hay profes contratados. Invita, pero sin link a Familia (el chico no gestiona). */
-export function CalendarEmpty() {
+/** Vacío: todavía no hay mentores contratados para quien mira. Al chico lo invita sin link (no gestiona: se los contrata su
+ *  familia); al adulto, que los contrata él, lo manda a Buscar → Mentores. */
+export function CalendarEmpty({ adult }: { adult: boolean }) {
   return (
     <section className="cal-empty" aria-labelledby="cal-empty-t">
       <div className="cal-empty-art" aria-hidden="true">
@@ -12,7 +15,14 @@ export function CalendarEmpty() {
         <span className="cal-empty-spark">✨</span>
       </div>
       <h3 className="cal-empty-t" id="cal-empty-t">Todavía no hay clases</h3>
-      <p className="cal-empty-p">Cuando tu familia contrate un profe, aparecen acá.</p>
+      {adult ? (
+        <>
+          <p className="cal-empty-p">Cuando contrates un mentor para vos, tus clases aparecen acá.</p>
+          <Link className="cal-more" to="/buscar?tab=mentors">Buscar mentores</Link>
+        </>
+      ) : (
+        <p className="cal-empty-p">Cuando tu familia contrate un mentor, sus clases aparecen acá.</p>
+      )}
     </section>
   );
 }

@@ -79,7 +79,8 @@
 // 5 fallidos seguidos → 30 s de espera ({ok:false, waitSeconds}); se resetea con un acierto, con el reinicio del server
 // o con resetUnlockAttempts() (registrado en POST /api/demo/reset).
 //
-// IMPORTS CRUZADOS: mytube.ts y teachersFake.ts importan hasParentSession (solo lo llaman al rutear un pedido).
+// IMPORTS CRUZADOS: mytube.ts importa hasParentSession (solo lo llama al rutear un pedido). Mentores (teachersFake.ts,
+// tanda U2) ya no: pide un ADULTO activo directo con isAdultReq de users.ts (sin el token dormido del portón).
 // market.ts y filters.ts leen de acá (featureOn, premios, palabras/temas de la familia) y acá se lee
 // de market.ts (canjes en RAM), de space.ts y de videos.ts (que a su vez importan filters.ts). afterday.ts y schedule.ts
 // (W6/W7) y users.ts (14-oct: el usuario activo) solo importan config.ts y web.ts: no vuelven hacia acá. Es seguro porque NINGUNO
@@ -501,7 +502,8 @@ function closeSession(req: IncomingMessage) { const t = tokenOf(req); if (t) ses
 /** ¿El pedido trae la sesión del padre? Desde el 14-oct (docs/USUARIOS.md §4) es IMPLÍCITA: el usuario activo es un
  *  ADULTO (users.ts). Si no, el token dormido del portón (X-Parent-Token válido; estira la sesión 15 min: deslizante); un
  *  chico sin token → false. Es EL MISMO chequeo de las rutas de este archivo y de las pantallas del PADRE que viven fuera
- *  de /api/parent/*: la ingesta de YouTube (mytube.ts: /api/mytube/admin/*) y Profesores (teachersFake.ts). Sin sesión → 401. */
+ *  de /api/parent/*: la ingesta de YouTube (mytube.ts: /api/mytube/admin/*). Sin sesión → 401. (Mentores, /api/mentors*, no
+ *  pasa por acá: es SOLO del adulto activo —isAdultReq—, sin token.) */
 export function hasParentSession(req: IncomingMessage): boolean { return isAdultReq(req) || touchSession(req) }
 /** El 401 de esas pantallas: `{ error: PARENT_SESSION_EXPIRED }`. */
 export const PARENT_SESSION_EXPIRED = 'Sesión del padre vencida. Volvé a entrar con el PIN.'
