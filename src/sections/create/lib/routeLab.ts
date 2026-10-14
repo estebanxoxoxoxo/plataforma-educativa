@@ -13,9 +13,14 @@ import type { DraftModule, FactInv, ModuleInventory } from './routeDraft';
 export const ROUTE_LAB_DEFAULT_URL = 'http://localhost:5203';
 export const ROUTE_LAB_URL_KEY = 'innerith.routeLabUrl';
 
-/** La URL guardada (o el default). localStorage puede fallar (modo privado): cae al default. */
+/** La URL guardada (o el default). localStorage puede fallar (modo privado): cae al default.
+ *  GUARD-RAIL Innerith (14-oct, pasó dos veces): si lo recordado apunta a la PROPIA API de Innerith
+ *  (:8787, que no es route-lab y da "Failed to fetch" por CORS), se vuelve al default 5203. */
 export function savedRouteLabUrl(): string {
-  try { return localStorage.getItem(ROUTE_LAB_URL_KEY) || ROUTE_LAB_DEFAULT_URL; } catch { return ROUTE_LAB_DEFAULT_URL; }
+  try {
+    const saved = localStorage.getItem(ROUTE_LAB_URL_KEY) || ROUTE_LAB_DEFAULT_URL;
+    return /:8787(\/|$)/.test(saved) ? ROUTE_LAB_DEFAULT_URL : saved;
+  } catch { return ROUTE_LAB_DEFAULT_URL; }
 }
 export function rememberRouteLabUrl(url: string): void {
   try { localStorage.setItem(ROUTE_LAB_URL_KEY, url); } catch { /* sin almacenamiento: se usa igual en esta sesión */ }
