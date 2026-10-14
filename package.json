@@ -4,15 +4,13 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k -n api,web -c magenta,cyan \"npm:dev:api\" \"npm:dev:web\"",
+    "dev": "concurrently -k -n web,api,lab -c cyan,magenta,yellow \"vite\" \"tsx watch --env-file=server/.env server/src/index.ts\" \"cd route-lab && .venv\\Scripts\\python.exe -m uvicorn server:app --port 5203\"",
     "dev:web": "vite",
-    "dev:api": "tsx watch --env-file=server/.env server/src/index.ts",
+    "dev:server": "concurrently -k -n api,lab -c magenta,yellow \"tsx watch --env-file=server/.env server/src/index.ts\" \"cd route-lab && .venv\\Scripts\\python.exe -m uvicorn server:app --port 5203\"",
     "import:smarty": "node server/scripts/import-smarty.mjs",
     "build": "tsc -b && tsc -p tsconfig.server.json && vite build",
     "preview": "vite preview",
-    "test": "vitest run",
-    "dev:lab": "cd route-lab && .venv\\Scripts\\python.exe -m uvicorn server:app --port 5203",
-    "dev:all": "concurrently -k -n api,web,lab -c magenta,cyan,yellow \"npm:dev:api\" \"npm:dev:web\" \"npm:dev:lab\""
+    "test": "vitest run"
   },
   "dependencies": {
     "@mozilla/readability": "^0.6.0",

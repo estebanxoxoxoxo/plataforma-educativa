@@ -5,9 +5,9 @@ UI de Innerith (React + TypeScript + Vite), portada 1:1 del prototipo `../index.
 ```bash
 npm install
 SMARTY_PIN=xxxxxx npm run import:smarty -- "<ruta al smarty-all-*.json>"   # una vez: claves + listas de Smarty
-npm run dev        # levanta el backend (puerto 8787) y la web (Vite) juntos
-npm run dev:all    # lo mismo + route-lab (5203): TODO de una (para usar /crear)
-npm run dev:lab    # solo route-lab (el generador de rutas, Python)
+npm run dev         # TODO de una: web (Vite) + API (8787) + route-lab (5203)
+npm run dev:web     # solo la web
+npm run dev:server  # solo lo de atrás: API + route-lab
 ```
 
 `import:smarty` descifra el respaldo de Smarty con el PIN del padre y escribe `server/.env` (claves de API) y `server/data/config.json` (sitios aprobados, temas, reglas de dominio, palabras bloqueadas, prompts editados). Las dos rutas están en `.gitignore`.
