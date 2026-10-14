@@ -109,7 +109,7 @@ export function GenConfig({ edad, nivel, url, onEdad, onNivel, onUrl }: {
       </label>
       <label className="cr-gen-f cr-gen-url">
         <span className="cr-label">route-lab</span>
-        <input className="cr-input cr-url" value={url} onChange={(e) => onUrl(e.target.value)} aria-label="URL de route-lab" spellCheck={false} />
+        <input className="cr-input cr-url" value={url} onChange={(e) => onUrl(e.target.value)} aria-label="URL de route-lab" placeholder="http://localhost:5203" spellCheck={false} />
       </label>
     </div>
   );
