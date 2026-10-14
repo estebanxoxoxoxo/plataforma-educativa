@@ -7,7 +7,7 @@ import { RewardRow } from '../cards/RewardRow';
 import { PanelState } from '../components/PanelState';
 import { RewardForm } from '../components/RewardForm';
 import { parentCall } from '../lib/adultGate';
-import { useFeatures } from '../lib/features';
+import { useFeaturesStatus } from '../lib/features';
 import { patchFrom } from '../lib/rewardDraft';
 import type { ParentDashboard, ParentItemPatch, ParentItemView } from '../lib/types';
 
@@ -19,7 +19,7 @@ type Notice = { text: string; err?: boolean; undo?: () => void } | null;
  *  chico pero queda acá. Todo pasa por la API y después se relee el tablero (nada optimista: lo que se
  *  ve es lo que guardó el server). */
 export function RewardsPanel({ kid, dash, failed, reload }: { kid: string; dash: ParentDashboard | null; failed: boolean; reload: () => Promise<void> }) {
-  const features = useFeatures();
+  const { features } = useFeaturesStatus(); // la config REAL del padre (¿la Tienda del chico está apagada?)
   const [form, setForm] = useState<FormState>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -133,7 +133,7 @@ export function RewardsPanel({ kid, dash, failed, reload }: { kid: string; dash:
 
       {tiendaOff && (
         <p className="pz-warn">
-          La Tienda está apagada: {kid} no ve estos premios ni puede canjear. Podés prepararlos igual. <Link to="/padres" className="pz-inline">Prenderla</Link>
+          La Tienda está apagada: {kid} no ve estos premios ni puede canjear. Podés prepararlos igual. <Link to="/familia" className="pz-inline">Prenderla</Link>
         </p>
       )}
       <p className={`pz-notice${notice?.err ? ' is-err' : ''}${notice ? '' : ' is-empty'}`} role="status">

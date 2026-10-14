@@ -7,9 +7,12 @@
 //   GET /api/video?id=...         → un video aprobado + metadatos de YouTube
 //   POST /api/chat                → turno del chat con el pipeline de moderación de Smarty
 //   GET /api/feed?after=  ·  POST /api/feed/react   → FAKE (demo) hasta que exista el feed real
-//   GET /api/me                   → apodo del chico
+//   GET /api/me                   → el usuario ACTIVO { id, name, age, nick, kind } (cabecera X-Innerith-User; users.ts)
+//   GET /api/users                → los usuarios del demo (Ian, chico · Andrés, adulto y su guardián; users.ts)
 //   /api/space/*                → Mi espacio: Drive (carpetas+papelera), listas, canales seguidos (space.ts)
 //   /api/friends*                 → FAKE (demo): amigos NPC con moderación REAL y respuestas del modelo (friendsFake.ts)
+// Los CANDADOS de la familia (horarios por sección y funcionalidades apagadas) son del CHICO: con un adulto como usuario
+// activo no rigen (docs/USUARIOS.md §4; acá, market.ts, leaguesFake.ts y friendsFake.ts).
 import { createServer } from 'node:http'
 import { config } from './config'
 import { getArticle } from './articles'
@@ -34,6 +37,7 @@ import { learnRoutesRoutes } from './learnRoutes'
 import { learnResultsRoutes } from './learnResults'
 import { createRoutes } from './create'
 import { mytubeRoutes } from './mytube'
+import { actingUser, isChildReq, usersRoutes } from './users'
 import { readJson, send } from './web'
 import type { Msg } from './llm'
 
@@ -93,12 +97,14 @@ createServer(async (req, res) => {
     //     no se gatea nunca: Feed, amigos, progreso, ligas, Zona de padres, demo, lector y reproductor— en
     //     schedule.ts:sectionForApi. Capas independientes: si la familia APAGÓ la sección (Chat/Tienda), gana el apagado
     //     (responde la ruta con su propio 403); el horario rige solo si está prendida.
-    const closed = closedSectionFor(url.pathname)
+    //     Los horarios son del CHICO: con un adulto como usuario activo no se mira (docs/USUARIOS.md §4).
+    const closed = isChildReq(req) ? closedSectionFor(url.pathname) : null
     if (closed && !((closed.key === 'chat' || closed.key === 'tienda') && !featureOn(closed.key))) {
       return send(res, 403, { error: 'horario', section: closed.key, opensAt: closed.opensAt })
     }
 
     // --- Dominios con módulo propio (cada uno maneja sus subrutas y métodos) ---
+    if (url.pathname === '/api/users') return usersRoutes(req, res, url)
     if (url.pathname === '/api/identity') return await identityRoutes(req, res, url)
     // Profesores (marketplace del padre) + el calendario del chico: teachersFake.ts
     if (url.pathname.startsWith('/api/teachers') || url.pathname === '/api/calendar') return await teachersRoutes(req, res, url)
@@ -178,8 +184,8 @@ createServer(async (req, res) => {
     }
 
     if (req.method === 'POST' && url.pathname === '/api/chat') {
-      // Gate del padre (fail-closed): si la familia apagó el chat, ni se lee el mensaje.
-      if (!featureOn('chat')) return send(res, 403, { error: 'El chat está apagado por tu familia' })
+      // Gate del padre (fail-closed): si la familia apagó el chat, ni se lee el mensaje. Rige para el CHICO (el adulto pasa).
+      if (isChildReq(req) && !featureOn('chat')) return send(res, 403, { error: 'El chat está apagado por tu familia' })
       const body = await readJson<{ history?: Msg[]; text?: string }>(req)
       const text = String(body.text ?? '').trim().slice(0, 2000) // límite de input de Smarty (RF-1.5)
       if (!text) return send(res, 400, { error: 'mensaje vacío' })
@@ -192,7 +198,11 @@ createServer(async (req, res) => {
     }
     if (req.method !== 'GET') return send(res, 405, { error: 'method' })
 
-    if (url.pathname === '/api/me') return send(res, 200, { name: config.apodo || 'Explorador', age: 9, nick: config.apodo || 'Explorador' })
+    // El usuario ACTIVO (forma User de src/api/types.ts: sin `dependents`, que viajan en GET /api/users).
+    if (url.pathname === '/api/me') {
+      const { id, name, age, nick, kind } = actingUser(req)
+      return send(res, 200, { id, name, age, nick, kind })
+    }
 
     if (url.pathname === '/api/search/images') {
       const q = (url.searchParams.get('q') ?? '').trim().slice(0, 200)

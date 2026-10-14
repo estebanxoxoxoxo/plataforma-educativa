@@ -8,7 +8,7 @@ import type {
   MtAdminChannel, MtAdminState, MtChannelCard, MtChannelDetail, MtIngestResult, MtVideo, NewMarketItem, PeopleSearchResponse, RouteBundle, SendMessageResult,
   ParentActivity, ParentAlert, ParentConfig, ParentFeatures, ParentItemPatch, ParentPreset, ParentTopics, ParentVolume, ParentWords,
   AssignedLeague, GeoRanking, GeoScope, ImageResult, LeagueStanding, MarketItem, PageResult, Playlist, PlaylistDetail,
-  ProgressSummary, Redemption, SavePayload, SearchResponse, SchedulesResponse, SectionKey, SimulateNpcsResult, Tab, Teacher, TeacherSlot, TrashView, User, Video, VideoResult,
+  ProgressSummary, Redemption, SavePayload, SearchResponse, SchedulesResponse, SectionKey, SimulateNpcsResult, Tab, Teacher, TeacherSlot, TrashView, User, UserInfo, Video, VideoResult,
 } from './types';
 
 export type { FriendThread } from './types';
@@ -31,21 +31,30 @@ function ecBump<T>(p: Promise<T>): Promise<T> {
   });
 }
 
-/** Sesión de la Zona de padres: el token lo da POST /api/parent/unlock (va por fetch directo en
- *  sections/parent/lib/adultGate.ts: http() loguea los cuerpos y el PIN no debe pasar por acá).
- *  Vive solo en memoria: recargar la página vuelve a pedir el PIN. */
-let parentToken: string | null = null;
-export const setParentToken = (t: string | null) => { parentToken = t; };
+/* ---------- Usuario ACTIVO (línea 14-oct, docs/USUARIOS.md §2) ----------
+   DEMO: el switch de la barra superior guarda el id en localStorage['innerith.user'] (ÚNICO dueño de la clave: este
+   archivo) y TODA llamada a la API lo manda como cabecera X-Innerith-User; el server lo valida contra su seed
+   (server/src/users.ts; desconocido o ausente → ian). Sin dato, o sin localStorage (modo privado, tests): 'ian', la app de
+   siempre. Cambiar de usuario recarga la app entera (demo reset + estado fresco). La SESIÓN de Familia (la ex Zona de
+   padres) es la del adulto activo: implícita en el server, sin portón ni token en el cliente. */
+const USER_KEY = 'innerith.user';
+const DEFAULT_USER = 'ian';
+/** El id del usuario activo (el que viaja en X-Innerith-User). */
+export function actingUserId(): string {
+  try { return localStorage.getItem(USER_KEY) || DEFAULT_USER; } catch { return DEFAULT_USER; }
+}
+/** Cambia el usuario activo y recarga la app desde el Feed (el switch de demo de la barra superior). */
+export function setActingUser(id: string) {
+  try { localStorage.setItem(USER_KEY, id); } catch { /* sin almacenamiento: la recarga vuelve al de siempre */ }
+  location.assign('/');
+}
 
 /** Llamada al backend real (server/). Los errores de red se tratan como fallas (fail-closed en la UI). */
 async function http<T>(path: string, body?: unknown): Promise<T> {
   const method = body === undefined ? 'GET' : 'POST';
   console.debug(`%c[api] → ${method} ${path} (backend)`, 'color:#C24B1F;font-weight:bold', body ?? '');
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { 'X-Innerith-User': actingUserId() };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
-  // Las rutas del padre van con la sesión abierta por el PIN (menos las dos públicas que lee el chico).
-  // La sesión del portón viaja a TODO lo del padre: /api/parent/*, la ingesta de YouTube y Profesores.
-  if (parentToken && (path.startsWith('/api/parent/') || path.startsWith('/api/mytube/admin/') || path.startsWith('/api/teachers'))) headers['X-Parent-Token'] = parentToken;
   const r = await fetch(path, { method, headers, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
   if (!r.ok) throw new ApiError(r.status, `HTTP ${r.status}`);
   const data = (await r.json()) as T;
@@ -55,7 +64,10 @@ async function http<T>(path: string, body?: unknown): Promise<T> {
 
 /* ---------- endpoints ---------- */
 export const api = {
+  /** El usuario ACTIVO (el de la cabecera X-Innerith-User). */
   me: () => http<User>('/api/me'),
+  /** Los usuarios del demo (para el switch de la barra superior y los dependientes del adulto en Familia). */
+  users: () => http<{ users: UserInfo[] }>('/api/users'),
 
   /* ---- Identidad (avatar propio; server/src/identity.ts, persiste en server/data/identity.json) ---- */
   identity: () => http<Identity>('/api/identity'),
@@ -98,22 +110,21 @@ export const api = {
   parentItemArchive: (id: number) => http<{ ok: boolean }>('/api/parent/items/archive', { id }),
   deliverRedemption: (id: number) => http<{ ok: boolean }>('/api/parent/deliver', { id }),
 
-  /* ---- Zona del padre v2: configuración viva (tanda P). CONTRATO CONGELADO; server/src/parent.ts.
-         Todo esto viaja con X-Parent-Token (setParentToken tras el unlock); GET features y GET limits
-         son públicos porque los lee la UI del chico. ---- */
+  /* ---- Zona del padre v2 (hoy, la sección Familia del adulto): configuración viva (tanda P). CONTRATO CONGELADO;
+         server/src/parent.ts. Todo esto pide la sesión del padre, que es la del ADULTO activo (implícita: viaja en
+         X-Innerith-User; el portón de PIN se retiró del cliente el 14-oct); GET features y GET limits son públicos
+         porque los lee la UI del chico. ---- */
   parentConfig: () => http<ParentConfig>('/api/parent/config'),
   parentTopics: (patch: Partial<ParentTopics>) => http<ParentTopics>('/api/parent/topics', patch),
   parentWords: (extra: string[]) => http<ParentWords>('/api/parent/words', { extra }),
   parentVolume: (patch: Partial<ParentVolume>) => http<ParentVolume>('/api/parent/volume', patch),
-  /** Zona horaria de la familia (deuda 14-oct): IANA o null = la del server. Con la sesión del portón. */
+  /** Zona horaria de la familia (deuda 14-oct): IANA o null = la del server. Con la sesión del adulto. */
   parentTz: (tz: string | null) => http<{ tz: string | null }>('/api/parent/tz', { tz }),
-  /** Dial de animación del Feed del chico (v6): calmo / normal / vivo. Vive con la sesión del portón. */
+  /** Dial de animación del Feed del chico (v6): calmo / normal / vivo. Vive con la sesión del adulto. */
   parentFeedMotion: (motion: FeedMotion) => http<{ feedMotion: FeedMotion }>('/api/parent/feed-motion', { motion }),
   parentAlerts: () => http<{ alerts: ParentAlert[] }>('/api/parent/alerts'),
   parentAlertSeen: (id: number) => http<{ ok: boolean }>('/api/parent/alerts/seen', { id }),
   parentPresets: () => http<{ presets: ParentPreset[]; current: string | null }>('/api/parent/presets'),
-  /** Cierra la sesión del padre en el server ("Cerrar zona de padres"); el portón vuelve a pedir PIN. */
-  parentLock: () => http<{ ok: boolean }>('/api/parent/lock', {}),
   applyPreset: (id: string) => http<{ ok: boolean; config: ParentConfig; features: ParentFeatures }>('/api/parent/presets/apply', { id }),
   /** Lo que la UI del chico necesita saber de la config del padre (público): topes de volumen. */
   limits: () => http<ParentVolume>('/api/parent/limits'),

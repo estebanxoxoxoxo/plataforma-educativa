@@ -1,4 +1,4 @@
-import { Navigate, Outlet, Route, Routes, useParams } from 'react-router-dom';
+import { Navigate, Outlet, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { ArticlePage } from './sections/discover/containers/ArticlePage';
 import { ChatPage } from './sections/discover/containers/ChatPage';
 import { SearchPage } from './sections/discover/containers/SearchPage';
@@ -31,13 +31,19 @@ const OldCanal = () => <Navigate to={`/mytube/canal/${useParams().id ?? ''}`} re
 const OldLista = () => <Navigate to={`/mytube/lista/${useParams().id ?? ''}`} replace />;
 const MtCanal = OldCanal;
 const MtLista = OldLista;
+/* La Zona de padres (/padres/*) pasó a ser Familia (/familia/*, línea 14-oct): conserva la subruta (y query/hash). */
+function OldParent() {
+  const { pathname, search, hash } = useLocation();
+  return <Navigate to={`${pathname.replace(/^\/padres/, '/familia')}${search}${hash}`} replace />;
+}
 
 function Layout() {
   const user = useUser();
   return (
     <div className="app">
       <Sidebar user={user} />
-      {/* FeatureGate: las secciones que el padre apagó (Tienda, Ligas, Amigos, Chat) no se abren ni por URL */}
+      {/* FeatureGate: las secciones que el padre apagó (Tienda, Ligas, Amigos, Chat) no se abren ni por URL — al chico:
+          los candados son del dependiente; con un adulto activo pasa todo (docs/USUARIOS.md §4) */}
       <main className="main">
         {/* Barra superior GT7 (pedido 12-oct): liga (link a /ligas) · ⚡ · reloj · campana */}
         <TopBar />
@@ -99,13 +105,16 @@ export default function App() {
           {/* Amigos dejó de ser sección (12-oct, tanda F2): los amigos viven en el dock de Mensajes, se buscan en
               Buscar → Personas y las solicitudes llegan a la zona pinneada del Feed. La ruta vieja va al Feed. */}
           <Route path="amigos/*" element={<Navigate to="/" replace />} />
-          {/* Calendario: las clases con los profes contratados en la Zona de padres */}
+          {/* Calendario: las clases con los profes contratados en Familia (la ex Zona de padres) */}
           <Route path="calendario" element={<CalendarPage />} />
           {/* Crear: el creador de rutas del porte Smarty (zona del chico, como el POC) */}
           <Route path="crear" element={<CreatePage />} />
           <Route path="ligas" element={<LeaguesPage />} />
-          {/* Zona de padres: portón de adulto + funcionalidades, premios, actividad y protecciones */}
-          <Route path="padres/*" element={<ParentPage />} />
+          {/* Familia (línea 14-oct, docs/USUARIOS.md §5): la ex Zona de padres es ahora el punto de menú del ADULTO, sin
+              portón — funcionalidades, temas, YouTube, límites, avisos, premios, profesores, actividad y protecciones de su
+              dependiente. Con un chico activo navega al Feed. Las rutas viejas /padres/* redirigen conservando la subruta. */}
+          <Route path="familia/*" element={<ParentPage />} />
+          <Route path="padres/*" element={<OldParent />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

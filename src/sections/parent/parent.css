@@ -1,11 +1,9 @@
-/* =================== Zona de padres (v1 + v2): portón de adulto + panel de control =================== */
+/* =================== Familia (la ex Zona de padres, v1 + v2): el panel de control del adulto =================== */
 /* Todo con prefijo pz- (grepeado en todos los .css de src: sin choques). Estética SOBRIA de adulto: misma
    familia tipográfica que la app (Nunito; Baloo solo en títulos grandes), neutros de la paleta y UN acento
-   (#2843A8, el azul de la app) para lo accionable. Sin píldoras de colores ni emojis grandes. */
-
-/* ---- acceso discreto debajo de la tarjeta de perfil (Sidebar): texto apagado, nada de estética kid ---- */
-.pz-access{flex:none;align-self:center;margin:4px 0 -6px;padding:1px 6px;border-radius:5px;font-family:var(--body);font-size:11.5px;font-weight:700;line-height:1.3;letter-spacing:0;text-transform:none;color:#6A7390;transition:color .15s}
-.pz-access:hover{color:#1B2238;text-decoration:underline}
+   (#2843A8, el azul de la app) para lo accionable. Sin píldoras de colores ni emojis grandes.
+   Desde el 14-oct (docs/USUARIOS.md §5) es el punto de menú "Familia" del adulto, SIN portón de PIN: se retiraron el
+   portón, su acceso discreto bajo el perfil y el botón "Cerrar zona de padres" (y sus estilos). */
 
 /* ---- aviso para el chico: sección apagada por la familia ---- */
 .pz-off-view{display:grid;place-items:center}
@@ -16,33 +14,9 @@
 
 /* ---- página ---- */
 /* Sin max-width/margin propios: el ancho y el eje los da .view (columna común, docs/AGENTS.md regla 5).
-   El portón y el aviso al chico son tarjetas más angostas centradas en ESE mismo eje (place-items). */
+   El aviso al chico es una tarjeta más angosta centrada en ESE mismo eje (place-items). */
 .pz-page{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;padding-bottom:12px}
 .pz-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
-
-/* ---- portón: PIN de la familia ---- */
-.pz-gate-view{display:grid;place-items:center}
-.pz-gate{width:min(440px,100%);display:grid;justify-items:center;gap:14px;text-align:center;background:#fff;border:1px solid #E4E8F1;border-radius:14px;padding:32px 30px 24px;box-shadow:0 18px 40px -28px rgba(27,34,56,.35)}
-.pz-gate-ic{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;background:#EEF1F7;color:#1B2238}
-.pz-gate-ic svg{width:26px;height:26px}
-.pz-gate-title{margin:0;font-family:var(--display);font-weight:800;font-size:26px;line-height:1.1;color:#1B2238}
-.pz-gate-text{margin:0;font-size:14px;font-weight:600;line-height:1.55;color:#5A6380}
-.pz-pin-form{width:100%;display:grid;justify-items:center;gap:12px;margin-top:4px}
-.pz-pin-label{font-size:14.5px;font-weight:800;line-height:1.4;color:#1B2238}
-/* letter-spacing + text-indent iguales: los puntos quedan centrados de verdad */
-.pz-pin{width:min(240px,100%);min-height:54px;padding:8px 12px;border:1.5px solid #D3D9E6;border-radius:10px;background:#fff;
-  text-align:center;font-size:24px;font-weight:800;letter-spacing:.42em;text-indent:.42em;color:#1B2238;font-variant-numeric:tabular-nums}
-.pz-pin.is-masked{-webkit-text-security:disc}
-.pz-pin::placeholder{color:#C3CADA;font-weight:800}
-.pz-pin:focus{outline:none;border-color:#2843A8;box-shadow:0 0 0 3px rgba(40,67,168,.18)}
-.pz-pin[aria-invalid="true"]{border-color:#B32D33}
-.pz-pin:disabled{background:#F4F5F9;border-color:#E1E5EE;cursor:not-allowed}
-.pz-pin.is-shake{animation:pz-shake .42s ease}
-@keyframes pz-shake{0%,100%{transform:none}20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
-.pz-pin-go{width:100%;min-height:46px;font-size:15px}
-.pz-gate-msg{margin:0;min-height:20px;font-size:13.5px;font-weight:700;line-height:1.45;color:#6A7390}
-.pz-gate-msg.is-err{color:#B32D33}
-.pz-gate-msg.is-wait{color:#7A4F00}
 
 /* ---- cabecera + secciones (rutas) ---- */
 .pz-head{display:grid;gap:16px}
@@ -88,7 +62,6 @@
 .pz-btn--ghost{background:#fff;color:#1B2238;border:1.5px solid #D3D9E6}
 .pz-btn--ghost:hover:not(:disabled){background:#F1F3F8;border-color:#C3CADA}
 .pz-btn--sm{min-height:34px;padding:6px 12px;font-size:13.5px}
-.pz-exit{min-height:36px;padding:7px 14px;font-size:13.5px}
 .pz-link{padding:4px 7px;border-radius:6px;font-weight:800;font-size:13.5px;color:#2843A8;cursor:pointer;transition:background-color .15s}
 .pz-link:hover:not(:disabled){background:#EEF1FB;text-decoration:underline}
 .pz-link--quiet{color:#5A6380}
@@ -225,9 +198,6 @@
 /* Mismo lenguaje: neutros + UN acento (#2843A8). Colores con significado solo donde lo hay (crisis = rojo apagado,
    contacto = ámbar), siempre acompañados de texto o ícono. */
 
-/* ---- portón: motivo de un cierre por sesión vencida ---- */
-.pz-gate-notice{margin:0;width:100%;padding:9px 12px;border-radius:8px;background:#FFF8E6;border:1px solid #F1DDB0;color:#5E4300;font-size:13px;font-weight:700;line-height:1.45}
-
 /* ---- cabecera: contador de avisos y franja de crisis ---- */
 .pz-count.is-alert{background:#B32D33}
 .pz-crisis-bar{margin:0;display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;padding:10px 14px;border-radius:10px;background:#FDF1F1;border:1px solid #F3C7C9;color:#8E2328;font-size:14px;font-weight:800;line-height:1.4}
@@ -341,7 +311,7 @@
 
 @media (prefers-reduced-motion: reduce){
   .pz-switch,.pz-knob,.pz-tab,.pz-feat,.pz-preset,.pz-chip-x{transition:none!important}
-  .pz-tr.is-fresh td,.pz-skel i,.pz-pin.is-shake{animation:none}
+  .pz-tr.is-fresh td,.pz-skel i{animation:none}
 }
 
 /* =================== Profesores: marketplace del padre + hoja de reserva (tanda CAL) =================== */

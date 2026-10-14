@@ -26,8 +26,9 @@
 .nav-item.on{background:var(--sec-bg);border-color:var(--sec-bd);color:var(--sec-fg)}
 /* Por sección: relleno suave · borde · etiqueta (etiqueta ≥4.5:1 sobre su relleno; la inactiva #6A7390 da 4.7:1
    sobre blanco y en hover pasa a #47506B porque sobre el gris bajaría a 4.2:1). Contraste etiqueta/relleno:
-   home 6.5 · search 5.6 · chat 13.9 · space 6.1 · store 5.5 · learn 7.3 · practice 5.2 · friends 7.3 · leagues 6.1.
-   "home" es DESCUBRIR (el feed, ruta /): rosa como su brújula. El chat usa el gris-azulado neutro. */
+   home 6.5 · search 5.6 · chat 13.9 · space 6.1 · store 5.5 · learn 7.3 · practice 5.2 · friends 7.3 · leagues 6.1 ·
+   family 8.2. "home" es DESCUBRIR (el feed, ruta /): rosa como su brújula. El chat usa el gris-azulado neutro.
+   "family" (Familia, el menú del ADULTO al fondo; línea 14-oct): un violeta apagado, sobrio, el de su casita. */
 .nav-item[data-sec="home"]{--sec-bg:#FCEAF1;--sec-bd:#EE7AA4;--sec-fg:#9E2350}
 .nav-item[data-sec="search"]{--sec-bg:#E0F5F3;--sec-bd:#3DBDB3;--sec-fg:#0B6B66}
 .nav-item[data-sec="chat"]{--sec-bg:#EEF1F8;--sec-bd:#9AA5C4;--sec-fg:#1B2238}
@@ -39,6 +40,7 @@
 .nav-item[data-sec="calendar"]{--sec-bg:#FDECEA;--sec-bd:#F08A7E;--sec-fg:#9E2B22}
 .nav-item[data-sec="friends"]{--sec-bg:#F1EAFE;--sec-bd:#A88AF7;--sec-fg:#5431B3}
 .nav-item[data-sec="leagues"]{--sec-bg:#FFF3D9;--sec-bd:#F4B740;--sec-fg:#7F5300}
+.nav-item[data-sec="family"]{--sec-bg:#F2EFF9;--sec-bd:#A596D6;--sec-fg:#4A3A86}
 
 /* Mini-reproductor de sonido de fondo (música + ruidos), arriba del perfil. Mismo lenguaje que el menú
    (etiqueta en mayúsculas, radio 14) pero como tarjeta con borde gris: se lee como control, no como sección. */
@@ -150,6 +152,26 @@ a.tb-ec:hover{background:rgba(255,255,255,.24)}
 .tb-ok:hover{background:#2F4FCB}
 .tb-no{padding:5px 12px;border-radius:8px;background:#fff;border:1.5px solid #D3D9E6;color:#47506B;font-weight:800;font-size:12.5px;cursor:pointer}
 .tb-no:hover{background:#F6F7FB}
+/* ── Switch de usuario (línea 14-oct, docs/USUARIOS.md §2; DEMO): chip con el avatar + el nombre del usuario activo + el
+   ícono de cambio, entre el reloj y la campana. Mismo lenguaje que los chips de la barra (píldora clara sobre la tinta) y
+   el MISMO popover de la campana (.tb-pop): la lista de usuarios, el activo marcado y la nota de demo al pie. ── */
+.tb-userwrap{position:relative;display:grid}
+.tb-user{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 10px 0 4px;border-radius:999px;background:rgba(255,255,255,.15);
+  border:1px solid rgba(255,255,255,.22);color:#fff;font-size:13.5px;font-weight:800;line-height:1;white-space:nowrap;cursor:pointer;transition:background-color .15s}
+.tb-user:hover,.tb-user[aria-expanded="true"]{background:rgba(255,255,255,.24)}
+.tb-user .av3{width:24px;height:24px;font-size:12px}
+.tb-uname{max-width:120px;overflow:hidden;text-overflow:ellipsis}
+.tb-uswap{width:14px;height:14px;flex:none;color:#C3CADC}
+.tb-upop{width:min(280px,86vw)}
+.tb-urow{display:flex;align-items:center;gap:10px;width:100%;padding:8px;border-radius:10px;text-align:left;cursor:pointer;transition:background-color .15s}
+.tb-urow:hover{background:#F1F3F8}
+.tb-urow.is-on{background:#EEF2FF;cursor:default}
+.tb-urow .av3{width:34px;height:34px;flex:none;font-size:16px}
+.tb-utx{flex:1;min-width:0;display:grid;gap:2px}
+.tb-utx b{font-size:14.5px;font-weight:800;color:#1B2238;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tb-utx small{font-size:12px;font-weight:700;color:#6A7390}
+.tb-ucheck{width:18px;height:18px;flex:none;color:#3A5BD9}
+.tb-unote{margin:2px 2px 0;padding-top:8px;border-top:1px solid #EDF0F5;font-size:12px;font-weight:700;color:#8A93AD}
 @media (max-width:980px){ .tb-name{display:none} }
 
 /* ── Columna de contenido: el MISMO ancho y la MISMA alineación en todas las secciones ──

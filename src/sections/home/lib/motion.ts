@@ -1,4 +1,4 @@
-// Dial de animación del Feed v6 (calmo / normal / vivo): lo fija el PADRE (Zona de padres → Protecciones) y llega en cada
+// Dial de animación del Feed v6 (calmo / normal / vivo): lo fija el PADRE (Familia → Protecciones) y llega en cada
 // respuesta del feed (FeedResponse.motion; si falta, 'normal'). El movimiento reducido del sistema manda SIEMPRE: fuerza
 // 'calmo' acá y también en el CSS (home.css). Los tokens (--m-dur/--m-travel/--m-press) viven en #v-feed[data-motion].
 import { useEffect, useState } from 'react';

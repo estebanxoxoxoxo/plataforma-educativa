@@ -5,10 +5,10 @@ import { PanelState } from '../components/PanelState';
 import { parentCall } from '../lib/adultGate';
 
 /** «Música de After Day» (porte Smarty W6: la solapa "after day" de Admin → Listas del POC, AfterDayTab), al pie de la
- *  sección YouTube de la Zona de padres: el padre pega un link de YouTube y, si quiere, un nombre → suena como audio de
+ *  sección YouTube de Familia: el padre pega un link de YouTube y, si quiere, un nombre → suena como audio de
  *  fondo en la sección After Day de su hijo (solo audio, nunca a pantalla completa). Sin repetidos, solo videos sueltos;
  *  lista del más nuevo al más viejo con miniatura, nombre o "(sin nombre)", videoId y Quitar. Sin edición, sin reorden y
- *  sin carga múltiple, como el POC. Va con la SESIÓN del portón (parentCall: un 401 vuelve al PIN); nada optimista: lo que
+ *  sin carga múltiple, como el POC. Va con la sesión del adulto activo (parentCall); nada optimista: lo que
  *  se ve es lo que guardó el server (server/src/afterday.ts → music.json). */
 export function AfterDayMusicPanel({ kid }: { kid: string }) {
   const [tracks, setTracks] = useState<AfterDayTrack[] | null>(null);

@@ -1,6 +1,6 @@
 import { IcAdMusic } from './AdIcons';
 
-/** Vacío (textos del POC): todavía no hay audio; lo agrega un adulto desde la Zona de padres. Pura. */
+/** Vacío (textos del POC): todavía no hay audio; lo agrega un adulto desde Familia (la ex Zona de padres). Pura. */
 export function AdEmpty() {
   return (
     <div className="ad-none">

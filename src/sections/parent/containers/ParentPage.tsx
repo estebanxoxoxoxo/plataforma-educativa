@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { api } from '../../../api';
 import type { ParentAlert } from '../../../api/types';
 import { useUser } from '../../../hooks/user';
 import { ActivityPanel } from '../components/ActivityPanel';
-import { AdultGate } from '../components/AdultGate';
 import { AlertsPanel } from '../components/AlertsPanel';
 import { ParentHeader } from '../components/ParentHeader';
 import { ProtectionsPanel } from '../components/ProtectionsPanel';
-import { lockAdult, parentCall, unlockAdult, unlockWithPin, useAdultNotice, useAdultUnlocked } from '../lib/adultGate';
+import { parentCall } from '../lib/adultGate';
 import type { ParentDashboard } from '../lib/types';
 import { AfterDayMusicPanel } from './AfterDayMusicPanel';
 import { FeaturesPanel } from './FeaturesPanel';
@@ -20,26 +19,39 @@ import { TeachersPanel } from './TeachersPanel';
 import { TopicsPanel } from './TopicsPanel';
 import { YouTubePanel } from './YouTubePanel';
 
-/** Zona de padres (/padres/*): primero el portón (PIN de la familia, lo valida el server y abre una sesión de API);
- *  pasado, la configuración de la cuenta del chico en secciones con URL propia — /padres (presets + funcionalidades),
- *  /padres/temas, /padres/youtube (porte Smarty W5: ingesta de YouTube + canales de MyTube; W6: + la música de After Day),
- *  /padres/limites (topes de volumen; W7: + horarios por sección), /padres/avisos, /padres/premios, /padres/profesores (marketplace de profes: genera el
- *  Calendario del chico), /padres/actividad y /padres/protecciones.
- *  Estética sobria de adulto (parent.css, pz-). Si la sesión vence (401), vuelve al portón con el motivo. */
+/** Familia (/familia/*; la ex Zona de padres, /padres/* redirige acá): el punto de menú del ADULTO, abajo de todo
+ *  (docs/USUARIOS.md §5). SIN portón: la sesión es la del usuario activo (el server la da por buena si es un adulto). La
+ *  configuración de la cuenta de su dependiente en secciones con URL propia — /familia (presets + funcionalidades),
+ *  /familia/temas, /familia/youtube (porte Smarty W5: ingesta de YouTube + canales de MyTube; W6: + la música de After Day),
+ *  /familia/limites (topes de volumen; W7: + horarios por sección), /familia/avisos, /familia/premios, /familia/profesores
+ *  (marketplace de profes: genera el Calendario del chico), /familia/actividad y /familia/protecciones.
+ *  Con un CHICO como usuario activo la ruta no existe: navega al Feed (y el server igual responde 401).
+ *  Estética sobria de adulto (parent.css, pz-). */
 export function ParentPage() {
-  const unlocked = useAdultUnlocked();
-  const notice = useAdultNotice();
-  const kid = useUser()?.name ?? 'tu hijo';
-  const tryPin = async (pin: string) => {
-    const r = await unlockWithPin(pin);
-    if (r.ok) unlockAdult();
-    return r;
-  };
-  return unlocked ? <ParentZone kid={kid} /> : <AdultGate kid={kid} notice={notice} onSubmit={tryPin} />;
+  const user = useUser();
+  const adult = user?.kind === 'adult';
+  // `kid` = el nombre del PRIMER dependiente del adulto (GET /api/users; una sola vez). Hasta saberlo no se pinta nada
+  // (sin un "Cuenta de tu hijo" que después cambia); si la lectura falla, 'tu hijo'.
+  const [kid, setKid] = useState<string | null>(null);
+  const userId = user?.id;
+  useEffect(() => {
+    if (!adult) return;
+    let alive = true;
+    api.users().then(
+      (r) => {
+        const dep = r.users.find((u) => u.id === userId)?.dependents?.[0];
+        if (alive) setKid(r.users.find((u) => u.id === dep)?.name ?? 'tu hijo');
+      },
+      () => { if (alive) setKid('tu hijo'); },
+    );
+    return () => { alive = false; };
+  }, [adult, userId]);
+  if (!user) return null;
+  if (!adult) return <Navigate to="/" replace />;
+  return kid === null ? null : <ParentZone kid={kid} />;
 }
 
 function ParentZone({ kid }: { kid: string }) {
-  const go = useNavigate();
   const { pathname } = useLocation();
   const [dash, setDash] = useState<ParentDashboard | null>(null);
   const [failed, setFailed] = useState(false);
@@ -96,22 +108,21 @@ function ParentZone({ kid }: { kid: string }) {
   const pending = dash?.redemptions.filter((r) => r.status === 'pendiente').length ?? 0;
   const unseen = alerts?.filter((a) => !a.seen) ?? [];
   const crisis = unseen.some((a) => a.kind === 'crisis');
-  const exit = () => { lockAdult(); go('/'); };
 
   return (
     <section className="view" id="v-parent" ref={view}>
       <div className="pz-page">
-        <ParentHeader kid={kid} pending={pending} alerts={unseen.length} crisis={crisis} onExit={exit} />
-        {crisis && pathname !== '/padres/avisos' && (
+        <ParentHeader kid={kid} pending={pending} alerts={unseen.length} crisis={crisis} />
+        {crisis && pathname !== '/familia/avisos' && (
           <p className="pz-crisis-bar" role="alert">
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.8l7.6 13.4H2.4z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /><path d="M10 8v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /><circle cx="10" cy="14.3" r="1" fill="currentColor" /></svg>
             Hay un aviso de crisis sin ver sobre {kid}.
-            <Link to="/padres/avisos" className="pz-inline">Ver avisos</Link>
+            <Link to="/familia/avisos" className="pz-inline">Ver avisos</Link>
           </p>
         )}
         <Routes>
           <Route index element={<><PresetsPanel kid={kid} /><FeaturesPanel kid={kid} /></>} />
-          <Route path="presets" element={<Navigate to="/padres" replace />} />
+          <Route path="presets" element={<Navigate to="/familia" replace />} />
           <Route path="temas" element={<TopicsPanel kid={kid} />} />
           {/* YouTube + al pie la música de After Day (W6); Límites = topes de volumen + debajo los horarios por sección (W7) */}
           <Route path="youtube" element={<><YouTubePanel kid={kid} /><AfterDayMusicPanel kid={kid} /></>} />
@@ -122,7 +133,7 @@ function ParentZone({ kid }: { kid: string }) {
           <Route path="profesores" element={<TeachersPanel kid={kid} />} />
           <Route path="actividad" element={<ActivityPanel kid={kid} dash={dash} failed={failed} onRetry={() => void load()} />} />
           <Route path="protecciones" element={<ProtectionsPanel kid={kid} dash={dash} failed={failed} onRetry={() => void load()} />} />
-          <Route path="*" element={<Navigate to="/padres" replace />} />
+          <Route path="*" element={<Navigate to="/familia" replace />} />
         </Routes>
       </div>
     </section>

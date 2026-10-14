@@ -164,6 +164,13 @@ export const IcBell = (props: P) => (
     <path d="M13.7 21a2 2 0 01-3.4 0" />
   </svg>
 );
+/** Cambiar de usuario (el switch de demo de la barra superior): dos flechas que se cruzan, trazo como la campana. */
+export const IcSwap = (props: P) => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+    <path d="M4 8h15M15.5 4.5L19 8l-3.5 3.5" />
+    <path d="M20 16H5M8.5 12.5L5 16l3.5 3.5" />
+  </svg>
+);
 /** MyTube: tele retro celeste con antenas y play coral (la sección de videos del porte Smarty). */
 export const IcNavMyTube = filled(<>
   <path d="M10.5 8.5L7 3.8M21.5 8.5L25 3.8" stroke={NK.ink} strokeWidth="2.6" strokeLinecap="round" fill="none" />
@@ -200,6 +207,15 @@ export const IcNavCalendar = filled(<>
     <rect x="13.7" y="23" width="4.6" height="4.6" rx="1.3" />
   </g>
   <rect x="20.4" y="17" width="4.6" height="4.6" rx="1.3" fill={NK.gold} />
+</>);
+/** Familia (el punto de menú del ADULTO, al fondo; línea 14-oct): casita violeta con chimenea y un corazón rosa adentro. */
+export const IcNavFamily = filled(<>
+  <rect x="20.6" y="4.6" width="3.6" height="7.6" rx="1.2" fill={NK.ink} />
+  <rect x="5.6" y="12.8" width="20.8" height="15.6" rx="2.6" fill="#D4C6FB" />
+  <path d="M16 3.6L3.2 13.6a1.5 1.5 0 00.9 2.6h23.8a1.5 1.5 0 00.9-2.6z" fill={NK.violet} />
+  <path d="M16 19.4l3.7 3.7L16 26.8l-3.7-3.7z" fill={NK.pink} />
+  <circle cx="14.16" cy="21.28" r="2.6" fill={NK.pink} />
+  <circle cx="17.84" cy="21.28" r="2.6" fill={NK.pink} />
 </>);
 /** Amigos: dos caritas (violeta atrás, dorada adelante con aro blanco que las separa). */
 export const IcNavFriends = filled(<>

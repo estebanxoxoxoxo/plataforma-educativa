@@ -11,10 +11,15 @@
 //   · Presets (audios 56/66: "grandes presets, no mil detalles") → aplican de una vez on-off + temas + palabras + topes.
 //   · Avisos (notifyParent) → crisis (CON el texto del chico: decisión de Esteban 11-oct), contacto y bloqueos repetidos.
 //
-// Contrato HTTP (congelado; formas en src/api/types.ts). TODAS las rutas piden la sesión abierta por el PIN (cabecera
-// X-Parent-Token) MENOS tres: POST unlock (el portón) y GET features / GET limits (las lee la UI del chico). Sin token,
-// con uno inventado o vencido → 401 (la UI vuelve al portón).
-//   POST /api/parent/unlock {pin}                 → {ok, token?, waitSeconds?}            (público)
+// FAMILIA (línea 14-oct, docs/USUARIOS.md §5): la Zona de padres pasó a ser el punto de menú "Familia" del ADULTO, SIN
+// portón de PIN — es SU menú. La sesión es IMPLÍCITA: con un adulto como usuario activo (cabecera X-Innerith-User,
+// users.ts) todas las rutas pasan. El portón del CLIENTE se retiró (ni AdultGate ni X-Parent-Token en src/); el del server
+// queda DORMIDO para la versión futura (cuentas de verdad): unlock + token de 15 min siguen acá, sin que nadie los llame.
+//
+// Contrato HTTP (congelado; formas en src/api/types.ts). TODAS las rutas piden la sesión del padre —el adulto activo, o el
+// token dormido (cabecera X-Parent-Token)— MENOS tres: POST unlock (el portón dormido) y GET features / GET limits (las
+// lee la UI del chico). Un chico sin token, o con uno inventado o vencido → 401.
+//   POST /api/parent/unlock {pin}                 → {ok, token?, waitSeconds?}            (público; dormido)
 //   GET  /api/parent/features                     → ParentFeatures                         (público)
 //   GET  /api/parent/limits                       → ParentVolume (topes del MiniPlayer)    (público)
 //   POST /api/parent/features {key,on}            → ParentFeatures (grandes on-off; persisten: son config del padre)
@@ -52,11 +57,11 @@
 //   · GET /api/parent/activity suma `items` y `protections` (v1; ya formalizados como opcionales).
 //   · GET /api/parent/presets: cada preset trae además `spec` = qué deja configurado (features, temas, palabras,
 //     topes) para que el panel muestre qué prende y qué apaga sin duplicar la definición en el cliente.
-//   · POST /api/parent/lock (con token) → {ok}: "Cerrar zona de padres" invalida la sesión también en el server.
+//   · POST /api/parent/lock (con sesión) → {ok}: invalida el token dormido; con el adulto (sin token) no tiene efecto.
 //
-// SESIÓN: token aleatorio de 32 bytes que vive SOLO en RAM (acá se guarda su sha256, nunca el token) y en la memoria de
-// la pestaña del padre (api.setParentToken). Vence a los 15 min sin pedidos (deslizante: cada pedido autorizado la
-// estira). Reiniciar el server las cierra todas. Tope de sesiones abiertas a la vez: se cae la más vieja.
+// SESIÓN DORMIDA (el portón de antes, para la versión futura): token aleatorio de 32 bytes que vive SOLO en RAM (acá se
+// guarda su sha256, nunca el token). Vence a los 15 min sin pedidos (deslizante: cada pedido autorizado la estira).
+// Reiniciar el server las cierra todas. Tope de sesiones abiertas a la vez: se cae la más vieja.
 //
 // PERSISTENCIA: server/data/parent.json = CONFIG del padre (regla 9: la config persiste; la ECONOMÍA no): on-off,
 // premios, temas, palabras de la familia, topes de volumen, el preset aplicado y el dial de animación del Feed
@@ -68,15 +73,16 @@
 // campos nuevos) MIGRA en el acto: temas vacíos, sin palabras, topes en 100 y sin preset. Archivo ilegible → arranca
 // CERRADO (todo apagado, sin premios; copia en .roto-*), como en la v1.
 //
-// PIN DE LA ZONA DE PADRES: en parent.json va SOLO su hash (sha256 hex), nunca el texto. POST /api/parent/unlock compara
-// en tiempo constante y responde IGUAL (200 {ok:false}) para un PIN mal formado o incorrecto. Rate-limit suave en RAM:
+// PIN DE LA ZONA DE PADRES (dormido desde el 14-oct, con el portón): en parent.json va SOLO su hash (sha256 hex), nunca
+// el texto. POST /api/parent/unlock compara en tiempo constante y responde IGUAL (200 {ok:false}) para un PIN mal
+// formado o incorrecto. Rate-limit suave en RAM:
 // 5 fallidos seguidos → 30 s de espera ({ok:false, waitSeconds}); se resetea con un acierto, con el reinicio del server
 // o con resetUnlockAttempts() (registrado en POST /api/demo/reset).
 //
 // IMPORTS CRUZADOS: mytube.ts y teachersFake.ts importan hasParentSession (solo lo llaman al rutear un pedido).
 // market.ts y filters.ts leen de acá (featureOn, premios, palabras/temas de la familia) y acá se lee
 // de market.ts (canjes en RAM), de space.ts y de videos.ts (que a su vez importan filters.ts). afterday.ts y schedule.ts
-// (W6/W7) solo importan config.ts y web.ts: no vuelven hacia acá. Es seguro porque NINGUNO
+// (W6/W7) y users.ts (14-oct: el usuario activo) solo importan config.ts y web.ts: no vuelven hacia acá. Es seguro porque NINGUNO
 // llama al otro en el nivel superior del módulo (solo dentro de funciones): el orden de evaluación da igual. Mantener
 // esa regla: nada de llamadas a market/filters/space/videos al cargar este módulo, ni de ellos hacia acá.
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
@@ -89,6 +95,7 @@ import { deliverRedemption, listRedemptions, redeemedCount, stockLeft } from './
 import { checkPatch, patchSchedules, setFamilyTzSource } from './schedule'
 import { summary } from './progress'
 import { allSavedForParent } from './space'
+import { isAdultReq } from './users'
 import { catalogSize } from './videos'
 import { readJson, send } from './web'
 import { isValidTimeZone } from '../../src/shared/lib/zonedClock'
@@ -491,10 +498,11 @@ function touchSession(req: IncomingMessage): boolean {
   return true
 }
 function closeSession(req: IncomingMessage) { const t = tokenOf(req); if (t) sessions.delete(tokenKey(t)) }
-/** ¿El pedido trae la sesión del portón (X-Parent-Token válido)? Es EL MISMO chequeo de las rutas de este archivo (y, como
- *  ellas, estira la sesión 15 min: deslizante). Lo usan las pantallas del PADRE que viven fuera de /api/parent/* (deuda
- *  14-oct): la ingesta de YouTube (mytube.ts: /api/mytube/admin/*) y Profesores (teachersFake.ts). Sin sesión → 401. */
-export function hasParentSession(req: IncomingMessage): boolean { return touchSession(req) }
+/** ¿El pedido trae la sesión del padre? Desde el 14-oct (docs/USUARIOS.md §4) es IMPLÍCITA: el usuario activo es un
+ *  ADULTO (users.ts). Si no, el token dormido del portón (X-Parent-Token válido; estira la sesión 15 min: deslizante); un
+ *  chico sin token → false. Es EL MISMO chequeo de las rutas de este archivo y de las pantallas del PADRE que viven fuera
+ *  de /api/parent/*: la ingesta de YouTube (mytube.ts: /api/mytube/admin/*) y Profesores (teachersFake.ts). Sin sesión → 401. */
+export function hasParentSession(req: IncomingMessage): boolean { return isAdultReq(req) || touchSession(req) }
 /** El 401 de esas pantallas: `{ error: PARENT_SESSION_EXPIRED }`. */
 export const PARENT_SESSION_EXPIRED = 'Sesión del padre vencida. Volvé a entrar con el PIN.'
 
@@ -684,7 +692,7 @@ export async function parentRoutes(req: IncomingMessage, res: ServerResponse, ur
   const method = req.method ?? 'GET'
   if (!GETS.has(path) && !POSTS.has(path)) return send(res, 404, { error: 'not found' })
 
-  // --- Públicas: las dos que lee la UI del chico, y el portón. ---
+  // --- Públicas: las dos que lee la UI del chico, y el portón (dormido: el cliente ya no lo llama). ---
   if (method === 'GET' && path === '/api/parent/features') return send(res, 200, features())
   if (method === 'GET' && path === '/api/parent/limits') return send(res, 200, volumeLimits())
   if (method === 'POST' && path === '/api/parent/unlock') {
@@ -694,8 +702,8 @@ export async function parentRoutes(req: IncomingMessage, res: ServerResponse, ur
     return send(res, 200, tryUnlock(pin))
   }
 
-  // --- Todo lo demás: con la sesión abierta por el PIN (fail-closed). ---
-  if (!touchSession(req)) return send(res, 401, NO_SESSION)
+  // --- Todo lo demás: con la sesión del padre (fail-closed): el ADULTO activo pasa todo; un chico, solo con el token dormido. ---
+  if (!hasParentSession(req)) return send(res, 401, NO_SESSION)
 
   if (method === 'GET') {
     switch (path) {
@@ -708,6 +716,7 @@ export async function parentRoutes(req: IncomingMessage, res: ServerResponse, ur
     return send(res, 405, { error: 'Método no permitido: usá POST.' })
   }
   if (method !== 'POST' || !POSTS.has(path)) return send(res, 405, { error: 'Método no permitido.' })
+  // Cierra el token dormido; con el adulto (sesión implícita, sin token) no hay nada que cerrar: {ok:true} sin efecto.
   if (path === '/api/parent/lock') { closeSession(req); return send(res, 200, { ok: true }) }
 
   let b: Input

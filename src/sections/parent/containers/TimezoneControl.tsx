@@ -25,7 +25,7 @@ function nowIn(tz: string | null): string {
   }
 }
 
-/** "Zona horaria de la familia" (deuda 14-oct; Zona de padres → Límites, arriba de los horarios). Patrón del dial del Feed
+/** "Zona horaria de la familia" (deuda 14-oct; Familia → Límites, arriba de los horarios). Patrón del dial del Feed
  *  (FeedMotionControl): se lee de la config (api.parentConfig), se guarda al toque en el server (api.parentTz → parent.json)
  *  y rige ya: las franjas por sección y la franja del día del Feed se calculan en esa zona. Después de guardar se relee
  *  GET /api/schedules y se adopta (adoptSchedules), así el menú y las pantallas del chico cambian en el acto —en esta pestaña

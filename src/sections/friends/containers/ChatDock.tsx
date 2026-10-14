@@ -31,7 +31,8 @@ function onApiError(e: unknown) {
  *  (ⓘ o su nombre) en una hoja con racha, liga, cursos en común y "Regalale ropa"; la lista lleva a "Buscar personas";
  *  y cuando alguien acepta una solicitud que Ian mandó desde Buscar → Personas, su conversación llega sola, minimizada.
  *  Con Amigos apagado por la familia (o mientras no se sabe: patrón hide-until-known de useFeatures) NO existe; al
- *  apagarse se cierra todo. En la Zona de padres (/padres/*) no se muestra (las ventanas siguen vivas, ocultas). */
+ *  apagarse se cierra todo (al chico: con un adulto activo, useFeatures da todo prendido). En Familia (/familia/*, la ex
+ *  Zona de padres) no se muestra (las ventanas siguen vivas, ocultas). */
 export function ChatDock() {
   const features = useFeatures();
   const off = features?.amigos === false;
@@ -45,7 +46,7 @@ function Dock() {
   const go = useNavigate();
   const shopOn = useFeatures()?.tienda === true;
   const { pathname } = useLocation();
-  const parentZone = pathname === '/padres' || pathname.startsWith('/padres/');
+  const parentZone = pathname === '/familia' || pathname.startsWith('/familia/');
   const [friends, setFriends] = useState<Friend[] | null>(null);
   const [failed, setFailed] = useState(false);
   const root = useRef<HTMLDivElement>(null);

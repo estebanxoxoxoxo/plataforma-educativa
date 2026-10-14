@@ -40,7 +40,7 @@ export function ProtectionsPanel({ kid, dash, failed, onRetry }: { kid: string; 
       )}
       <FeedMotionControl kid={kid} />
       <p className="pz-foot">
-        Para sumar temas o palabras de la familia, andá a <Link to="/padres/temas" className="pz-inline pz-inline--tight">Temas y palabras</Link>; los topes de volumen están en <Link to="/padres/limites" className="pz-inline pz-inline--tight">Límites</Link>.
+        Para sumar temas o palabras de la familia, andá a <Link to="/familia/temas" className="pz-inline pz-inline--tight">Temas y palabras</Link>; los topes de volumen están en <Link to="/familia/limites" className="pz-inline pz-inline--tight">Límites</Link>.
       </p>
     </section>
   );

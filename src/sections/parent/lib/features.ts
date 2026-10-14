@@ -1,7 +1,11 @@
 // Los grandes on-off del padre (Tienda, Ligas, Amigos, Chat) del lado de la UI: singleton de módulo +
 // useSyncExternalStore (mismo patrón que shared/audio/bgAudio.ts) sobre api.features(). Lo leen el menú
-// (Sidebar), el portón de rutas (FeatureGate) y la Zona de padres. Otras secciones pueden usar
-// useFeatures() para esconder lo suyo (p. ej. el ⚡ de Practicar con la Tienda apagada).
+// (Sidebar), el portón de rutas (FeatureGate) y Familia (la ex Zona de padres). Otras secciones pueden usar
+// useFeatures() para esconder lo suyo (p. ej. el ⚡ de Learn con la Tienda apagada).
+// LOS CANDADOS SON DEL CHICO (línea 14-oct, docs/USUARIOS.md §4): useFeatures() es lo que RIGE para el usuario ACTIVO —con
+// un adulto, todo prendido (el server tampoco le responde 403)—, así el menú, la barra superior, el dock, Buscar →
+// Personas, los regalos, etc. no esconden nada al adulto sin repetir la regla en cada pieza. La configuración REAL del
+// padre (lo que muestran y editan los paneles de Familia) es useFeaturesStatus().
 // CÓMO SE ENTERA LA CUENTA DEL CHICO DE UN CAMBIO (definido y testeado en el E2E de la tanda 4):
 //   1. Misma pestaña: saveFeature() publica la respuesta del server → menú y páginas cambian AL INSTANTE.
 //   2. Otras pestañas del mismo navegador: BroadcastChannel → también al instante.
@@ -12,6 +16,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { api } from '../../../api';
 import type { ParentFeatures } from '../../../api/types';
+import { useUser } from '../../../hooks/user';
 import { parentCall } from './adultGate';
 
 export type FeatureKey = keyof ParentFeatures;
@@ -103,14 +108,21 @@ function subscribe(cb: () => void) {
   };
 }
 
-/** Los on-off vigentes y si la última lectura falló. Cada montaje dispara una lectura (deduplicada). */
+/** Los on-off REALES del padre y si la última lectura falló (los paneles de Familia). Cada montaje dispara una lectura
+ *  (deduplicada). */
 export function useFeaturesStatus(): { features: ParentFeatures | null; failed: boolean } {
   const s = useSyncExternalStore(subscribe, getSnap, getSnap);
   useEffect(() => { void refreshFeatures(); }, []);
   return s;
 }
-/** Los on-off vigentes (null = todavía no se sabe: lo apagable no se muestra). */
-export const useFeatures = (): ParentFeatures | null => useFeaturesStatus().features;
+/** Todo prendido: lo que rige para un adulto (misma referencia siempre: no re-dispara efectos que dependan de esto). */
+const ALL_ON: ParentFeatures = Object.freeze({ tienda: true, ligas: true, amigos: true, chat: true });
+/** Los on-off que RIGEN para el usuario activo: los del padre si es un chico (null = todavía no se sabe: lo apagable no
+ *  se muestra) y todo prendido si es un adulto (los candados son del dependiente). */
+export function useFeatures(): ParentFeatures | null {
+  const real = useFeaturesStatus().features;
+  return useUser()?.kind === 'adult' ? ALL_ON : real;
+}
 
 export type GateState = 'on' | 'off' | 'loading' | 'error';
 /** Estado del portón para una ruta del chico. Al ENTRAR a una sección apagable se le vuelve a preguntar
@@ -133,7 +145,7 @@ export function useFeatureGate(path: string): GateState {
   return s.features![key] ? 'on' : 'off';
 }
 
-/** El padre prende/apaga: guarda en el server (con la sesión del PIN) y aplica la respuesta acá y en las otras pestañas. */
+/** El padre prende/apaga: guarda en el server (con la sesión del adulto) y aplica la respuesta acá y en las otras pestañas. */
 export async function saveFeature(key: FeatureKey, on: boolean): Promise<ParentFeatures> {
   const f = await parentCall(api.setFeature(key, on));
   if (!isFeatures(f)) throw new Error('respuesta inválida');
@@ -141,7 +153,7 @@ export async function saveFeature(key: FeatureKey, on: boolean): Promise<ParentF
   return f;
 }
 
-/** Aplica on-off que ya guardó el server (un guardado o un PRESET de la Zona de padres): el menú y las páginas del
+/** Aplica on-off que ya guardó el server (un guardado o un PRESET de Familia): el menú y las páginas del
  *  chico cambian al instante en esta pestaña y en las otras del navegador. */
 export function adoptFeatures(f: ParentFeatures) {
   if (!isFeatures(f)) return;

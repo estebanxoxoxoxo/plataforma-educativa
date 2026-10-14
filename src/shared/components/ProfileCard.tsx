@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, typ
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ApiError, api } from '../../api';
 import type { AvatarLook, Identity, User } from '../../api/types';
+import { useUser } from '../../hooks/user';
 import { MEDAL_INFO, lastWeekLabel, type Medal } from '../../sections/leagues/lib/cycle';
 import { useFeatures } from '../../sections/parent/lib/features';
 import { isSectionOpen, refreshSchedules, useSchedules } from '../../sections/parent/lib/schedules';
@@ -11,7 +12,9 @@ import { IcClose } from './icons';
 /* Identidad de Ian (visión §9: el avatar es un activo del chico). Su look lo ELIGE él y vive en el server
    (GET/POST /api/identity → server/data/identity.json, no se resetea con la demo); el de los demás usuarios se
    deriva del nick en el cliente (lookFor, en Avatar.tsx). El look trae la ROPA puesta (accessory, tanda W): la que
-   compró en la Tienda la elige acá ("Tu ropa") o desde la misma Tienda ("Ponérsela"). Estilos: avatar.css (idav-). */
+   compró en la Tienda la elige acá ("Tu ropa") o desde la misma Tienda ("Ponérsela"). Estilos: avatar.css (idav-).
+   POR USUARIO (línea 14-oct, docs/USUARIOS.md): "Ian" acá es el usuario ACTIVO —el server lee y guarda el look del de la
+   cabecera X-Innerith-User—, así que el adulto del demo tiene su tarjeta y su avatar propios con el mismo código. */
 
 /* ---------- store: singleton de módulo + useSyncExternalStore (patrón de sections/parent/lib/features.ts) ----------
    Lo leen la tarjeta de la barra, la fila "Vos" de Ligas, la barra del dock y la Tienda: al guardar, cambian AL INSTANTE. */
@@ -152,8 +155,10 @@ export function ProfileCard({ user }: { user?: User }) {
    horario → ese aviso; si no, es otro 403 (p. ej. la apagaron recién: eso lo resuelve useFeatures) → el error de siempre. */
 type Wardrobe = { state: 'loading' | 'ok' | 'off' | 'closed' | 'error'; owned: string[] };
 function useWardrobe(): Wardrobe {
-  const tienda = useFeatures()?.tienda;
-  const closed = !isSectionOpen('tienda', useSchedules());
+  const tienda = useFeatures()?.tienda; // con un adulto activo, siempre prendida (useFeatures: los candados son del chico)
+  const sched = useSchedules();
+  // Los horarios también son del chico: al adulto la Tienda nunca le cierra (docs/USUARIOS.md §4; el server no le da 403).
+  const closed = useUser()?.kind !== 'adult' && !isSectionOpen('tienda', sched);
   const [w, setW] = useState<Wardrobe>({ state: 'loading', owned: [] });
   useEffect(() => {
     if (tienda === undefined) return;

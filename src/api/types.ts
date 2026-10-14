@@ -1,7 +1,14 @@
 // Contratos de datos entre la UI y el backend. La API fake (./index.ts) los respeta;
 // el backend real solo tiene que devolver estas mismas formas.
 
-export type User = { name: string; age: number; nick: string };
+/* ---------- Usuarios (línea 14-oct; docs/USUARIOS.md): la plataforma es para grandes y chicos ----------
+   Dos usuarios demo (server/src/users.ts): Ian (9, chico) y Andrés (38, adulto, su guardián). El usuario ACTIVO viaja en
+   cada llamada como cabecera X-Innerith-User (src/api/index.ts); GET /api/me lo devuelve. Los candados de la familia
+   (apagados y horarios) son del chico: al adulto no lo alcanzan, y tiene su punto de menú "Familia" (la ex Zona de padres).
+   ADITIVO: name/age/nick son los de siempre. */
+export type User = { id: string; name: string; age: number; nick: string; kind: 'adult' | 'child' };
+/** Un usuario con sus dependientes (solo adultos): GET /api/users. */
+export type UserInfo = User & { dependents?: string[] };
 
 export type Tab = 'pages' | 'images' | 'videos';
 
@@ -68,7 +75,7 @@ export type MtChannel = { channelId: string; title: string; handle?: string; /**
 export type MtChannelPlaylist = { playlistId: string; title: string };
 /** `channel: null` = no existe (sin videos aprobados). `pending` = enriquecimiento on-demand en curso: volver a pedir. */
 export type MtChannelDetail = { channel: MtChannel | null; followed: boolean; total: number; playlists: MtChannelPlaylist[]; pending: boolean };
-/* panel del padre (públicos como /api/teachers; la pantalla vive tras el portón) */
+/* panel del padre (con la sesión del padre, como /api/teachers: la del ADULTO activo desde el 14-oct; la pantalla vive en Familia) */
 export type MtEntryType = 'video' | 'playlist' | 'canal';
 export type MtEntry = { id: number; type: MtEntryType; url: string; title: string; /** = videoIds.length */ videos: number; channelId?: string; createdAt: number };
 export type MtAdminState = { entries: MtEntry[]; /** videos aprobados: catálogo base + familia */ total: number; /** 0 = sin tope */ videoCap: number };

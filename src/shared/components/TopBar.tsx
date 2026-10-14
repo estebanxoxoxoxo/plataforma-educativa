@@ -1,19 +1,23 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { Link } from 'react-router-dom';
-import { EC_CHANGED_EVT, api } from '../../api';
-import type { AssignedLeague, Friend, FriendRequest } from '../../api/types';
+import { EC_CHANGED_EVT, api, setActingUser } from '../../api';
+import type { AssignedLeague, Friend, FriendRequest, UserInfo } from '../../api/types';
+import { useUser } from '../../hooks/user';
 import { chatFriendsChanged, openChat, useChatDock } from '../../sections/friends/lib/chatDock';
 import { useFeatures } from '../../sections/parent/lib/features';
 import { useSchedules } from '../../sections/parent/lib/schedules';
 import { wallClock } from '../lib/zonedClock';
 import { Avatar, lookFor } from './Avatar';
-import { IcBell, IcNavLeagues } from './icons';
+import { IcBell, IcCheck, IcNavLeagues, IcSwap } from './icons';
+import { MyAvatar } from './ProfileCard';
 
 /** Barra superior persistente estilo Gran Turismo 7 (pedido 12-oct): posición de liga SIEMPRE visible
- *  (y es el link a /ligas, que salió del menú), Energy Coins, fecha y hora compactas, y la campana de
+ *  (y es el link a /ligas, que salió del menú), Energy Coins, fecha y hora compactas, el SWITCH DE USUARIO (línea
+ *  14-oct, demo: chip con el usuario activo → popover con los usuarios; elegir otro recarga la app) y la campana de
  *  notificaciones (solicitudes de amistad con Aceptar/Ahora no + conversaciones sin leer del dock).
  *  Respeta los apagados del padre: sin Ligas no hay chip de liga, sin Tienda no se nombra la moneda,
- *  sin Amigos no hay campana. Datos: carga al montar, al volver el foco y cada 60 s; escucha el evento
+ *  sin Amigos no hay campana — al CHICO: con un adulto activo, useFeatures() ya da todo prendido (los candados son del
+ *  dependiente, docs/USUARIOS.md §4). Datos: carga al montar, al volver el foco y cada 60 s; escucha el evento
  *  del cierre de semana (innerith:league-week-closed) para refrescar la liga al instante. */
 
 const CLOCK_MS = 30_000;
@@ -37,7 +41,20 @@ function clockParts(d: Date, tz?: string | null): { hm: string; date: string; fu
   return { hm: `${two(w.hour)}:${two(w.minute)}`, date, full };
 }
 
+/** Los popovers de la barra (campana y usuarios) se cierran con Esc o con un click afuera de su envoltorio. */
+function useDismiss(open: boolean, ref: RefObject<HTMLElement | null>, setOpen: (v: boolean) => void) {
+  useEffect(() => {
+    if (!open) return;
+    const down = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', down);
+    document.addEventListener('keydown', key);
+    return () => { document.removeEventListener('mousedown', down); document.removeEventListener('keydown', key); };
+  }, [open, ref, setOpen]);
+}
+
 export function TopBar() {
+  const user = useUser();
   const features = useFeatures();
   const sched = useSchedules(); // tz de la familia + delta con el server, para el reloj
   const dock = useChatDock();
@@ -48,8 +65,14 @@ export function TopBar() {
   const [now, setNow] = useState(() => new Date());
   const [open, setOpen] = useState(false);
   const popRef = useRef<HTMLDivElement>(null);
+  // Switch de usuario (demo): los usuarios se piden recién al abrir el popover por primera vez y quedan en estado.
+  const [usersOpen, setUsersOpen] = useState(false);
+  const [users, setUsers] = useState<UserInfo[] | null>(null);
+  const [usersFailed, setUsersFailed] = useState(false);
+  const usersRef = useRef<HTMLDivElement>(null);
   const alive = useRef(true);
 
+  // Con un adulto activo, useFeatures() ya devuelve todo prendido (los candados son del chico).
   const ligasOn = features?.ligas === true;
   const tiendaOn = features?.tienda === true;
   const amigosOn = features?.amigos === true;
@@ -95,15 +118,18 @@ export function TopBar() {
   const { friendsRev } = dock;
   useEffect(() => { void load(); }, [friendsRev, load]);
 
-  // La campana se cierra con Esc o clickeando afuera.
+  // La campana y el popover de usuarios se cierran con Esc o clickeando afuera.
+  useDismiss(open, popRef, setOpen);
+  useDismiss(usersOpen, usersRef, setUsersOpen);
+
+  // Los usuarios del demo: al abrir el popover si todavía no están (si falló, el próximo open reintenta).
   useEffect(() => {
-    if (!open) return;
-    const down = (e: MouseEvent) => { if (popRef.current && !popRef.current.contains(e.target as Node)) setOpen(false); };
-    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
-    document.addEventListener('mousedown', down);
-    document.addEventListener('keydown', key);
-    return () => { document.removeEventListener('mousedown', down); document.removeEventListener('keydown', key); };
-  }, [open]);
+    if (!usersOpen || users) return;
+    let on = true;
+    setUsersFailed(false);
+    api.users().then((r) => { if (on) setUsers(r.users); }, () => { if (on) setUsersFailed(true); });
+    return () => { on = false; };
+  }, [usersOpen, users]);
 
   const unreadWins = dock.wins.filter((w) => w.unread > 0);
   const nickOf = (id: string) => friends.find((f) => f.id === id)?.nick ?? 'Un amigo';
@@ -142,6 +168,37 @@ export function TopBar() {
       <span className="tb-clock" title={full}>
         <b>{hm}</b><span className="tb-date">{date}</span>
       </span>
+      {user && (
+        /* Switch de usuario (DEMO, docs/USUARIOS.md §2): elegir a otro guarda su id y recarga la app desde el Feed. */
+        <div className="tb-userwrap" ref={usersRef}>
+          <button className="tb-user" type="button" aria-expanded={usersOpen} aria-haspopup="dialog" aria-label="Cambiar de usuario"
+            title={`${user.name}: cambiar de usuario`} onClick={() => setUsersOpen((v) => !v)}>
+            <MyAvatar name={user.name} size={24} />
+            <span className="tb-uname">{user.name}</span>
+            <IcSwap className="tb-uswap" />
+          </button>
+          {usersOpen && (
+            <div className="tb-pop tb-upop" role="dialog" aria-label="Usuarios">
+              {!users && !usersFailed && <p className="tb-empty">Cargando…</p>}
+              {!users && usersFailed && <p className="tb-empty">No pude traer los usuarios. Probá de nuevo en un ratito.</p>}
+              {users?.map((u) => {
+                const me = u.id === user.id;
+                const tag = u.kind === 'child' ? `${u.age} años` : 'Adulto';
+                return (
+                  <button key={u.id} className={`tb-urow${me ? ' is-on' : ''}`} type="button" aria-current={me ? 'true' : undefined}
+                    aria-label={me ? `${u.name}, ${tag} (usuario activo)` : `Cambiar a ${u.name}, ${tag}`}
+                    onClick={() => (me ? setUsersOpen(false) : setActingUser(u.id))}>
+                    {me ? <MyAvatar name={u.name} size={34} /> : <Avatar name={u.name} color="#9AA5C4" look={lookFor(u.nick)} size={34} />}
+                    <span className="tb-utx"><b>{u.name}</b><small>{tag}</small></span>
+                    {me && <IcCheck className="tb-ucheck" aria-hidden="true" />}
+                  </button>
+                );
+              })}
+              <p className="tb-unote">Cambiar de usuario (demo)</p>
+            </div>
+          )}
+        </div>
+      )}
       {amigosOn && (
         <div className="tb-bellwrap" ref={popRef}>
           <button className="tb-bell" type="button" aria-expanded={open} aria-label={notis > 0 ? `Notificaciones: ${notis}` : 'Notificaciones'}

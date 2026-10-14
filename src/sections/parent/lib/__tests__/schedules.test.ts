@@ -94,8 +94,8 @@ describe('sectionForPath (menú y portón)', () => {
     expect(sectionForPath('/espacio/carpetas/12')).toBe('espacio');
     expect(sectionForPath('/espacio/papelera')).toBe('espacio');
   });
-  it('lo que nunca se cierra: Feed, lector, reproductor, Ligas, Zona de padres, redirecciones viejas', () => {
-    for (const p of ['/', '/buscar/articulo/x', '/buscar/video/abc', '/ligas', '/padres', '/padres/limites', '/espacio/videos', '/amigos', '/tiendas']) {
+  it('lo que nunca se cierra: Feed, lector, reproductor, Ligas, Familia (y la vieja /padres), redirecciones viejas', () => {
+    for (const p of ['/', '/buscar/articulo/x', '/buscar/video/abc', '/ligas', '/familia', '/familia/limites', '/padres', '/padres/limites', '/espacio/videos', '/amigos', '/tiendas']) {
       expect(sectionForPath(p)).toBeNull();
     }
   });

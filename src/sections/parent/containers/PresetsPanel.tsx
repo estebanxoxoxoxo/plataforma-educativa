@@ -4,7 +4,7 @@ import type { ParentConfig, ParentFeatures } from '../../../api/types';
 import { PresetCard } from '../cards/PresetCard';
 import { PanelState } from '../components/PanelState';
 import { parentCall } from '../lib/adultGate';
-import { adoptFeatures, useFeatures } from '../lib/features';
+import { adoptFeatures, useFeaturesStatus } from '../lib/features';
 import { FEATURE_LABEL, FEATURE_ORDER, listEs, quoted } from '../lib/format';
 import { publishLimits } from '../lib/limits';
 import type { PresetView } from '../lib/types';
@@ -41,7 +41,7 @@ function changesFor(p: PresetView, f: ParentFeatures | null, c: ParentConfig | n
  *  que existe —on-off, temas, palabras de la familia y topes de volumen—. Aplicar reemplaza la configuración (se
  *  confirma diciendo qué cambia); después se ajusta lo que se quiera y el preset deja de figurar como aplicado. */
 export function PresetsPanel({ kid }: { kid: string }) {
-  const features = useFeatures();
+  const { features } = useFeaturesStatus(); // la config REAL del padre (useFeatures() es lo que rige para el adulto activo: todo prendido)
   const [data, setData] = useState<Data | null>(null);
   const [cfg, setCfg] = useState<ParentConfig | null>(null);
   const [failed, setFailed] = useState(false);

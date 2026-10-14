@@ -1,4 +1,4 @@
-// Qué tarjetas del feed se muestran según los on-off del padre (Zona de padres: lib/features.ts).
+// Qué tarjetas del feed se muestran según los on-off del padre (Familia: lib/features.ts; con un adulto activo, todo prendido).
 // Desde el Feed v6 el server (feedFake) ya NO manda lo que la familia apagó; esto queda como red de seguridad VISUAL:
 // cubre un on-off que cambia en vivo con el hilo ya cargado y, sin datos todavía (null), oculta lo social (fail-closed).
 import type { FeedItem, ParentFeatures } from '../../../api/types';

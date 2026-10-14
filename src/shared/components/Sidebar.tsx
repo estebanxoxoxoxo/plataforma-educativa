@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { User } from '../../api/types';
 import { featureAllows, useFeatures } from '../../sections/parent/lib/features';
 import { scheduleAllows, useSchedules } from '../../sections/parent/lib/schedules';
@@ -7,14 +7,14 @@ import { BrandMark } from './BrandMark';
 import { MiniPlayer } from './MiniPlayer';
 import { ProfileCard } from './ProfileCard';
 import {
-  IcNavCalendar, IcNavChat, IcNavDiscover, IcNavMoon, IcNavMyTube, IcNavLearn,
+  IcNavCalendar, IcNavChat, IcNavDiscover, IcNavFamily, IcNavMoon, IcNavMyTube, IcNavLearn,
   IcNavSearch, IcNavSpace, IcNavStore,
 } from './icons';
 
-type Sec = 'home' | 'search' | 'chat' | 'space' | 'store' | 'learn' | 'mytube' | 'afterday' | 'calendar';
+type Sec = 'home' | 'search' | 'chat' | 'space' | 'store' | 'learn' | 'mytube' | 'afterday' | 'calendar' | 'family';
 // Orden definido por Esteban (9-oct-2026): Home primero, Mi espacio al final.
 // El submenú de Mi espacio se engancha por sec, no por posición.
-const NAV: { sec: Sec; label: string; to: string; Icon: ComponentType }[] = [
+const NAV: { sec: Sec; label: string; to: string; Icon: ComponentType; adultOnly?: true }[] = [
   // Feed (pedido 12-oct: el nuevo nombre de Home) = el feed de recomendaciones; sec 'home', ruta /.
   { sec: 'home', label: 'Feed', to: '/', Icon: IcNavDiscover },
   { sec: 'search', label: 'Buscar', to: '/buscar', Icon: IcNavSearch },
@@ -33,6 +33,9 @@ const NAV: { sec: Sec; label: string; to: string; Icon: ComponentType }[] = [
   { sec: 'calendar', label: 'Calendario', to: '/calendario', Icon: IcNavCalendar },
   // Mi espacio AL FONDO (pedido 12-oct).
   { sec: 'space', label: 'Mi espacio', to: '/espacio/carpetas', Icon: IcNavSpace },
+  // Familia (línea 14-oct, docs/USUARIOS.md §5): el punto de menú propio del ADULTO, ABAJO DE TODO (debajo de Mi
+  // espacio) — la ex Zona de padres, sin portón: ahí configura lo de sus dependientes. El chico no lo ve.
+  { sec: 'family', label: 'Familia', to: '/familia', Icon: IcNavFamily, adultOnly: true },
 ];
 
 function activeFrom(path: string): { sec?: Sec; sub?: string } {
@@ -51,25 +54,32 @@ function activeFrom(path: string): { sec?: Sec; sub?: string } {
   if (path.startsWith('/calendario')) return { sec: 'calendar' };
   // /crear vive DENTRO de Aprender (botón en su encabezado, pedido 12-oct)
   if (path.startsWith('/crear')) return { sec: 'learn' };
+  if (path === '/familia' || path.startsWith('/familia/')) return { sec: 'family' };
   return {};
 }
 
 /** Barra lateral estilo Duolingo (estilos en shell.css): píldora activa con borde por sección, etiquetas en
  *  mayúsculas e íconos rellenos que no cambian con el estado. Sin submenús (pedido 12-oct): Mi espacio
- *  va directo a sus carpetas. */
+ *  va directo a sus carpetas. Con un ADULTO como usuario activo suma Familia al fondo y no la alcanzan los candados
+ *  del chico (apagados ni horarios: docs/USUARIOS.md §4). */
 export function Sidebar({ user }: { user?: User }) {
   const { pathname } = useLocation();
   const go = useNavigate();
   const { sec } = activeFrom(pathname);
   const features = useFeatures();
   const schedules = useSchedules();
+  const adult = user?.kind === 'adult';
 
   const item = (n: (typeof NAV)[number]) => {
-    // Tienda, Ligas, Amigos y Chat los puede apagar el padre: apagados (o sin saber todavía) no existen.
-    if (!featureAllows(features, n.to)) return null;
-    // Horarios por sección (porte Smarty W7): fuera de su franja la sección sale del menú (el tick de 30 s la saca y la
-    // vuelve a poner sin recargar). El Feed no tiene horario.
-    if (!scheduleAllows(schedules, n.to)) return null;
+    if (n.adultOnly && !adult) return null;
+    // Los candados son del CHICO: al adulto no se le esconde nada.
+    if (!adult) {
+      // Tienda, Ligas, Amigos y Chat los puede apagar el padre: apagados (o sin saber todavía) no existen.
+      if (!featureAllows(features, n.to)) return null;
+      // Horarios por sección (porte Smarty W7): fuera de su franja la sección sale del menú (el tick de 30 s la saca y la
+      // vuelve a poner sin recargar). El Feed no tiene horario.
+      if (!scheduleAllows(schedules, n.to)) return null;
+    }
     const on = sec === n.sec;
     return (
       <button key={n.sec} className={`nav-item${on ? ' on' : ''}`} data-sec={n.sec} aria-current={on ? 'page' : undefined} onClick={() => go(n.to)}>
@@ -91,8 +101,6 @@ export function Sidebar({ user }: { user?: User }) {
       </nav>
       <MiniPlayer />
       <ProfileCard user={user} />
-      {/* Acceso discreto a la Zona de padres (no es parte del menú del chico; estilo en parent.css) */}
-      <Link className="pz-access" to="/padres">Zona de padres</Link>
     </aside>
   );
 }

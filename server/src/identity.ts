@@ -1,10 +1,12 @@
-// Identidad (avatar propio del chico) — visión §9 y audios 26, 32, 41-42: el avatar es uno de los ACTIVOS que hacen
-// querer quedarse. El look ELEGIBLE: uno de los 16 personajes dibujados del cliente (src/shared/components/Avatar.tsx:
-// SVG propio, sin assets externos) en un color de la paleta, o las iniciales (el default típico). Y, encima del
-// personaje, la ROPA del guardarropas (tanda W): un accesorio dibujado del set (gorra, vincha, moño, anteojos de sol,
-// auriculares, corona) que se compra con Energy Coin en la Tienda (market.ts).
-//   GET  /api/identity          → Identity { nick, look }  (sin archivo: un look DIBUJADO derivado del nick, así Ian
-//                                  arranca dentro del 80% con avatar; look null = iniciales)
+// Identidad (avatar propio) — visión §9 y audios 26, 32, 41-42: el avatar es uno de los ACTIVOS que hacen querer
+// quedarse. El look ELEGIBLE: uno de los 16 personajes dibujados del cliente (src/shared/components/Avatar.tsx: SVG propio,
+// sin assets externos) en un color de la paleta, o las iniciales (el default típico). Y, encima del personaje, la ROPA del
+// guardarropas (tanda W): un accesorio dibujado del set (gorra, vincha, moño, anteojos de sol, auriculares, corona) que se
+// compra con Energy Coin en la Tienda (market.ts).
+// POR USUARIO (línea 14-oct, docs/USUARIOS.md): cada usuario del demo (users.ts: Ian, Andrés) tiene SU look; GET y POST
+// leen y escriben el del usuario ACTIVO (cabecera X-Innerith-User → actingUser).
+//   GET  /api/identity          → Identity { nick, look }  (el nick y el look del usuario activo; si nunca eligió, un look
+//                                  DIBUJADO derivado de su nick —así arranca dentro del 80% con avatar—; look null = iniciales)
 //   POST /api/identity {look}   → Identity                  (400 si el look no es del set: variant 0..15, color de la
 //                                  paleta y accessory null/ausente o un id del set; o look null)
 // look = { variant, color, accessory }: el accesorio PUESTO viaja en el look (null = sin nada). Con iniciales (look
@@ -13,15 +15,20 @@
 // economía y viven en RAM (market.ts: se resetean con cada carga de página, regla 9), mientras que el look es un ACTIVO
 // que persiste. Por eso, tras recargar, Ian puede seguir con la gorra PUESTA aunque su guardarropas arranque vacío
 // (decisión del coordinador, FLAG para Esteban: ver docs/VISION.md §13). Si algún día las compras persisten, este POST
-// puede pasar a exigir la posesión consultando el guardarropas de market.ts.
-// PERSISTE en server/data/identity.json (regla 9: es un ACTIVO del chico, como space.json y wishlist.json — NO es
+// puede pasar a exigir la posesión consultando el guardarropas de market.ts. (El guardarropas del demo es UNO, compartido
+// por los dos usuarios: USUARIOS.md §7.)
+// PERSISTE en server/data/identity.json (regla 9: es un ACTIVO del usuario, como space.json y wishlist.json — NO es
 // economía y NO se registra en /api/demo/reset: recargar la página no lo toca). Escritura atómica tmp+rename (space.ts).
+//   v2 (14-oct): { version: 2, users: { [id]: { look, updatedAt } } }. El formato VIEJO ({ look, updatedAt }, de cuando
+//   había un solo usuario) es el de ian: MIGRA al cargar (se reescribe como v2 en el acto). Archivo ilegible (JSON roto,
+//   otra forma o algún look fuera del set) → copia en .roto-* y todos con su look por defecto, como antes.
 // Moderación: no abre superficie nueva — el look es un índice, un color y un id de listas cerradas (ni texto ni
-// imágenes), y el nick sigue saliendo de la configuración de la familia (acá no se edita).
+// imágenes), y el nick sale del seed de usuarios (el de Ian, de la configuración de la familia; acá no se edita).
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { join } from 'node:path'
-import { config, SERVER_ROOT } from './config'
+import { SERVER_ROOT } from './config'
+import { DEFAULT_USER_ID, actingUser, type UserInfo } from './users'
 import { readJson, send } from './web'
 
 type AvatarLook = { variant: number; color: string; accessory: string | null } | null
@@ -61,49 +68,74 @@ export function parseLook(raw: unknown): AvatarLook | undefined {
 
 /* ---------- persistencia (archivo chico, escritura inmediata y atómica: al responder ya está en disco) ---------- */
 const FILE = join(SERVER_ROOT, 'data', 'identity.json')
-interface Stored { look: AvatarLook; updatedAt: number }
-function load(): Stored | null {
-  if (!existsSync(FILE)) return null
+interface Entry { look: AvatarLook; updatedAt: number }
+/** v2: el look de cada usuario por id (los que nunca eligieron no tienen entrada: usan defaultLook de su nick). */
+interface Stored { version: 2; users: Record<string, Entry> }
+const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v)
+
+/** Una entrada leída de disco. Tira si el look no es del set (el archivo entero cuenta como ilegible, como antes). */
+function entryOf(raw: unknown, id: string): Entry {
+  const r = isObject(raw) ? raw : {}
+  const look = parseLook(r.look)
+  if (look === undefined) throw new Error(`el look guardado de «${id}» no es del set`)
+  return { look, updatedAt: Number(r.updatedAt) || 0 }
+}
+function writeAtomic(s: Stored) {
+  writeFileSync(FILE + '.tmp', JSON.stringify(s))
+  renameSync(FILE + '.tmp', FILE)
+}
+function load(): Stored {
+  if (!existsSync(FILE)) return { version: 2, users: {} }
   try {
-    const raw = JSON.parse(readFileSync(FILE, 'utf8')) as { look?: unknown; updatedAt?: unknown }
-    const look = parseLook(raw?.look)
-    if (look === undefined) throw new Error('el look guardado no es del set')
-    return { look, updatedAt: Number(raw.updatedAt) || 0 }
+    const raw: unknown = JSON.parse(readFileSync(FILE, 'utf8'))
+    if (!isObject(raw)) throw new Error('no es un objeto')
+    if (raw.version === 2) {
+      if (!isObject(raw.users)) throw new Error('v2 sin la lista de usuarios')
+      const users: Record<string, Entry> = {}
+      for (const [id, e] of Object.entries(raw.users)) users[id] = entryOf(e, id)
+      return { version: 2, users }
+    }
+    // Formato viejo (un solo usuario: el chico del demo) → es el look de ian. Migra en el acto.
+    const s: Stored = { version: 2, users: { [DEFAULT_USER_ID]: entryOf(raw, DEFAULT_USER_ID) } }
+    try {
+      writeAtomic(s)
+      console.log(`[identity] identity.json migrado a la v2 (un look por usuario): el que estaba guardado es el de ${DEFAULT_USER_ID}`)
+    } catch (e) { console.error('[identity] no pude reescribir identity.json como v2 (se reintenta en el próximo guardado):', e) }
+    return s
   } catch (e) {
-    console.warn('[identity] identity.json ilegible, vuelvo al look por defecto:', e)
+    console.warn('[identity] identity.json ilegible, vuelvo a los looks por defecto:', e)
     try { renameSync(FILE, `${FILE}.roto-${Date.now()}`) } catch { /* sin copia: seguimos igual */ }
-    return null
+    return { version: 2, users: {} }
   }
 }
-let stored: Stored | null = load()
-function persist(look: AvatarLook) {
-  const next: Stored = { look, updatedAt: Date.now() }
-  writeFileSync(FILE + '.tmp', JSON.stringify(next))
-  renameSync(FILE + '.tmp', FILE)
+let stored: Stored = load()
+function persist(id: string, look: AvatarLook) {
+  const next: Stored = { version: 2, users: { ...stored.users, [id]: { look, updatedAt: Date.now() } } }
+  writeAtomic(next)
   stored = next
 }
 
-const myNick = () => config.apodo || 'Explorador'
-/** La identidad de Ian: su nick + el look guardado (o el de arranque si nunca eligió). */
-export function identity(): { nick: string; look: AvatarLook } {
-  const nick = myNick()
-  return { nick, look: stored ? stored.look : defaultLook(nick) }
+/** La identidad de un usuario: su nick + el look que eligió (o el de arranque derivado de su nick, si nunca eligió). */
+function identityOf(u: Pick<UserInfo, 'id' | 'nick'>): { nick: string; look: AvatarLook } {
+  const e = stored.users[u.id]
+  return { nick: u.nick, look: e ? e.look : defaultLook(u.nick) }
 }
 
 /* ---------- rutas ---------- */
 export async function identityRoutes(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
   if (url.pathname !== '/api/identity') return send(res, 404, { error: 'not found' })
-  if (req.method === 'GET') return send(res, 200, identity())
+  const me = actingUser(req)
+  if (req.method === 'GET') return send(res, 200, identityOf(me))
   if (req.method !== 'POST') return send(res, 405, { error: 'method' })
   let body: unknown
   try { body = await readJson<unknown>(req) } catch { return send(res, 400, { error: 'JSON inválido' }) }
   if (!body || typeof body !== 'object' || !('look' in body)) return send(res, 400, { error: 'Falta el look' })
   const look = parseLook((body as { look: unknown }).look)
   if (look === undefined) return send(res, 400, { error: 'Ese avatar no está en el set' })
-  try { persist(look) } catch (e) {
+  try { persist(me.id, look) } catch (e) {
     console.error('[identity] no pude guardar identity.json:', e)
     return send(res, 500, { error: 'No se pudo guardar el avatar' })
   }
-  console.log(`[identity] ${myNick()} → ${look ? `personaje ${look.variant} · ${look.color}${look.accessory ? ` · con ${look.accessory}` : ''}` : 'iniciales'}`)
-  return send(res, 200, identity())
+  console.log(`[identity] ${me.nick} → ${look ? `personaje ${look.variant} · ${look.color}${look.accessory ? ` · con ${look.accessory}` : ''}` : 'iniciales'}`)
+  return send(res, 200, identityOf(me))
 }

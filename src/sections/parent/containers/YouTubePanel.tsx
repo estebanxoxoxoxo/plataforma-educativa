@@ -8,8 +8,8 @@ import { parentCall } from '../lib/adultGate';
 /* «YouTube» (porte Smarty W5: la solapa YouTube de Admin → Listas del POC + el tope de Ajustes): el padre suma videos,
    playlists y canales de YouTube a lo que su hijo puede ver, los mantiene (reingestar, completar canales, quitar
    duplicados, tope por entrada) y cura cómo se le presenta cada canal en MyTube. La ingesta corre en el server con la key
-   de YouTube del server (server/src/mytube.ts). Todo va con la SESIÓN del portón (parentCall: el server responde 401 sin
-   ella y un 401 vuelve al PIN, como el resto de los paneles; deuda saldada 14-oct). */
+   de YouTube del server (server/src/mytube.ts). Todo va con la sesión del padre —desde el 14-oct, la del ADULTO activo,
+   implícita (parentCall, como el resto de los paneles; un chico recibe 401)—. */
 
 /** Parte un texto de lote en entradas: una por línea o separadas por ";" (parseBatch del POC). */
 function parseBatch(text: string): string[] {

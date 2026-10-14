@@ -32,6 +32,7 @@ import { config } from './config'
 import { injectLeagueClose } from './feedFake'
 import { featureOn } from './parent'
 import { startNewWeek, weekXp } from './progress'
+import { isChildReq } from './users'
 import { send } from './web'
 
 /* ---------- escalera de ligas (se ASIGNAN por resultados: nunca se eligen ni se buscan) ---------- */
@@ -369,8 +370,9 @@ export function npcPractice(r: () => number, count: number): NpcRace[] {
 
 /* ---------- rutas ---------- */
 export function leaguesRoutes(req: IncomingMessage, res: ServerResponse, url: URL): void {
-  // Ligas apagadas por el padre: no existen, ni por URL (fail-closed, antes que nada; mismo patrón que market/amigos).
-  if (!featureOn('ligas')) return send(res, 403, { error: 'Las ligas están apagadas por tu familia' })
+  // Ligas apagadas por el padre: no existen, ni por URL (fail-closed, antes que nada; mismo patrón que market/amigos). Es un
+  // candado del CHICO: con un adulto como usuario activo no rige (docs/USUARIOS.md §4; las ligas del demo son compartidas).
+  if (isChildReq(req) && !featureOn('ligas')) return send(res, 403, { error: 'Las ligas están apagadas por tu familia' })
   // Botón de demo "Simular cierre de semana" (Ligas): el efecto vive en RAM y una recarga vuelve al seed.
   if (url.pathname === '/api/leagues/close-week') {
     if (req.method !== 'POST') return send(res, 405, { error: 'method' })

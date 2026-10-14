@@ -1,4 +1,4 @@
-// Profesores (marketplace de la Zona de padres): textos y reglas del lado de la UI. La verdad la tiene el server
+// Profesores (marketplace de Familia, la ex Zona de padres): textos y reglas del lado de la UI. La verdad la tiene el server
 // (server/src/teachersFake.ts: valida el horario, que el profe no esté contratado y que el chico no tenga esa hora
 // ocupada); acá solo se arma la hoja de reserva y se escriben las cosas. weekday del contrato: 0 = lunes … 6 = domingo.
 import type { Teacher, TeacherSlot } from '../../../api/types';

@@ -17,7 +17,9 @@
 //     Cada llamada se loguea como en el chat ([friends] …).
 // REGLA DEL DEMO (docs/AGENTS.md regla 9): el grafo social del demo (amigos aceptados, solicitudes, hilos, el tope de
 // costo) vive en RAM con seed. Cada carga de página hace POST /api/demo/reset → resetFriends(): F5 = demo nueva.
-// APAGADO POR EL PADRE (features.amigos = false): TODO /api/friends* responde 403 (fail-closed), antes de leer nada.
+// APAGADO POR EL PADRE (features.amigos = false): TODO /api/friends* responde 403 (fail-closed), antes de leer nada — al
+// CHICO: con un adulto como usuario activo (users.ts, docs/USUARIOS.md §4) no rige. Los NPCs son los MISMOS para los dos
+// usuarios del demo (§7) y su respuesta en vuelo se sigue descartando con Amigos apagado (scheduleReply).
 //
 // Contrato HTTP (formas de src/api/types.ts: Friend, FriendMessage, FriendRequest, SendMessageResult):
 //   GET  /api/friends                       → { friends: Friend[] }            (el recién aceptado va primero)
@@ -60,6 +62,7 @@ import { matchBlockedWord } from './filters'
 import { judgeOutput } from './judge'
 import { complete, parseJudgeJson, spotlight } from './llm'
 import { blackTopicsAll, featureOn, notifyParent } from './parent'
+import { isChildReq } from './users'
 import { readJson, send } from './web'
 
 /* ---------- formas (las de src/api/types.ts) ---------- */
@@ -623,10 +626,11 @@ function sendRequest(id: string): ConnectResult | null {
 }
 
 /* ---------- regalos de ropa (los cobra market.ts: POST /api/market/gift) ---------- */
-/** ¿Se le puede regalar esa prenda a ese amigo? Amigos apagado → 403; no es amigo → 404; ya la tiene → 200 (rechazo de
- *  negocio, con el motivo para el chico). market.ts lo pregunta ANTES de cobrar. `el` = "la gorra", para el texto. */
-export function giftCheck(id: string, accessory: string, el: string): { ok: true; nick: string } | { ok: false; status: number; error: string } {
-  if (!featureOn('amigos')) return { ok: false, status: 403, error: OFF.error }
+/** ¿Se le puede regalar esa prenda a ese amigo? Amigos apagado → 403 (solo si el usuario activo de `req` es un chico: el
+ *  candado es del dependiente); no es amigo → 404; ya la tiene → 200 (rechazo de negocio, con el motivo para el chico).
+ *  market.ts lo pregunta ANTES de cobrar. `el` = "la gorra", para el texto. */
+export function giftCheck(req: IncomingMessage, id: string, accessory: string, el: string): { ok: true; nick: string } | { ok: false; status: number; error: string } {
+  if (isChildReq(req) && !featureOn('amigos')) return { ok: false, status: 403, error: OFF.error }
   settleOutgoing() // un amigo recién aceptado (Buscar → Personas) ya cuenta
   const n = isFriend(id) ? npcOf(id) : undefined
   if (!n) return { ok: false, status: 404, error: 'Ese amigo no está en tu lista.' }
@@ -662,8 +666,9 @@ const POSTS = new Set(['/api/friends/requests/accept', '/api/friends/requests/de
 const validId = (v: unknown): string | null => (typeof v === 'string' && /^[\w-]{1,40}$/.test(v) ? v : null)
 
 export async function friendsRoutes(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
-  // "Si el papá dice que no existe, no existe" (audio 22): antes que cualquier otra cosa (fail-closed).
-  if (!featureOn('amigos')) return send(res, 403, OFF)
+  // "Si el papá dice que no existe, no existe" (audio 22): antes que cualquier otra cosa (fail-closed). Candado del CHICO:
+  // el adulto activo pasa (docs/USUARIOS.md §4).
+  if (isChildReq(req) && !featureOn('amigos')) return send(res, 403, OFF)
   const path = url.pathname.replace(/\/+$/, '')
   const method = req.method ?? 'GET'
   settleOutgoing() // las solicitudes de Ian cuya hora llegó ya son amistades (demo)

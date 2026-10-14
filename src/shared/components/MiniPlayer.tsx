@@ -15,7 +15,7 @@ const fmtT = (s: number) => { const m = Math.floor(s / 60); const sec = Math.flo
  *  cada uno con su propio volumen. Lee/controla el singleton bgAudio. */
 export function MiniPlayer() {
   const bg = useBgAudio();
-  const caps = useLimits(); // topes de volumen de la familia (Zona de padres): los sliders no pasan de ahí
+  const caps = useLimits(); // topes de volumen de la familia (Familia → Límites): los sliders no pasan de ahí
   const go = useNavigate();
   const [open, setOpen] = useState(false);
   const panel = useRef<HTMLDivElement>(null);

@@ -13,7 +13,8 @@
 // Mientras navegás se canjea y se gasta de verdad; F5 = demo nueva (stock completo, 0 canjes).
 // La LISTA DE DESEOS sí persiste (es una preferencia del chico, como space.json): ids en
 // server/data/wishlist.json, del más reciente al más viejo. El reset del demo NO la toca.
-// APAGADO POR EL PADRE (features.tienda = false): TODO /api/market* responde 403 (fail-closed).
+// APAGADO POR EL PADRE (features.tienda = false): TODO /api/market* responde 403 (fail-closed) — al CHICO: los candados son
+// del dependiente; con un adulto como usuario activo (users.ts, docs/USUARIOS.md §4) la Tienda sigue abierta.
 //
 // Contrato HTTP (congelado; formas exactas en src/api/types.ts):
 //   GET  /api/market                 → { items: MarketItem[]; ec: number }
@@ -26,7 +27,7 @@
 // Los rechazos de NEGOCIO vuelven con HTTP 200 + ok:false y un `error` legible para el chico (el
 // cliente de la UI tira ApiError ante !r.ok y perdería el motivo): saldo insuficiente ("Te faltan
 // N ⚡", N exacto) o premio agotado. Pedido mal formado → 400 · premio inexistente → 404 ·
-// método equivocado → 405 · subruta desconocida → 404 · Tienda apagada por el padre → 403.
+// método equivocado → 405 · subruta desconocida → 404 · Tienda apagada por el padre (y el usuario activo es un chico) → 403.
 // Entrega: el padre marca el canje como "entregado" desde su zona (POST /api/parent/deliver →
 // deliverRedemption()). Los textos los escribe el padre: no pasan por la moderación de contenido.
 // Imports cruzados con ./parent: ver la regla en su cabecera (ninguno llama al otro al cargar).
@@ -42,7 +43,7 @@
 //     pendientes de entrega son solo para los premios del padre). Ya la tenés → 200 ok:false.
 //   · EQUIPAR no pasa por acá: es el look del chico (POST /api/identity con accessory; identity.ts).
 //   · REGALAR = POST /api/market/gift {itemId, friendId} → GiftResult { ok, ec?, friend?, error? }: valida que sea ropa
-//     (400 si es un premio del padre, 404 si no existe), que el amigo exista y sea amigo (404; Amigos apagado → 403),
+//     (400 si es un premio del padre, 404 si no existe), que el amigo exista y sea amigo (404; Amigos apagado → 403 al chico),
 //     que no la tenga ya y el saldo (estos dos: 200 ok:false); gasta EC (tx "Regalo para <nick>: …") y el NPC se la
 //     pone y agradece en su hilo (friendsFake.receiveGift: plantilla, sin modelo). `friend` = su perfil ya con la prenda.
 // El GUARDARROPAS de Ian (qué prendas compró) es ECONOMÍA: vive en RAM con los canjes y resetMarket() lo vacía con
@@ -55,6 +56,7 @@ import { SERVER_ROOT } from './config'
 import { ACCESSORY_IDS } from './identity'
 import { featureOn, parentItem, parentItems, type ParentItem } from './parent'
 import { spendEc, summary } from './progress'
+import { isChildReq } from './users'
 import { readJson, send } from './web'
 
 type Status = 'pendiente' | 'entregado'
@@ -222,8 +224,9 @@ export function redeem(itemId: number): { status: number; body: RedeemBody } {
 type GiftBody = { ok: boolean; ec: number; error?: string; friend?: unknown }
 
 /** Regalo de ropa a un amigo (NPC): valida prenda, amigo, que no la tenga ya y el saldo; cobra con spendEc() y el NPC
- *  se la pone y agradece en su hilo. Entre las validaciones y el cobro no hay ningún await (sin carreras). */
-async function gift(itemId: number, friendId: string): Promise<{ status: number; body: GiftBody }> {
+ *  se la pone y agradece en su hilo. Entre las validaciones y el cobro no hay ningún await (sin carreras). `req` viaja
+ *  hasta giftCheck: el apagado de Amigos (403) rige solo si el usuario activo es un chico. */
+async function gift(req: IncomingMessage, itemId: number, friendId: string): Promise<{ status: number; body: GiftBody }> {
   // friendsFake se trae al USARLO, no al cargar: con un import estático, market (al que el arranque llega temprano por
   // filters → parent → market) arrastraría chat/judge/search a evaluarse antes de que filters y parent existan.
   const friends = await import('./friendsFake')
@@ -234,7 +237,7 @@ async function gift(itemId: number, friendId: string): Promise<{ status: number;
       ? { status: 400, body: { ok: false, ec, error: 'Por ahora solo se puede regalar ropa para el avatar.' } }
       : { status: 404, body: { ok: false, ec, error: 'Ese regalo no está en la Tienda.' } }
   }
-  const target = friends.giftCheck(friendId, r.accessoryId, theRopa(r))
+  const target = friends.giftCheck(req, friendId, r.accessoryId, theRopa(r))
   if (!target.ok) return { status: target.status, body: { ok: false, ec, error: target.error } }
   if (ec < r.price) return { status: 200, body: { ok: false, ec, error: `Te faltan ${fmt(r.price - ec)} ⚡` } }
   const paid = spendEc(r.price, `Regalo para ${target.nick}: ${r.title}`)
@@ -255,8 +258,9 @@ function parseItemId(b: unknown): number | null | 'falta' {
 /* ---------- rutas ---------- */
 export async function marketRoutes(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
   // "Si el papá dice que no existe, no existe" (audio 22): con la Tienda apagada no hay premios,
-  // ni canjes, ni lista de deseos. Antes que cualquier otra validación (fail-closed).
-  if (!featureOn('tienda')) return send(res, 403, OFF)
+  // ni canjes, ni lista de deseos. Antes que cualquier otra validación (fail-closed). Es un candado del CHICO: el adulto
+  // activo pasa (docs/USUARIOS.md §4).
+  if (isChildReq(req) && !featureOn('tienda')) return send(res, 403, OFF)
   const path = url.pathname.replace(/\/+$/, '')
   if (path === '/api/market') {
     if (req.method !== 'GET') return send(res, 405, { error: 'Método no permitido: usá GET.' })
@@ -296,7 +300,7 @@ export async function marketRoutes(req: IncomingMessage, res: ServerResponse, ur
     if (itemId === null) return send(res, 400, { ok: false, ec: summary().ec, error: 'El regalo (itemId) tiene que ser un número entero positivo.' })
     const friendId = (body as Record<string, unknown>).friendId
     if (typeof friendId !== 'string' || !/^[\w-]{1,40}$/.test(friendId)) return send(res, 400, { ok: false, ec: summary().ec, error: 'Falta el amigo (friendId).' })
-    const g = await gift(itemId, friendId)
+    const g = await gift(req, itemId, friendId)
     return send(res, g.status, g.body)
   }
   return send(res, 404, { error: 'not found' })

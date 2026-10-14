@@ -9,7 +9,7 @@ import { buildCalendar, endOf } from '../lib/calendar';
 /** Cada cuánto se rearma la pantalla con la hora nueva ("faltan 2 horas", la clase que pasa a "Ahora mismo"). */
 const TICK_MS = 30_000;
 
-/** Calendario (/calendario): las clases del chico con los profes que contrató su familia en la Zona de padres
+/** Calendario (/calendario): las clases del chico con los profes que le contrató el adulto en Familia (la ex Zona de padres)
  *  (api.calendar(): sin precios ni nada que gestionar). Arriba la próxima clase y después UN SOLO listado con
  *  todas las que vienen, agrupadas por día, que scrollea con la página (pedido 11-oct: sin tira semanal).
  *  Se mantiene al día solo: relee al volver a la pestaña (el padre puede haber contratado o cancelado en otra)

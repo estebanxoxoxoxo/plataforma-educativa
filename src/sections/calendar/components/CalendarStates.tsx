@@ -1,6 +1,6 @@
 /** Estados del Calendario sin clases para mostrar. Puros. */
 
-/** Vacío: todavía no hay profes contratados. Invita, pero sin link a la Zona de padres (el chico no gestiona). */
+/** Vacío: todavía no hay profes contratados. Invita, pero sin link a Familia (el chico no gestiona). */
 export function CalendarEmpty() {
   return (
     <section className="cal-empty" aria-labelledby="cal-empty-t">

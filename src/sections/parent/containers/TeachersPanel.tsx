@@ -16,8 +16,8 @@ const NET_ERR = 'No se pudo completar. Revisá la conexión y probá de nuevo.';
  *  "Contactar" abre la hoja de reserva (día + hora semanal); al confirmar, el server agenda las próximas clases y el
  *  chico las ve en su Calendario (/calendario). Un profe contratado muestra su horario y se puede cancelar (con
  *  confirmación en la tarjeta). Nada optimista: después de cada acción se relee la lista (lo que se ve es lo que guardó
- *  el server). Van con la SESIÓN del portón (parentCall: sin ella el server responde 401 y la zona vuelve al PIN; deuda
- *  saldada 14-oct). El calendario que se relee al contratar es el público del chico. */
+ *  el server). Van con la sesión del padre —desde el 14-oct, la del ADULTO activo, implícita (parentCall; un chico recibe
+ *  401)—. El calendario que se relee al contratar es el público del chico. */
 export function TeachersPanel({ kid }: { kid: string }) {
   const [list, setList] = useState<Teacher[] | null>(null);
   const [failed, setFailed] = useState(false);
