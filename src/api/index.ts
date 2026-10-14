@@ -44,7 +44,8 @@ async function http<T>(path: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   // Las rutas del padre van con la sesión abierta por el PIN (menos las dos públicas que lee el chico).
-  if (parentToken && path.startsWith('/api/parent/')) headers['X-Parent-Token'] = parentToken;
+  // La sesión del portón viaja a TODO lo del padre: /api/parent/*, la ingesta de YouTube y Profesores.
+  if (parentToken && (path.startsWith('/api/parent/') || path.startsWith('/api/mytube/admin/') || path.startsWith('/api/teachers'))) headers['X-Parent-Token'] = parentToken;
   const r = await fetch(path, { method, headers, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
   if (!r.ok) throw new ApiError(r.status, `HTTP ${r.status}`);
   const data = (await r.json()) as T;
@@ -104,6 +105,8 @@ export const api = {
   parentTopics: (patch: Partial<ParentTopics>) => http<ParentTopics>('/api/parent/topics', patch),
   parentWords: (extra: string[]) => http<ParentWords>('/api/parent/words', { extra }),
   parentVolume: (patch: Partial<ParentVolume>) => http<ParentVolume>('/api/parent/volume', patch),
+  /** Zona horaria de la familia (deuda 14-oct): IANA o null = la del server. Con la sesión del portón. */
+  parentTz: (tz: string | null) => http<{ tz: string | null }>('/api/parent/tz', { tz }),
   /** Dial de animación del Feed del chico (v6): calmo / normal / vivo. Vive con la sesión del portón. */
   parentFeedMotion: (motion: FeedMotion) => http<{ feedMotion: FeedMotion }>('/api/parent/feed-motion', { motion }),
   parentAlerts: () => http<{ alerts: ParentAlert[] }>('/api/parent/alerts'),
@@ -147,7 +150,8 @@ export const api = {
   mtSetChannelDesc: (channelId: string, desc: string) => http<{ ok: boolean }>('/api/mytube/admin/channel-desc', { channelId, desc }),
   toggleFollow: (channelId: string, value?: boolean) => http<{ followed: boolean }>('/api/space/follow', { channelId, value }),
 
-  playlists: () => http<{ playlists: Playlist[] }>('/api/space/playlists'),
+  /** Con `videoId`, cada lista además dice si YA contiene ese video (`has`) — para marcar en «＋ Lista». */
+  playlists: (videoId?: string) => http<{ playlists: Playlist[] }>(`/api/space/playlists${videoId ? `?video=${encodeURIComponent(videoId)}` : ''}`),
   playlist: (id: number) => http<PlaylistDetail>(`/api/space/playlist?id=${id}`),
   createPlaylist: (name: string, videoId?: string) => http<Playlist>('/api/space/playlists/create', { name, videoId }),
   renamePlaylist: (id: number, name: string) => http<{ ok: boolean }>('/api/space/playlists/rename', { id, name }),

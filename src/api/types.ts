@@ -36,6 +36,8 @@ export type ArticleResponse =
   | { status: 'error'; reason: string };
 
 export type Video = VideoResult & {
+  /** Relacionados (deuda 14-oct, como el POC): primero del mismo canal, después similares por tema; hasta 12, ya filtrados. */
+  related?: VideoResult[];
   durationSec: number; reviewed: boolean;
   /** Datos del canal y del video como los muestra YouTube */ subscribers: string; verified: boolean; likes: string;
   channelThumb?: string;
@@ -74,7 +76,8 @@ export type MtAdminChannel = { channelId: string; title: string; handle?: string
 /** `error` = el código del POC (URL_INVALIDA, YA_EXISTE, SIN_KEY_YOUTUBE, …) o el mensaje de la falla. */
 export type MtIngestResult = { ok: true; added: number; title: string } | { ok: false; error: string };
 
-export type Playlist = { id: number; name: string; count: number; cover?: string };
+export type Playlist = { id: number; name: string; count: number; cover?: string;
+  /** Solo cuando se pidió con ?video=<id>: esa lista ya contiene el video (lo marca la hoja «＋ Lista»). */ has?: boolean };
 export type PlaylistDetail = { id: number; name: string; videos: VideoResult[] };
 
 /* ---------- After Day (porte Smarty W6): la lista de audio curada por el padre; el chico la escucha
@@ -87,7 +90,8 @@ export type AfterDayTrack = { videoId: string; url: string; title?: string; thum
 export type DaySchedule = { open: boolean; from: string; to: string }; // "HH:MM" [from, to)
 export type FeatureSchedule = { restrictionActive: boolean; week: DaySchedule[] };
 export type SectionKey = 'chat' | 'buscar' | 'mytube' | 'aprender' | 'tienda' | 'calendario' | 'espacio' | 'afterday';
-export type SchedulesResponse = { schedules: Partial<Record<SectionKey, FeatureSchedule>>; /** reloj del server (ms) */ serverNow: number };
+export type SchedulesResponse = { schedules: Partial<Record<SectionKey, FeatureSchedule>>; /** reloj del server (ms) */ serverNow: number;
+  /** Zona horaria IANA de la familia (null = la del server); las franjas y el daypart se evalúan en ella. */ tz?: string | null };
 
 /* ---------- Progreso real: XP semanal (el puntaje ÚNICO de liga/zona/país) + Energy Coin ---------- */
 export type ProgressSummary = {
@@ -257,6 +261,7 @@ export type ParentPreset = {
   spec: { features: ParentFeatures; topics: ParentTopics; words: string[]; volume: ParentVolume };
 };
 export type ParentConfig = { topics: ParentTopics; words: ParentWords; volume: ParentVolume; preset: string | null;
+  /** Zona horaria IANA de la familia (null/ausente = la del server). */ tz?: string | null;
   /** Dial de animación del Feed del chico (v6; default 'normal'). */
   feedMotion: FeedMotion };
 
