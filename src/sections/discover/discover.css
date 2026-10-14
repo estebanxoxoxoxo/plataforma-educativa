@@ -172,6 +172,27 @@
    una notebook y la vista se centra también en vertical); en ventanas chicas ocupa la columna entera. */
 #v-player{display:grid;grid-template-columns:minmax(0,760px);gap:14px 24px;align-content:safe center;justify-content:center}
 #v-player .back{grid-column:1/-1;color:#0B6B66}
+/* .pmain = el video + sus datos (antes eran hijos directos de la grilla: mismo espacio de 14px entre ellos). */
+#v-player .pmain{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;min-width:0;align-content:start}
+/* Panel del reproductor (relacionados / "En la lista", como el POC, VideoSidePanel): debajo del video en la misma columna
+   de 760; APAISADO con lugar (la vista mide ≥ 720 px de ancho y es más ancha que alta: VideoPage pone .pwide) va AL
+   COSTADO y la vista usa la columna entera (--content-w: nunca más ancha). */
+#v-player.pwide{grid-template-columns:minmax(0,1fr) 340px;justify-content:stretch;align-content:start;align-items:start}
+.prel{min-width:0}
+.prel-h{margin:2px 0 12px;font-size:15px;font-weight:800;color:var(--ink)}
+.prel-list{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}
+.prel-item{display:grid;grid-template-columns:160px minmax(0,1fr);gap:12px;align-items:start;padding:6px;border-radius:10px;text-align:left;cursor:pointer;transition:background-color .15s}
+.prel-item:hover{background:#EDF0F7}
+.prel-item.on{background:#E2F5F3;cursor:default}
+.prel-th{position:relative;display:block;aspect-ratio:16/9;border-radius:7px;overflow:hidden;background:var(--line)}
+.prel-th img{display:block;width:100%;height:100%;object-fit:cover}
+.prel-dur{position:absolute;right:5px;bottom:5px;background:rgba(20,26,44,.85);color:#fff;font-size:11px;font-weight:800;padding:1px 6px;border-radius:3px}
+.prel-now{position:absolute;inset:0;display:grid;place-items:center;background:rgba(14,18,32,.35);color:#fff}
+.prel-now svg{width:22px;height:22px}
+.prel-tx{display:grid;gap:4px;min-width:0;padding-top:1px}
+.prel-tx b{font-size:14px;line-height:1.3;font-weight:800;color:var(--ink);overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.prel-tx small{font-size:12.5px;font-weight:700;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prel-item.on .prel-tx b,.prel-item.on .prel-tx small{color:var(--teal-d)}
 .player{position:relative;aspect-ratio:16/9;border-radius:7px;overflow:hidden;background:#0E1220}
 .pframe{position:absolute;inset:0}
 .pframe > img{width:100%;height:100%;display:block;object-fit:cover}

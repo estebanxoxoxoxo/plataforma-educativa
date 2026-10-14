@@ -86,11 +86,15 @@ literal del POC: NO se edita salvo pedido explícito.
 - `npx tsc -b --force` y `npx tsc -p tsconfig.server.json --noEmit` limpios; `npm run build` verde.
 - E2E con Edge headless (playwright-core, `channel:'msedge'`): script `.mjs` en el scratchpad de la
   sesión, patrón de los existentes (navegar, `waitForSelector`, screenshots a `shots/`, juntar
-  errores de consola y terminar con `console.log('ERR', errs)`). El dev ya corre: web 5173, api 8787
-  (tsx watch recarga solo; si 8787 no responde, el watch crasheó: mirá el error de compilación).
-- Los puertos 5173/8787 son del dev de INNERITH: no levantes dev servers de otros proyectos
-  (smarty-poc, etc.) ni ocupes esos puertos — ya pasó que un Vite ajeno tomó el 5173 y todos vieron
-  otra app. Si necesitás un entorno propio, usá puertos efímeros y apagalo al terminar.
+  errores de consola y terminar con `console.log('ERR', errs)`). Si el dev del usuario ya corre
+  (web 5173, api 8787: `npm run dev` lo levanta él), usalo (tsx watch recarga solo; si 8787 no
+  responde, el watch crasheó: mirá el error de compilación). Si NO corre, levantá el tuyo: api en
+  8787 (`npx tsx watch --env-file=server/.env server/src/index.ts`) y web en 5188
+  (`npx vite --port 5188 --strictPort`) — y MATALOS al terminar la tanda (listá el PID al
+  levantarlos; ya quedó un tsx watch huérfano y confundió todo).
+- El 5173 es del `npm run dev` DEL USUARIO: no lo ocupes nunca (ni con tu web de QA ni con dev
+  servers de otros proyectos como smarty-poc) — ya pasó que un Vite ajeno tomó el 5173 y todos
+  vieron otra app. El web de QA de agentes vive en 5188.
 - Mirá al menos una captura con tus propios ojos antes de dar por buena la estética.
 
 ## Qué actualizar al terminar una feature

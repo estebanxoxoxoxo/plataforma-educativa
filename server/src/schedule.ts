@@ -6,8 +6,9 @@
 // una sección (o `restrictionActive:false`) = siempre abierta. El FEED (la home) nunca se gatea.
 // CONFIG del padre (regla 9): PERSISTE en server/data/schedules.json, FUERA de /api/demo/reset.
 //
-//   GET  /api/schedules → { schedules, serverNow }   (público: el menú del chico y la pantalla "cerrado" pintan con esto;
-//        serverNow para evaluar la franja con la hora del SERVER y no con el reloj del cliente)
+//   GET  /api/schedules → { schedules, serverNow, tz }   (público: el menú del chico y la pantalla "cerrado" pintan con esto;
+//        serverNow para evaluar la franja con la hora del SERVER y no con el reloj del cliente; tz = la zona horaria de la
+//        familia, IANA o null = la del server)
 //   POST /api/parent/schedules {patch} → { schedules, serverNow }   (vive en parent.ts, con la sesión; valida con
 //        `checkPatch` y guarda con `patchSchedules`)
 //
@@ -17,11 +18,16 @@
 // más tarde (v1 del POC: no mira días siguientes).
 // QUIRK FIEL (informe 03 §6): cerrar la franja NO corta el audio de fondo que ya sonaba (el server no puede, y el cliente
 // a propósito no lo toca).
+// ZONA HORARIA DE LA FAMILIA (deuda 14-oct): el día y la hora de la franja se leen en la zona IANA que eligió el padre
+// (parent.json `tz`, Zona de padres → Límites) con el helper Intl compartido con el cliente (src/shared/lib/zonedClock.ts);
+// sin zona (Automática), en la del server, como antes. El dato lo tiene parent.ts y lo PRESTA con setFamilyTzSource (así
+// este módulo no importa parent.ts: parent.ts ya importa éste).
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { join } from 'node:path'
 import { SERVER_ROOT } from './config'
 import { send } from './web'
+import { wallClock } from '../../src/shared/lib/zonedClock'
 
 export type SectionKey = 'chat' | 'buscar' | 'mytube' | 'aprender' | 'tienda' | 'calendario' | 'espacio' | 'afterday'
 export interface DaySchedule { open: boolean; from: string; to: string }
@@ -61,6 +67,12 @@ function write(next: Schedules): boolean {
   }
 }
 
+/* ---------- la zona horaria de la familia (la presta parent.ts, dueño del dato) ---------- */
+let tzSource: () => string | null = () => null
+export function setFamilyTzSource(fn: () => string | null): void { tzSource = fn }
+/** La zona IANA de la familia, o null = la del server. */
+export const familyTzNow = (): string | null => tzSource()
+
 export function allSchedules(): Schedules { return schedules }
 export function isSectionKey(k: string): k is SectionKey { return (KEYS as string[]).includes(k) }
 
@@ -78,18 +90,20 @@ function parseHHMM(s: string): number | null {
   return h * 60 + min
 }
 
-/** ¿Abierta en `now` según este horario? Fail-safe: sin restricción o con datos incompletos/inválidos ⇒ abierta. */
-export function isOpenIn(sched: FeatureSchedule | undefined, now: Date): boolean {
+/** ¿Abierta en `now` según este horario? Fail-safe: sin restricción o con datos incompletos/inválidos ⇒ abierta.
+ *  `tz` = la zona de la familia (null/ausente = la del server). */
+export function isOpenIn(sched: FeatureSchedule | undefined, now: Date, tz?: string | null): boolean {
   try {
     if (!sched || !sched.restrictionActive) return true
     const week = sched.week
     if (!week || typeof week !== 'object') return true // forma inválida (ej. week ausente) → fail-safe abierto
-    const day = (week as Record<number, DaySchedule | undefined>)[now.getDay()]
+    const clock = wallClock(now, tz)
+    const day = (week as Record<number, DaySchedule | undefined>)[clock.day]
     if (!day) return true // día sin datos → no encerrar
     if (!day.open) return false // día explícitamente cerrado
     const from = parseHHMM(day.from), to = parseHHMM(day.to)
     if (from == null || to == null) return true // datos inválidos → fail-safe abierto
-    const cur = now.getHours() * 60 + now.getMinutes()
+    const cur = clock.minutes
     if (to <= from) return cur >= from || cur < to // ventana que cruza medianoche (o 24 h si from == to)
     return cur >= from && cur < to
   } catch {
@@ -97,21 +111,22 @@ export function isOpenIn(sched: FeatureSchedule | undefined, now: Date): boolean
   }
 }
 /** "Se abre de nuevo a las HH:MM" si HOY abre más tarde; null si no se puede precisar. */
-export function nextOpenLabelIn(sched: FeatureSchedule | undefined, now: Date): string | null {
+export function nextOpenLabelIn(sched: FeatureSchedule | undefined, now: Date, tz?: string | null): string | null {
   try {
     if (!sched || !sched.restrictionActive) return null
-    const day = (sched.week as Record<number, DaySchedule | undefined> | undefined)?.[now.getDay()]
+    const clock = wallClock(now, tz)
+    const day = (sched.week as Record<number, DaySchedule | undefined> | undefined)?.[clock.day]
     if (day?.open) {
       const from = parseHHMM(day.from)
-      const cur = now.getHours() * 60 + now.getMinutes()
+      const cur = clock.minutes
       if (from != null && cur < from) return day.from
     }
     return null
   } catch { return null }
 }
-/** ¿La sección está abierta AHORA (reloj del server)? */
-export function isOpen(key: SectionKey, now: Date = new Date()): boolean { return isOpenIn(schedules[key], now) }
-export function nextOpenLabel(key: SectionKey, now: Date = new Date()): string | null { return nextOpenLabelIn(schedules[key], now) }
+/** ¿La sección está abierta AHORA (reloj del server, en la zona de la familia)? */
+export function isOpen(key: SectionKey, now: Date = new Date()): boolean { return isOpenIn(schedules[key], now, tzSource()) }
+export function nextOpenLabel(key: SectionKey, now: Date = new Date()): string | null { return nextOpenLabelIn(schedules[key], now, tzSource()) }
 
 /* ---------- edición del padre ---------- */
 type Check<T> = { ok: true; value: T } | { ok: false; error: string }
@@ -201,7 +216,7 @@ export function closedSectionFor(pathname: string, now: Date = new Date()): { ke
 
 export async function scheduleRoutes(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
   if (url.pathname === '/api/schedules' && req.method === 'GET') {
-    return send(res, 200, { schedules, serverNow: Date.now() })
+    return send(res, 200, { schedules, serverNow: Date.now(), tz: tzSource() })
   }
   return send(res, 404, { error: 'No existe.' })
 }

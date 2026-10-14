@@ -4,7 +4,9 @@ import type { Playlist } from '../../api/types';
 import { IcListMusic } from './icons';
 
 /** Hoja "Agregar a una lista": listas del chico + crear una nueva (molde del ListPicker de LISTAS.md).
- *  Solo referencia videoIds ya aprobados; el server valida contra el catálogo. */
+ *  Solo referencia videoIds ya aprobados; el server valida contra el catálogo.
+ *  Como el ListPicker del POC: las listas que YA tienen el video vienen marcadas con ✓ y no se pueden tocar
+ *  (`api.playlists(videoId)` → `has`, deuda 14-oct). */
 export function ListSheet({ open, videoId, onClose }: { open: boolean; videoId: string; onClose: () => void }) {
   const [lists, setLists] = useState<Playlist[] | null>(null);
   const [added, setAdded] = useState<Record<number, boolean>>({});
@@ -16,8 +18,8 @@ export function ListSheet({ open, videoId, onClose }: { open: boolean; videoId: 
   useEffect(() => {
     if (!open) return;
     setDone(''); setAdded({}); setCreating(false); setName('');
-    api.playlists().then(({ playlists }) => setLists(playlists)).catch(() => setLists([]));
-  }, [open]);
+    api.playlists(videoId).then(({ playlists }) => setLists(playlists)).catch(() => setLists([]));
+  }, [open, videoId]);
 
   if (!open) return null;
 
@@ -48,12 +50,17 @@ export function ListSheet({ open, videoId, onClose }: { open: boolean; videoId: 
           <h3 className="shtitle">Agregar a una lista</h3>
           <div className="shlist">
             {lists === null && <p className="shempty">Cargando…</p>}
-            {lists?.map((l) => (
-              <button key={l.id} className="shfolder" disabled={!!added[l.id]} onClick={() => add(l)}>
-                {l.cover ? <img className="fem cover" src={l.cover} alt="" referrerPolicy="no-referrer" /> : <span className="fem"><IcListMusic /></span>}
-                <b>{l.name}</b><small>{l.count} {l.count === 1 ? 'video' : 'videos'}</small>
-              </button>
-            ))}
+            {lists?.map((l) => {
+              const yaEsta = !!added[l.id] || !!l.has; // el `yaEsta` del ListPicker del POC
+              return (
+                <button key={l.id} className="shfolder" disabled={yaEsta} onClick={() => add(l)}
+                  aria-label={yaEsta ? `${l.name}: ya tiene este video` : undefined}>
+                  {l.cover ? <img className="fem cover" src={l.cover} alt="" referrerPolicy="no-referrer" /> : <span className="fem"><IcListMusic /></span>}
+                  <b>{l.name}</b><small>{l.count} {l.count === 1 ? 'video' : 'videos'}</small>
+                  {yaEsta && <span className="shyes" aria-hidden="true">✓</span>}
+                </button>
+              );
+            })}
             {lists?.length === 0 && !creating && <p className="shempty">Todavía no tenés listas.</p>}
             {creating ? (
               <div className="shnew">

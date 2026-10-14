@@ -10,7 +10,8 @@
 //     Las páginas siguientes siguen la edición, más vieja, sin hero ni resumen; la última trae next=null ("Estás al día").
 //     El cursor es la posición en la edición sembrada: lo que entra en vivo va siempre arriba de la primera página, así
 //     una ráfaga nueva no corre las páginas que el chico ya pidió.
-//   - FRANJA DEL DÍA (hora REAL del server, 6/13/20 h; el subtítulo del Feed usa los mismos cortes): mañana = más para
+//   - FRANJA DEL DÍA (hora REAL del server, 6/13/20 h, en la ZONA HORARIA DE LA FAMILIA si el padre eligió una —parent.ts
+//     familyTz, deuda 14-oct—; el subtítulo del Feed usa los mismos cortes): mañana = más para
 //     aprender (lecturas y rutas primero) · tarde = más para explorar (videos antes) · noche = más tranquila (videos de
 //     hasta 6 min y el hero como repaso sin apuro). El resumen lo dice así y avisa qué viene después: es verdad.
 //   - Cada ítem trae su "por qué" (`reason`) en lenguaje de chico, en el eje de SU interés ("Porque te gustan los
@@ -47,7 +48,8 @@ import {
   type CloseNews, type Medal, type NpcRace,
 } from './leaguesFake'
 import { matchBlockedWord } from './filters'
-import { familyBlockedTerms, familyTopics, featureOn, feedMotion, topicHit, type FeedMotion } from './parent'
+import { familyBlockedTerms, familyTopics, familyTz, featureOn, feedMotion, topicHit, type FeedMotion } from './parent'
+import { wallClock } from '../../src/shared/lib/zonedClock'
 import { LEARN_EC, resultRows } from './learnResults'
 import { catalogRoutes, type CatalogRoute } from './learnRoutes'
 import { routeInProgress, routeRuns, type RouteRun } from './learnProgress'
@@ -287,11 +289,12 @@ function build(): Pool {
 
 /* ---------- la edición: franja del día + plantilla editorial ---------- */
 type Daypart = 'manana' | 'tarde' | 'noche'
-/** Franja por la hora REAL del server (mismos cortes que el subtítulo del Feed en el cliente: 6, 13 y 20 h). */
-const daypartOf = (d: Date): Daypart => { const h = d.getHours(); return h >= 6 && h < 13 ? 'manana' : h >= 13 && h < 20 ? 'tarde' : 'noche' }
+/** Franja por la hora REAL del server (mismos cortes que el subtítulo del Feed en el cliente: 6, 13 y 20 h), leída en la ZONA
+ *  HORARIA DE LA FAMILIA si el padre eligió una (deuda 14-oct; sin zona, la del server). */
+const daypartOf = (d: Date): Daypart => { const h = wallClock(d, familyTz()).hour; return h >= 6 && h < 13 ? 'manana' : h >= 13 && h < 20 ? 'tarde' : 'noche' }
 const DAYS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
-/** La madrugada (0-5 h) todavía es la noche del día anterior. */
-const dayName = (d: Date) => DAYS[(d.getDay() + (d.getHours() < 6 ? 6 : 0)) % 7]
+/** La madrugada (0-5 h) todavía es la noche del día anterior. En la zona de la familia, como la franja. */
+const dayName = (d: Date) => { const c = wallClock(d, familyTz()); return DAYS[(c.day + (c.hour < 6 ? 6 : 0)) % 7] }
 const DP_NAME: Record<Daypart, string> = { manana: 'mañana', tarde: 'tarde', noche: 'noche' }
 /** Lo que el resumen confiesa de la mezcla (y es verdad: lo hace la plantilla de abajo). */
 const DESC: Record<Daypart, string> = {

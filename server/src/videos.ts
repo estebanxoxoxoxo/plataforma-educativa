@@ -76,15 +76,66 @@ function syncFamily(mi: MiniSearch): void {
 
 const STOPWORDS = new Set(['de', 'del', 'la', 'el', 'los', 'las', 'un', 'una', 'unos', 'unas', 'y', 'o', 'u', 'que', 'con', 'en', 'a', 'al', 'por', 'para', 'sobre', 'su', 'sus', 'lo', 'le', 'les', 'se', 'mas', 'muy', 'mi', 'tu', 'necesito', 'necesitas', 'quiero', 'queres', 'quieres', 'ver', 'mira', 'mirar', 'mostrame', 'muestrame', 'mostra', 'dame', 'busca', 'buscar', 'busco', 'pone', 'poneme', 'video', 'videos', 'algo', 'cosa', 'cosas'])
 
-/* searchVideos de Smarty: sin tema concreto → nada (found:0 honesto). Filtra palabras bloqueadas en el título. */
-export function searchVideos(query: string, limit = ov.num('const.videoMostrados')): CatalogVideo[] {
+/** La búsqueda del índice del POC (searchVideos de videoSearch.ts): muletillas fuera, BM25 + boosts por campo, sin
+ *  prefijo, fuzzy 0.2; AND por defecto y OR para el relacionado. Devuelve los hits CRUDOS (ids en orden de relevancia). */
+function searchHits(query: string, combineWith: 'AND' | 'OR') {
   const terms = normalize(query ?? '').split(/[^a-z0-9]+/).filter(t => t && !STOPWORDS.has(t))
   if (!terms.length) return []
   const boost = { title: ov.num('const.videoScoreTitle'), tags: 2.5, source: ov.num('const.videoScoreSource'), topics: 2, description: ov.num('const.videoScoreDesc') }
-  return ensureIndex().search(terms.join(' '), { boost, prefix: false, fuzzy: 0.2, combineWith: 'AND' })
+  return ensureIndex().search(terms.join(' '), { boost, prefix: false, fuzzy: 0.2, combineWith })
+}
+
+/* searchVideos de Smarty: sin tema concreto → nada (found:0 honesto). Filtra palabras bloqueadas en el título. */
+export function searchVideos(query: string, limit = ov.num('const.videoMostrados')): CatalogVideo[] {
+  return searchHits(query, 'AND')
     .map(r => getCatalogVideo(r.id as string))
     .filter((v): v is CatalogVideo => !!v && matchBlockedWord(v.title) === null)
     .slice(0, limit)
+}
+
+/* ---------- relacionados del reproductor (relatedVideos de smarty-poc app/src/lib/videoSearch.ts, TAL CUAL) ----------
+   Híbrido: primero MÁS DE ESTE CANAL (los más nuevos por addedAt) y, si faltan, SIMILARES POR TEMA (el índice con OR sobre
+   título + topics + 5 tags del video, pidiendo limit × 3). Dedup, sin el video actual y con las palabras bloqueadas (de
+   fábrica y de la familia) filtradas ANTES del corte: muestra hasta `limit` visibles, no menos. Sobre el catálogo aprobado
+   ENTERO: el base + los videos de la familia (lo des-aprobado ya no está en ninguno de los dos). Deuda de W5, 14-oct. */
+let baseByChannel: Map<string, CatalogVideo[]> | null = null
+/** Los videos de un canal (base, en orden de ingesta; índice perezoso) + los de la familia: la tabla única del POC. */
+function channelRows(channelId: string): CatalogVideo[] {
+  if (!baseByChannel) {
+    baseByChannel = new Map()
+    for (const v of catalog) {
+      if (!v.channelId) continue
+      const arr = baseByChannel.get(v.channelId)
+      if (arr) arr.push(v)
+      else baseByChannel.set(v.channelId, [v])
+    }
+  }
+  return [...(baseByChannel.get(channelId) ?? []), ...(family?.all().filter(v => v.channelId === channelId) ?? [])]
+}
+export function relatedVideos(video: CatalogVideo, limit: number): CatalogVideo[] {
+  const out: CatalogVideo[] = []
+  const seen = new Set<string>([video.videoId])
+  const tryPush = (v: CatalogVideo) => {
+    if (out.length >= limit || seen.has(v.videoId)) return
+    if (matchBlockedWord(v.title) !== null) return
+    seen.add(v.videoId); out.push(v)
+  }
+  // 1) Mismo canal, más recientes primero.
+  if (video.channelId) {
+    const sameCh = channelRows(video.channelId)
+    sameCh.sort((a, b) => (b.addedAt ?? 0) - (a.addedAt ?? 0))
+    for (const v of sameCh) tryPush(v)
+  }
+  // 2) Completar con similares por tema/título (pedimos de más para descartar vistos/bloqueados). Red de seguridad del
+  //    POC: si el índice falla, nos quedamos con los del mismo canal.
+  if (out.length < limit) {
+    try {
+      const q = [video.title, ...(video.topics ?? []), ...(video.tags ?? []).slice(0, 5)].join(' ').trim()
+      const hits = searchHits(q, 'OR').slice(0, limit * 3).map(h => h.id as string).filter(id => !seen.has(id))
+      for (const id of hits) { const v = getCatalogVideo(id); if (v) tryPush(v) } // en orden de relevancia
+    } catch (e) { console.warn('[videos] relatedVideos: índice no disponible, solo mismo canal', e) }
+  }
+  return out
 }
 
 /* ---------- metadatos de YouTube (Data API v3, 1 unidad por llamada; cache en memoria) ---------- */
@@ -163,5 +214,7 @@ export async function getVideo(id: string) {
     ...toVideoResult(v), channelId: v.channelId, durationSec: v.duration, reviewed: true, verified: false,
     subscribers: ch.subscribers != null ? `${compact(ch.subscribers)} de suscriptores` : '',
     likes: m.likes != null ? compact(m.likes) : '', channelThumb: ch.thumb,
+    // Relacionados del POC (Video.related, contrato 14-oct): hasta 12, ya filtrados.
+    related: relatedVideos(v, 12).map(toVideoResult),
   }
 }

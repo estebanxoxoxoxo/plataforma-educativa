@@ -5,6 +5,7 @@ import type { Teacher, TeacherSlot } from '../../../api/types';
 import { TeacherCard } from '../cards/TeacherCard';
 import { BookingSheet, type BookingState } from '../components/BookingSheet';
 import { PanelState } from '../components/PanelState';
+import { parentCall } from '../lib/adultGate';
 import { takenSlots, usd } from '../lib/teachers';
 
 type Sheet = { id: string; state: BookingState } | null;
@@ -15,8 +16,8 @@ const NET_ERR = 'No se pudo completar. Revisá la conexión y probá de nuevo.';
  *  "Contactar" abre la hoja de reserva (día + hora semanal); al confirmar, el server agenda las próximas clases y el
  *  chico las ve en su Calendario (/calendario). Un profe contratado muestra su horario y se puede cancelar (con
  *  confirmación en la tarjeta). Nada optimista: después de cada acción se relee la lista (lo que se ve es lo que guardó
- *  el server). Los endpoints son públicos como el resto de los fakes (no pasan por la sesión del PIN: parentCall no
- *  aplica); la pantalla vive tras el portón de /padres. */
+ *  el server). Van con la SESIÓN del portón (parentCall: sin ella el server responde 401 y la zona vuelve al PIN; deuda
+ *  saldada 14-oct). El calendario que se relee al contratar es el público del chico. */
 export function TeachersPanel({ kid }: { kid: string }) {
   const [list, setList] = useState<Teacher[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -36,7 +37,7 @@ export function TeachersPanel({ kid }: { kid: string }) {
   const load = useCallback(async () => {
     const my = ++seq.current;
     try {
-      const r = await api.teachers();
+      const r = await parentCall(api.teachers());
       if (alive.current && my === seq.current) { setList(r.teachers); setFailed(false); }
     } catch {
       if (alive.current && my === seq.current) setFailed(true);
@@ -89,7 +90,7 @@ export function TeachersPanel({ kid }: { kid: string }) {
     const id = sheet.id;
     setFor(id, { phase: 'form', busy: true, error: null });
     try {
-      const r = await api.hireTeacher(id, slot);
+      const r = await parentCall(api.hireTeacher(id, slot));
       if (!r.ok) {
         // Rechazo de negocio (ya contratado, horario ocupado…): el motivo va en la hoja y se relee la lista, así las
         // horas ocupadas y el estado del profe quedan al día.
@@ -117,7 +118,7 @@ export function TeachersPanel({ kid }: { kid: string }) {
     inflight.current = true;
     setBusy(t.id);
     try {
-      const r = await api.cancelTeacher(t.id);
+      const r = await parentCall(api.cancelTeacher(t.id));
       await load();
       if (!alive.current) return;
       if (r.ok) setNotice({ text: `Listo: se cancelaron las clases con ${t.name}. Ya no están en el calendario de ${kid}.` });

@@ -4,6 +4,8 @@ import { EC_CHANGED_EVT, api } from '../../api';
 import type { AssignedLeague, Friend, FriendRequest } from '../../api/types';
 import { chatFriendsChanged, openChat, useChatDock } from '../../sections/friends/lib/chatDock';
 import { useFeatures } from '../../sections/parent/lib/features';
+import { useSchedules } from '../../sections/parent/lib/schedules';
+import { wallClock } from '../lib/zonedClock';
 import { Avatar, lookFor } from './Avatar';
 import { IcBell, IcNavLeagues } from './icons';
 
@@ -19,13 +21,25 @@ const POLL_MS = 60_000;
 const LEAGUE_CLOSED_EVT = 'innerith:league-week-closed';
 
 const two = (n: number) => String(n).padStart(2, '0');
-function clockParts(d: Date): { hm: string; date: string } {
-  const date = d.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' }).replace(/\.|,/g, '');
-  return { hm: `${two(d.getHours())}:${two(d.getMinutes())}`, date };
+/** Fecha y hora EN LA ZONA DE LA FAMILIA (la misma que rige franjas y Feed); sin tz —o zona que este
+ *  navegador no conoce—, la local, igual que wallClock (así hm y fecha nunca se contradicen). */
+function clockParts(d: Date, tz?: string | null): { hm: string; date: string; full: string } {
+  const w = wallClock(d, tz);
+  const opts = { weekday: 'short', day: 'numeric', month: 'short' } as const;
+  let date: string, full: string;
+  try {
+    date = d.toLocaleDateString('es-AR', { ...opts, timeZone: tz || undefined }).replace(/\.|,/g, '');
+    full = d.toLocaleString('es-AR', { timeZone: tz || undefined });
+  } catch {
+    date = d.toLocaleDateString('es-AR', opts).replace(/\.|,/g, '');
+    full = d.toLocaleString('es-AR');
+  }
+  return { hm: `${two(w.hour)}:${two(w.minute)}`, date, full };
 }
 
 export function TopBar() {
   const features = useFeatures();
+  const sched = useSchedules(); // tz de la familia + delta con el server, para el reloj
   const dock = useChatDock();
   const [league, setLeague] = useState<AssignedLeague | null>(null);
   const [ec, setEc] = useState<number | null>(null);
@@ -94,7 +108,7 @@ export function TopBar() {
   const unreadWins = dock.wins.filter((w) => w.unread > 0);
   const nickOf = (id: string) => friends.find((f) => f.id === id)?.nick ?? 'Un amigo';
   const notis = (amigosOn ? requests.length : 0) + (amigosOn ? unreadWins.length : 0);
-  const { hm, date } = clockParts(now);
+  const { hm, date, full } = clockParts(new Date(now.getTime() + sched.offset), sched.tz);
 
   async function accept(r: FriendRequest) {
     try {
@@ -125,7 +139,7 @@ export function TopBar() {
         </Link>
       )}
       <span className="tb-spacer" />
-      <span className="tb-clock" title={now.toLocaleString('es-AR')}>
+      <span className="tb-clock" title={full}>
         <b>{hm}</b><span className="tb-date">{date}</span>
       </span>
       {amigosOn && (

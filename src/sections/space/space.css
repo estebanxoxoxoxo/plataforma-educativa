@@ -86,6 +86,8 @@
 .shfolder:disabled{opacity:.55;cursor:default}
 .shfolder b{flex:1;min-width:0;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .shfolder small{color:#6A7390;font-weight:700;font-size:12px}
+/* «＋ Lista»: la lista que YA tiene el video (✓, como el ListPicker del POC) */
+.shfolder .shyes{flex:none;color:#0B6B66;font-weight:800;font-size:16px;line-height:1}
 .fem{flex:none;width:34px;height:34px;border-radius:7px;display:grid;place-items:center;background:#FFF6E3}
 .fem svg{width:22px;height:18px}
 .fem.cover{object-fit:cover}

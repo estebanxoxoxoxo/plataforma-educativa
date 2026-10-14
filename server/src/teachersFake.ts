@@ -32,13 +32,17 @@
 // `since` que no cuadra con su horario se recalcula. Guardar `since` (y no "cuándo se contrató") hace que volver a
 // contratar el mismo horario deje el archivo idéntico.
 //
-// Endpoints PÚBLICOS como el resto de los fakes: la pantalla del padre vive tras el portón de /padres (deuda anotada por
-// el coordinador: moverlos a la sesión del padre cuando el contrato lo incorpore). El calendario es público a propósito:
-// lo lee la UI del chico, y por eso no lleva precios.
+// SESIÓN (deuda saldada 14-oct): los endpoints del PADRE —GET /api/teachers (la lista con precios y lo contratado), POST
+// /api/teachers/hire (contratar con su horario) y POST /api/teachers/cancel— piden la sesión del portón (X-Parent-Token, el
+// mismo chequeo de parent.ts: hasParentSession); sin ella → 401 { error: 'Sesión del padre vencida. Volvé a entrar con el
+// PIN.' }. El calendario (GET /api/calendar) queda PÚBLICO a propósito: lo lee la UI del CHICO (CalendarPage), y por eso
+// no lleva precios; ningún otro endpoint de acá lo lee el chico. (El panel del padre también relee /api/calendar tras
+// contratar, para contar las clases: público, da igual.)
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { SERVER_ROOT, config } from './config'
+import { PARENT_SESSION_EXPIRED, hasParentSession } from './parent'
 import { readJson, send } from './web'
 
 /* ---------- formas (espejo de src/api/types.ts; el server no importa de src/) ---------- */
@@ -269,6 +273,8 @@ function cancel(id: string): { status: number; body: { ok: boolean; error?: stri
 export async function teachersRoutes(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
   const path = url.pathname.replace(/\/+$/, '')
   const method = req.method ?? 'GET'
+  // Lo del PADRE (/api/teachers*) con la sesión del portón; /api/calendar (del chico) sigue público.
+  if (path.startsWith('/api/teachers') && !hasParentSession(req)) return send(res, 401, { error: PARENT_SESSION_EXPIRED })
 
   if (path === '/api/teachers' || path === '/api/calendar') {
     if (method !== 'GET') return send(res, 405, { error: 'Método no permitido: usá GET.' })

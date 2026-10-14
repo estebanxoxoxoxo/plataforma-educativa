@@ -1,6 +1,10 @@
-import { TYPES, type AnyHandle, type DefinitionRecipe, type ResolveChild } from './registry'
+import { CORE_TYPES, type AnyHandle, type DefinitionRecipe, type ResolveChild } from './registryCore'
 import type { MultiChild } from './activities/multi'
 import { SISTEMA_SOLAR } from './activities/flashcards'
+
+/* PORTE INNERITH (tanda "Deudas técnicas", 14-oct): en el POC este archivo importa TYPES de './registry'; acá importa el
+   NÚCLEO del registry (registryCore.ts: el mismo build por Tipo, sin los Boards) para que el SERVER pueda cargarlo y hacer
+   el acuñado seco del import de rutas con ESTE mismo código (src/learn/dryMint.ts). Nada más cambia. */
 
 /* Catálogo de DEFINICIONES (ACTIVIDADES.md §2) como DATO PURO: cada Definición es
    un recipe serializable {typeId, generatorId, params, ...} — persistible en Dexie,
@@ -94,5 +98,5 @@ const resolveChild: ResolveChild = (definitionId, seed) => {
 export function buildDefinition(id: string, seed: number): AnyHandle {
   const r = definitionFor(id)
   if (!r) throw new Error(`[learn] definición desconocida: "${id}" (seed: ${Object.keys(DEFINITIONS).join(', ')}; importadas: ${Object.keys(imported).join(', ') || '—'})`)
-  return TYPES[r.typeId].build(r, seed, resolveChild)
+  return CORE_TYPES[r.typeId].build(r, seed, resolveChild)
 }

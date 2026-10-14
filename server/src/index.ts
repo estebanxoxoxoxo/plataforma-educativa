@@ -169,7 +169,7 @@ createServer(async (req, res) => {
       if (url.pathname === '/api/space/folders') return send(res, 200, space.folderTree())
       if (url.pathname === '/api/space/drive/trash') return send(res, 200, space.trashView())
       // /api/space/channels|channel se RETIRARON (12-oct): MyTube (W5) lee /api/mytube/* desde entonces.
-      if (url.pathname === '/api/space/playlists') return send(res, 200, space.playlists())
+      if (url.pathname === '/api/space/playlists') return send(res, 200, space.playlists(url.searchParams.get('video')))
       if (url.pathname === '/api/space/playlist') {
         const d = space.playlistDetail(Number(url.searchParams.get('id') ?? 0) || 0)
         return d ? send(res, 200, d) : send(res, 404, { error: 'lista' })

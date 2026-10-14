@@ -1,9 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type MouseEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { api } from '../../api';
+import { ApiError, api } from '../../api';
 import type { AvatarLook, Identity, User } from '../../api/types';
 import { MEDAL_INFO, lastWeekLabel, type Medal } from '../../sections/leagues/lib/cycle';
 import { useFeatures } from '../../sections/parent/lib/features';
+import { isSectionOpen, refreshSchedules, useSchedules } from '../../sections/parent/lib/schedules';
 import { ACCESSORIES, AVATAR_COLORS, AVATAR_VARIANT_COUNT, Avatar, accessoryById, avatarVariantName } from './Avatar';
 import { IcClose } from './icons';
 
@@ -144,21 +145,31 @@ export function ProfileCard({ user }: { user?: User }) {
 /* ---------- el guardarropas de Ian (qué ropa compró), para la fila "Tu ropa" ----------
    Lo sabe la Tienda (GET /api/market: ítems kind 'ropa' con `owned`; compras en RAM, regla 9). Se pide al abrir la hoja,
    así está siempre fresco. Con la Tienda apagada por la familia no se pide (no existe): solo queda "Nada" y, si tenía una
-   prenda puesta, esa (para poder sacársela). */
-type Wardrobe = { state: 'loading' | 'ok' | 'off' | 'error'; owned: string[] };
+   prenda puesta, esa (para poder sacársela).
+   Con la Tienda FUERA DE SU FRANJA (horarios por sección, deuda 14-oct): /api/market responde 403 {error:'horario'}, así que
+   tampoco se pide (lo dice el store de horarios, con la hora del server) y la hoja muestra lo mismo que apagada + un aviso
+   suave, sin reintento. Si igual llega un 403 (el store todavía no sabía que cerró), se confirma con el server: cerrada por
+   horario → ese aviso; si no, es otro 403 (p. ej. la apagaron recién: eso lo resuelve useFeatures) → el error de siempre. */
+type Wardrobe = { state: 'loading' | 'ok' | 'off' | 'closed' | 'error'; owned: string[] };
 function useWardrobe(): Wardrobe {
   const tienda = useFeatures()?.tienda;
+  const closed = !isSectionOpen('tienda', useSchedules());
   const [w, setW] = useState<Wardrobe>({ state: 'loading', owned: [] });
   useEffect(() => {
     if (tienda === undefined) return;
     if (!tienda) { setW({ state: 'off', owned: [] }); return; }
+    if (closed) { setW({ state: 'closed', owned: [] }); return; }
     let alive = true;
     api.market().then(
       (m) => { if (alive) setW({ state: 'ok', owned: m.items.flatMap((i) => (i.kind === 'ropa' && i.owned && i.accessoryId ? [i.accessoryId] : [])) }); },
-      () => { if (alive) setW({ state: 'error', owned: [] }); },
+      (e) => {
+        if (!alive) return;
+        if (!(e instanceof ApiError && e.status === 403)) { setW({ state: 'error', owned: [] }); return; }
+        void refreshSchedules().then(() => { if (alive) setW({ state: isSectionOpen('tienda') ? 'error' : 'closed', owned: [] }); });
+      },
     );
     return () => { alive = false; };
-  }, [tienda]);
+  }, [tienda, closed]);
   return w;
 }
 /** Nombre corto para el rótulo de cada opción de ropa (entra debajo de una miniatura de 40 px). */
@@ -182,7 +193,9 @@ function AvatarPicker({ name, current, preset, onClose }: { name: string; curren
   const worn = current?.accessory ?? null;
   /** Se puede elegir: la compró en esta demo o ya la tiene puesta (el look persiste aunque el guardarropas sea RAM). */
   const available = (id: string) => wardrobe.owned.includes(id) || id === worn;
-  const shopOn = wardrobe.state !== 'off';
+  // apagada o cerrada por horario: sin candados ni links a la Tienda (solo "Nada" y la que tenga puesta)
+  const shopOn = wardrobe.state !== 'off' && wardrobe.state !== 'closed';
+  const shopClosed = wardrobe.state === 'closed';
   const ropa = ACCESSORIES.filter((a) => shopOn || a.id === worn);
   const locked = shopOn ? ropa.filter((a) => !available(a.id)) : [];
   const draft: AvatarLook = variant === null ? null : { variant, color, accessory: acc };
@@ -269,7 +282,7 @@ function AvatarPicker({ name, current, preset, onClose }: { name: string; curren
           </div>
         </fieldset>
 
-        {(shopOn || worn) && (
+        {(shopOn || worn || shopClosed) && (
           <fieldset className="idav-set idav-wear" disabled={busy || variant === null} aria-describedby={locked.length ? 'idav-shop' : undefined}>
             <legend className="lbl">Tu ropa{variant === null && <span className="idav-note"> · la ropa va sobre un personaje</span>}</legend>
             <div className="idav-wgrid">
@@ -297,6 +310,7 @@ function AvatarPicker({ name, current, preset, onClose }: { name: string; curren
               <a className="idav-shop" id="idav-shop" href="/tienda#ropa" onClick={toShop}>🔒 Conseguí más ropa en la Tienda →</a>
             )}
             {wardrobe.state === 'error' && <p className="idav-wnote">No pude ver tu ropa ahora. Probá abrir de nuevo en un ratito.</p>}
+            {shopClosed && <p className="idav-wnote idav-wnote--rest" role="status">La Tienda está cerrada a esta hora — tu ropa te espera ✨</p>}
           </fieldset>
         )}
 

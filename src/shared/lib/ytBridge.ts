@@ -18,6 +18,19 @@ export function ytSubscribe(iframe: HTMLIFrameElement | null | undefined): void 
   iframe?.contentWindow?.postMessage(JSON.stringify({ event: 'listening', id: 'innerith', channel: 'widget' }), '*');
 }
 
+/** Video NO disponible (borrado, privado, región, embed apagado): YouTube manda `onError` (con su código), NUNCA 'ended'.
+ *  Devuelve el código, o null si el mensaje no es eso. Aparte de parseYtMessage para no cambiar a sus otros lectores (el
+ *  audio de fondo y las escenas de Learn). Lo usa la cola del reproductor para saltear caídos, como el VideoPlayer del POC. */
+export function parseYtError(e: MessageEvent): number | null {
+  if (!String(e.origin).includes('youtube')) return null;
+  try {
+    const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+    return data?.event === 'onError' ? (typeof data.info === 'number' ? data.info : 0) : null;
+  } catch {
+    return null;
+  }
+}
+
 export type YtState = 'playing' | 'paused' | 'ended' | 'buffering' | 'cued';
 export type YtMessage = { state?: YtState; currentTime?: number; duration?: number; muted?: boolean };
 

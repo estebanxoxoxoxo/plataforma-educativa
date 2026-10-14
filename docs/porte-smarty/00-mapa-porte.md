@@ -171,7 +171,7 @@ IndexedDB se guardan en nuestro server manteniendo formas y semántica de persis
   route-lab simulado, ERR []; el catálogo quedó solo con la seed. **Pendiente W3:** (1) sumar al import
   el acuñado seco COMPLETO (generador + portero, `buildDefinition(id, 1)`): hoy el server valida Tipo y
   generador registrados pero NO el contenido (p. ej. una tarjeta vacía pasa); el registry de W2 importa
-  los Boards (.tsx/CSS), así que el server no lo puede cargar tal cual; (2) la hidratación del motor
+  los Boards (.tsx/CSS), así que el server no lo puede cargar tal cual [**SALDADA 14-oct**, tanda Deudas técnicas A: `registryCore.ts` + `dryMint.ts`]; (2) la hidratación del motor
   necesita las definiciones de TODAS las rutas (hoy: `one` por ruta). **Seed:** el bundle real de
   poc-solar es `route-lab/jobs/poc-solar/60-route-bundle.json` (`fixtures/poc-solar.json` es la salida
   LLM enlatada del modo stub, no un bundle) y `jobs/` lo ignora el `.gitignore` de route-lab → en un
@@ -180,7 +180,7 @@ IndexedDB se guardan en nuestro server manteniendo formas y semántica de persis
   corre con `.\.venv\Scripts\python.exe -m uvicorn server:app --port 5203`. El :5203 de Esteban sirve
   desde la carpeta del POC (arrancó antes de la copia): la QA usó la copia del repo en un puerto efímero
   para no escribir jobs en el POC.
-- **W3+W4 (Learn colapsado + Active Recall) — HECHA 12-oct, sin commitear.** REVISIÓN DE FIDELIDAD (revisor independiente POC↔port, 12-oct) — diferencias asumidas y documentadas: (1) sin "(Beta)" en el subtítulo; (2) skeleton + "Reintentar" si el catálogo no carga (el POC leía Dexie local, sin fallas); (3) la fila grabada: `finishedAt` lo sella el SERVER (contrato), `pct` se clampa a [0,1] y un target vacío da 400 — la urgencia del recall puede moverse por latencia/relojes (demo: misma máquina, nulo); (4) CORREGIDO al cierre: el lector anidado se titula con el TEXTO del link (como el POC), con la URL de respaldo; (5) si falla el guardado de un resultado se pierde con console.error (sin retry: pendiente conocido) y si falla la hidratación de definiciones el botón raíz no aparece hasta reentrar; (6) CORREGIDO al cierre: GET /api/learn-routes filtra `enabled !== false` (paridad useImportedRoutes; hoy sin efecto). Aprender ES Learn (`sections/learn/**`,
+- **W3+W4 (Learn colapsado + Active Recall) — HECHA 12-oct, sin commitear.** REVISIÓN DE FIDELIDAD (revisor independiente POC↔port, 12-oct) — diferencias asumidas y documentadas: (1) sin "(Beta)" en el subtítulo; (2) skeleton + "Reintentar" si el catálogo no carga (el POC leía Dexie local, sin fallas); (3) la fila grabada: `finishedAt` lo sella el SERVER (contrato), `pct` se clampa a [0,1] y un target vacío da 400 — la urgencia del recall puede moverse por latencia/relojes (demo: misma máquina, nulo); (4) CORREGIDO al cierre: el lector anidado se titula con el TEXTO del link (como el POC), con la URL de respaldo; (5) si falla el guardado de un resultado se pierde con console.error (sin retry: pendiente conocido) [**SALDADA 14-oct**, tanda Deudas E: cola con reintentos en orden] y si falla la hidratación de definiciones el botón raíz no aparece hasta reentrar; (6) CORREGIDO al cierre: GET /api/learn-routes filtra `enabled !== false` (paridad useImportedRoutes; hoy sin efecto). Aprender ES Learn (`sections/learn/**`,
   prefijo `ln-`): port EXACTO de `Learn.tsx`, `RutaView.tsx`, `ActivityOverlay.tsx`, `lib/learn.ts` (resolveRoute y
   compañía), `lib/recall.ts` (→ `src/learn/recall.ts`, con `skillMastery`), `recallableTargets` (→ `src/learn/recallActivity.ts`),
   `overlayNav` (useOverlay), `routeCover` y las fases `ReadingView`/`VideoReadingView`. **Mosaico** de las rutas del catálogo
@@ -202,14 +202,14 @@ IndexedDB se guardan en nuestro server manteniendo formas y semántica de persis
   (CourseGrid/CoursePage/CourseCard/CourseCardSkeleton/CourseArt/UnitAccordion/ChapterCard), `server/src/{learn,practice}.ts`
   y `course`/`lastCourse` de `progress.ts` (el "seguí practicando" lo deriva Learn). **Desvíos/recortes documentados**:
   sin iframe TEMP de YouTube en la escena 'ruta' (vuelve a `temaA`, como dice el propio POC) ni panel "Probar YouTube";
-  sin la portada de Wikipedia para rutas de artículo; `trusted` del lector sin equivalente (el server modera siempre);
+  sin la portada de Wikipedia para rutas de artículo [**SALDADA 14-oct**, tanda Deudas D: la pide el SERVER y la guarda en la fila]; `trusted` del lector sin equivalente (el server modera siempre);
   links del cuerpo → lector anidado (el server decide); el reloj de `finishedAt` es el del server (contrato);
   try/catch en el asentado de `equalPowerFade` (bug latente del POC: NotSupportedError al cambiar de escena rápido);
   si una definición rompe al acuñarse se ve el error del POC en vez de tumbar la página. **Hallazgo**: la trampa 31
   real es otra — "Atrás" en la fase de contenido de una posta CIERRA el overlay entero (orden de efectos de React:
   el ActivityOverlay queda arriba de la pila); portado igual que el código. QA: tsc/build/`npm test` (11 suites, 122
   tests: +recall y +resolveRoute) y E2E Edge (≈100 checks de los 10 pedidos + prueba aislada de lectura/repaso de
-  módulo con ruta temporal), ERR []. **Pendiente**: acuñado seco completo al importar (W1), formalizar en types/api
+  módulo con ruta temporal), ERR []. **Pendiente**: ~~acuñado seco completo al importar (W1)~~ (saldada 14-oct), formalizar en types/api
   lo aditivo (`course.emoji` del feed) y podar cursos/práctica del contrato (coordinador).
 - **W5 (MyTube) — HECHA 12-oct, sin commitear.** Port exacto de `MyTube.tsx`, `ChannelView.tsx`, `MisListas.tsx`
   (ListView), `lib/mytube.ts`, `lib/youtube.ts` y la solapa YouTube de `pages.tsx`. **Chico** (`sections/mytube/**`,
@@ -241,7 +241,7 @@ IndexedDB se guardan en nuestro server manteniendo formas y semántica de persis
   (getCatalogVideo/getVideo/searchVideos) para que Buscar, el reproductor, el chat, Mis listas y Drive vean los videos de
   la familia — hasta entonces un video que sumó la familia y no está en `catalog.json` se ve en MyTube pero el reproductor
   lo rechaza; (2) el chip de canal del reproductor → `/mytube/canal/:id` (única puerta a un canal no seguido en el POC);
-  (3) retirar `GET /api/space/channels|channel` (+ `api.channels/channel`, `Channel`, `ChannelDetail`) del contrato.
+  (3) retirar `GET /api/space/channels|channel` (+ `api.channels/channel`, `Channel`, `ChannelDetail`) del contrato. [14-oct, tanda Deudas B y C: el reproductor quedó EXACTO al POC en las 4 diferencias que quedaban —relacionados, cola circular con salto de caídos, «Escuchar de fondo» solo del actual, «＋ Lista» con ✓— y `/api/mytube/admin/*` pide la sesión del portón.]
   QA: E2E Edge (101 checks, ERR []) + prueba aislada de Completar canales y de la trampa del entryId.
 - **W6+W7 (After Day + Horarios por sección) — HECHA 12-oct, sin commitear.** Port exacto de `AfterDay.tsx`,
   `lib/afterday.ts`, `AfterDayTab` (Admin → Listas), `lib/featureSchedule.ts`, `HorariosEditor` (Ajustes) y el filtrado +
@@ -289,6 +289,38 @@ IndexedDB se guardan en nuestro server manteniendo formas y semántica de persis
   sonando; 1280/1024/820), ERR []. Estado restaurado: `schedules.json` = `{}` y `music.json` = `[]` (sin seed). **Pendiente
   (coordinador):** (1) ¿seed de After Day para el demo? (hoy nace vacía); (2) confirmar los ajustes al mapa de enforcement del
   desvío 3; (3) con la Tienda fuera de franja el guardarropas de "Tu avatar" (ProfileCard lee `/api/market`) dice "No pude ver tu
-  ropa ahora…"; (4) el Feed sigue ofreciendo rutas y ⚡ de secciones cerradas (llevan a "cerrado"); (5) una vista que monta con
+  ropa ahora…" [**SALDADA 14-oct**, Deudas F]; (4) el Feed sigue ofreciendo rutas y ⚡ de secciones cerradas (llevan a "cerrado"); (5) una vista que monta con
   el dato apenas viejo puede pedir su API y ver un 403 un instante antes de que el portón la cierre (el 403 no dispara una
-  relectura: haría falta tocar `src/api`); (6) zona horaria de la familia.
+  relectura: haría falta tocar `src/api`); (6) zona horaria de la familia [**SALDADA 14-oct**, Deudas G; el desvío (7) deja de aplicar: el día y la hora se leen en la zona de la familia].
+- **Tanda «Deudas técnicas» (A-G) — HECHA 14-oct** (commiteada con los remates del coordinador; sobre los contratos congelados en a459ec6; repo ya en
+  Desktop). **A · acuñado seco completo**: el registry se partió sin tocar lógica — `src/learn/registryCore.ts` (Tipos,
+  generadores, portero y `build`, TS puro) + `registry.ts` (núcleo + Boards, misma forma y orden de claves);
+  `definitions.ts` usa el núcleo y `src/learn/dryMint.ts` es el bloque del importador del POC tal cual (registrar → acuñar
+  con seed 1 → rollback + `La app rechaza el bundle (acuñado seco falló):\n- <defId>: <causa>` con todas las causas).
+  `learnRoutes.ts` lo importa (el tsconfig del server sigue los imports a `../src`: sin .tsx ni CSS en la cadena); se
+  retiró el chequeo parcial. Quirks fieles: un id del seed se acuña con el SEED; un multi con hijas inexistentes pasa (se
+  resuelven al jugar). Test: `src/learn/__tests__/dryMint.test.ts` (5, incluida la seed poc-solar). **B · reproductor
+  exacto-POC**: `videos.ts:relatedVideos` (port de `videoSearch.ts`) → `Video.related`; `VideoSidePanel` («Relacionados» /
+  «En la lista»), apaisado = la VISTA ≥ 720 px y más ancha que alta (el POC mide la ventana porque su reproductor es un
+  overlay a pantalla completa); cola circular con racha de caídos (onError vía `parseYtError`, un play la resetea);
+  cambios de video con `replace` (el overlay del POC no apila historial); «Escuchar de fondo» = solo el actual;
+  `space.playlists(videoId)` → `has` y `ListSheet` con ✓. **C · sesión del portón**: `parent.hasParentSession` (+
+  `PARENT_SESSION_EXPIRED`) en `mytube.ts` (todo `/admin/*`) y `teachersFake.ts` (`/api/teachers*`; `/api/calendar` público);
+  `YouTubePanel`/`TeachersPanel` por `parentCall`. **D · portada de rutas de artículo** (`server/src/routeCover.ts`, puro +
+  glue en `learnRoutes.ts`): firstContent/wikiTitle del POC, summary al host del artículo, `route.cover` = URL http en la
+  fila; al importar en segundo plano, lazy en el GET (≤ 2,5 s) y al leer el Feed; "ya intentada" en RAM. /crear no reabre
+  una portada http como manual (`routeDraft.unflatten`). **E · cola de guardado** (`learnData.ts`): FIFO de a uno,
+  reintentos 2/8/30 s solo para fallas transitorias, orden preservado, optimista una sola vez; test
+  `sections/learn/lib/__tests__/learnData.test.ts` (6). **F · avatar con Tienda cerrada**: `useWardrobe` mira el store de
+  horarios (y ante un 403 reconfirma) → aviso suave sin reintento ni candados. **G · zona horaria de la familia**:
+  `src/shared/lib/zonedClock.ts` (helper Intl compartido server/cliente) + `parent.json tz` + `POST /api/parent/tz` +
+  `schedule.ts` (setFamilyTzSource, sin ciclo) + `feedFake` (franja y día del resumen) + `scheduleRules.ts`/`schedules.ts` +
+  `TimezoneControl` arriba de los horarios. Test: `src/shared/lib/__tests__/zonedClock.test.ts` (7). QA: tsc -b --force,
+  tsc server, build y `npm test` (15 suites) verdes; regresión de unidad de W7 (99) OK; E2E Edge por trabajo, corrida final (A 8 por API, B 33,
+  C 25 por API + 7 en la UI, D 18 de unidad + D/E 10 en la UI, F 9, G 14 por API + 13 en la UI), consola limpia salvo las
+  miniaturas 404 de un video del catálogo que YouTube ya no tiene.
+  **Pendiente (coordinador)**: (1) ~~subtítulo del Feed y reloj del TopBar con hora del navegador~~ [**SALDADA 14-oct**,
+  remate del coordinador: `daypartLine(serverDate(sched), sched.tz)` y `clockParts` con `wallClock` + `timeZone` — los dos
+  miran la zona de la familia y el delta con el server]; (2) un POST de resultado que llegó al server pero perdió la
+  respuesta se graba dos veces al reintentar (haría falta una clave de idempotencia en el contrato); (3) el catálogo de
+  videos trae algunos que YouTube ya borró (miniatura 404): la cola los saltea, pero aparecen en relacionados/búsqueda.

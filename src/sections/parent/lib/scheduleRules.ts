@@ -1,7 +1,10 @@
 // Horarios por sección (porte Smarty W7): las reglas PURAS, port de lib/featureSchedule.ts del POC. Son el ESPEJO de
 // server/src/schedule.ts (isOpenIn / nextOpenLabelIn): el server decide y enforcea (403); el cliente las usa para pintar
 // el menú y la pantalla "cerrado" sin esperar un 403. Si cambia una, cambia la otra (tests: __tests__/schedules.test.ts).
+// ZONA HORARIA DE LA FAMILIA (deuda 14-oct): el día y la hora se leen en la zona IANA que eligió el padre (`tz` de
+// SchedulesResponse) con el MISMO helper que usa el server (shared/lib/zonedClock.ts); sin zona, en la del navegador.
 import type { DaySchedule, FeatureSchedule, SectionKey } from '../../../api/types';
+import { wallClock } from '../../../shared/lib/zonedClock';
 
 /** Las secciones con horario, en el orden del editor del padre, con su ruta del menú (el Feed no está: nunca se cierra). */
 export const SCHEDULABLE: { key: SectionKey; label: string; route: string }[] = [
@@ -48,18 +51,20 @@ export function parseHHMM(s: string): number | null {
 
 /** ¿Abierta en `now`? (isFeatureOpen del POC) Fail-safe: sin restricción o con datos incompletos/inválidos ⇒ abierta
  *  (nunca se encierra al chico por un horario mal cargado; cerrar es siempre EXPLÍCITO). to < from cruza la medianoche;
- *  from == to = las 24 h; día con open:false = cerrada todo el día. week se indexa con getDay() (0 = domingo). */
-export function isOpenAt(sched: FeatureSchedule | undefined, now: Date): boolean {
+ *  from == to = las 24 h; día con open:false = cerrada todo el día. week se indexa con getDay() (0 = domingo).
+ *  `tz` = la zona de la familia (null/ausente = la local). */
+export function isOpenAt(sched: FeatureSchedule | undefined, now: Date, tz?: string | null): boolean {
   try {
     if (!sched || !sched.restrictionActive) return true;
     const week = sched.week;
     if (!week || typeof week !== 'object') return true;
-    const day = (week as Record<number, DaySchedule | undefined>)[now.getDay()];
+    const clock = wallClock(now, tz);
+    const day = (week as Record<number, DaySchedule | undefined>)[clock.day];
     if (!day) return true;
     if (!day.open) return false;
     const from = parseHHMM(day.from), to = parseHHMM(day.to);
     if (from == null || to == null) return true;
-    const cur = now.getHours() * 60 + now.getMinutes();
+    const cur = clock.minutes;
     if (to <= from) return cur >= from || cur < to;
     return cur >= from && cur < to;
   } catch {
@@ -68,13 +73,14 @@ export function isOpenAt(sched: FeatureSchedule | undefined, now: Date): boolean
 }
 
 /** "Se abre de nuevo a las HH:MM" si HOY abre más tarde; null si no se puede precisar (v1 del POC: no mira mañana). */
-export function nextOpenLabelAt(sched: FeatureSchedule | undefined, now: Date): string | null {
+export function nextOpenLabelAt(sched: FeatureSchedule | undefined, now: Date, tz?: string | null): string | null {
   try {
     if (!sched || !sched.restrictionActive) return null;
-    const day = (sched.week as Record<number, DaySchedule | undefined> | undefined)?.[now.getDay()];
+    const clock = wallClock(now, tz);
+    const day = (sched.week as Record<number, DaySchedule | undefined> | undefined)?.[clock.day];
     if (day?.open) {
       const from = parseHHMM(day.from);
-      const cur = now.getHours() * 60 + now.getMinutes();
+      const cur = clock.minutes;
       if (from != null && cur < from) return day.from;
     }
     return null;

@@ -6,6 +6,7 @@ import { PanelState } from '../components/PanelState';
 import { parentCall } from '../lib/adultGate';
 import { DEFAULT_DAY, SCHEDULABLE, normalizeSchedule, parseHHMM } from '../lib/scheduleRules';
 import { adoptSchedules } from '../lib/schedules';
+import { TimezoneControl } from './TimezoneControl';
 
 type Draft = Record<SectionKey, FeatureSchedule>;
 /** Orden de visualización Lun→Dom; se guarda por getDay() (week[0] = domingo), como el DIAS del POC. */
@@ -96,6 +97,8 @@ export function SchedulesPanel({ kid }: { kid: string }) {
         <h3 id="pz-sch-h">Horarios por sección</h3>
         <p>Cada sección puede limitarse a una franja por día. Fuera de horario se oculta del menú y se bloquea el acceso. Sin restringir = siempre disponible.</p>
       </header>
+      {/* la zona horaria con la que se calculan las franjas (deuda 14-oct): ARRIBA de los horarios */}
+      <TimezoneControl kid={kid} />
       {!draft ? <PanelState failed={failed} onRetry={() => void load()} /> : (
         <>
           <fieldset className="pz-sch-set" disabled={busy}>

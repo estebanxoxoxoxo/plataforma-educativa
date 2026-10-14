@@ -5,8 +5,9 @@
 // features.ts y limits.ts porque es lo mismo: config del padre que lee la UI del chico por un GET público.
 // Singleton de módulo + useSyncExternalStore (el patrón de features.ts / limits.ts; el POC usaba el mismo con su tick).
 // LA FRANJA SE EVALÚA CON LA HORA DEL SERVER: cada lectura guarda el delta serverNow − Date.now() (al medio del viaje) y se
-// evalúa con Date.now() + delta. Ojo: el día y la hora se leen en la zona horaria del NAVEGADOR (el contrato trae el
-// instante, no la zona del server); en el demo es la misma máquina.
+// evalúa con Date.now() + delta. El día y la hora se leen en la ZONA HORARIA DE LA FAMILIA (`tz` de la respuesta, la que
+// eligió el padre en Límites; deuda 14-oct) con el mismo helper Intl que el server; sin zona (Automática), en la del
+// navegador (en el demo, la misma máquina que el server).
 // CÓMO SE ENTERA EL CHICO DE UN CAMBIO:
 //   1. Misma pestaña: el editor del padre publica la respuesta del server (adoptSchedules) → menú y rutas cambian al toque.
 //   2. Otras pestañas del navegador: BroadcastChannel → también al toque.
@@ -25,20 +26,20 @@ import { SECTION_KEYS, isOpenAt, nextOpenLabelAt, sectionForPath } from './sched
 type Schedules = SchedulesResponse['schedules'];
 /** `offset` = serverNow − Date.now() · `syncedAt` = cuándo se confirmó con el server · `sig` = qué secciones están abiertas
  *  (la FIRMA del POC: si cambia con el tick, re-render). */
-type Snap = { schedules: Schedules | null; offset: number; failed: boolean; syncedAt: number; sig: string };
+type Snap = { schedules: Schedules | null; /** zona IANA de la familia (null = la local) */ tz: string | null; offset: number; failed: boolean; syncedAt: number; sig: string };
 
 const TICK_MS = 30_000;
 /** Un dato más viejo que esto no alcanza para ENTRAR a una sección con horario: se confirma con el server. */
 const FRESH_MS = 15_000;
 
-let snap: Snap = { schedules: null, offset: 0, failed: false, syncedAt: 0, sig: '' };
+let snap: Snap = { schedules: null, tz: null, offset: 0, failed: false, syncedAt: 0, sig: '' };
 const listeners = new Set<() => void>();
 const emit = (next: Snap) => { snap = next; listeners.forEach((l) => l()); };
 const getSnap = () => snap;
 
 /** El reloj del server, según el último delta conocido. */
 export const serverDate = (s: Snap = snap) => new Date(Date.now() + s.offset);
-const sigOf = (sch: Schedules | null, now: Date) => SECTION_KEYS.map((k) => (!sch || isOpenAt(sch[k], now) ? '1' : '0')).join('');
+const sigOf = (sch: Schedules | null, now: Date, tz: string | null) => SECTION_KEYS.map((k) => (!sch || isOpenAt(sch[k], now, tz) ? '1' : '0')).join('');
 
 const isResponse = (x: unknown): x is SchedulesResponse => {
   const r = x as SchedulesResponse | null;
@@ -47,11 +48,12 @@ const isResponse = (x: unknown): x is SchedulesResponse => {
 /** Aplica una respuesta del server. `sentAt`/`gotAt` = el viaje: el delta se toma al medio (mitad de la latencia). */
 function adopt(r: SchedulesResponse, sentAt: number, gotAt: number) {
   const offset = r.serverNow - (sentAt + gotAt) / 2;
-  emit({ schedules: r.schedules, offset, failed: false, syncedAt: Date.now(), sig: sigOf(r.schedules, new Date(Date.now() + offset)) });
+  const tz = typeof r.tz === 'string' && r.tz ? r.tz : null;
+  emit({ schedules: r.schedules, tz, offset, failed: false, syncedAt: Date.now(), sig: sigOf(r.schedules, new Date(Date.now() + offset), tz) });
 }
 /** Re-evalúa con lo que hay (el tick): solo avisa si cambió qué está abierto. */
 function reeval() {
-  const sig = sigOf(snap.schedules, serverDate());
+  const sig = sigOf(snap.schedules, serverDate(), snap.tz);
   if (sig !== snap.sig) emit({ ...snap, sig });
 }
 
@@ -67,7 +69,7 @@ export function refreshSchedules(): Promise<void> {
   const sentAt = Date.now();
   inflight = api.schedules().then(
     (r) => { if (v === version && isResponse(r)) adopt(r, sentAt, Date.now()); else reeval(); },
-    () => { if (v === version) emit({ ...snap, failed: true, sig: sigOf(snap.schedules, serverDate()) }); },
+    () => { if (v === version) emit({ ...snap, failed: true, sig: sigOf(snap.schedules, serverDate(), snap.tz) }); },
   ).finally(() => { inflight = null; });
   return inflight;
 }
@@ -88,7 +90,7 @@ export function adoptSchedules(r: SchedulesResponse) {
   const now = Date.now();
   adopt(r, now, now);
   openChannel();
-  try { bc?.postMessage({ schedules: r.schedules, serverNow: r.serverNow }); } catch { /* las otras pestañas se enteran con el tick */ }
+  try { bc?.postMessage({ schedules: r.schedules, serverNow: r.serverNow, tz: r.tz ?? null }); } catch { /* las otras pestañas se enteran con el tick */ }
 }
 
 let timer: ReturnType<typeof setInterval> | null = null;
@@ -124,7 +126,7 @@ export const useSchedules = (): Snap => useSyncExternalStore(subscribe, getSnap,
 
 /** ¿La sección está abierta AHORA (hora del server)? Sin dato todavía: abierta (fail-open, como el POC). */
 export function isSectionOpen(key: SectionKey, s: Snap = snap): boolean {
-  return !s.schedules || isOpenAt(s.schedules[key], serverDate(s));
+  return !s.schedules || isOpenAt(s.schedules[key], serverDate(s), s.tz);
 }
 /** Para el menú: ¿se muestra lo que vive en `path`? Lo que no es de una sección con horario (el Feed), siempre. */
 export function scheduleAllows(s: Snap, path: string): boolean {
@@ -155,6 +157,6 @@ export function useScheduleGate(path: string): ScheduleGateState {
   const waiting = !s.schedules || (entry.key === key && s.syncedAt < entry.after);
   if (waiting) return s.failed ? OPEN : LOADING;
   const now = serverDate(s);
-  if (isOpenAt(s.schedules?.[key], now)) return OPEN;
-  return { state: 'closed', key, opensAt: nextOpenLabelAt(s.schedules?.[key], now) };
+  if (isOpenAt(s.schedules?.[key], now, s.tz)) return OPEN;
+  return { state: 'closed', key, opensAt: nextOpenLabelAt(s.schedules?.[key], now, s.tz) };
 }

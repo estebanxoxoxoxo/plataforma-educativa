@@ -210,7 +210,11 @@ export function unflatten(route: LearnRouteData & { version?: number }, definiti
     description: route.description ?? '',
     version: route.version ?? 1,
     modules,
-    cover: route.cover,
+    // Portada MANUAL = la que subió el creador (siempre data URL: cropToCover). Una URL http es la imagen del ARTÍCULO que
+    // el server deriva y guarda en la fila (deuda 14-oct, paso 3 del routeCover del POC): no se reabre como manual —en el
+    // POC ese paso se resolvía al mostrar, nunca quedaba en la ruta—; al guardar, el server la vuelve a derivar del primer
+    // artículo (si cambió, cambia con él).
+    cover: route.cover?.startsWith('data:') ? route.cover : undefined,
     category: route.category,
   };
 }

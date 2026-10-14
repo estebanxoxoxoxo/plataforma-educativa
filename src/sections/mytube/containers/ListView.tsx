@@ -51,7 +51,8 @@ export function ListView() {
   const name = data?.name ?? 'Lista';
   const tracks: BgTrack[] = videos.map((v) => ({ id: v.id, title: v.title, img: v.img }));
   const back = { backTo: listPath(lid), backLabel: '‹ Mi lista' };
-  const playAll = () => go(videoPath(videos[0].id), { state: { ...back, queue: videos.map((v) => v.id), qi: 0, qtracks: tracks } });
+  // La cola del reproductor: ids + los videos (miniatura/título/duración) para su panel «En la lista», como el POC.
+  const playAll = () => go(videoPath(videos[0].id), { state: { ...back, queue: videos.map((v) => v.id), qi: 0, qvideos: videos } });
   const listen = () => { playQueue(tracks, 0, 0); close(); };
   const play = (v: VideoResult) => go(videoPath(v.id), { state: back });
 

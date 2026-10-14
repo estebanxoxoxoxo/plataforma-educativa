@@ -21,6 +21,7 @@ import { FeedSkeleton } from '../components/FeedSkeleton';
 import { NewsPill } from '../components/NewsPill';
 import { PinnedZone } from '../components/PinnedZone';
 import { SimulateNpcsChip } from '../components/SimulateNpcsChip';
+import { serverDate, useSchedules } from '../../parent/lib/schedules';
 import { daypartLine } from '../lib/daypart';
 import { shelfAllUrl } from '../lib/extras';
 import { type Highlight, type PinPhase, mergeContacts } from '../lib/highlights';
@@ -67,6 +68,7 @@ export function FeedPage() {
   const features = useFeatures();
   const amigosOn = features?.amigos === true;
   const reduced = useReducedMotion();
+  const sched = useSchedules(); // hora del server + zona de la familia: el subtítulo dice lo mismo que la edición
   const view = useRef<HTMLElement>(null);
 
   const [items, setItems] = useState<FeedItem[] | null>(null);
@@ -331,7 +333,7 @@ export function FeedPage() {
   return (
     <section className="view" id="v-feed" ref={view} data-motion={eff}>
       <div className="hf-col">
-        <FeedHead name={user?.name ?? ''} day={daypartLine()} streak={streak}
+        <FeedHead name={user?.name ?? ''} day={daypartLine(serverDate(sched), sched.tz)} streak={streak}
           demo={amigosOn ? <SimulateNpcsChip busy={npc.busy} note={npc.note} failed={npc.failed} onClick={() => void simulateNpcs()} /> : undefined} />
         {/* La zona Destacado (pedido 14-oct): el hero "tu siguiente paso" + las solicitudes. La píldora y lo que
             entra con Simular NPCs van DEBAJO de esta zona (el hero ya no está en el hilo). */}

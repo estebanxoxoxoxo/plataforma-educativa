@@ -2,13 +2,18 @@ import { useEffect, useRef, useState } from 'react';
 import type { Video } from '../../../api/types';
 import { IcPCC, IcPFull, IcPGear, IcPNext, IcPPause, IcPPlay, IcPVol, IcPlayDark } from '../../../shared/components/icons';
 import { imgSrc } from '../../../shared/lib/img';
-import { parseYtMessage, ytCommand, ytEmbedUrl, ytSubscribe, type YtState } from '../../../shared/lib/ytBridge';
+import { parseYtError, parseYtMessage, ytCommand, ytEmbedUrl, ytSubscribe, type YtState } from '../../../shared/lib/ytBridge';
 
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 /* Reproductor limpio: YouTube nocookie contenido (sandbox, sin clics directos) con controles propios.
-   En pausa o al terminar, una cortina tapa el player (en YouTube ahí aparecen sugerencias de otros videos). */
-export function VideoPlayer({ v, onEnded, onTime }: { v: Video; onEnded?: () => void; onTime?: (t: number) => void }) {
+   En pausa o al terminar, una cortina tapa el player (en YouTube ahí aparecen sugerencias de otros videos).
+   Avisos para la cola (VideoPage): `onEnded` al terminar, `onError` si YouTube dice que el video no está disponible
+   (onError, no 'ended': el POC lo marca 'error' para que la cola lo saltee) y `onPlaying` en cada play real (el POC
+   resetea ahí la racha de caídos). Cada aviso de fin/error va UNA vez por video. */
+export function VideoPlayer({ v, onEnded, onError, onPlaying, onTime }: {
+  v: Video; onEnded?: () => void; onError?: () => void; onPlaying?: () => void; onTime?: (t: number) => void;
+}) {
   const frame = useRef<HTMLIFrameElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<YtState>('buffering');
@@ -18,19 +23,29 @@ export function VideoPlayer({ v, onEnded, onTime }: { v: Video; onEnded?: () => 
   // Aviso de fin (para el auto-avance de una cola): una sola vez por video, sin closures viejos.
   const endedRef = useRef(onEnded);
   endedRef.current = onEnded;
+  const errorRef = useRef(onError);
+  errorRef.current = onError;
+  const playingRef = useRef(onPlaying);
+  playingRef.current = onPlaying;
   const onTimeRef = useRef(onTime);
   onTimeRef.current = onTime;
   const firedEnd = useRef(false);
+  const firedError = useRef(false);
 
   useEffect(() => {
     const on = (e: MessageEvent) => {
       if (e.source !== frame.current?.contentWindow) return;
+      if (parseYtError(e) != null) {
+        if (!firedError.current) { firedError.current = true; errorRef.current?.(); }
+        return;
+      }
       const m = parseYtMessage(e);
       if (!m) return;
       if (m.state) {
         setState(m.state);
         if (m.state === 'ended' && !firedEnd.current) { firedEnd.current = true; endedRef.current?.(); }
-        if (m.state === 'playing') firedEnd.current = false;
+        // Un play real rearma los dos avisos (en el POC el estado vuelve a 'playing' y un nuevo fin/error dispara de nuevo).
+        if (m.state === 'playing') { firedEnd.current = false; firedError.current = false; playingRef.current?.(); }
       }
       if (m.currentTime != null) { setT(m.currentTime); onTimeRef.current?.(m.currentTime); }
       if (m.duration) setDur(m.duration);

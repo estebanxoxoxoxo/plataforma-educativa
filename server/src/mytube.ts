@@ -43,7 +43,8 @@
 //        (el anyOf de Dexie no respeta el orden de la playlist: bug del POC portado tal cual, informe 03 §6).
 //   MtVideo = { videoId, title, thumb, duration?, addedAt?, channelId?, channelTitle? } (subconjunto de YtVideo del POC).
 //
-//   Lado padre (públicos como /api/teachers: la pantalla vive tras el portón de /padres; deuda: pasarlos a la sesión)
+//   Lado padre — TODOS con la SESIÓN del portón (X-Parent-Token, el mismo chequeo de parent.ts: hasParentSession; deuda
+//   saldada 14-oct): sin sesión válida → 401 { error: 'Sesión del padre vencida. Volvé a entrar con el PIN.' }
 //   GET  /api/mytube/admin/state → { entries: [{ id, type, url, title, videos, channelId?, createdAt }], total, videoCap }
 //        `total` = videos aprobados (catálogo base + filas de la familia, el db.ytVideos.count() del POC).
 //   GET  /api/mytube/admin/channels → { channels: [{ channelId, title, handle?, thumb?, desc, followed }] }
@@ -74,6 +75,7 @@ import { join } from 'node:path'
 import { MODELS, SERVER_ROOT } from './config'
 import { matchBlockedWord } from './filters'
 import { complete } from './llm'
+import { PARENT_SESSION_EXPIRED, hasParentSession } from './parent'
 import * as space from './space'
 import * as videosModule from './videos'
 import { allChannels, catalogSize, getCatalogVideo, videosOfChannel, type CatalogVideo } from './videos'
@@ -889,6 +891,8 @@ const errText = (e: unknown) => (e instanceof Error ? e.message : String(e))
 /* ---------- rutas ---------- */
 export async function mytubeRoutes(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
   const path = url.pathname
+  // Lado padre: TODO /api/mytube/admin/* pide la sesión del portón (deuda 14-oct; el cliente ya manda X-Parent-Token).
+  if (path.startsWith('/api/mytube/admin/') && !hasParentSession(req)) return send(res, 401, { error: PARENT_SESSION_EXPIRED })
   const qid = (url.searchParams.get('id') ?? '').trim().slice(0, 80)
   if (req.method === 'GET') {
     if (path === '/api/mytube/channels') return send(res, 200, await followedChannelCards())

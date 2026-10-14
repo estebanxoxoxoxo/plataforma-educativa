@@ -33,6 +33,12 @@
 //   POST /api/parent/alerts/seen {id}             → {ok}
 //   GET  /api/parent/presets                      → {presets: ParentPreset[], current}
 //   POST /api/parent/presets/apply {id}           → {ok, config, features}
+//   POST /api/parent/tz {tz}                      → {tz}  (zona horaria de la familia, deuda 14-oct: IANA válida —se prueba
+//                                                   construyendo un Intl.DateTimeFormat; se guarda canónica— o null = Automática,
+//                                                   la del server; otra cosa → 400. Persiste como `tz` en parent.json —sin el campo
+//                                                   vale null y NO se reescribe por eso—; GET config la trae; las franjas por sección
+//                                                   (schedule.ts) y la franja del Feed (feedFake.ts) se evalúan en ella y viaja en
+//                                                   GET /api/schedules. No forma parte de los presets)
 //   GET  /api/parent/music                        → {tracks}  (After Day, porte Smarty W6: la lista de audio de la familia;
 //                                                   la lógica y music.json viven en afterday.ts)
 //   POST /api/parent/music/add {url, title?}      → {ok:true, track} | {ok:false, error}  (rechazos de negocio con 200: "No es
@@ -67,7 +73,8 @@
 // 5 fallidos seguidos → 30 s de espera ({ok:false, waitSeconds}); se resetea con un acierto, con el reinicio del server
 // o con resetUnlockAttempts() (registrado en POST /api/demo/reset).
 //
-// IMPORTS CRUZADOS: market.ts y filters.ts leen de acá (featureOn, premios, palabras/temas de la familia) y acá se lee
+// IMPORTS CRUZADOS: mytube.ts y teachersFake.ts importan hasParentSession (solo lo llaman al rutear un pedido).
+// market.ts y filters.ts leen de acá (featureOn, premios, palabras/temas de la familia) y acá se lee
 // de market.ts (canjes en RAM), de space.ts y de videos.ts (que a su vez importan filters.ts). afterday.ts y schedule.ts
 // (W6/W7) solo importan config.ts y web.ts: no vuelven hacia acá. Es seguro porque NINGUNO
 // llama al otro en el nivel superior del módulo (solo dentro de funciones): el orden de evaluación da igual. Mantener
@@ -79,11 +86,12 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { addTrack, allTracks, removeTrack } from './afterday'
 import { SERVER_ROOT, blackTopics, config, ov, whiteTopics, whitelistSites } from './config'
 import { deliverRedemption, listRedemptions, redeemedCount, stockLeft } from './market'
-import { checkPatch, patchSchedules } from './schedule'
+import { checkPatch, patchSchedules, setFamilyTzSource } from './schedule'
 import { summary } from './progress'
 import { allSavedForParent } from './space'
 import { catalogSize } from './videos'
 import { readJson, send } from './web'
+import { isValidTimeZone } from '../../src/shared/lib/zonedClock'
 
 /* ---------- modelo ---------- */
 export const FEATURE_KEYS = ['tienda', 'ligas', 'amigos', 'chat'] as const
@@ -111,6 +119,7 @@ interface ParentStore {
   topics: ParentTopics; /** palabras bloqueadas de la familia (se suman a las de fábrica) */ extraWords: string[]
   volume: ParentVolume; /** id del preset aplicado; null = configuración propia (se editó algo a mano) */ preset: string | null
   /** Dial de animación del Feed (default 'normal'; aditivo: un archivo sin el campo NO se migra por eso) */ feedMotion: FeedMotion
+  /** Zona horaria IANA de la familia; null = Automática (la del server). Aditivo como feedMotion. */ tz: string | null
 }
 
 const FILE = join(SERVER_ROOT, 'data', 'parent.json')
@@ -176,7 +185,7 @@ function seed(): ParentStore {
   return {
     version: 2, seq: SEED_ITEMS.length + 1, features: allFeatures(true),
     items: SEED_ITEMS.map((s, i) => ({ id: i + 1, ...s, archived: false, createdAt: now })), pinHash: DEMO_PIN_HASH,
-    topics: noTopics(), extraWords: [], volume: fullVolume(), preset: null, feedMotion: 'normal',
+    topics: noTopics(), extraWords: [], volume: fullVolume(), preset: null, feedMotion: 'normal', tz: null,
   }
 }
 
@@ -314,6 +323,8 @@ function sanitize(raw: unknown): ParentStore {
     preset: typeof r.preset === 'string' && PRESETS.some(p => p.id === r.preset) ? r.preset : null,
     // Feed v6 (aditivo con default; no entra en V2_FIELDS: su falta no reescribe el archivo)
     feedMotion: isFeedMotion(r.feedMotion) ? r.feedMotion : 'normal',
+    // zona horaria de la familia (deuda 14-oct; aditivo con default null, tampoco reescribe el archivo)
+    tz: isValidTimeZone(r.tz) ? r.tz : null,
   }
 }
 const V2_FIELDS = ['topics', 'extraWords', 'volume', 'preset'] as const
@@ -339,13 +350,16 @@ function load(): ParentStore {
     // vuelve al del demo (si no, nadie podría entrar a la Zona de padres a prender las cosas de nuevo).
     console.error('[parent] parent.json ilegible → arranco CERRADO (todo apagado, sin premios); copia en .roto-*:', e)
     try { renameSync(FILE, `${FILE}.roto-${Date.now()}`) } catch { /* sin copia: seguimos igual */ }
-    const s: ParentStore = { version: 2, seq: 1, features: allFeatures(false), items: [], pinHash: DEMO_PIN_HASH, topics: noTopics(), extraWords: [], volume: fullVolume(), preset: null, feedMotion: 'normal' }
+    const s: ParentStore = { version: 2, seq: 1, features: allFeatures(false), items: [], pinHash: DEMO_PIN_HASH, topics: noTopics(), extraWords: [], volume: fullVolume(), preset: null, feedMotion: 'normal', tz: null }
     writeAtomic(s) // si no, el próximo arranque vería "sin archivo" y sembraría todo prendido
     return s
   }
 }
 const store: ParentStore = load()
 const save = () => writeAtomic(store)
+// schedule.ts evalúa las franjas en la zona de la familia: se la PRESTA este módulo (dueño del dato) sin que schedule.ts
+// lo importe (no hay ciclo; la función recién se llama al atender pedidos).
+setFamilyTzSource(() => store.tz)
 
 /* ---------- API para los módulos del server (imports, no HTTP) ---------- */
 /** ¿Esta funcionalidad está prendida? Fail-closed: clave desconocida → false. */
@@ -382,6 +396,8 @@ export const whiteTopicsAll = (): Topic[] => withFamily(whiteTopics(), store.top
 export const volumeLimits = (): ParentVolume => ({ ...store.volume })
 /** Dial de animación del Feed vigente (feedFake lo manda en cada GET /api/feed: FeedResponse.motion). */
 export const feedMotion = (): FeedMotion => store.feedMotion
+/** Zona horaria IANA de la familia (null = la del server): la franja del Feed (feedFake.ts) se lee en ella. */
+export const familyTz = (): string | null => store.tz
 
 /** ¿El texto "pega" con alguno de estos temas? Determinístico (sin modelo) para el feed: todas las palabras con
  *  contenido del tema tienen que aparecer en el texto como palabra entera, sin tildes ni mayúsculas y tolerando el
@@ -475,6 +491,12 @@ function touchSession(req: IncomingMessage): boolean {
   return true
 }
 function closeSession(req: IncomingMessage) { const t = tokenOf(req); if (t) sessions.delete(tokenKey(t)) }
+/** ¿El pedido trae la sesión del portón (X-Parent-Token válido)? Es EL MISMO chequeo de las rutas de este archivo (y, como
+ *  ellas, estira la sesión 15 min: deslizante). Lo usan las pantallas del PADRE que viven fuera de /api/parent/* (deuda
+ *  14-oct): la ingesta de YouTube (mytube.ts: /api/mytube/admin/*) y Profesores (teachersFake.ts). Sin sesión → 401. */
+export function hasParentSession(req: IncomingMessage): boolean { return touchSession(req) }
+/** El 401 de esas pantallas: `{ error: PARENT_SESSION_EXPIRED }`. */
+export const PARENT_SESSION_EXPIRED = 'Sesión del padre vencida. Volvé a entrar con el PIN.'
 
 /* ---------- PIN de la Zona de padres ---------- */
 const MAX_FAILS = 5
@@ -587,8 +609,20 @@ function setFeedMotion(b: Input): Check<FeedMotion> {
   return save() ? { ok: true, value: store.feedMotion } : fail('No pude guardar la animación. Probá de nuevo.')
 }
 
+/** Zona horaria de la familia: una IANA que este motor conoce (se guarda canónica, p. ej. "america/new_york" →
+ *  "America/New_York") o null = Automática. */
+function setTz(b: Input): Check<string | null> {
+  const raw = b.tz
+  if (raw !== null && !isValidTimeZone(raw)) return fail('La zona horaria tiene que ser una IANA (por ejemplo America/Argentina/Buenos_Aires) o null = automática.')
+  const tz = raw === null ? null : new Intl.DateTimeFormat('en-US', { timeZone: raw }).resolvedOptions().timeZone
+  if (tz === store.tz) return { ok: true, value: store.tz }
+  store.tz = tz
+  console.log(`[parent] zona horaria de la familia → ${tz ?? 'automática (la del server)'}`)
+  return save() ? { ok: true, value: store.tz } : fail('No pude guardar la zona horaria. Probá de nuevo.')
+}
+
 const wordsView = () => ({ extra: [...store.extraWords], builtin: config.blockedWords.length })
-const configView = () => ({ topics: familyTopics(), words: wordsView(), volume: volumeLimits(), preset: store.preset, feedMotion: store.feedMotion })
+const configView = () => ({ topics: familyTopics(), words: wordsView(), volume: volumeLimits(), preset: store.preset, feedMotion: store.feedMotion, tz: store.tz })
 const presetView = (p: PresetDef) => ({
   id: p.id, name: p.name, desc: p.desc,
   // aditivo (ver cabecera): lo que deja configurado, para que el panel muestre qué prende y qué apaga
@@ -641,7 +675,7 @@ const GETS = new Set(['/api/parent/features', '/api/parent/limits', '/api/parent
 const POSTS = new Set([
   '/api/parent/unlock', '/api/parent/lock', '/api/parent/features', '/api/parent/items', '/api/parent/items/update', '/api/parent/items/archive',
   '/api/parent/deliver', '/api/parent/topics', '/api/parent/words', '/api/parent/volume', '/api/parent/alerts/seen', '/api/parent/presets/apply',
-  '/api/parent/feed-motion', '/api/parent/music/add', '/api/parent/music/remove', '/api/parent/schedules',
+  '/api/parent/feed-motion', '/api/parent/music/add', '/api/parent/music/remove', '/api/parent/schedules', '/api/parent/tz',
 ])
 const NO_SESSION = { error: 'La sesión de la Zona de padres venció o no es válida: ingresá el PIN de nuevo.' }
 
@@ -728,6 +762,10 @@ export async function parentRoutes(req: IncomingMessage, res: ServerResponse, ur
       const r = setFeedMotion(b)
       return r.ok ? send(res, 200, { feedMotion: r.value }) : send(res, 400, { error: r.error })
     }
+    case '/api/parent/tz': {
+      const r = setTz(b)
+      return r.ok ? send(res, 200, { tz: r.value }) : send(res, 400, { error: r.error })
+    }
     case '/api/parent/alerts/seen': {
       const id = parseId(b)
       const a = id === null ? undefined : alerts.find(x => x.id === id)
@@ -748,7 +786,7 @@ export async function parentRoutes(req: IncomingMessage, res: ServerResponse, ur
       const c = checkPatch(b.patch)
       if (!c.ok) return send(res, 400, { error: c.error })
       const s = patchSchedules(c.value)
-      return s ? send(res, 200, { schedules: s, serverNow: Date.now() }) : send(res, 500, { error: 'No pude guardar los horarios. Probá de nuevo.' })
+      return s ? send(res, 200, { schedules: s, serverNow: Date.now(), tz: store.tz }) : send(res, 500, { error: 'No pude guardar los horarios. Probá de nuevo.' })
     }
   }
   return send(res, 404, { error: 'not found' })

@@ -311,7 +311,13 @@ function resolveList(l: UserPlaylist) {
   }
   return out
 }
-export const playlists = () => ({ playlists: store.playlists.slice().sort((a, b) => b.createdAt - a.createdAt).map(playlistCard) })
+/** Las listas, las más nuevas primero (el orderBy('createdAt').reverse() del ListPicker del POC). Con `videoId` (GET
+ *  /api/space/playlists?video=<id>, deuda 14-oct), cada una dice además si YA lo contiene (`has`: el
+ *  `l.videoIds.includes(videoId)` del POC, sobre los ids guardados) — la hoja «＋ Lista» la marca con ✓. */
+export const playlists = (videoId?: string | null) => ({
+  playlists: store.playlists.slice().sort((a, b) => b.createdAt - a.createdAt)
+    .map(l => (videoId ? { ...playlistCard(l), has: l.videoIds.includes(videoId) } : playlistCard(l))),
+})
 export function playlistDetail(id: number) {
   const l = store.playlists.find(x => x.id === id)
   if (!l) return null

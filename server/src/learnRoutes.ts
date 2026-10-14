@@ -29,12 +29,11 @@
 //
 // Validación = la del importador del POC, en su orden y con sus mensajes: kind · schemaVersion 1 · route (id + postas[]) ·
 // definitions[] · integridad referencial (toda posta que no es recall y tiene definitionId apunta a una definición del
-// bundle; el POC no cruza targets) · y, del ACUÑADO SECO, lo que no necesita el motor: el Tipo existe en el registry (los 5:
-// domino, quiz, flashcards, multiplechoice, multi) y el generador existe para ese Tipo (multi: sus childIds), con los mismos
-// mensajes que tira el registry del POC al acuñar.
-// PENDIENTE W3: el acuñado seco COMPLETO del POC (buildDefinition(id, 1) de cada definición: generador + PORTERO del Tipo)
-// usa el motor de actividades del cliente, que porta la tanda W2 en paralelo. Cuando el motor exista, el import lo suma acá
-// (mismo mensaje: "La app rechaza el bundle (acuñado seco falló):\n- <defId>: <causa>").
+// bundle; el POC no cruza targets) · ACUÑADO SECO COMPLETO (deuda de W1, saldada 14-oct): cada definición se acuña con
+// seed 1 —generador + PORTERO del Tipo— con el MISMO motor del cliente (src/learn/dryMint.ts → definitions.ts →
+// registryCore.ts: TS puro, sin los Boards) y, si alguna falla, el rechazo es el del POC con TODAS las causas juntas:
+// "La app rechaza el bundle (acuñado seco falló):\n- <defId>: <causa>" (p. ej. una tarjeta sin `back` → la causa del
+// portero de flashcards). Tipo desconocido, generador desconocido y multi sin childIds salen de ese mismo código.
 //
 // Seed de primera vez: si no hay archivo, se importa (validado por el mismo camino) el bundle de poc-solar que deja el
 // pipeline de route-lab en route-lab/jobs/poc-solar/60-route-bundle.json (route-lab/fixtures/poc-solar.json es la salida
@@ -47,6 +46,10 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { join } from 'node:path'
 import { SERVER_ROOT } from './config'
 import { send } from './web'
+// El motor de actividades del cliente (TS puro; ver src/learn/registryCore.ts): el acuñado seco corre con SU código.
+import { dryMint } from '../../src/learn/dryMint'
+import type { DefinitionRecipe } from '../../src/learn/registryCore'
+import { fetchWikiThumb, wikiTarget, type WikiTarget } from './routeCover'
 
 /* ---------- formas (espejo de las filas de Dexie del POC; route/def/meta/editorial opacos) ---------- */
 type Key = string | number
@@ -58,32 +61,6 @@ interface RouteRow { id: Key; enabled: boolean; origin: 'generated'; importedAt:
 interface DefRow { id: Key; routeId: Key; target: unknown; importedAt: number; def: DefData }
 type ImportOk = { ok: true; routeId: Key; title: unknown; definitions: number; postas: number }
 type ImportFail = { ok: false; error: string; status?: number }
-
-/* ---------- registry del POC (app/src/learn/registry.ts): Tipos y generadores registrados ---------- */
-// Los 4 Tipos con generador por id (DOMINO_/QUIZ_/FLASHCARDS_/MULTIPLECHOICE_GENERATORS); `multi` no mira generatorId
-// ('fixed' es convención) y en cambio exige params.childIds no vacío.
-const GENERATORS: Record<string, string[]> = {
-  domino: ['math', 'capitales-latam'],
-  quiz: ['math', 'capitales-latam'],
-  flashcards: ['static'],
-  multiplechoice: ['static'],
-}
-
-/** Lo que el acuñado seco del POC (buildDefinition(d.id, 1) → TYPES[typeId].build) rechaza ANTES de llegar al motor, con
- *  su mismo mensaje. null = pasa esta parte (el generador + el portero quedan para W3: ver el encabezado). */
-function registryCheck(d: DefData): string | null {
-  const typeId = d.typeId
-  if (typeId === 'multi') {
-    const childIds = (d.params as { childIds?: unknown } | null | undefined)?.childIds
-    return !Array.isArray(childIds) || childIds.length === 0 ? `[learn] multi "${String(d.id)}" sin childIds en params` : null
-  }
-  const gens = typeof typeId === 'string' && Object.hasOwn(GENERATORS, typeId) ? GENERATORS[typeId] : null
-  // TYPES[typeId] no existe → el POC muestra el TypeError literal de V8 al llamar .build sobre undefined.
-  if (!gens) return "Cannot read properties of undefined (reading 'build')"
-  if (typeof d.generatorId !== 'string' || !gens.includes(d.generatorId))
-    return `[learn] generador desconocido "${String(d.generatorId)}" para el Tipo "${typeId}" (hay: ${gens.join(', ')})`
-  return null
-}
 
 /** Validación del importador del POC (learn/import.ts), en su orden. Lo que en el POC sale como excepción (incluido un
  *  TypeError por un dato roto) vuelve como { ok:false, error } con ese mismo mensaje. */
@@ -106,14 +83,9 @@ function validateBundle(input: unknown): { ok: true; b: Bundle } | ImportFail {
         return { ok: false, error: `La posta "${String(p.id)}" apunta a una definición ausente en el bundle: "${String(p.definitionId)}".` }
     }
 
-    // acuñado seco, parte de registry (ver registryCheck): junta TODAS las fallas, como el POC
-    const failures: string[] = []
-    for (const d of b.definitions) {
-      const cause = registryCheck(d)
-      if (cause) failures.push(`${String(d.id)}: ${cause}`)
-    }
-    if (failures.length)
-      return { ok: false, error: `La app rechaza el bundle (acuñado seco falló):\n- ${failures.join('\n- ')}` }
+    // ACUÑADO SECO (el del POC, con su motor): cada definición con seed 1 pasa generador + portero; junta TODAS las fallas
+    const rejected = dryMint(b.definitions as unknown as DefinitionRecipe[])
+    if (rejected) return { ok: false, error: rejected }
     return { ok: true, b }
   } catch (e) {
     return { ok: false, error: (e as Error)?.message ?? String(e) }
@@ -151,7 +123,7 @@ function persist(nextRoutes: Map<Key, RouteRow>, nextDefs: Map<Key, DefRow>): bo
   }
 }
 
-/** importRouteBundle del POC: valida → (acuñado seco: ver PENDIENTE W3) → reemplazo transaccional por routeId. */
+/** importRouteBundle del POC: valida (incluido el acuñado seco) → reemplazo transaccional por routeId. */
 function importBundle(input: unknown): ImportOk | ImportFail {
   const v = validateBundle(input)
   if (!v.ok) return v
@@ -221,12 +193,57 @@ function load(): void {
 }
 try { load() } catch (e) { console.error('[learn-routes] no pude cargar el catálogo:', e) }
 
+/* ---------- portada de las rutas de ARTÍCULO (deuda 14-oct; la lógica pura vive en routeCover.ts) ----------
+   El paso 3 del routeCover del POC, en el server: una ruta SIN portada cuyo primer contenido es un artículo de Wikipedia
+   toma la imagen del artículo (summary → thumbnail.source, una URL http) como `route.cover`, guardada EN LA FILA
+   (persistida, sin tocar importedAt). Cuándo: al IMPORTAR (en segundo plano: el guardado no espera a Wikipedia) y, para las
+   filas que ya existían, LAZY al listar (GET /api/learn-routes espera hasta COVER_WAIT_MS; lo que tarde más queda para el
+   próximo) y al leer el catálogo el Feed (sin esperar). Sin imagen o con falla → sigue el emoji, y esa ruta+artículo queda
+   "ya intentada" en RAM: los pedidos siguientes no vuelven a pedir (sin martillar; un reinicio del server reintenta una
+   vez). Un import nuevo de la ruta siempre prueba de nuevo. Si la fila cambió mientras tanto (re-import, borrado), el
+   resultado se descarta. */
+const COVER_WAIT_MS = 2500
+const coverTried = new Set<string>() // `${id}|${url del artículo}` ya pedidas en este proceso
+const coverJobs = new WeakMap<RouteRow, Promise<void>>() // el pedido en curso de ESA versión de la fila
+const coverKey = (id: Key, t: WikiTarget) => `${typeof id}:${String(id)}|${t.url}`
+
+function ensureCover(id: Key, force = false): Promise<void> | null {
+  const row = routes.get(id)
+  if (!row) return null
+  const t = wikiTarget(row.route)
+  if (!t) return null
+  const running = coverJobs.get(row)
+  if (running) return running
+  const key = coverKey(id, t)
+  if (!force && coverTried.has(key)) return null
+  coverTried.add(key)
+  const job = fetchWikiThumb(t).then((thumb) => {
+    if (routes.get(id) !== row) return // la ruta se re-importó o se borró mientras tanto
+    if (!thumb) { console.log(`[learn-routes] portada de «${String(row.route.title)}»: el artículo no trae imagen (o no respondió): sigue el emoji`); return }
+    const next = new Map(routes)
+    next.set(id, { ...row, route: { ...row.route, cover: thumb } })
+    if (!persist(next, defs)) return // no se pudo escribir: queda como estaba (y ya intentada)
+    routes = next
+    console.log(`[learn-routes] portada de «${String(row.route.title)}»: la imagen de su artículo de Wikipedia`)
+  })
+  coverJobs.set(row, job)
+  return job
+}
+/** Pide las portadas que falten (las ya intentadas no) y espera hasta `waitMs` (0 = no espera). */
+async function ensureCovers(waitMs: number): Promise<void> {
+  const jobs = [...routes.keys()].map((id) => ensureCover(id)).filter((j): j is Promise<void> => j !== null)
+  if (!jobs.length || waitMs <= 0) return
+  await Promise.race([Promise.allSettled(jobs), new Promise((r) => setTimeout(r, waitMs))])
+}
+
 /* ---------- lectura para los módulos del server (W3) ---------- */
 /** Una ruta del catálogo tal como la guarda la fila (opaca salvo lo que leen el feed y la economía). */
 export type CatalogRoute = RouteData
 /** Las rutas habilitadas del catálogo, en el orden de la clave: el useImportedRoutes() del POC
- *  (db.learnRoutes.toArray() → filter(enabled !== false) → route). */
+ *  (db.learnRoutes.toArray() → filter(enabled !== false) → route). De paso dispara (sin esperar) las portadas de artículo
+ *  que falten: así el Feed también las muestra aunque nadie haya entrado a Aprender. */
 export function catalogRoutes(): CatalogRoute[] {
+  void ensureCovers(0)
   return [...routes.values()].filter((r) => r.enabled !== false).sort(byId).map((r) => r.route)
 }
 /** El título de una ruta (para rotular los movimientos de ⚡); undefined si no existe (p. ej. una ruta borrada). */
@@ -272,6 +289,7 @@ export async function learnRoutesRoutes(req: IncomingMessage, res: ServerRespons
 
   if (path === '/api/learn-routes') {
     if (req.method !== 'GET') return send(res, 405, { error: 'method' })
+    await ensureCovers(COVER_WAIT_MS) // portadas de artículo que falten (lazy; ver arriba)
     return send(res, 200, { routes: listItems() })
   }
 
@@ -302,6 +320,7 @@ export async function learnRoutesRoutes(req: IncomingMessage, res: ServerRespons
       return send(res, r.status ?? 200, { ok: false, error: r.error })
     }
     console.log(`[learn-routes] import «${String(r.title)}» (${String(r.routeId)}) · ${r.postas} postas · ${r.definitions} definiciones`)
+    void ensureCover(r.routeId, true) // portada del artículo, en segundo plano (no demora el guardado)
     return send(res, 200, r)
   }
 
