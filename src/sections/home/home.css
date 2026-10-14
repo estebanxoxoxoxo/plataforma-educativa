@@ -164,6 +164,8 @@
 
 /* ===== B · "FIJADO · TU SIGUIENTE PASO" (el hero): raya del acento, ícono en caja suave, título en serif ===== */
 .hf-next{display:flex;gap:14px;padding:16px 18px 16px 20px;border-radius:18px;background:var(--hf-surface);border:1px solid var(--hf-hair);box-shadow:inset 3px 0 0 var(--hf-learn-2)}
+/* Dentro de la zona Destacados el hero va LIMPIO (pedido 14-oct): sin la raya/sombra azul — la caja lavanda ya destaca. */
+.fpin .hf-next{box-shadow:none}
 .hf-next-ic{flex:none;width:46px;height:46px;border-radius:13px;display:grid;place-items:center;background:var(--hf-learn-soft);color:var(--hf-learn)}
 .hf-next-ic svg{width:22px;height:22px}
 .hf-next-tx{flex:1;min-width:0}

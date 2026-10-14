@@ -22,11 +22,11 @@ const NAV: { sec: Sec; label: string; to: string; Icon: ComponentType }[] = [
   { sec: 'chat', label: 'Chat', to: '/chat', Icon: IcNavChat },
   // MyTube después de Chat (pedido 12-oct).
   { sec: 'mytube', label: 'MyTube', to: '/mytube', Icon: IcNavMyTube },
-  // After Day (porte Smarty W6): música de fondo curada por el padre, pensada para su propia franja.
-  { sec: 'afterday', label: 'After Day', to: '/afterday', Icon: IcNavMoon },
   // Aprender se vuelve Learn (W3 del porte: aprender+practicar COLAPSADOS). Practicar y Repasar ya
   // salieron del menú (decisiones 12-oct): sus rutas siguen vivas por URL hasta que el porte las absorba.
   { sec: 'learn', label: 'Aprender', to: '/aprender', Icon: IcNavLearn },
+  // After Day DESPUÉS de Aprender (pedido 14-oct): el audio/video de fondo curado por el padre.
+  { sec: 'afterday', label: 'After Day', to: '/afterday', Icon: IcNavMoon },
   // Tienda después de Aprender y Calendario detrás (pedido 12-oct, noche).
   { sec: 'store', label: 'Tienda', to: '/tienda', Icon: IcNavStore },
   // Calendario: las clases con los profes que contrató el padre.

@@ -4,6 +4,7 @@ import type { AfterDayTrack } from '../../../api/types';
 import { playTrack, useBgAudio } from '../../../shared/audio/bgAudio';
 import { TrackCard } from '../cards/TrackCard';
 import { AdEmpty, AdFail, AdSkeleton } from '../components/AdStates';
+import { AdWatch } from '../components/AdWatch';
 import { trackToBg } from '../lib/track';
 
 /** After Day (porte EXACTO de AfterDay.tsx del POC, tanda W6): la lista que curó el padre, para escuchar SOLO como audio
@@ -16,6 +17,8 @@ import { trackToBg } from '../lib/track';
 export function AfterDayPage() {
   const [tracks, setTracks] = useState<AfterDayTrack[] | null>(null);
   const [failed, setFailed] = useState(false);
+  // «Ver» (extensión Innerith 14-oct): el track que se está MIRANDO en el overlay contenido.
+  const [watch, setWatch] = useState<AfterDayTrack | null>(null);
   const bg = useBgAudio();
   const seq = useRef(0);
 
@@ -44,7 +47,7 @@ export function AfterDayPage() {
     <section className="view ad-view" id="v-afterday">
       <header className="ad-head">
         <h2 className="h2">After Day</h2>
-        <p className="lede">Audio para escuchar de fondo mientras hacés otra cosa. Tocá uno y seguí navegando.</p>
+        <p className="lede">Audio para escuchar de fondo mientras hacés otra cosa. Tocá uno y seguí navegando — o miralo con «Ver».</p>
       </header>
       {tracks === null ? (failed ? <AdFail onRetry={() => void load()} /> : <AdSkeleton />)
         : tracks.length === 0 ? <AdEmpty />
@@ -52,10 +55,11 @@ export function AfterDayPage() {
             <div className="ad-grid">
               {tracks.map((t) => (
                 <TrackCard key={t.videoId} track={t} sounding={bg.video?.id === t.videoId}
-                  onPlay={() => playTrack(trackToBg(t), 0, true)} />
+                  onPlay={() => playTrack(trackToBg(t), 0, true)} onWatch={() => setWatch(t)} />
               ))}
             </div>
           )}
+      {watch && <AdWatch track={watch} onClose={() => setWatch(null)} />}
     </section>
   );
 }
