@@ -209,7 +209,11 @@ export function FeedPage() {
 
   // Lo que dejan ver los flags (red de seguridad visual). Si la PRIMERA página aporta menos de MIN_VISIBLE, se pide la
   // siguiente sola; las demás las pide el chico.
-  const shown = items ? items.filter((it) => feedItemVisible(it, features)) : null;
+  const visible = items ? items.filter((it) => feedItemVisible(it, features)) : null;
+  // El hero 'next' sale del hilo y entra a la zona Destacado (pedido 14-oct); lo vivo queda arriba del hilo,
+  // o sea DEBAJO de la zona.
+  const heroIt = visible?.find((it) => it.kind === 'next');
+  const shown = visible ? visible.filter((it) => it.kind !== 'next') : null;
   const shownCount = shown?.length ?? null;
   useEffect(() => {
     if (shownCount === null || !autoArmed.current || shownCount >= MIN_VISIBLE || !next || more === 'busy' || autoRun.current >= AUTO_MAX) return;
@@ -309,6 +313,7 @@ export function FeedPage() {
   const block = (it: FeedItem): ReactNode => {
     const off = () => hide(it.id);
     switch (it.kind) {
+      // El hero vive DENTRO de la zona Destacado (pedido 14-oct): este case queda solo por exhaustividad.
       case 'next': return <FeedNextCard it={it} onGo={(to) => go(to)} />;
       case 'videos': return <FeedVideoShelf it={it} onOpen={h.video} onAll={() => go(shelfAllUrl(it))} />;
       case 'summary': return <FeedSummaryCard it={it} />;
@@ -328,8 +333,11 @@ export function FeedPage() {
       <div className="hf-col">
         <FeedHead name={user?.name ?? ''} day={daypartLine()} streak={streak}
           demo={amigosOn ? <SimulateNpcsChip busy={npc.busy} note={npc.note} failed={npc.failed} onClick={() => void simulateNpcs()} /> : undefined} />
-        {amigosOn && pins.length > 0 && (
-          <PinnedZone items={pins} onAccept={(p) => void acceptPin(p)} onDecline={(p) => void declinePin(p)} />
+        {/* La zona Destacado (pedido 14-oct): el hero "tu siguiente paso" + las solicitudes. La píldora y lo que
+            entra con Simular NPCs van DEBAJO de esta zona (el hero ya no está en el hilo). */}
+        {(heroIt || (amigosOn && pins.length > 0)) && (
+          <PinnedZone hero={heroIt && <FeedNextCard it={heroIt} onGo={(to) => go(to)} />}
+            items={amigosOn ? pins : []} onAccept={(p) => void acceptPin(p)} onDecline={(p) => void declinePin(p)} />
         )}
         {/* la píldora: pegada arriba del hilo mientras se scrollea; región viva (anuncia que hay novedades) */}
         <div className="hf-pillbar" aria-live="polite">
