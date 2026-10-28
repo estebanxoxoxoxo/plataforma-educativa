@@ -39,28 +39,40 @@
 // vencido: siempre hay 4 por día contratado (la primera puede estar en curso). Agendar = la próxima ocurrencia
 // ESTRICTAMENTE futura de cada día/hora y las 3 siguientes. Un contrato por (mentor, beneficiario) —el MISMO mentor puede
 // tener uno para Ian y otro para Andrés— y un beneficiario nunca tiene dos clases a la misma hora (otro beneficiario sí: son
-// personas distintas). FECHAS en hora LOCAL del server (= la de la familia en el demo), sumando DÍAS de calendario y no
-// milisegundos: con el cambio de horario de verano la clase de las 17 sigue a las 17.
+// personas distintas).
+// FECHAS en hora DE PARED de la ZONA HORARIA DE LA FAMILIA (tanda B1: la que eligió el adulto en Familia → Límites; la
+// presta schedule.ts con familyTzNow; null = Automática = la local del server, lo de siempre): "miércoles 17:00" son las
+// 17:00 del reloj de la familia, esté donde esté el server y vea el calendario desde donde lo vea (el cliente pinta en esa
+// misma zona). Se calcula con el helper Intl compartido (src/shared/lib/zonedClock.ts, como schedule.ts y feedFake.ts) y
+// sumando SEMANAS EN HORA DE PARED, no milisegundos: con el cambio de horario de verano la clase de las 17 sigue a las 17.
+// La serie de cada día se deriva al leer en la zona VIGENTE: si la familia cambia de zona, "los miércoles a las 17:00"
+// pasan a ser las 17:00 de la zona nueva (`since` solo marca desde qué semana corre: la primera clase es el inicio de ese día
+// y hora más cercano a él).
 //
-// PERSISTENCIA: server/data/teachers.json v2 { version: 2, contracts: [...] } = CONFIG de la familia (regla 9 de
+// PERSISTENCIA: server/data/teachers.json v2 { version: 2, seq, contracts: [...] } = CONFIG de la familia (regla 9 de
 // docs/AGENTS.md: la config persiste y NO entra en /api/demo/reset). Escritura atómica (tmp + rename, como
-// space.ts/parent.ts) e INMEDIATA. La PRIMERA vez (sin archivo) se escribe el seed: Matemática con Caro (miércoles 17:00)
-// como contrato activo de Ian, para que su Calendario nazca vivo. MIGRACIÓN v1 → v2 al cargar: cada contratación vieja
-// ({ hires: [{ teacherId, slot, since }] }, que eran del chico) pasa a un contrato `active` de ian con 1 clase por semana y
-// su slot con su `since` (la serie sigue idéntica). Archivo ilegible o sin lista de contratos → copia en .roto-* y arranca
-// del seed. Al cargar se sanea: mentor que no está en el catálogo, beneficiario que no es un usuario del demo (users.ts),
-// plan o estado inválidos, contrato repetido (mismo mentor y beneficiario: queda el primero) o activo con días inválidos
-// (no son tantos como el plan, día u hora fuera de rango, dos el mismo día, o a la misma hora que otra clase de su
-// beneficiario) → se saltea con un aviso; un pendiente con días → se vacían; un `since` que no cuadra con su día y hora →
-// se recalcula; un id que no es un entero positivo o está repetido → se renumera (máx + 1).
+// space.ts/parent.ts) e INMEDIATA. `seq` (tanda B1, ADITIVO) = el próximo id de contrato: SOLO CRECE y viaja en cada
+// escritura, así un id cancelado nunca se reusa (una pestaña vieja de Mentorías o un `?agendar=<id>` viejo no pueden tocar
+// otro contrato); un archivo sin `seq` (o con uno que no supera al id más alto) lo inicializa en máx(id) + 1. La PRIMERA
+// vez (sin archivo) se escribe el seed: Matemática con Caro (miércoles 17:00) como contrato activo de Ian, para que su
+// Calendario nazca vivo. MIGRACIÓN v1 → v2 al cargar: cada contratación vieja ({ hires: [{ teacherId, slot, since }] }, que
+// eran del chico) pasa a un contrato `active` de ian con 1 clase por semana y su slot con su `since` (la serie sigue
+// idéntica). Archivo ilegible o sin lista de contratos → copia en .roto-* y arranca del seed. Al cargar se sanea: mentor que
+// no está en el catálogo, beneficiario que no es un usuario del demo (users.ts), plan o estado inválidos, contrato repetido
+// (mismo mentor y beneficiario: queda el primero) o activo con días inválidos (no son tantos como el plan, día u hora fuera
+// de rango, dos el mismo día, o a la misma hora que otra clase de su beneficiario) → se saltea con un aviso; un pendiente
+// con días → se vacían; un `since` que no es un instante (entero de epoch ms) → arranca en la próxima clase; un id que no
+// es un entero positivo o está repetido → se renumera con `seq`.
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { SERVER_ROOT } from './config'
+import { familyTzNow } from './schedule'
 import { DEFAULT_USER_ID, actingUser, isAdultReq, userById, type UserInfo } from './users'
 import { readJson, send } from './web'
+import { wallClock } from '../../src/shared/lib/zonedClock'
 
-/* ---------- formas (espejo de src/api/types.ts; el server no importa de src/) ---------- */
+/* ---------- formas (espejo de src/api/types.ts: los tipos no se importan de src/; el reloj de pared sí, zonedClock.ts) ---------- */
 interface TeacherSlot { weekday: number; hour: number }
 interface Teacher { id: string; name: string; emoji: string; color: string; subject: string; pricePerHour: number; bio: string; rating: number }
 type MentorPlan = 1 | 2 | 3
@@ -133,39 +145,60 @@ function familyOf(adult: UserInfo): UserInfo[] {
 }
 const nameOf = (id: string) => userById(id)?.name ?? id
 
-/* ---------- fechas (hora local) ---------- */
-const weekdayOf = (d: Date) => (d.getDay() + 6) % 7 // JS: 0 = domingo → contrato: 0 = lunes
-/** Inicio de la clase k de la serie (k = 0 → `since`): suma días de calendario (a prueba de horario de verano). */
-function nthStart(since: number, hour: number, k: number): number {
-  const d = new Date(since)
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7 * k, hour, 0, 0, 0).getTime()
+/* ---------- fechas (hora de PARED en la zona de la familia; null = la local del server) ---------- */
+type Tz = string | null
+const MIN_MS = 60_000
+const WEEK_MIN = 7 * 24 * 60
+/** Minuto de la semana (0 = lunes 00:00) que marca el reloj de pared de `tz` en el instante `t`. wallClock (el helper
+ *  compartido) devuelve el día como getDay() (0 = domingo) y, sin zona o con una que este motor no conoce, la local. */
+function weekMinuteAt(t: number, tz: Tz): number {
+  const w = wallClock(new Date(t), tz)
+  return ((w.day + 6) % 7) * 24 * 60 + w.minutes
 }
-/** Primer inicio ESTRICTAMENTE posterior a `now` con ese día y esa hora. */
-function nextStart(slot: TeacherSlot, now: number): number {
-  const d = new Date(now)
-  const delta = (slot.weekday - weekdayOf(d) + 7) % 7
-  const t = new Date(d.getFullYear(), d.getMonth(), d.getDate() + delta, slot.hour, 0, 0, 0).getTime()
-  return t > now ? t : new Date(d.getFullYear(), d.getMonth(), d.getDate() + delta + 7, slot.hour, 0, 0, 0).getTime()
+/** El inicio de clase de ese día y hora DE PARED en `tz` más cercano a `t` (a menos de media semana). Corre el instante
+ *  lo que le falta al reloj de pared para marcar ese día y hora, y repite: el corrimiento del horario de verano (±1 h) o
+ *  el de un ancla de otra zona (hasta ±26 h) se resuelve en una o dos vueltas. Así sumar semanas es sumarlas EN HORA DE
+ *  PARED: el miércoles 17:00 sigue siendo el miércoles 17:00 de la familia aunque cambie el horario de verano. */
+function snapToSlot(t: number, slot: TeacherSlot, tz: Tz): number {
+  const target = slot.weekday * 24 * 60 + slot.hour * 60
+  let x = Math.floor(t / MIN_MS) * MIN_MS // las zonas de hoy corren en minutos enteros
+  for (let i = 0; i < 4; i++) {
+    let d = (((target - weekMinuteAt(x, tz)) % WEEK_MIN) + WEEK_MIN) % WEEK_MIN
+    if (d > WEEK_MIN / 2) d -= WEEK_MIN
+    if (d === 0) break
+    x += d * MIN_MS
+  }
+  return x
 }
-/** ¿`since` es un inicio de clase de ese horario (ese día de la semana, esa hora en punto)? */
-function fitsSlot(since: unknown, slot: TeacherSlot): since is number {
-  if (typeof since !== 'number' || !Number.isSafeInteger(since)) return false
-  const d = new Date(since)
-  return weekdayOf(d) === slot.weekday && d.getHours() === slot.hour && d.getMinutes() === 0 && d.getSeconds() === 0 && d.getMilliseconds() === 0
+/** Inicio de la clase k de la serie de un día (k = 0 → la más cercana a `since`), en la pared de `tz`. */
+const nthStart = (s: StoredSlot, k: number, tz: Tz): number => snapToSlot(s.since + k * WEEK_MS, s, tz)
+/** Primer inicio ESTRICTAMENTE posterior a `now` con ese día y esa hora de pared en `tz`. */
+function nextStart(slot: TeacherSlot, now: number, tz: Tz): number {
+  const t = snapToSlot(now, slot, tz) // a menos de media semana: si ya pasó, la que sigue es la de la semana próxima
+  return t > now ? t : snapToSlot(t + WEEK_MS, slot, tz)
+}
+/** ¿`since` es un instante usable como ancla de la serie? (entero de epoch ms; el día y la hora los pone el slot). */
+const isInstant = (since: unknown): since is number => typeof since === 'number' && Number.isSafeInteger(since)
+/** Para los logs: "28/10/2026, 17:00:00 (America/Argentina/Buenos_Aires)" · sin zona, la local del server. */
+function whenLabel(t: number, tz: Tz): string {
+  try { return `${new Date(t).toLocaleString('es-AR', { hourCycle: 'h23', timeZone: tz ?? undefined })}${tz ? ` (${tz})` : ''}` }
+  catch { return new Date(t).toLocaleString('es-AR', { hourCycle: 'h23' }) }
 }
 const sameSlot = (a: TeacherSlot, b: TeacherSlot) => a.weekday === b.weekday && a.hour === b.hour
 
 /* ---------- estado ---------- */
 interface StoredSlot extends TeacherSlot { /** inicio de la PRIMERA clase de la serie de este día (epoch ms) */ since: number }
 interface Contract { id: number; teacherId: string; beneficiary: string; daysPerWeek: MentorPlan; slots: StoredSlot[]; status: ContractStatus }
-interface Store { version: 2; contracts: Contract[] }
+/** `seq` = el próximo id de contrato (solo crece: un id cancelado no vuelve a nacer). */
+interface Store { version: 2; seq: number; contracts: Contract[] }
 
-/** Las clases vigentes de un día contratado: desde la primera que todavía no terminó (y nunca antes de `since`). */
-function classesOf(s: StoredSlot, now: number): number[] {
-  // Arranca una semana antes de la estimada (el horario de verano corre ±1 h) y avanza hasta la primera que no terminó.
+/** Las clases vigentes de un día contratado, en la pared de `tz`: desde la primera que todavía no terminó (y nunca antes
+ *  de la primera de la serie). */
+function classesOf(s: StoredSlot, now: number, tz: Tz): number[] {
+  // Arranca una semana antes de la estimada (horario de verano, ancla de otra zona) y avanza hasta la primera que no terminó.
   let k = Math.max(0, Math.floor((now - s.since) / WEEK_MS) - 1)
-  while (nthStart(s.since, s.hour, k) + DURATION_MS <= now) k++
-  return Array.from({ length: CLASSES_PER_SLOT }, (_, i) => nthStart(s.since, s.hour, k + i))
+  while (nthStart(s, k, tz) + DURATION_MS <= now) k++
+  return Array.from({ length: CLASSES_PER_SLOT }, (_, i) => nthStart(s, k + i, tz))
 }
 
 /** weekday 0-6 y hora en punto dentro del rango. Solo números enteros (la UI manda números). */
@@ -186,8 +219,8 @@ function writeAtomic(s: Store): boolean {
 }
 function seed(): Store {
   const { weekday, hour } = SEED.slot
-  return { version: 2, contracts: [{ id: 1, teacherId: SEED.teacherId, beneficiary: SEED.beneficiary, daysPerWeek: 1,
-    slots: [{ weekday, hour, since: nextStart({ weekday, hour }, Date.now()) }], status: 'active' }] }
+  return { version: 2, seq: 2, contracts: [{ id: 1, teacherId: SEED.teacherId, beneficiary: SEED.beneficiary, daysPerWeek: 1,
+    slots: [{ weekday, hour, since: nextStart({ weekday, hour }, Date.now(), familyTzNow()) }], status: 'active' }] }
 }
 /** Una contratación de la v1 ({teacherId, slot, since}: eran todas del chico) como contrato v2 (lo valida sanitize). */
 function fromV1(it: unknown, i: number): Record<string, unknown> {
@@ -208,6 +241,7 @@ function sanitize(raw: unknown): { store: Store; fixed: boolean } | null {
     console.log(`[mentors] teachers.json v1 → v2: ${items.length} contratación(es) pasan a contratos activos de ${DEFAULT_USER_ID} (1 clase por semana, la misma serie)`)
   } else return null
   const now = Date.now()
+  const tz = familyTzNow()
   const out: Contract[] = []
   const renumber: Contract[] = []
   for (const it of items) {
@@ -241,11 +275,13 @@ function sanitize(raw: unknown): { store: Store; fixed: boolean } | null {
       if (rawSlots.length) { fixed = true; console.warn(`[mentors] contrato pendiente con días en teachers.json (#${String(o.id)}): se vacían`) }
     } else {
       c.slots = slots.map((s, i) => {
+        // Un `since` de otra zona (la familia la cambió) o corrido NO se toca: la serie se deriva al leer en la zona vigente
+        // y arranca en el inicio de ese día y hora más cercano a él. Solo se rehace si ni siquiera es un instante.
         let since: unknown = obj(rawSlots[i]).since
-        if (!fitsSlot(since, s)) {
-          since = nextStart(s, now)
+        if (!isInstant(since)) {
+          since = nextStart(s, now, tz)
           fixed = true
-          console.warn(`[mentors] contrato #${String(o.id)} (${teacherId}): el inicio de la serie de ${slotEvery(s)} no cuadraba; arranca de nuevo el ${new Date(since as number).toLocaleString('es-AR', { hourCycle: 'h23' })}`)
+          console.warn(`[mentors] contrato #${String(o.id)} (${teacherId}): la serie de ${slotEvery(s)} no tenía un inicio válido; arranca el ${whenLabel(since as number, tz)}`)
         }
         return { weekday: s.weekday, hour: s.hour, since: since as number }
       })
@@ -255,12 +291,18 @@ function sanitize(raw: unknown): { store: Store; fixed: boolean } | null {
     else { renumber.push(c); fixed = true }
     out.push(c)
   }
-  let max = out.reduce((m, c) => Math.max(m, c.id), 0)
+  // El contador: nunca por debajo del id más alto + 1 (sin `seq` —archivo de antes de B1, v1 migrado— o editado a mano).
+  const max = out.reduce((m, c) => Math.max(m, c.id), 0)
+  let seq = typeof r.seq === 'number' && Number.isSafeInteger(r.seq) && r.seq > max ? r.seq : max + 1
+  if (seq !== r.seq) {
+    fixed = true
+    if (r.seq !== undefined) console.warn(`[mentors] seq inválido en teachers.json (${JSON.stringify(r.seq)}): sigue en ${seq}`)
+  }
   for (const c of renumber) {
-    c.id = ++max
+    c.id = seq++
     console.warn(`[mentors] contrato sin id válido (${c.teacherId} para ${c.beneficiary}): pasa a ser el #${c.id}`)
   }
-  return { store: { version: 2, contracts: out }, fixed }
+  return { store: { version: 2, seq, contracts: out }, fixed }
 }
 function load(): Store {
   if (!existsSync(FILE)) {
@@ -283,8 +325,10 @@ function load(): Store {
   }
 }
 const store: Store = load()
-const save = () => writeAtomic(store)
-const nextId = () => store.contracts.reduce((m, c) => Math.max(m, c.id), 0) + 1
+const save = () => writeAtomic(store) // `seq` viaja en cada escritura
+/** El id del contrato que nace: el contador persistente, que solo crece (no se devuelve ni si el guardado falla: ese id no
+ *  llegó a ningún cliente, y saltearlo es inofensivo). */
+const nextId = () => store.seq++
 
 /* ---------- vistas ---------- */
 const catalogView = (t: TeacherDef): Teacher => ({
@@ -320,6 +364,7 @@ function mentorsView(adult: UserInfo): MentorsResponse {
  *  de la UI; dos días del mismo contrato no chocan (empiezan en momentos distintos) y dos mentores tampoco (un
  *  beneficiario nunca tiene dos clases a la misma hora). */
 function calendar(userId: string, now = Date.now()): CalendarEvent[] {
+  const tz = familyTzNow() // la zona VIGENTE de la familia: "miércoles 17:00" es su reloj de pared
   const out: CalendarEvent[] = []
   for (const c of store.contracts) {
     if (c.status !== 'active' || c.beneficiary !== userId) continue
@@ -327,7 +372,7 @@ function calendar(userId: string, now = Date.now()): CalendarEvent[] {
     if (i < 0) continue
     const t = CATALOG[i]
     for (const s of c.slots) {
-      for (const start of classesOf(s, now)) {
+      for (const start of classesOf(s, now, tz)) {
         out.push({
           id: Math.floor(start / 60_000) * 100 + i + 1, teacherId: t.id, title: `Clase de ${t.subject} con ${firstName(t.name)}`,
           subject: t.subject, emoji: t.emoji, color: t.color, start, durationMin: DURATION_MIN,
@@ -397,7 +442,8 @@ function scheduleContract(adult: UserInfo, contractId: number, rawSlots: unknown
     }
   }
   const now = Date.now()
-  c.slots = [...slots].sort(byTime).map(s => ({ weekday: s.weekday, hour: s.hour, since: nextStart(s, now) }))
+  const tz = familyTzNow()
+  c.slots = [...slots].sort(byTime).map(s => ({ weekday: s.weekday, hour: s.hour, since: nextStart(s, now, tz) }))
   c.status = 'active'
   if (!save()) {
     c.slots = []
@@ -406,7 +452,7 @@ function scheduleContract(adult: UserInfo, contractId: number, rawSlots: unknown
   }
   const added = CLASSES_PER_SLOT * c.slots.length
   const first = Math.min(...c.slots.map(s => s.since))
-  console.log(`[mentors] contrato #${c.id} con días: ${teacherDef(c.teacherId)?.name ?? c.teacherId} para ${c.beneficiary} · ${slotsEvery(c.slots)} → ${added} clases desde el ${new Date(first).toLocaleDateString('es-AR')}`)
+  console.log(`[mentors] contrato #${c.id} con días: ${teacherDef(c.teacherId)?.name ?? c.teacherId} para ${c.beneficiary} · ${slotsEvery(c.slots)} → ${added} clases desde el ${whenLabel(first, tz)}`)
   return { status: 200, body: { ok: true, contract: contractView(c), eventsAdded: added } }
 }
 

@@ -5,12 +5,18 @@
 // getDay() de JS (0 = domingo), cada día `{ open, from: "HH:MM", to: "HH:MM" }` abierto en [from, to). Sin entrada para
 // una sección (o `restrictionActive:false`) = siempre abierta. El FEED (la home) nunca se gatea.
 // CONFIG del padre (regla 9): PERSISTE en server/data/schedules.json, FUERA de /api/demo/reset.
+// U3 (27-oct, docs/USUARIOS.md §9): los horarios son POR INTEGRANTE. schedules.json v2 = { version: 2, members: { [id]:
+// secciones } } (un integrante sin entrada = sin horarios: todo abierto); el v1 (el objeto entero eran las secciones de
+// ian) migra solo al cargar (familyMigrate.ts, puro) y el original queda UNA vez en schedules.json.pre-v2.
 //
-//   GET  /api/schedules → { schedules, serverNow, tz }   (público: el menú del chico y la pantalla "cerrado" pintan con esto;
-//        serverNow para evaluar la franja con la hora del SERVER y no con el reloj del cliente; tz = la zona horaria de la
-//        familia, IANA o null = la del server)
-//   POST /api/parent/schedules {patch} → { schedules, serverNow }   (vive en parent.ts, con la sesión; valida con
-//        `checkPatch` y guarda con `patchSchedules`)
+//   GET  /api/schedules[?member] → { schedules, serverNow, tz, member }   (público: el menú del chico y la pantalla
+//        "cerrado" pintan con esto; serverNow para evaluar la franja con la hora del SERVER y no con el reloj del cliente;
+//        tz = la zona horaria de la FAMILIA, IANA o null = la del server). Chico activo → los SUYOS (member ignorado:
+//        nunca los de un hermano). Adulto → los del integrante de `?member=` (users.ts:memberFor; ausente = el primero;
+//        uno que no es de la familia → 400); adulto sin integrantes → { schedules: {}, serverNow, tz } sin member (la
+//        TopBar del adulto lo lee para el reloj: nunca 400 sin member).
+//   POST /api/parent/schedules?member {patch} → { schedules, serverNow, tz, member }   (vive en parent.ts, con la sesión;
+//        valida con `checkPatch` y guarda con `patchSchedules(member, …)`)
 //
 // Semántica fiel del POC (`isFeatureOpen`): día con open:false = cerrada todo el día; from == to = las 24 h; to < from =
 // cruza la medianoche; datos incompletos o inválidos (un archivo editado a mano) = ABIERTA ("nunca encerramos al niño por
@@ -26,6 +32,8 @@ import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { join } from 'node:path'
 import { SERVER_ROOT } from './config'
+import { isObject, upgradeSchedulesRaw } from './familyMigrate'
+import { DEFAULT_USER_ID, actingUser, memberFor } from './users'
 import { send } from './web'
 import { wallClock } from '../../src/shared/lib/zonedClock'
 
@@ -33,6 +41,8 @@ export type SectionKey = 'chat' | 'buscar' | 'mytube' | 'aprender' | 'tienda' | 
 export interface DaySchedule { open: boolean; from: string; to: string }
 export interface FeatureSchedule { restrictionActive: boolean; week: DaySchedule[] }
 export type Schedules = Partial<Record<SectionKey, FeatureSchedule>>
+/** schedules.json v2 (U3): los horarios de cada integrante. */
+interface SchedulesFile { version: 2; members: Record<string, Schedules> }
 
 const KEYS: SectionKey[] = ['chat', 'buscar', 'mytube', 'aprender', 'tienda', 'calendario', 'espacio', 'afterday']
 const LABEL: Record<SectionKey, string> = {
@@ -41,21 +51,31 @@ const LABEL: Record<SectionKey, string> = {
 const DAY_NAME = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
 const FILE = join(SERVER_ROOT, 'data', 'schedules.json')
 
-function load(): Schedules {
-  if (!existsSync(FILE)) return {}
+function load(): SchedulesFile {
+  if (!existsSync(FILE)) return { version: 2, members: {} } // todo abierto; no se escribe hasta el primer guardado
+  let text: string, up: ReturnType<typeof upgradeSchedulesRaw>
   try {
-    const raw: unknown = JSON.parse(readFileSync(FILE, 'utf8'))
-    // Lo raro se evalúa igual con isOpenIn (falla en abierto); acá solo se descarta lo que ni siquiera es un objeto.
-    return raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Schedules) : {}
+    text = readFileSync(FILE, 'utf8')
+    up = upgradeSchedulesRaw(JSON.parse(text), DEFAULT_USER_ID)
   } catch (e) {
     console.error('[schedule] schedules.json ilegible → todo abierto (como el POC); copia en .roto-*:', e)
     try { renameSync(FILE, `${FILE}.roto-${Date.now()}`) } catch { /* sin copia: seguimos igual */ }
-    return {}
+    return { version: 2, members: {} }
   }
+  // Lo raro se evalúa igual con isOpenIn (falla en abierto); acá solo se descarta lo que ni siquiera es un objeto. Un
+  // integrante que ya no es dependiente de nadie se conserva (no se pierde config) y no se sirve.
+  const members: Record<string, Schedules> = {}
+  for (const [id, v] of Object.entries(up.raw.members)) if (id !== '__proto__') members[id] = isObject(v) ? (v as Schedules) : {}
+  const s: SchedulesFile = { version: 2, members }
+  if (up.from === 1) {
+    try { if (!existsSync(`${FILE}.pre-v2`)) { writeFileSync(`${FILE}.pre-v2`, text); console.log('[schedule] respaldo de la versión anterior en schedules.json.pre-v2') } }
+    catch (e) { console.error('[schedule] no pude escribir el respaldo schedules.json.pre-v2:', e) }
+    if (write(s)) console.log(`[schedule] schedules.json → v2 (los horarios de antes pasan a ${DEFAULT_USER_ID})`)
+  }
+  return s
 }
-let schedules: Schedules = load()
 
-function write(next: Schedules): boolean {
+function write(next: SchedulesFile): boolean {
   try {
     const tmp = `${FILE}.tmp`
     writeFileSync(tmp, JSON.stringify(next, null, 1))
@@ -66,6 +86,7 @@ function write(next: Schedules): boolean {
     return false
   }
 }
+let file: SchedulesFile = load()
 
 /* ---------- la zona horaria de la familia (la presta parent.ts, dueño del dato) ---------- */
 let tzSource: () => string | null = () => null
@@ -73,7 +94,8 @@ export function setFamilyTzSource(fn: () => string | null): void { tzSource = fn
 /** La zona IANA de la familia, o null = la del server. */
 export const familyTzNow = (): string | null => tzSource()
 
-export function allSchedules(): Schedules { return schedules }
+/** Los horarios de un integrante (sin entrada = ninguno: todo abierto). */
+export function schedulesOf(member: string): Schedules { return Object.hasOwn(file.members, member) ? file.members[member] : {} }
 export function isSectionKey(k: string): k is SectionKey { return (KEYS as string[]).includes(k) }
 
 /* ---------- evaluación: port EXACTO de isFeatureOpen / nextOpenLabel del POC (sin los interruptores beta
@@ -124,9 +146,9 @@ export function nextOpenLabelIn(sched: FeatureSchedule | undefined, now: Date, t
     return null
   } catch { return null }
 }
-/** ¿La sección está abierta AHORA (reloj del server, en la zona de la familia)? */
-export function isOpen(key: SectionKey, now: Date = new Date()): boolean { return isOpenIn(schedules[key], now, tzSource()) }
-export function nextOpenLabel(key: SectionKey, now: Date = new Date()): string | null { return nextOpenLabelIn(schedules[key], now, tzSource()) }
+/** ¿La sección está abierta AHORA para este integrante (reloj del server, en la zona de la familia)? */
+export function isOpen(key: SectionKey, member: string, now: Date = new Date()): boolean { return isOpenIn(schedulesOf(member)[key], now, tzSource()) }
+export function nextOpenLabel(key: SectionKey, member: string, now: Date = new Date()): string | null { return nextOpenLabelIn(schedulesOf(member)[key], now, tzSource()) }
 
 /* ---------- edición del padre ---------- */
 type Check<T> = { ok: true; value: T } | { ok: false; error: string }
@@ -134,6 +156,8 @@ const fail = (error: string): { ok: false; error: string } => ({ ok: false, erro
 /** Un patch por sección: el horario COMPLETO de esa sección, o null = "sin horario" (se borra la entrada). */
 export type SchedulePatch = Partial<Record<SectionKey, FeatureSchedule | null>>
 
+/** "8:00" → "08:00" (se guarda canónico: HH:MM con dos dígitos; parseHHMM ya lo validó). */
+const hhmm = (s: string) => { const [h, m] = s.trim().split(':'); return `${h.padStart(2, '0')}:${m}` }
 /** Valida la forma del patch (cada sección conocida; 7 días; open booleano; from/to HH:MM válidas). Todo o nada. */
 export function checkPatch(raw: unknown): Check<SchedulePatch> {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return fail('Los horarios tienen que venir como un objeto {sección: horario}.')
@@ -152,7 +176,7 @@ export function checkPatch(raw: unknown): Check<SchedulePatch> {
       if (typeof day.from !== 'string' || typeof day.to !== 'string' || parseHHMM(day.from) == null || parseHHMM(day.to) == null) {
         return fail(`${LABEL[k]}, ${DAY_NAME[d]}: las horas tienen que ser HH:MM (de 00:00 a 23:59).`)
       }
-      week.push({ open: day.open, from: day.from.trim(), to: day.to.trim() })
+      week.push({ open: day.open, from: hhmm(day.from), to: hhmm(day.to) })
     }
     out[k] = { restrictionActive: s.restrictionActive, week }
   }
@@ -161,22 +185,24 @@ export function checkPatch(raw: unknown): Check<SchedulePatch> {
 
 const isDefaultWeek = (w: DaySchedule[]) => w.length === 7 && w.every(d => d.open === DEFAULT_DAY.open && d.from === DEFAULT_DAY.from && d.to === DEFAULT_DAY.to)
 
-/** Merge por sección: cada sección del patch REEMPLAZA su horario completo. null —o "sin restringir" con la semana de
- *  fábrica, que es lo mismo que no tener entrada— la borra; "sin restringir" con una semana PROPIA se guarda, porque el
- *  editor del POC la recuerda al volver a tildar. null si no se pudo escribir (no cambia nada). */
-export function patchSchedules(patch: SchedulePatch): Schedules | null {
-  const next: Schedules = { ...schedules }
+/** Merge por sección sobre los horarios de UN integrante: cada sección del patch REEMPLAZA su horario completo. null —o
+ *  "sin restringir" con la semana de fábrica, que es lo mismo que no tener entrada— la borra; "sin restringir" con una
+ *  semana PROPIA se guarda, porque el editor del POC la recuerda al volver a tildar. Escribe el archivo ENTERO (los demás
+ *  integrantes intactos). null si no se pudo escribir (no cambia nada). */
+export function patchSchedules(member: string, patch: SchedulePatch): Schedules | null {
+  const next: Schedules = { ...schedulesOf(member) }
   for (const k of Object.keys(patch) as SectionKey[]) {
     if (!isSectionKey(k)) continue
     const v = patch[k]
     if (!v || (!v.restrictionActive && isDefaultWeek(v.week))) delete next[k]
     else next[k] = { restrictionActive: v.restrictionActive, week: v.week.map(d => ({ open: d.open, from: d.from, to: d.to })) }
   }
-  if (!write(next)) return null
-  schedules = next
+  const nextFile: SchedulesFile = { version: 2, members: { ...file.members, [member]: next } }
+  if (!write(nextFile)) return null
+  file = nextFile
   const on = KEYS.filter(k => next[k]?.restrictionActive)
-  console.log(`[schedule] horarios guardados → ${on.length ? `restringidas: ${on.join(', ')}` : 'ninguna sección restringida'}`)
-  return schedules
+  console.log(`[schedule] horarios de ${member} guardados → ${on.length ? `restringidas: ${on.join(', ')}` : 'ninguna sección restringida'}`)
+  return next
 }
 
 /* ---------- ENFORCEMENT: a qué sección pertenece cada pedido de API (lo usa index.ts antes de rutear) ----------
@@ -210,16 +236,23 @@ export function sectionForApi(pathname: string): SectionKey | null {
   return null
 }
 
-/** La sección CERRADA a la que pertenece este pedido (con el "se abre a las…"), o null si pasa. */
-export function closedSectionFor(pathname: string, now: Date = new Date()): { key: SectionKey; opensAt: string | null } | null {
+/** La sección CERRADA para este integrante a la que pertenece este pedido (con el "se abre a las…"), o null si pasa. */
+export function closedSectionFor(pathname: string, member: string, now: Date = new Date()): { key: SectionKey; opensAt: string | null } | null {
   const key = sectionForApi(pathname)
-  if (!key || isOpen(key, now)) return null
-  return { key, opensAt: nextOpenLabel(key, now) }
+  if (!key || isOpen(key, member, now)) return null
+  return { key, opensAt: nextOpenLabel(key, member, now) }
 }
 
 export async function scheduleRoutes(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
   if (url.pathname === '/api/schedules' && req.method === 'GET') {
-    return send(res, 200, { schedules, serverNow: Date.now(), tz: tzSource() })
+    const me = actingUser(req)
+    const reply = (member?: string) => send(res, 200, { schedules: member ? schedulesOf(member) : {}, serverNow: Date.now(), tz: tzSource(), ...(member ? { member } : {}) })
+    // Un chico ve SUS horarios (member ignorado). El adulto: los del integrante pedido; sin integrantes y sin member, nada
+    // (lee esto para el reloj de la TopBar: nunca 400 sin member).
+    if (me.kind === 'child') return reply(me.id)
+    if (!me.dependents?.length && !(url.searchParams.get('member') ?? '').trim()) return reply()
+    const m = memberFor(req, url)
+    return m.ok ? reply(m.id) : send(res, m.status, { error: m.error })
   }
   return send(res, 404, { error: 'No existe.' })
 }

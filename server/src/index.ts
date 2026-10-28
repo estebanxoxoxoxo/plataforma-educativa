@@ -8,14 +8,19 @@
 //   POST /api/chat                → turno del chat con el pipeline de moderación de Smarty
 //   GET /api/feed?after=  ·  POST /api/feed/react   → FAKE (demo) hasta que exista el feed real
 //   GET /api/me                   → el usuario ACTIVO { id, name, age, nick, kind } (cabecera X-Innerith-User; users.ts)
-//   GET /api/users                → los usuarios del demo (Ian, chico · Andrés, adulto y su guardián; users.ts)
+//   GET /api/users                → los usuarios del demo (Ian y Luna, chicos · Andrés, adulto y su guardián; users.ts)
 //   /api/space/*                → Mi espacio: Drive (carpetas+papelera), listas, canales seguidos (space.ts)
 //   /api/friends*                 → FAKE (demo): amigos NPC con moderación REAL y respuestas del modelo (friendsFake.ts)
 //   /api/mentors* · GET /api/calendar → FAKE (demo): mentores del ADULTO (plan, beneficiario y días) + las clases del
 //                                   usuario activo (teachersFake.ts)
 // Los CANDADOS de la familia (horarios por sección y funcionalidades apagadas) son del CHICO: con un adulto como usuario
-// activo no rigen (docs/USUARIOS.md §4; acá, market.ts, leaguesFake.ts y friendsFake.ts).
-import { createServer } from 'node:http'
+// activo no rigen (docs/USUARIOS.md §4; acá, market.ts, leaguesFake.ts y friendsFake.ts). U3 (docs/USUARIOS.md §9): rige
+// la config DEL CHICO ACTIVO —cada integrante tiene la suya— y cada pedido corre dentro de su contexto
+// (requestContext.ts: runWithRequest), así filtros, jueces, feed y chat aplican la política de ese chico sin recibir req.
+// U4 (docs/USUARIOS.md §10): cada usuario tiene lo suyo —XP/⚡/racha, canjes y guardarropas, wishlist, Learn, Mi espacio,
+// liga, amigos y feed en vivo— y el contexto del pedido elige DE QUIÉN es lo que se lee y escribe (perUser.ts). El reset
+// del demo (abajo) vuelve al seed SOLO al usuario activo; {scope:'all'} a todos.
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { config } from './config'
 import { getArticle } from './articles'
 import { queryTokens, searchPages } from './search'
@@ -39,7 +44,8 @@ import { learnRoutesRoutes } from './learnRoutes'
 import { learnResultsRoutes } from './learnResults'
 import { createRoutes } from './create'
 import { mytubeRoutes } from './mytube'
-import { actingUser, isChildReq, usersRoutes } from './users'
+import { runWithRequest } from './requestContext'
+import { actingUser, usersRoutes } from './users'
 import { readJson, send } from './web'
 import type { Msg } from './llm'
 
@@ -79,19 +85,27 @@ function boldSnippet(snippet: string, q: string): string {
 const colorFor = (h: string) => COLORS[[...h].reduce((a, c) => a + c.charCodeAt(0), 0) % COLORS.length]
 
 /* ---------- servidor (send/readJson viven en web.ts, compartidos con los módulos de rutas) ---------- */
-createServer(async (req, res) => {
+async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const url = new URL(req.url ?? '/', 'http://localhost')
   const t0 = Date.now()
+  const me = actingUser(req)
   try {
-    // --- DEMO: cada carga de página vuelve a los valores iniciales (la economía vive en RAM). ---
+    // --- DEMO: cada carga de página vuelve a los valores iniciales (la economía vive en RAM) DEL USUARIO ACTIVO (U4, D1 del
+    //     dueño: "tu F5 es tu demo nueva"; lo de los otros integrantes sigue donde estaba). {scope:'all'} → TODOS (QA). Lo
+    //     persistido (Mi espacio, wishlist, Learn, identity, config del padre, mentorías) y los avisos al padre no entran.
+    //     → DemoResetResult { ok: true, scope: 'user' | 'all', user? } (src/api/types.ts). ---
     if (url.pathname === '/api/demo/reset' && req.method === 'POST') {
-      resetProgress()
-      resetUnlockAttempts()
-      ;(market as { resetMarket?: () => void }).resetMarket?.()
-      resetFriends() // el grafo social del demo (amigos aceptados, solicitudes, hilos) también vuelve al seed
-      resetLeagues() // el ciclo de liga simulado (cierres de semana del botón de demo) vuelve al seed
-      resetFeed() // las noticias en vivo (cierres, ráfagas de NPCs) y las reacciones vuelven al seed
-      return send(res, 200, { ok: true })
+      const b = await readJson<{ scope?: unknown } | null>(req).catch(() => null)
+      const all = !!b && typeof b === 'object' && b.scope === 'all'
+      const id = all ? undefined : me.id
+      resetProgress(id) // XP / ⚡ / racha / movimientos
+      market.resetMarket(id) // canjes y guardarropas (la wishlist persiste)
+      resetFriends(id) // el grafo social del demo (amigos aceptados, solicitudes, hilos) también vuelve al seed
+      resetLeagues(id) // el ciclo de liga simulado (cierres de semana del botón de demo) vuelve al seed
+      resetFeed(id) // las noticias en vivo (cierres, ráfagas de NPCs) y las reacciones vuelven al seed
+      resetUnlockAttempts() // del portón dormido de la FAMILIA: da igual el alcance
+      console.log(`[demo] reset ${all ? 'de TODOS los usuarios' : `de ${id}`}`)
+      return send(res, 200, { ok: true, scope: all ? 'all' : 'user', ...(id ? { user: id } : {}) })
     }
 
     // --- HORARIOS POR SECCIÓN (porte Smarty W7): fuera de la franja que fijó el padre, la API de esa sección responde 403
@@ -99,9 +113,10 @@ createServer(async (req, res) => {
     //     no se gatea nunca: Feed, amigos, progreso, ligas, Zona de padres, demo, lector y reproductor— en
     //     schedule.ts:sectionForApi. Capas independientes: si la familia APAGÓ la sección (Chat/Tienda), gana el apagado
     //     (responde la ruta con su propio 403); el horario rige solo si está prendida.
-    //     Los horarios son del CHICO: con un adulto como usuario activo no se mira (docs/USUARIOS.md §4).
-    const closed = isChildReq(req) ? closedSectionFor(url.pathname) : null
-    if (closed && !((closed.key === 'chat' || closed.key === 'tienda') && !featureOn(closed.key))) {
+    //     Los horarios son del CHICO: con un adulto como usuario activo no se mira (docs/USUARIOS.md §4). U3: los de ESE
+    //     chico (cada integrante tiene los suyos), y el "gana el apagado" con SUS on-off.
+    const closed = me.kind === 'child' ? closedSectionFor(url.pathname, me.id) : null
+    if (closed && !((closed.key === 'chat' || closed.key === 'tienda') && !featureOn(closed.key, me.id))) {
       return send(res, 403, { error: 'horario', section: closed.key, opensAt: closed.opensAt })
     }
 
@@ -148,7 +163,7 @@ createServer(async (req, res) => {
       return send(res, 200, simulateNpcs())
     }
 
-    // --- MI ESPACIO (backend real: server/src/space.ts, persistido en data/space.json) ---
+    // --- MI ESPACIO (backend real: server/src/space.ts, persistido en data/space.json v2: el del USUARIO ACTIVO, U4) ---
     if (url.pathname.startsWith('/api/space/') && req.method === 'POST') {
       const b = await readJson<Record<string, unknown>>(req)
       const num = (k: string) => Number(b[k] ?? 0) || 0
@@ -190,8 +205,8 @@ createServer(async (req, res) => {
     }
 
     if (req.method === 'POST' && url.pathname === '/api/chat') {
-      // Gate del padre (fail-closed): si la familia apagó el chat, ni se lee el mensaje. Rige para el CHICO (el adulto pasa).
-      if (isChildReq(req) && !featureOn('chat')) return send(res, 403, { error: 'El chat está apagado por tu familia' })
+      // Gate del padre (fail-closed): si la familia apagó el chat DE ESTE CHICO, ni se lee el mensaje (el adulto pasa).
+      if (me.kind === 'child' && !featureOn('chat', me.id)) return send(res, 403, { error: 'El chat está apagado por tu familia' })
       const body = await readJson<{ history?: Msg[]; text?: string }>(req)
       const text = String(body.text ?? '').trim().slice(0, 2000) // límite de input de Smarty (RF-1.5)
       if (!text) return send(res, 400, { error: 'mensaje vacío' })
@@ -206,7 +221,7 @@ createServer(async (req, res) => {
 
     // El usuario ACTIVO (forma User de src/api/types.ts: sin `dependents`, que viajan en GET /api/users).
     if (url.pathname === '/api/me') {
-      const { id, name, age, nick, kind } = actingUser(req)
+      const { id, name, age, nick, kind } = me
       return send(res, 200, { id, name, age, nick, kind })
     }
 
@@ -234,6 +249,7 @@ createServer(async (req, res) => {
 
     if (url.pathname === '/api/video') {
       const v = await getVideo(url.searchParams.get('id') ?? '')
+      // `followed`: el canal en el Mi espacio DEL USUARIO ACTIVO (U4: cada uno sigue lo suyo)
       return v ? send(res, 200, { ...v, followed: space.isFollowed(v.channelId) }) : send(res, 404, { error: 'Video no aprobado' })
     }
 
@@ -265,7 +281,10 @@ createServer(async (req, res) => {
     console.error('[error]', e)
     send(res, 500, { error: 'internal' })
   }
-}).listen(PORT, () => {
+}
+
+// Cada pedido corre con SU usuario activo como contexto (requestContext.ts): la "política vigente" de parent.ts lo lee.
+createServer((req, res) => { void runWithRequest(req, () => handle(req, res)) }).listen(PORT, () => {
   setImmediate(() => { searchVideos('precalentar') }) // índice de videos (~5 s), al arrancar
   console.log(`Innerith API en http://localhost:${PORT} · policyVersion ${config.policyVersion} · ${config.sites.length} sitios`)
   if (!process.env.OPENAI_API_KEY || !process.env.SERPER_API_KEY) console.warn('Faltan claves en server/.env (correr el import de Smarty)')

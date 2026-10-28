@@ -3,10 +3,17 @@
 // Sin estado en el servidor: el cliente manda el historial (ya en su versión "de contexto") en cada turno.
 // Fuera por ahora: tools de estilo/música/archivo, sondeo de redirecciones y log de eventos al padre (salvo crisis:
 // notifyParent, Zona del padre v2).
+// U3 (docs/USUARIOS.md §9): rige la config DEL CHICO ACTIVO (temas, palabras, veto de medios, redirección y el aviso de
+// crisis la leen por el contexto del pedido: requestContext.ts) y el prompt le habla a ESE chico por su nombre; la "ficha"
+// de Smarty (config.ficha) es la de Ian, así que solo va para él. U4 (A7): el chat de un ADULTO activo le habla por SU
+// nombre y sin la ficha de Ian (antes decía "Ian" y llevaba su ficha); el bloque de seguridad (pensado para chicos) sigue
+// igual para él: más protección de la necesaria, nunca menos.
 import { MODELS, config, fill, ov } from './config'
 import { matchBlockedWord } from './filters'
 // Zona del padre v2: temas y palabras de fábrica + los de la familia, y el aviso de crisis al padre.
-import { blackTopicsAll, familyWords, notifyParent, whiteTopicsAll } from './parent'
+import { blackTopicsAll, familyTopics, familyWords, notifyParent } from './parent'
+import { currentUser } from './requestContext'
+import { DEFAULT_USER_ID } from './users'
 import { completeWithTools, spotlight, tool, type Msg } from './llm'
 import { judgeInput, judgeOutput, type InputVerdict, type Verdict } from './judge'
 import { searchPages } from './search'
@@ -30,24 +37,50 @@ export interface ChatReply {
 }
 
 const pick = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)]
+/** Redirección sin tema (cuando la familia no puso sugerencias): el mismo tono que las de Smarty, sin proponer nada. */
+const REDIRECCION_SIN_TEMA = [
+  'Esa pregunta es buena para charlarla con tu mamá o papá. Mientras tanto… ¿de qué otra cosa tenés ganas de hablar?',
+  'Eso mejor lo hablás con un adulto de tu familia. ¿Hay otra cosa que te dé curiosidad?',
+  'Hay temas que van mejor en persona con tu mamá o papá. Si querés, preguntame otra cosa.',
+]
+/** La redirección de la lista negra. Propone SOLO un tema blanco DE LA FAMILIA del chico activo (sus sugerencias): los
+ *  blancos de FÁBRICA son lo que el chat puede tratar si el chico pregunta (hoy, educación sexual: "feto", "óvulos"…),
+ *  nunca algo para ofrecerle (fix 28-oct: a una pregunta bloqueada le proponía "seguimos con feto."). Sin sugerencias de
+ *  la familia → una redirección genérica, sin tema: las líneas configuradas que no piden {{tema}} o, si todas lo piden,
+ *  las de REDIRECCION_SIN_TEMA. */
 const pickRedireccion = () => {
-  const blancos = whiteTopicsAll()
-  const tema = blancos.length ? pick(blancos).name : 'algo que te guste'
+  const blancos = familyTopics().white.filter(t => matchBlockedWord(t) === null)
   const arr = ov.lines('redirecciones')
-  return fill(arr.length ? pick(arr) : '', { tema })
+  if (blancos.length) return fill(arr.length ? pick(arr) : pick(REDIRECCION_SIN_TEMA), { tema: pick(blancos) })
+  const sinTema = arr.filter(l => !l.includes('{{tema}}'))
+  return pick(sinTema.length ? sinTema : REDIRECCION_SIN_TEMA)
+}
+/** A quién le habla el chat: el chico activo por su nombre (la ficha de Smarty solo es de Ian); un ADULTO por SU nombre y
+ *  sin ficha (U4, A7); un pedido sin usuario, como siempre (el apodo y la ficha de la config). */
+function chatKid(): { name: string; ficha: typeof config.ficha } {
+  const u = currentUser()
+  if (u?.kind === 'child') return { name: u.name, ficha: u.id === DEFAULT_USER_ID ? config.ficha : [] }
+  if (u?.kind === 'adult') return { name: u.name, ficha: [] }
+  return { name: config.apodo, ficha: config.ficha }
 }
 const guionCrisis = () => fill(ov.text('crisis.guion'), { helpline: config.helpline.trim() ? ` También podés comunicarte con: ${config.helpline.trim()}.` : '' })
 const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ')
 
 function buildSystemPrompt(): string {
-  const temasBlancos = whiteTopicsAll().map(t => `- ${t.name}: ${t.description}`).join('\n') || '(sin temas configurados aún)'
-  const fichaTxt = config.ficha.length ? config.ficha.map(f => `- [${f.category}] ${f.text}`).join('\n') : '(vacía)'
+  const kid = chatKid()
+  /* Solo las sugerencias DE LA FAMILIA del chico activo: los blancos de FÁBRICA son lo que el chat puede tratar si el
+     chico pregunta (educación sexual), nunca algo para proponerle (mismo criterio que pickRedireccion, fix 28-oct; el
+     prompt principal tenía el mismo agujero: le ofrecía esos temas "cuando la charla decae"). */
+  const sugerencias = familyTopics().white.filter(t => matchBlockedWord(t) === null)
+  const temasBlancos = sugerencias.map(t => `- ${t}`).join('\n')
+    || '(la familia no configuró sugerencias: no propongas temas puntuales, respondé lo que pregunte)'
+  const fichaTxt = kid.ficha.length ? kid.ficha.map(f => `- [${f.category}] ${f.text}`).join('\n') : '(vacía)'
   const fuentesTxt = config.ytEntries.map(e => `«${e.title}»`).join(' · ')
   const parts = [
-    fill(ov.text('sys.seguridad'), { apodo: config.apodo || 'un niño' }),
+    fill(ov.text('sys.seguridad'), { apodo: kid.name || 'un niño' }),
     fill(ov.text('sys.instrucciones'), { instrucciones: config.instrucciones }),
     fill(ov.text('sys.temas'), { temas: temasBlancos }),
-    fill(ov.text('sys.ficha'), { NOMBRE: (config.apodo || 'EL NIÑO').toUpperCase(), ficha: fichaTxt }),
+    fill(ov.text('sys.ficha'), { NOMBRE: (kid.name || 'EL NIÑO').toUpperCase(), ficha: fichaTxt }),
   ]
   if (fuentesTxt) parts.push(fill(ov.text('sys.videos'), { fuentes: fuentesTxt }))
   if (config.imagenesActivo) parts.push(ov.text('sys.imagenes'))

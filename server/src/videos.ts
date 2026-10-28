@@ -1,5 +1,7 @@
 // Videos: SOLO el catálogo aprobado por la familia (lista blanca de YouTube importada de Smarty).
 // Port de smarty-poc/app/src/lib/videoSearch.ts (MiniSearch, BM25 + boosts, AND, sin prefijo, fuzzy 0.2).
+// ADITIVO (28-oct): searchVideosStrict, la vía ESTRICTA del Feed (lo que lleva un "por qué" temático): mismas reglas pero
+// con coincidencia léxica real. searchVideos (Buscar, chat, /api/search/videos) queda EXACTO al POC.
 // Además: metadatos reales de YouTube (fecha, Me gusta, suscriptores) vía Data API, con la clave del servidor.
 // CATÁLOGO APROBADO = catalog.json (base, SOLO LECTURA) + los videos que sumó la FAMILIA en Zona de padres → YouTube (viven
 // en server/data/mytube.json). La capa de la familia es `familyCatalog` de mytube.ts, que se registra sola al arrancar
@@ -91,6 +93,81 @@ export function searchVideos(query: string, limit = ov.num('const.videoMostrados
     .map(r => getCatalogVideo(r.id as string))
     .filter((v): v is CatalogVideo => !!v && matchBlockedWord(v.title) === null)
     .slice(0, limit)
+}
+
+/* ---------- vía ESTRICTA (ADITIVA, para el FEED: fix "fuzzy del Feed", 28-oct) ----------
+   searchVideos de arriba es el buscador del POC TAL CUAL (fuzzy 0.2) y así se queda: es el de Buscar y el del chat. Pero el
+   Feed le pone un MOTIVO a lo que sirve ("Porque a tu familia le interesa: ballenas", "Porque estás aprendiendo niji") y con
+   fuzzy ese motivo mentía: "ballenas" está a 2 letras de "gallinas" y "niji" a 1 de "fiji". Esta vía tiene las MISMAS
+   reglas (muletillas fuera, AND sobre TODAS las palabras de contenido, palabras bloqueadas fuera) y además exige
+   COINCIDENCIA LÉXICA REAL: cada palabra de contenido tiene que estar como palabra ENTERA (sin tildes ni mayúsculas,
+   tolerando el plural simple: wordForms) en el título, los tags, los topics o el nombre del canal. La descripción NO
+   cuenta (ahí es donde más se cuela lo que no es del tema). Si no hay, no hay: mejor found:0 que basura (regla del POC). */
+
+/** Las palabras de contenido de una consulta: la MISMA regla que searchHits (normalize, corte por lo no alfanumérico,
+ *  muletillas fuera). Va repetida a propósito: la vía del POC no se toca. */
+const contentTerms = (query: string) => normalize(query ?? '').split(/[^a-z0-9]+/).filter(t => t && !STOPWORDS.has(t))
+/** Singular/plural simple: la palabra, +s, +es y, si termina en -s / -es, sin esa terminación (dejando 3+ letras).
+ *  "ballena" ↔ "ballenas", "volcán" ↔ "volcanes", "robot" ↔ "robots". No hay raíces ni parecidos: "gallinas" nunca es
+ *  "ballenas" y "fiji" nunca es "niji". */
+export function wordForms(w: string): string[] {
+  const out = new Set([w, `${w}s`, `${w}es`])
+  if (w.length > 3 && w.endsWith('s')) out.add(w.slice(0, -1))
+  if (w.length > 4 && w.endsWith('es')) out.add(w.slice(0, -2))
+  return [...out]
+}
+/** Los campos del índice que miran los candidatos exactos ('source' es fuente + canal; el filtro final mira el canal). */
+const STRICT_FIELDS = ['title', 'source', 'tags', 'topics']
+/** " palabra palabra … " de título + tags + topics + canal de cada video, normalizadas (memo por objeto: los del base no
+ *  cambian; los de la familia, si se rearman, son objetos nuevos y se recalculan solos). */
+const strictText = new WeakMap<CatalogVideo, string>()
+function strictWords(v: CatalogVideo): string {
+  let s = strictText.get(v)
+  if (s === undefined) {
+    const raw = [v.title, ...(v.tags ?? []), ...(v.topics ?? []), v.channelTitle].filter(Boolean).join(' ')
+    s = ` ${normalize(raw).split(/[^a-z0-9]+/).filter(Boolean).join(' ')} `
+    strictText.set(v, s)
+  }
+  return s
+}
+const hasAllTerms = (v: CatalogVideo, forms: readonly string[][]) => {
+  const s = strictWords(v)
+  return forms.every(fs => fs.some(f => s.includes(` ${f} `)))
+}
+/** ¿El video tiene TODAS las palabras de contenido de la consulta (como palabra entera, plural simple) en su título,
+ *  tags, topics o canal? Sin palabras de contenido → false (sin tema concreto no hay coincidencia). */
+export function strictVideoMatch(v: CatalogVideo, query: string): boolean {
+  const terms = contentTerms(query)
+  return terms.length > 0 && hasAllTerms(v, terms.map(wordForms))
+}
+/** La vía estricta: los videos aprobados que pasan strictVideoMatch, hasta `limit`, en este orden:
+ *  1) los hits del buscador del POC (fuzzy, AND) que de verdad tienen las palabras: lo que sobrevive sale en el MISMO orden
+ *     que en Buscar;
+ *  2) detrás, lo que el fuzzy no alcanza: búsqueda EXACTA de las formas de cada palabra (AND entre palabras, OR entre sus
+ *     formas). Hace falta para el plural de palabras cortas: "volcán" → "volcanes" son 2 letras, y el fuzzy 0.2 de una
+ *     palabra de 6 letras admite 1.
+ *  Filtra las palabras bloqueadas en el título como searchVideos. */
+export function searchVideosStrict(query: string, limit = ov.num('const.videoMostrados')): CatalogVideo[] {
+  const terms = contentTerms(query)
+  if (!terms.length || limit <= 0) return []
+  const forms = terms.map(wordForms)
+  const boost = { title: ov.num('const.videoScoreTitle'), tags: 2.5, source: ov.num('const.videoScoreSource'), topics: 2 }
+  const exact = ensureIndex().search(
+    { combineWith: 'AND', queries: forms.map(f => ({ combineWith: 'OR' as const, queries: f })) },
+    { boost, prefix: false, fuzzy: false, fields: STRICT_FIELDS },
+  )
+  const out: CatalogVideo[] = []
+  const seen = new Set<string>()
+  for (const r of [...searchHits(query, 'AND'), ...exact]) {
+    const id = r.id as string
+    if (seen.has(id)) continue
+    seen.add(id)
+    const v = getCatalogVideo(id)
+    if (!v || matchBlockedWord(v.title) !== null || !hasAllTerms(v, forms)) continue
+    out.push(v)
+    if (out.length >= limit) break
+  }
+  return out
 }
 
 /* ---------- relacionados del reproductor (relatedVideos de smarty-poc app/src/lib/videoSearch.ts, TAL CUAL) ----------

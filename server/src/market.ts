@@ -15,13 +15,22 @@
 // server/data/wishlist.json, del más reciente al más viejo. El reset del demo NO la toca.
 // APAGADO POR EL PADRE (features.tienda = false): TODO /api/market* responde 403 (fail-closed) — al CHICO: los candados son
 // del dependiente; con un adulto como usuario activo (users.ts, docs/USUARIOS.md §4) la Tienda sigue abierta.
+// U3 (docs/USUARIOS.md §9): POR CHICO ACTIVO. El apagado es el de ESE chico; los premios que ve y canjea son los SUYOS
+// (parent.policyItems: la política vigente del pedido). Con un ADULTO activo (D1) la Tienda es solo la ropa de plataforma:
+// los premios son para los chicos.
+// U4 (cada uno lo suyo, docs/USUARIOS.md §10): TODO es POR USUARIO. La billetera (⚡) es la de cada uno (progress.ts); los
+// canjes y el guardarropas viven en un slice por usuario (perUser.ts: RAM, vuelven al seed con el reset de ESE usuario);
+// la lista de deseos es server/data/wishlist.json v2 { version: 2, users: { [id]: ids } } (un v1 —el array de antes, los
+// deseos de Ian— migra en el acto a users.ian con respaldo UNA vez en wishlist.json.pre-v2: userDataMigrate.ts). El stock
+// se descuenta con los canjes de TODOS (redeemedCount suma los slices). Familia (/api/parent/*, donde el usuario del pedido
+// es el ADULTO) lee los canjes del integrante con accesos explícitos: listRedemptions(member) / deliverRedemption(id, member).
 //
 // Contrato HTTP (congelado; formas exactas en src/api/types.ts):
 //   GET  /api/market                 → { items: MarketItem[]; ec: number }
 //        items: primero los deseados (del más reciente al más viejo), después el resto por precio.
 //        La UI ordena la grilla por precio; de este orden saca la recencia de la lista de deseos.
 //   POST /api/market/redeem {itemId} → { ok, ec, redemption?, error? }    (con una prenda de ropa: la COMPRA, sin redemption)
-//   GET  /api/market/redemptions     → { redemptions: Redemption[] }        (el más nuevo primero)
+//   GET  /api/market/redemptions     → { redemptions: Redemption[] }        (el más nuevo primero; los del chico activo)
 //   POST /api/market/wish {itemId, value?} → { wishlist: number[] }  (sin value = alternar; tope 20)
 //   POST /api/market/gift {itemId, friendId} → GiftResult { ok, ec?, friend?, error? }  (regalar ropa: ver más abajo)
 // Los rechazos de NEGOCIO vuelven con HTTP 200 + ok:false y un `error` legible para el chico (el
@@ -46,33 +55,36 @@
 //     (400 si es un premio del padre, 404 si no existe), que el amigo exista y sea amigo (404; Amigos apagado → 403 al chico),
 //     que no la tenga ya y el saldo (estos dos: 200 ok:false); gasta EC (tx "Regalo para <nick>: …") y el NPC se la
 //     pone y agradece en su hilo (friendsFake.receiveGift: plantilla, sin modelo). `friend` = su perfil ya con la prenda.
-// El GUARDARROPAS de Ian (qué prendas compró) es ECONOMÍA: vive en RAM con los canjes y resetMarket() lo vacía con
-// cada carga de página (regla 9). El look PUESTO, en cambio, persiste (identity.json): tras recargar, Ian puede seguir
-// con la gorra puesta y el guardarropas vacío — decisión del coordinador, flaggeada para Esteban (VISION §13).
+// El GUARDARROPAS de cada usuario (qué prendas compró) es ECONOMÍA: vive en RAM con sus canjes y resetMarket(id) lo vacía
+// con cada carga de página de ESE usuario (regla 9). El look PUESTO, en cambio, persiste (identity.json): tras recargar,
+// Ian puede seguir con la gorra puesta y el guardarropas vacío — decisión del coordinador, flaggeada para Esteban (VISION §13).
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { SERVER_ROOT } from './config'
 import { ACCESSORY_IDS } from './identity'
-import { featureOn, parentItem, parentItems, type ParentItem } from './parent'
+import { anyParentItem, featureOn, itemOwner, policyItem, policyItems, policyMemberId, type ParentItem } from './parent'
+import { perUser } from './perUser'
 import { spendEc, summary } from './progress'
-import { isChildReq } from './users'
+import { upgradeWishRaw } from './userDataMigrate'
+import { DEFAULT_USER_ID, actingUser } from './users'
 import { readJson, send } from './web'
 
 type Status = 'pendiente' | 'entregado'
 interface Redemption { id: number; itemId: number; title: string; emoji: string; price: number; ts: number; status: Status }
-interface Store { seq: number; redemptions: Redemption[]; /** Prendas que compró Ian en esta demo (ids de accesorio) */ owned: Set<string> }
+interface Store { seq: number; redemptions: Redemption[]; /** Prendas que compró ESTE usuario en esta demo (ids de accesorio) */ owned: Set<string> }
 
 const fmt = (n: number) => n.toLocaleString('es-AR')
 const OFF = { error: 'La Tienda está apagada por tu familia' }
 
-/** Estado inicial NUEVO: 0 canjes y el guardarropas vacío (los premios no viven acá: son config del padre, en parent.json). */
+/** Estado inicial NUEVO de cada usuario: 0 canjes y el guardarropas vacío (los premios no viven acá: son config del padre,
+ *  en parent.json). Los ids de canje son por usuario (el padre entrega con el integrante: deliverRedemption(id, member)). */
 const fresh = (): Store => ({ seq: 1, redemptions: [], owned: new Set() })
-let store: Store = fresh()
+const stores = perUser(fresh)
 
-/** Vuelve a los valores iniciales: 0 canjes → stock completo, y el guardarropas vacío (lo dispara POST /api/demo/reset).
- *  La lista de deseos NO se toca: es del chico y persiste. Los premios tampoco: son del padre. */
-export function resetMarket() { store = fresh() }
+/** Vuelve a los valores iniciales: los canjes y el guardarropas de un usuario, o sin id los de TODOS (lo dispara POST
+ *  /api/demo/reset). La lista de deseos NO se toca: es del chico y persiste. Los premios tampoco: son del padre. */
+export function resetMarket(userId?: string) { stores.reset(userId) }
 
 /* ---------- ropa del avatar: el catálogo de plataforma (ESPEJO de ACCESSORIES en Avatar.tsx) ---------- */
 type AccessoryId = (typeof ACCESSORY_IDS)[number]
@@ -96,27 +108,28 @@ const theRopa = (r: Ropa) => `${r.plural ? (r.fem ? 'las' : 'los') : r.fem ? 'la
 const giftText = (r: Ropa) => ({ el: theRopa(r), lo: `${r.fem ? 'la' : 'lo'}${r.plural ? 's' : ''}`, puesto: `puest${r.fem ? 'a' : 'o'}${r.plural ? 's' : ''}` })
 const toRopaItem = (r: Ropa) => ({
   id: r.id, title: r.title, desc: r.desc, price: r.price, emoji: r.emoji, source: 'plataforma' as const, stock: null, wished: false,
-  kind: 'ropa' as const, accessoryId: r.accessoryId, owned: store.owned.has(r.accessoryId),
+  kind: 'ropa' as const, accessoryId: r.accessoryId, owned: stores.now().owned.has(r.accessoryId),
 })
 
 /* ---------- premios (del padre) y stock derivado ---------- */
-/** Premio canjeable: existe y no está archivado. */
+/** Premio canjeable POR EL CHICO ACTIVO: es suyo y no está archivado (con un adulto activo, ninguno). */
 function activeItem(id: number): ParentItem | undefined {
-  const it = parentItem(id)
+  const it = policyItem(id)
   return it && !it.archived ? it : undefined
 }
-/** Canjes de esta demo de un premio (pendientes + entregados: los dos consumen stock). */
+/** Canjes de esta demo de un premio (pendientes + entregados: los dos consumen stock), sumando los de TODOS los usuarios
+ *  (un premio es de UN integrante y solo él lo canjea; sumar todo es lo seguro para el stock). */
 export function redeemedCount(itemId: number): number {
   let n = 0
-  for (const r of store.redemptions) if (r.itemId === itemId) n++
+  for (const id of stores.ids()) for (const r of stores.of(id).redemptions) if (r.itemId === itemId) n++
   return n
 }
 /** Lo que queda para canjear (null = sin límite): stock configurado por el padre − canjes de esta demo. */
 export const stockLeft = (it: Pick<ParentItem, 'id' | 'stock'>): number | null => (it.stock === null ? null : Math.max(0, it.stock - redeemedCount(it.id)))
 
-/* ---------- lista de deseos: PERSISTE (archivo único, escritura atómica con debounce; patrón space.ts) ---------- */
+/* ---------- lista de deseos: PERSISTE, POR USUARIO (wishlist.json v2; escritura atómica con debounce; patrón space.ts) ---------- */
 const WISH_FILE = join(SERVER_ROOT, 'data', 'wishlist.json')
-const WISH_CAP = 20
+const WISH_CAP = 20 // por usuario
 /** Enteros positivos, sin repetidos, con tope. Qué premio existe se mira al LEER (los premios son del
  *  padre y pueden archivarse/reactivarse; además, al cargar este módulo todavía no se consulta ./parent). */
 function cleanWish(raw: unknown): number[] {
@@ -124,65 +137,92 @@ function cleanWish(raw: unknown): number[] {
   for (const v of Array.isArray(raw) ? raw : []) if (typeof v === 'number' && Number.isSafeInteger(v) && v > 0 && !out.includes(v)) out.push(v)
   return out.slice(0, WISH_CAP)
 }
-function loadWish(): number[] {
-  if (!existsSync(WISH_FILE)) return []
-  try { return cleanWish(JSON.parse(readFileSync(WISH_FILE, 'utf8'))) }
-  catch (e) {
-    console.warn('[market] wishlist.json ilegible, arranco con la lista vacía:', e)
-    try { renameSync(WISH_FILE, `${WISH_FILE}.roto-${Date.now()}`) } catch { /* sin copia: seguimos igual */ }
-    return []
-  }
+/** La lista de cada usuario: del más reciente al más viejo (puede guardar ids de premios archivados). */
+type WishUsers = Record<string, number[]>
+function writeWishNow(users: WishUsers) {
+  writeFileSync(WISH_FILE + '.tmp', JSON.stringify({ version: 2, users })); renameSync(WISH_FILE + '.tmp', WISH_FILE)
 }
-let wishlist: number[] = loadWish() // del más reciente al más viejo (puede guardar ids de premios archivados)
+function loadWish(): WishUsers {
+  if (!existsSync(WISH_FILE)) return {}
+  let text: string
+  let up: ReturnType<typeof upgradeWishRaw>
+  try {
+    text = readFileSync(WISH_FILE, 'utf8')
+    up = upgradeWishRaw(JSON.parse(text), DEFAULT_USER_ID)
+  } catch (e) {
+    console.warn('[market] wishlist.json ilegible, arranco con las listas vacías:', e)
+    try { renameSync(WISH_FILE, `${WISH_FILE}.roto-${Date.now()}`) } catch { /* sin copia: seguimos igual */ }
+    return {}
+  }
+  const users: WishUsers = {}
+  for (const [id, list] of Object.entries(up.raw.users)) users[id] = cleanWish(list)
+  if (up.from === 1) {
+    // v1 → v2: lo de antes eran los deseos de Ian. Respaldo LITERAL una sola vez (si existe, es el de la PRIMERA migración).
+    const pre = `${WISH_FILE}.pre-v2`
+    try { if (!existsSync(pre)) writeFileSync(pre, text) } catch (e) { console.error('[market] no pude escribir el respaldo .pre-v2:', e) }
+    try { writeWishNow(users) } catch (e) { console.error('[market] no pude escribir wishlist.json v2:', e) }
+    console.log(`[market] wishlist.json v1 → v2: [${users[DEFAULT_USER_ID]?.join(',') ?? ''}] a «${DEFAULT_USER_ID}» (respaldo en wishlist.json.pre-v2)`)
+  }
+  return users
+}
+const wishes: WishUsers = loadWish()
 let wishTimer: ReturnType<typeof setTimeout> | null = null
 function persistWish() {
   if (wishTimer) return
   wishTimer = setTimeout(() => {
     wishTimer = null
-    try { writeFileSync(WISH_FILE + '.tmp', JSON.stringify(wishlist)); renameSync(WISH_FILE + '.tmp', WISH_FILE) }
+    try { writeWishNow(wishes) }
     catch (e) { console.error('[market] no pude guardar wishlist.json:', e) }
   }, 250)
 }
-/** Lo que se le muestra al chico: solo deseos de premios que hoy están en la Tienda. */
-const liveWish = () => wishlist.filter(id => activeItem(id) !== undefined)
-/** Marca (queda primera: es la más reciente) o desmarca un premio; sin `value` alterna. Tope WISH_CAP:
- *  si se pasa, se cae el deseo más viejo. Marcar algo ya marcado no lo mueve (idempotente). */
+/** La lista del usuario del pedido ([] si todavía no deseó nada; no crea entrada al leer). */
+const wishNow = (): number[] => wishes[stores.nowId()] ?? []
+/** Lo que se le muestra al chico: solo deseos de SUS premios que hoy están en la Tienda. */
+const liveWish = () => wishNow().filter(id => activeItem(id) !== undefined)
+/** Marca (queda primera: es la más reciente) o desmarca un premio en la lista del usuario del pedido; sin `value` alterna.
+ *  Tope WISH_CAP: si se pasa, se cae el deseo más viejo. Marcar algo ya marcado no lo mueve (idempotente). */
 export function setWish(itemId: number, value?: boolean): number[] {
-  const has = wishlist.includes(itemId)
+  const list = wishNow()
+  const has = list.includes(itemId)
   const want = value ?? !has
   if (want === has) return liveWish()
-  wishlist = want ? [itemId, ...wishlist].slice(0, WISH_CAP) : wishlist.filter(id => id !== itemId)
+  wishes[stores.nowId()] = want ? [itemId, ...list].slice(0, WISH_CAP) : list.filter(id => id !== itemId)
   persistWish()
   return liveWish()
 }
 
 /* ---------- lógica ---------- */
-const toItem = (i: ParentItem) => ({ id: i.id, title: i.title, ...(i.desc ? { desc: i.desc } : {}), price: i.price, emoji: i.emoji, source: 'padre' as const, stock: stockLeft(i), wished: wishlist.includes(i.id), kind: 'premio' as const })
+const toItem = (i: ParentItem) => ({ id: i.id, title: i.title, ...(i.desc ? { desc: i.desc } : {}), price: i.price, emoji: i.emoji, source: 'padre' as const, stock: stockLeft(i), wished: wishNow().includes(i.id), kind: 'premio' as const })
 const toRedemption = (r: Redemption) => ({ id: r.id, itemId: r.itemId, title: r.title, emoji: r.emoji, price: r.price, ts: r.ts, status: r.status })
 
 /** Premios publicados (sin los archivados): deseados primero (del más reciente al más viejo), después el resto por
  *  precio. Al final, la ropa del avatar (ítems de plataforma) por precio: la UI la muestra en su propia sección. */
 export function listItems() {
-  const rank = new Map(wishlist.map((id, i) => [id, i]))
-  const premios = parentItems().filter(i => !i.archived).sort((a, b) => {
+  const rank = new Map(wishNow().map((id, i) => [id, i]))
+  const premios = policyItems().filter(i => !i.archived).sort((a, b) => {
     const ra = rank.get(a.id) ?? -1, rb = rank.get(b.id) ?? -1
     if (ra >= 0 || rb >= 0) return ra < 0 ? 1 : rb < 0 ? -1 : ra - rb
     return a.price - b.price || a.id - b.id
   }).map(toItem)
   return [...premios, ...ROPA.map(toRopaItem)]
 }
-export function listRedemptions() {
-  return store.redemptions.slice(0, 100).map(toRedemption)
+/** Los canjes de un integrante (U4: los de SU slice; U3: además, solo de premios suyos —el dueño sale del premio—, que es lo
+ *  único que puede canjear). null (un adulto activo, que no tiene premios) → ninguno. Acceso EXPLÍCITO: lo usan Familia
+ *  (?member) y /api/market/redemptions (con el chico activo). */
+export function listRedemptions(member: string | null) {
+  if (!member) return []
+  return stores.of(member).redemptions.filter(r => itemOwner(r.itemId) === member).slice(0, 100).map(toRedemption)
 }
 
-/** El padre ya lo entregó (POST /api/parent/deliver). Idempotente; false si el canje no existe (por
- *  ejemplo, porque una carga de página reseteó la demo). */
-export function deliverRedemption(id: number): boolean {
-  const r = store.redemptions.find(x => x.id === id)
-  if (!r) return false
+/** El padre ya lo entregó (POST /api/parent/deliver?member). Busca en el slice DEL INTEGRANTE (el usuario del pedido es el
+ *  adulto). Idempotente; false si el canje no existe en ese integrante (por ejemplo, porque una carga de página suya reseteó
+ *  la demo, o porque es de otro integrante) o no es de un premio de `member`. */
+export function deliverRedemption(id: number, member: string): boolean {
+  const r = stores.of(member).redemptions.find(x => x.id === id)
+  if (!r || itemOwner(r.itemId) !== member) return false
   if (r.status !== 'entregado') {
     r.status = 'entregado'
-    console.log(`[market] canje #${r.id} entregado: ${r.emoji} ${r.title}`)
+    console.log(`[market] canje #${r.id} de ${member} entregado: ${r.emoji} ${r.title}`)
   }
   return true
 }
@@ -191,13 +231,14 @@ type RedeemBody = { ok: boolean; ec: number; redemption?: ReturnType<typeof toRe
 
 /** Compra de ropa del avatar (el mismo POST /redeem): entrega INSTANTÁNEA al guardarropas, sin canje pendiente. */
 function buyRopa(r: Ropa): { status: number; body: RedeemBody } {
+  const store = stores.now()
   const ec = summary().ec
   if (store.owned.has(r.accessoryId)) return { status: 200, body: { ok: false, ec, error: `Ya tenés ${theRopa(r)} en tu guardarropas.` } }
   if (ec < r.price) return { status: 200, body: { ok: false, ec, error: `Te faltan ${fmt(r.price - ec)} ⚡` } }
   const paid = spendEc(r.price, `Ropa para tu avatar: ${r.title}`)
   if (!paid.ok) return { status: 200, body: { ok: false, ec: paid.ec, error: `Te faltan ${fmt(Math.max(1, r.price - paid.ec))} ⚡` } }
   store.owned.add(r.accessoryId)
-  console.log(`[market] ropa: ${r.emoji} ${r.title} (−${r.price} ⚡) → saldo ${paid.ec} · guardarropas: ${[...store.owned].join(', ')}`)
+  console.log(`[market] ropa de ${stores.nowId()}: ${r.emoji} ${r.title} (−${r.price} ⚡) → saldo ${paid.ec} · guardarropas: ${[...store.owned].join(', ')}`)
   return { status: 200, body: { ok: true, ec: paid.ec } }
 }
 
@@ -215,9 +256,10 @@ export function redeem(itemId: number): { status: number; body: RedeemBody } {
   if (ec < it.price) return { status: 200, body: { ok: false, ec, error: `Te faltan ${fmt(it.price - ec)} ⚡` } }
   const paid = spendEc(it.price, `Canje: ${it.title}`)
   if (!paid.ok) return { status: 200, body: { ok: false, ec: paid.ec, error: `Te faltan ${fmt(Math.max(1, it.price - paid.ec))} ⚡` } }
+  const store = stores.now()
   const r: Redemption = { id: store.seq++, itemId: it.id, title: it.title, emoji: it.emoji, price: it.price, ts: Date.now(), status: 'pendiente' }
   store.redemptions.unshift(r)
-  console.log(`[market] canje #${r.id}: ${it.emoji} ${it.title} (−${it.price} ⚡) → saldo ${paid.ec}${left !== null ? ` · quedan ${left - 1}` : ''}`)
+  console.log(`[market] canje #${r.id} de ${stores.nowId()}: ${it.emoji} ${it.title} (−${it.price} ⚡) → saldo ${paid.ec}${left !== null ? ` · quedan ${left - 1}` : ''}`)
   return { status: 200, body: { ok: true, ec: paid.ec, redemption: toRedemption(r) } }
 }
 
@@ -233,7 +275,7 @@ async function gift(req: IncomingMessage, itemId: number, friendId: string): Pro
   const ec = summary().ec
   const r = ropaItem(itemId)
   if (!r) {
-    return parentItem(itemId)
+    return anyParentItem(itemId)
       ? { status: 400, body: { ok: false, ec, error: 'Por ahora solo se puede regalar ropa para el avatar.' } }
       : { status: 404, body: { ok: false, ec, error: 'Ese regalo no está en la Tienda.' } }
   }
@@ -258,9 +300,10 @@ function parseItemId(b: unknown): number | null | 'falta' {
 /* ---------- rutas ---------- */
 export async function marketRoutes(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
   // "Si el papá dice que no existe, no existe" (audio 22): con la Tienda apagada no hay premios,
-  // ni canjes, ni lista de deseos. Antes que cualquier otra validación (fail-closed). Es un candado del CHICO: el adulto
-  // activo pasa (docs/USUARIOS.md §4).
-  if (isChildReq(req) && !featureOn('tienda')) return send(res, 403, OFF)
+  // ni canjes, ni lista de deseos. Antes que cualquier otra validación (fail-closed). Es un candado del CHICO (el de ESE
+  // chico, U3): el adulto activo pasa (docs/USUARIOS.md §4).
+  const me = actingUser(req)
+  if (me.kind === 'child' && !featureOn('tienda', me.id)) return send(res, 403, OFF)
   const path = url.pathname.replace(/\/+$/, '')
   if (path === '/api/market') {
     if (req.method !== 'GET') return send(res, 405, { error: 'Método no permitido: usá GET.' })
@@ -268,7 +311,7 @@ export async function marketRoutes(req: IncomingMessage, res: ServerResponse, ur
   }
   if (path === '/api/market/redemptions') {
     if (req.method !== 'GET') return send(res, 405, { error: 'Método no permitido: usá GET.' })
-    return send(res, 200, { redemptions: listRedemptions() })
+    return send(res, 200, { redemptions: listRedemptions(policyMemberId()) })
   }
   if (path === '/api/market/redeem') {
     if (req.method !== 'POST') return send(res, 405, { ok: false, ec: summary().ec, error: 'Método no permitido: para canjear se usa POST.' })

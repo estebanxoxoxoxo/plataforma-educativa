@@ -9,6 +9,9 @@
 export type User = { id: string; name: string; age: number; nick: string; kind: 'adult' | 'child' };
 /** Un usuario con sus dependientes (solo adultos): GET /api/users. */
 export type UserInfo = User & { dependents?: string[] };
+/** U3 (27-oct): un integrante que el adulto configura en Familia: los `dependents` del adulto activo (GET /api/users), en
+ *  su orden. Solo cliente. */
+export type FamilyMember = Pick<User, 'id' | 'name' | 'age' | 'nick'>;
 
 export type Tab = 'pages' | 'images' | 'videos';
 
@@ -79,7 +82,8 @@ export type MtChannelDetail = { channel: MtChannel | null; followed: boolean; to
 export type MtEntryType = 'video' | 'playlist' | 'canal';
 export type MtEntry = { id: number; type: MtEntryType; url: string; title: string; /** = videoIds.length */ videos: number; channelId?: string; createdAt: number };
 export type MtAdminState = { entries: MtEntry[]; /** videos aprobados: catálogo base + familia */ total: number; /** 0 = sin tope */ videoCap: number };
-export type MtAdminChannel = { channelId: string; title: string; handle?: string; thumb?: string; desc: string; followed: boolean };
+export type MtAdminChannel = { channelId: string; title: string; handle?: string; thumb?: string; desc: string;
+  /** U4: lo sigue ALGÚN integrante de la familia (cada uno sigue lo suyo en su MyTube). */ followed: boolean };
 /** `error` = el código del POC (URL_INVALIDA, YA_EXISTE, SIN_KEY_YOUTUBE, …) o el mensaje de la falla. */
 export type MtIngestResult = { ok: true; added: number; title: string } | { ok: false; error: string };
 
@@ -98,7 +102,9 @@ export type DaySchedule = { open: boolean; from: string; to: string }; // "HH:MM
 export type FeatureSchedule = { restrictionActive: boolean; week: DaySchedule[] };
 export type SectionKey = 'chat' | 'buscar' | 'mytube' | 'aprender' | 'tienda' | 'calendario' | 'espacio' | 'afterday';
 export type SchedulesResponse = { schedules: Partial<Record<SectionKey, FeatureSchedule>>; /** reloj del server (ms) */ serverNow: number;
-  /** Zona horaria IANA de la familia (null = la del server); las franjas y el daypart se evalúan en ella. */ tz?: string | null };
+  /** Zona horaria IANA de la familia (null = la del server); las franjas y el daypart se evalúan en ella. */ tz?: string | null;
+  /** U3: de qué integrante son estos horarios (el chico activo, o el ?member= que pidió el adulto). Ausente = ninguno
+   *  (adulto sin integrantes: schedules vacío). */ member?: string };
 
 /* ---------- Progreso real: XP semanal (el puntaje ÚNICO de liga/zona/país) + Energy Coin ---------- */
 export type ProgressSummary = {
@@ -154,6 +160,9 @@ export type ParentActivity = {
   /** Aditivos de la v1 del panel (los sirve /api/parent/activity) */
   items?: ParentItemView[];
   protections?: ParentProtections;
+  /** U3/U4: de qué integrante es TODO lo de arriba (desde U4 también xpWeek/ec/streakDays/continue/saved: cada
+   *  integrante tiene su progreso y su Mi espacio). */
+  member?: string;
 };
 
 export type Friend = {
@@ -248,7 +257,9 @@ export type FeedResponse = { items: FeedItem[]; next: string | null; motion: Fee
 export type AvatarLook = { variant: number; color: string; accessory?: string | null } | null;
 export type Identity = { nick: string; look: AvatarLook };
 
-/* ---------- Zona del padre v2: la configuración viva (visión audios 8, 34-35, 56, 66; POC Smarty) ---------- */
+/* ---------- Zona del padre v2: la configuración viva (visión audios 8, 34-35, 56, 66; POC Smarty) ----------
+   U3: todo /api/parent/* que es por integrante lleva `?member=<id>` (query); sin member, el server usa el primer integrante
+   del adulto activo. */
 /** Temas: los blancos se promueven (sugerencias del padre), los negros se filtran en serio. */
 export type ParentTopics = { white: string[]; black: string[] };
 /** Palabras bloqueadas: las de la familia (editables) se SUMAN a las de fábrica de Smarty. */
@@ -261,6 +272,8 @@ export type ParentAlert = {
   /** Qué pasó, con el texto del chico incluido (también en crisis: decisión de Esteban, 11-oct-2026) */ text: string;
   /** De dónde salió (chat, un hilo de Amigos…) */ source: string;
   seen: boolean;
+  /** U3: el chico ACTIVO que lo disparó y su nombre (para pintar "Sobre Luna"). Ausentes en un aviso sin chico. */
+  childId?: string; childName?: string;
 };
 export type ParentPreset = {
   id: string; name: string; desc: string;
@@ -270,7 +283,10 @@ export type ParentPreset = {
 export type ParentConfig = { topics: ParentTopics; words: ParentWords; volume: ParentVolume; preset: string | null;
   /** Zona horaria IANA de la familia (null/ausente = la del server). */ tz?: string | null;
   /** Dial de animación del Feed del chico (v6; default 'normal'). */
-  feedMotion: FeedMotion };
+  feedMotion: FeedMotion;
+  /** U3: de qué integrante es esta config (tz es de la FAMILIA: la misma para todos). */ member?: string;
+  /** U3: los on-off de ESE integrante (los paneles de Familia dejan de leer el GET público /api/parent/features). */
+  features?: ParentFeatures };
 
 /* ---------- Demo vivo (botones "Simular…"): cierre de semana de liga y ráfaga de NPCs ---------- */
 /** POST /api/leagues/close-week: congela la tabla, reparte medallas, re-asigna liga y arranca la semana
@@ -386,3 +402,19 @@ export type AuditResult = {
 /** Id de accesorio del set dibujado del cliente (Avatar.tsx). */
 export type AccessoryId = string;
 export type GiftResult = { ok: boolean; error?: string; /** saldo tras regalar */ ec?: number; friend?: Friend };
+
+/* ---------- U4 (28-oct): cada uno lo suyo ----------
+   Todo lo de cada usuario (XP/⚡/racha, canjes, guardarropas, wishlist, Learn, Mi espacio, MyTube seguido y listas,
+   amigos e hilos, liga, feed en vivo) viaja por la MISMA cabecera X-Innerith-User: ninguna forma cambia. */
+/** POST /api/demo/reset: sin cuerpo vuelve al seed SOLO al usuario activo; {scope:'all'} a todos (QA). */
+export type DemoResetResult = { ok: true; scope: 'user' | 'all'; user?: string };
+/** GET /api/leagues/family: la tabla de la semana de la familia (grandes y chicos). No es una liga de la escalera: no se
+ *  asigna ni se cierra; vuelve a cero el lunes con la XP. */
+export type FamilyLeagueRow = {
+  pos: number; id: string; name: string; nick: string; kind: 'adult' | 'child';
+  /** XP de la semana = los ⚡ que ganó aprendiendo esta semana (1:1); el MISMO número de su liga, zona y país. */ xp: number;
+  streakDays: number;
+  /** El avatar ELEGIDO (identity.json v2); null = iniciales. */ look: AvatarLook;
+  me?: boolean;
+};
+export type FamilyLeague = { /** días al domingo de la semana del calendario */ closesInDays: number; rows: FamilyLeagueRow[] };

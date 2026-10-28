@@ -20,7 +20,8 @@
 // Contrato HTTP (formas espejo del POC, FORMALIZADAS en src/api/types.ts como Mt*; cliente = api.mt*):
 //   Lado chico
 //   GET  /api/mytube/channels → { channels: [{ channelId, title, thumb?, videos }] }
-//        SOLO los canales que el chico sigue Y tienen ≥1 video aprobado (followedChannels del POC), ordenados por
+//        SOLO los canales que sigue el USUARIO ACTIVO (U4: cada uno los suyos, space.ts) Y tienen ≥1 video aprobado
+//        (followedChannels del POC), ordenados por
 //        channelId (el anyOf de Dexie: orden de clave, NO alfabético — quirk fiel). `videos` cuenta TODAS las filas del canal
 //        SIN descontar los títulos con palabras bloqueadas (channelVideoCounts del POC, quirk fiel). Si a un seguido le falta
 //        la metadata (avatar/título), se trae on-demand en UNA llamada channels.list (lotes de 50) y queda en caché.
@@ -44,11 +45,13 @@
 //   MtVideo = { videoId, title, thumb, duration?, addedAt?, channelId?, channelTitle? } (subconjunto de YtVideo del POC).
 //
 //   Lado padre — TODOS con la SESIÓN del portón (X-Parent-Token, el mismo chequeo de parent.ts: hasParentSession; deuda
-//   saldada 14-oct): sin sesión válida → 401 { error: 'Sesión del padre vencida. Volvé a entrar con el PIN.' }
+//   saldada 14-oct; con un ADULTO activo la sesión es implícita, docs/USUARIOS.md §4): sin sesión → 401 { error: 'Solo para
+//   un adulto de la familia.' } (tanda B1: texto neutro, como el de Mentores; ya no habla de PIN ni de "sesión vencida")
 //   GET  /api/mytube/admin/state → { entries: [{ id, type, url, title, videos, channelId?, createdAt }], total, videoCap }
 //        `total` = videos aprobados (catálogo base + filas de la familia, el db.ytVideos.count() del POC).
 //   GET  /api/mytube/admin/channels → { channels: [{ channelId, title, handle?, thumb?, desc, followed }] }
-//        Todas las entidades + todos los canales con videos aprobados, por channelId (el toArray() de ytChannels).
+//        Todas las entidades + todos los canales con videos aprobados, por channelId (el toArray() de ytChannels). U4:
+//        `followed` = lo sigue ALGÚN integrante de la familia (el panel es de la familia).
 //   POST /api/mytube/admin/add { url }       → { ok: true, added, title } | { ok: false, error }   (UNA url por pedido;
 //        el lote lo recorre la pantalla de a una, con progreso, como el POC). error = el código del POC (URL_INVALIDA,
 //        YA_EXISTE, SIN_VIDEOS, SIN_KEY_YOUTUBE, YT_API_<status>, CANAL_NO_ENCONTRADO) o el mensaje de la falla.
@@ -64,7 +67,7 @@
 // palabras bloqueadas; «1 videos»; playlists del canal ordenadas por videoId; tocar un video de una playlist lo abre
 // SUELTO (cliente); cada video tiene UN entryId → borrar una entrada borra también los videos que comparte con otra que
 // llegó después (la segunda no los re-agrega); reingestar no borra lo que ya no está en la fuente; `followed` se pierde
-// si el canal se queda sin videos; una descripción vacía guardada por el padre se vuelve a curar en la próxima ingesta.
+// si el canal se queda sin videos (U4: en TODOS los espacios); una descripción vacía guardada por el padre se vuelve a curar en la próxima ingesta.
 // Desvíos (además de los forzados a/b): el catálogo base es de SOLO LECTURA → reingestar no refresca filas del catálogo
 // base (solo las de la familia) y «Completar canales» completa datos faltantes solo en filas de la familia (el base ya los
 // trae); un canal del catálogo base sin entidad toma el título del catálogo como respaldo (el POC caía al channelId); y
@@ -75,7 +78,7 @@ import { join } from 'node:path'
 import { MODELS, SERVER_ROOT } from './config'
 import { matchBlockedWord } from './filters'
 import { complete } from './llm'
-import { PARENT_SESSION_EXPIRED, hasParentSession } from './parent'
+import { hasParentSession } from './parent'
 import * as space from './space'
 import * as videosModule from './videos'
 import { allChannels, catalogSize, getCatalogVideo, videosOfChannel, type CatalogVideo } from './videos'
@@ -94,7 +97,7 @@ interface YtVideo {
   description?: string; channelId?: string; channelTitle?: string; duration?: number; addedAt?: number
   tags?: string[]; categoryId?: string; topics?: string[]
 }
-/** Tabla `ytChannels` sin `followed` (el seguir es del chico: vive en server/data/space.json, space.ts).
+/** Tabla `ytChannels` sin `followed` (el seguir es de CADA USUARIO desde U4: vive en server/data/space.json v2, space.ts).
  *  `metaAt`/`descTriedAt`/`playlistsAt`/`*TriedAt` = caché del enriquecimiento on-demand de Innerith (no existen en el POC). */
 interface YtChannel {
   channelId: string; title: string; handle?: string; descRaw?: string; desc?: string; thumb?: string; createdAt: number
@@ -748,7 +751,7 @@ function removeYtEntry(entryId: number): void {
     if (!hasContent(cid)) {
       channels.delete(cid)
       for (const p of [...playlists.values()]) if (p.channelId === cid) playlists.delete(p.playlistId)
-      if (space.isFollowed(cid)) space.toggleFollow(cid, false)
+      space.unfollowEverywhere(cid) // U4: deja de seguirse en TODOS los espacios (esto corre en el pedido del ADULTO)
     }
   }
   save()
@@ -874,7 +877,8 @@ function adminChannels() {
   return {
     channels: [...ids].sort(cmpKey).map(cid => {
       const ch = channels.get(cid)
-      return { channelId: cid, title: ch?.title || catalogTitle(cid) || cid, handle: ch?.handle || undefined, thumb: ch?.thumb || undefined, desc: ch?.desc ?? '', followed: space.isFollowed(cid) }
+      // U4: el panel es de la familia → "lo sigue ALGÚN integrante" (cada uno sigue lo suyo en su MyTube)
+      return { channelId: cid, title: ch?.title || catalogTitle(cid) || cid, handle: ch?.handle || undefined, thumb: ch?.thumb || undefined, desc: ch?.desc ?? '', followed: space.followedByAnyone(cid) }
     }),
   }
 }
@@ -892,7 +896,7 @@ const errText = (e: unknown) => (e instanceof Error ? e.message : String(e))
 export async function mytubeRoutes(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
   const path = url.pathname
   // Lado padre: TODO /api/mytube/admin/* pide la sesión del portón (deuda 14-oct; el cliente ya manda X-Parent-Token).
-  if (path.startsWith('/api/mytube/admin/') && !hasParentSession(req)) return send(res, 401, { error: PARENT_SESSION_EXPIRED })
+  if (path.startsWith('/api/mytube/admin/') && !hasParentSession(req)) return send(res, 401, { error: 'Solo para un adulto de la familia.' })
   const qid = (url.searchParams.get('id') ?? '').trim().slice(0, 80)
   if (req.method === 'GET') {
     if (path === '/api/mytube/channels') return send(res, 200, await followedChannelCards())

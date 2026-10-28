@@ -5,7 +5,7 @@
 //     medios de chat.ts: blackTopicsAll), el feed saca lo que pega con alguno (feedFake.ts: topicHit) y su nombre se corta
 //     además como frase exacta en búsquedas, títulos, chat y mensajes (filters.matchBlockedWord: familyBlockedTerms).
 //   · Temas BLANCOS de la familia → "las sugerencias del padre" (audio 8: guían, no dirigen): el feed los prioriza sin
-//     volverse monotema y el chat los propone (whiteTopicsAll).
+//     volverse monotema y el chat los propone al redirigir (familyTopics().white; los blancos de FÁBRICA no se proponen).
 //   · Palabras de la familia → se SUMAN a las de fábrica en matchBlockedWord (búsquedas, títulos, chat, Amigos…).
 //   · Topes de volumen → GET /api/parent/limits (público) → bgAudio/MiniPlayer del chico (como settings.maxVol* de Smarty).
 //   · Presets (audios 56/66: "grandes presets, no mil detalles") → aplican de una vez on-off + temas + palabras + topes.
@@ -16,87 +16,117 @@
 // users.ts) todas las rutas pasan. El portón del CLIENTE se retiró (ni AdultGate ni X-Parent-Token en src/); el del server
 // queda DORMIDO para la versión futura (cuentas de verdad): unlock + token de 15 min siguen acá, sin que nadie los llame.
 //
+// U3 — VARIOS INTEGRANTES (27-oct, docs/USUARIOS.md §9): todo lo que era "del chico" (on-off, premios, temas, palabras,
+// topes, preset y dial del Feed) es POR INTEGRANTE (`members[id]` de parent.json v3); la zona horaria y el PIN dormido son
+// de la FAMILIA. Dos maneras de leer la config, y no se mezclan:
+//   · ACCESOS EXPLÍCITOS por id (featureOn(key, childId), memberFeatures, memberVolume, itemOwner, anyParentItem): los usan
+//     las rutas de Familia (siempre sobre el integrante M de `?member=`) y el gating que tiene `req` (index.ts, market.ts,
+//     leaguesFake.ts, friendsFake.ts).
+//   · POLÍTICA VIGENTE (familyWords, familyBlockedTerms, familyTopics, blackTopicsAll, whiteTopicsAll, feedMotion,
+//     featureOnNow, policyMemberId, policyItems, policyItem): MISMAS firmas de siempre, leen el usuario del pedido en curso
+//     (requestContext.ts, AsyncLocalStorage). Chico X → la de X (+ fábrica); ADULTO → solo fábrica, todo prendido, Tienda
+//     sin premios (D1 del coordinador: `adultPolicy`); sin pedido (arranque) → la unión de todos (fail-closed).
+//     OJO: dentro de /api/parent/* el usuario del pedido es el ADULTO: ahí se usan SIEMPRE los accesos explícitos con M.
+// U4 (docs/USUARIOS.md §10): la economía (XP/⚡/racha, canjes), Learn, Mi espacio y amigos también son de cada integrante;
+// Familia los lee con accesos EXPLÍCITOS sobre M (progress.summaryOf, space.allSavedForParent(M), market.listRedemptions(M)).
+//
 // Contrato HTTP (congelado; formas en src/api/types.ts). TODAS las rutas piden la sesión del padre —el adulto activo, o el
 // token dormido (cabecera X-Parent-Token)— MENOS tres: POST unlock (el portón dormido) y GET features / GET limits (las
-// lee la UI del chico). Un chico sin token, o con uno inventado o vencido → 401.
+// lee la UI del chico). Un chico sin token, o con uno inventado o vencido → 401. M = el integrante de `?member=<id>`
+// (users.ts:memberFor: ausente → el PRIMER dependiente del adulto; uno que no es de la familia → 400).
+//   Sin sesión → 401 {error: 'Solo para un adulto de la familia.'} (texto neutro, el mismo de /api/mytube/admin/*).
 //   POST /api/parent/unlock {pin}                 → {ok, token?, waitSeconds?}            (público; dormido)
-//   GET  /api/parent/features                     → ParentFeatures                         (público)
-//   GET  /api/parent/limits                       → ParentVolume (topes del MiniPlayer)    (público)
-//   POST /api/parent/features {key,on}            → ParentFeatures (grandes on-off; persisten: son config del padre)
-//   GET  /api/parent/activity                     → ParentActivity (XP/EC, "seguí practicando", guardados, canjes, premios, protecciones)
-//   POST /api/parent/items {NewMarketItem}        → MarketItem (publicar premio)
-//   POST /api/parent/items/update {id,...patch}   → {ok}   (acepta `archived: false` = reactivar)
-//   POST /api/parent/items/archive {id}           → {ok}
-//   POST /api/parent/deliver {id}                 → {ok}   (canje entregado; {ok:false} si no existe)
-//   GET  /api/parent/config                       → ParentConfig {topics, words:{extra,builtin}, volume, preset}
-//   POST /api/parent/topics {white?, black?}      → ParentTopics  (cada lista que viene REEMPLAZA a la anterior)
-//   POST /api/parent/words {extra}                → ParentWords   (reemplaza la lista de la familia)
-//   POST /api/parent/volume {maxMusic?, maxNoise?}→ ParentVolume
-//   POST /api/parent/feed-motion {motion}         → {feedMotion}  (dial de animación del Feed del chico: calmo/normal/vivo;
-//                                                   viaja en cada GET /api/feed como FeedResponse.motion)
-//   GET  /api/parent/alerts                       → {alerts: ParentAlert[]}  (el más nuevo primero)
-//   POST /api/parent/alerts/seen {id}             → {ok}
-//   GET  /api/parent/presets                      → {presets: ParentPreset[], current}
-//   POST /api/parent/presets/apply {id}           → {ok, config, features}
-//   POST /api/parent/tz {tz}                      → {tz}  (zona horaria de la familia, deuda 14-oct: IANA válida —se prueba
-//                                                   construyendo un Intl.DateTimeFormat; se guarda canónica— o null = Automática,
-//                                                   la del server; otra cosa → 400. Persiste como `tz` en parent.json —sin el campo
-//                                                   vale null y NO se reescribe por eso—; GET config la trae; las franjas por sección
-//                                                   (schedule.ts) y la franja del Feed (feedFake.ts) se evalúan en ella y viaja en
-//                                                   GET /api/schedules. No forma parte de los presets)
-//   GET  /api/parent/music                        → {tracks}  (After Day, porte Smarty W6: la lista de audio de la familia;
-//                                                   la lógica y music.json viven en afterday.ts)
-//   POST /api/parent/music/add {url, title?}      → {ok:true, track} | {ok:false, error}  (rechazos de negocio con 200: "No es
-//                                                   un link de un video de YouTube" / "Ese video ya está en la lista.")
-//   POST /api/parent/music/remove {videoId}       → {ok}
-//   POST /api/parent/schedules {patch}            → {schedules, serverNow}  (Horarios por sección, W7: el patch trae el horario
-//                                                   COMPLETO de cada sección tocada —o null = sin horario—; forma inválida → 400.
-//                                                   La lógica, la validación y schedules.json viven en schedule.ts)
-//   After Day y los horarios NO forman parte de los presets: tocarlos no deja la configuración como "propia".
+//   GET  /api/parent/features[?member]            → ParentFeatures (público: chico → los suyos, member ignorado; adulto →
+//                                                   los de M; adulto sin integrantes → todo prendido)
+//   GET  /api/parent/limits                       → ParentVolume (público: chico → sus topes; adulto → 100/100: sin topes)
+//   POST /api/parent/features?member {key,on}     → ParentFeatures de M (grandes on-off; persisten: son config del padre)
+//   GET  /api/parent/activity?member              → ParentActivity & {member}: TODO DE M (U4: también xpWeek/ec/
+//                                                   streakDays/continue y lo guardado en SU Mi espacio)
+//   POST /api/parent/items?member {NewMarketItem} → MarketItem (premio de M; el id es ÚNICO en la familia)
+//   POST /api/parent/items/update?member {id,...patch} → {ok}   (acepta `archived: false` = reactivar; premio que no es de
+//                                                   M → 200 {ok:false, error:'Ese premio no existe.'})
+//   POST /api/parent/items/archive?member {id}    → {ok}   (idem)
+//   POST /api/parent/deliver?member {id}          → {ok}   (canje entregado; {ok:false} si no existe o no es de un premio de M)
+//   GET  /api/parent/config?member                → ParentConfig {topics, words:{extra,builtin}, volume, preset, feedMotion,
+//                                                   tz (de la FAMILIA), member, features (de M)}
+//   POST /api/parent/topics?member {white?, black?} → ParentTopics de M  (cada lista que viene REEMPLAZA a la anterior)
+//   POST /api/parent/words?member {extra}         → ParentWords de M   (reemplaza la lista; los 400 nombran a M)
+//   POST /api/parent/volume?member {maxMusic?, maxNoise?} → ParentVolume de M
+//   POST /api/parent/feed-motion?member {motion}  → {feedMotion} de M (dial de animación del Feed: calmo/normal/vivo; viaja
+//                                                   en cada GET /api/feed del chico como FeedResponse.motion)
+//   GET  /api/parent/alerts[?member]              → {alerts: ParentAlert[]} (el más nuevo primero; cada uno con childId y
+//                                                   childName del chico que lo disparó; con member → solo los de M; SIN
+//                                                   member → TODOS, a propósito)
+//   POST /api/parent/alerts/seen[?member] {id}    → {ok}   (con member y un aviso de otro integrante → {ok:false})
+//   GET  /api/parent/presets?member               → {presets: ParentPreset[], current: el preset de M}
+//   POST /api/parent/presets/apply?member {id}    → {ok, config: ParentConfig de M, features: de M}
+//   POST /api/parent/tz {tz}                      → {tz}  FAMILIA (deuda 14-oct: IANA válida —se prueba construyendo un
+//                                                   Intl.DateTimeFormat; se guarda canónica— o null = Automática, la del server;
+//                                                   otra cosa → 400. GET config la trae; las franjas por sección (schedule.ts)
+//                                                   y la franja del Feed (feedFake.ts) de CADA integrante se evalúan en ella y
+//                                                   viaja en GET /api/schedules. No forma parte de los presets)
+//   GET  /api/parent/music                        → {tracks}  FAMILIA (After Day, porte Smarty W6; la lógica y music.json
+//                                                   viven en afterday.ts)
+//   POST /api/parent/music/add {url, title?}      → {ok:true, track} | {ok:false, error}  FAMILIA (rechazos de negocio con
+//                                                   200: "No es un link de un video de YouTube" / "Ese video ya está en la lista.")
+//   POST /api/parent/music/remove {videoId}       → {ok}  FAMILIA
+//   POST /api/parent/schedules?member {patch}     → {schedules, serverNow, tz, member}  (Horarios por sección de M, W7: el
+//                                                   patch trae el horario COMPLETO de cada sección tocada —o null = sin
+//                                                   horario—; forma inválida → 400. La lógica, la validación y schedules.json
+//                                                   viven en schedule.ts)
+//   En tz, music*, unlock y lock `member` se IGNORA. After Day y los horarios NO forman parte de los presets: tocarlos no
+//   deja la configuración como "propia".
 // EXTENSIONES ADITIVAS (no rompen el contrato; pendientes de formalizar en types.ts por el coordinador):
-//   · GET /api/parent/activity suma `items` y `protections` (v1; ya formalizados como opcionales).
+//   · GET /api/parent/activity suma `items` y `protections` (v1; ya formalizados como opcionales) y `member` (U3).
 //   · GET /api/parent/presets: cada preset trae además `spec` = qué deja configurado (features, temas, palabras,
 //     topes) para que el panel muestre qué prende y qué apaga sin duplicar la definición en el cliente.
 //   · POST /api/parent/lock (con sesión) → {ok}: invalida el token dormido; con el adulto (sin token) no tiene efecto.
 //
 // SESIÓN DORMIDA (el portón de antes, para la versión futura): token aleatorio de 32 bytes que vive SOLO en RAM (acá se
 // guarda su sha256, nunca el token). Vence a los 15 min sin pedidos (deslizante: cada pedido autorizado la estira).
-// Reiniciar el server las cierra todas. Tope de sesiones abiertas a la vez: se cae la más vieja.
+// Reiniciar el server las cierra todas. Tope de sesiones abiertas a la vez: se cae la más vieja. Un chico con ese token
+// configura a TODOS los dependientes del seed (users.ts:familyMembersFor).
 //
-// PERSISTENCIA: server/data/parent.json = CONFIG del padre (regla 9: la config persiste; la ECONOMÍA no): on-off,
-// premios, temas, palabras de la familia, topes de volumen, el preset aplicado y el dial de animación del Feed
-// (`feedMotion`, Feed v6: un parent.json sin el campo vale 'normal' y NO se reescribe por eso). Los canjes, el saldo y el stock
-// consumido siguen en RAM (market.ts / progress.ts). Los AVISOS también viven en RAM (no se registran en
-// /api/demo/reset: se pierden solo si se reinicia el server). Escritura atómica (tmp + rename, como space.ts) e
-// INMEDIATA, sin debounce a propósito: son pocos cambios y un reinicio de tsx watch justo después no puede perderlos.
-// La primera vez (sin archivo) se escribe el seed: todo prendido + los premios demo. Un parent.json de la v1 (sin los
-// campos nuevos) MIGRA en el acto: temas vacíos, sin palabras, topes en 100 y sin preset. Archivo ilegible → arranca
-// CERRADO (todo apagado, sin premios; copia en .roto-*), como en la v1.
+// PERSISTENCIA: server/data/parent.json = CONFIG del padre (regla 9: la config persiste; la ECONOMÍA no). v3 (U3):
+//   { version: 3, seq, tz, pinHash, members: { [idDelIntegrante]: { features, items, topics, extraWords, volume, preset,
+//     feedMotion } } }
+// `seq` (próximo id de premio) es de la FAMILIA: los canjes, el stock y la lista de deseos referencian ids sin integrante.
+// Los canjes, el saldo y el stock consumido siguen en RAM (market.ts / progress.ts). Los AVISOS también viven en RAM (no se
+// registran en /api/demo/reset: se pierden solo si se reinicia el server). Escritura atómica (tmp + rename, como space.ts)
+// e INMEDIATA, sin debounce a propósito: son pocos cambios y un reinicio de tsx watch justo después no puede perderlos.
+// La primera vez (sin archivo) se escribe el seed: cada dependiente con todo prendido + los premios demo (ian 1–8, luna
+// 9–16). Un parent.json v1/v2 (la config de UN chico) MIGRA en el acto (familyMigrate.ts, puro y testeado): lo de antes
+// pasa ENTERO a ian, los dependientes sin entrada nacen con la config de fábrica (Luna: todo prendido, sin temas ni
+// palabras, topes 100 y una copia de los 8 premios demo con ids nuevos), y el archivo original queda UNA vez en
+// parent.json.pre-v3 (un checkout viejo leería el v3 como "todo apagado y sin premios" y lo reescribiría). Archivo
+// ilegible → arranca CERRADO (todos los dependientes con todo apagado y sin premios; copia en .roto-*), como en la v1.
 //
 // PIN DE LA ZONA DE PADRES (dormido desde el 14-oct, con el portón): en parent.json va SOLO su hash (sha256 hex), nunca
-// el texto. POST /api/parent/unlock compara en tiempo constante y responde IGUAL (200 {ok:false}) para un PIN mal
-// formado o incorrecto. Rate-limit suave en RAM:
+// el texto, y es de la FAMILIA. POST /api/parent/unlock compara en tiempo constante y responde IGUAL (200 {ok:false})
+// para un PIN mal formado o incorrecto. Rate-limit suave en RAM:
 // 5 fallidos seguidos → 30 s de espera ({ok:false, waitSeconds}); se resetea con un acierto, con el reinicio del server
 // o con resetUnlockAttempts() (registrado en POST /api/demo/reset).
 //
 // IMPORTS CRUZADOS: mytube.ts importa hasParentSession (solo lo llama al rutear un pedido). Mentores (teachersFake.ts,
 // tanda U2) ya no: pide un ADULTO activo directo con isAdultReq de users.ts (sin el token dormido del portón).
 // market.ts y filters.ts leen de acá (featureOn, premios, palabras/temas de la familia) y acá se lee
-// de market.ts (canjes en RAM), de space.ts y de videos.ts (que a su vez importan filters.ts). afterday.ts y schedule.ts
-// (W6/W7) y users.ts (14-oct: el usuario activo) solo importan config.ts y web.ts: no vuelven hacia acá. Es seguro porque NINGUNO
-// llama al otro en el nivel superior del módulo (solo dentro de funciones): el orden de evaluación da igual. Mantener
-// esa regla: nada de llamadas a market/filters/space/videos al cargar este módulo, ni de ellos hacia acá.
+// de market.ts (canjes en RAM), de space.ts y de videos.ts (que a su vez importan filters.ts). afterday.ts, schedule.ts
+// (W6/W7), users.ts (14-oct: el usuario activo), requestContext.ts y familyMigrate.ts (U3) no vuelven hacia acá. Es seguro
+// porque NINGUNO llama al otro en el nivel superior del módulo (solo dentro de funciones): el orden de evaluación da igual.
+// Mantener esa regla: nada de llamadas a market/filters/space/videos al cargar este módulo, ni de ellos hacia acá.
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { addTrack, allTracks, removeTrack } from './afterday'
 import { SERVER_ROOT, blackTopics, config, ov, whiteTopics, whitelistSites } from './config'
+import { isObject, upgradeParentRaw } from './familyMigrate'
 import { deliverRedemption, listRedemptions, redeemedCount, stockLeft } from './market'
+import { currentUser } from './requestContext'
 import { checkPatch, patchSchedules, setFamilyTzSource } from './schedule'
-import { summary } from './progress'
+import { setProgressTzSource, summaryOf } from './progress'
 import { allSavedForParent } from './space'
-import { isAdultReq } from './users'
+import { DEFAULT_USER_ID, actingUser, allDependents, isAdultReq, memberFor, userById } from './users'
 import { catalogSize } from './videos'
 import { readJson, send } from './web'
 import { isValidTimeZone } from '../../src/shared/lib/zonedClock'
@@ -107,7 +137,7 @@ export type FeatureKey = (typeof FEATURE_KEYS)[number]
 export type ParentFeatures = Record<FeatureKey, boolean>
 /** Premio publicado por el padre. `stock` = cupo de canjes que él configuró (null = sin límite): lo
  *  consumido sale de los canjes en RAM (market.stockLeft). Archivado ≠ borrado: no se ve en la Tienda
- *  pero queda acá y se puede reactivar. */
+ *  pero queda acá y se puede reactivar. El id es ÚNICO EN LA FAMILIA (U3). */
 export interface ParentItem {
   id: number; emoji: string; title: string; desc?: string; price: number; stock: number | null
   archived: boolean; createdAt: number; updatedAt?: number
@@ -122,18 +152,27 @@ export const FEED_MOTIONS = ['calmo', 'normal', 'vivo'] as const
 export type FeedMotion = (typeof FEED_MOTIONS)[number]
 const isFeedMotion = (v: unknown): v is FeedMotion => typeof v === 'string' && (FEED_MOTIONS as readonly string[]).includes(v)
 export type AlertKind = 'crisis' | 'contacto' | 'bloqueos'
-interface ParentStore {
-  version: 2; seq: number; features: ParentFeatures; items: ParentItem[]; /** sha256 hex del PIN */ pinHash: string
-  topics: ParentTopics; /** palabras bloqueadas de la familia (se suman a las de fábrica) */ extraWords: string[]
+/** U3: TODO lo que antes era "del chico", ahora por integrante (members[id] de parent.json v3). */
+interface MemberConfig {
+  features: ParentFeatures; items: ParentItem[]; topics: ParentTopics
+  /** palabras bloqueadas de la familia para ESTE integrante (se suman a las de fábrica) */ extraWords: string[]
   volume: ParentVolume; /** id del preset aplicado; null = configuración propia (se editó algo a mano) */ preset: string | null
-  /** Dial de animación del Feed (default 'normal'; aditivo: un archivo sin el campo NO se migra por eso) */ feedMotion: FeedMotion
-  /** Zona horaria IANA de la familia; null = Automática (la del server). Aditivo como feedMotion. */ tz: string | null
+  /** Dial de animación del Feed (default 'normal') */ feedMotion: FeedMotion
+}
+interface ParentStore {
+  version: 3
+  /** próximo id de premio: ÚNICO EN LA FAMILIA (canjes, stock y lista de deseos referencian ids sin integrante) */ seq: number
+  /** Zona horaria IANA de la FAMILIA; null = Automática (la del server). */ tz: string | null
+  /** sha256 hex del PIN del portón dormido: de la FAMILIA */ pinHash: string
+  /** clave = id de usuario del dependiente (users.ts) */ members: Record<string, MemberConfig>
 }
 
 const FILE = join(SERVER_ROOT, 'data', 'parent.json')
 const LIMITS = { title: 60, desc: 140, price: 100_000, stock: 9_999 } as const
 /** Topes de las listas de la familia (temas por lista, palabras) y largo máximo de cada término. */
 const TERMS = { topics: 30, words: 100, topicLen: 60, wordLen: 40 } as const
+/** Ids de integrante aceptables en disco (los del seed son así; nada de "__proto__"). */
+const MEMBER_ID = /^(?!__proto__$)[a-z0-9_-]{1,40}$/
 
 /* PIN del demo: 123456 — default PÚBLICO tipo admin/admin, elegido y dicho abiertamente por Esteban para
    la demo (NO tiene nada que ver con el PIN del respaldo de Smarty, que no se guarda ni se menciona).
@@ -142,10 +181,10 @@ const TERMS = { topics: 30, words: 100, topicLen: 60, wordLen: 40 } as const
 const DEMO_PIN_HASH = '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92' // = sha256 del PIN del demo
 const isPinHash = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{64}$/.test(v)
 
-/* Seed DEMO "del padre" (se escribe la PRIMERA vez que no hay parent.json; antes vivía en market.ts).
-   Es lo que el papá de Ian publicaría para arrancar. Precios calibrados a una cosecha semanal de
-   ~1.200 ⚡: lo cotidiano sale 100–250, una salida 400, un libro 600 y hay UNA meta grande para ahorrar
-   varias semanas. stock null = sin límite. Los ids 1..8 se conservan (la lista de deseos los usa). */
+/* Seed DEMO "del padre" (se escribe la PRIMERA vez que no hay parent.json y para cada integrante que nace; antes vivía en
+   market.ts). Es lo que el papá publicaría para arrancar. Precios calibrados a una cosecha semanal de ~1.200 ⚡: lo
+   cotidiano sale 100–250, una salida 400, un libro 600 y hay UNA meta grande para ahorrar varias semanas. stock null =
+   sin límite. Los ids 1..8 de Ian se conservan (la lista de deseos los usa); los de cada integrante nuevo salen de `seq`. */
 const SEED_ITEMS: Pick<ParentItem, 'emoji' | 'title' | 'desc' | 'price' | 'stock'>[] = [
   { emoji: '🎮', title: '30 minutos de videojuegos', desc: 'Media hora de tu juego favorito, cuando terminás las tareas.', price: 150, stock: null },
   { emoji: '🍿', title: 'Elegís la película del viernes', desc: 'Noche de peli en familia: esta vez la elección es tuya.', price: 250, stock: null },
@@ -157,16 +196,30 @@ const SEED_ITEMS: Pick<ParentItem, 'emoji' | 'title' | 'desc' | 'price' | 'stock
   { emoji: '🎢', title: 'Un día en el parque de diversiones', desc: 'La gran salida: un día entero de juegos. ¡Es para ahorrar!', price: 3000, stock: 1 },
 ]
 const allFeatures = (on: boolean): ParentFeatures => ({ tienda: on, ligas: on, amigos: on, chat: on })
-/** Apodo del chico (de la config de Smarty) para los textos del padre. Definido antes de load(): lo usa la validación. */
-const kidName = () => config.apodo || 'tu hijo'
+/** El nombre del integrante para los textos del adulto ("bloquearía casi todo lo que lee Luna"). */
+const memberName = (id: string) => userById(id)?.name || 'tu hijo'
 const noTopics = (): ParentTopics => ({ white: [], black: [] })
 const fullVolume = (): ParentVolume => ({ maxMusic: 100, maxNoise: 100 })
+
+/** A3: un integrante nuevo nace con la config de FÁBRICA (lo que sembraba seed() para el único chico): todo prendido, sin
+ *  temas ni palabras, topes 100, sin preset, animación normal y una COPIA de los 8 premios demo con ids de la familia
+ *  (consume `s.seq`). Para que nazca sin premios: `items: []`. */
+function memberDefaults(s: { seq: number }): MemberConfig {
+  const now = Date.now()
+  return {
+    features: allFeatures(true), items: SEED_ITEMS.map(x => ({ id: s.seq++, ...x, archived: false, createdAt: now })),
+    topics: noTopics(), extraWords: [], volume: fullVolume(), preset: null, feedMotion: 'normal',
+  }
+}
+/** Fail-closed: un integrante sin config legible (o un chico sin entrada) no tiene NADA opcional prendido. */
+const closedMember = (): MemberConfig => ({ features: allFeatures(false), items: [], topics: noTopics(), extraWords: [], volume: fullVolume(), preset: null, feedMotion: 'normal' })
 
 /* ---------- presets (audios 56 y 66: "grandes presets, no mil detalles") ----------
    Honestos sobre lo que EXISTE: cada uno deja configurado exactamente lo que el server aplica (los cuatro on-off,
    temas, palabras de la familia y topes de volumen). Aplicar uno REEMPLAZA todo eso; editar cualquier cosa a mano
    después lo deja en null ("configuración propia"). Los temas del clásico conservador son los de la familia demo
-   (familia conservadora que hace homeschooling: VISION §1) y se SUMAN a la protección de fábrica de Smarty. */
+   (familia conservadora que hace homeschooling: VISION §1) y se SUMAN a la protección de fábrica de Smarty. U3: se
+   aplican a UN integrante (no hay "aplicar a toda la familia": D3). */
 interface PresetDef { id: string; name: string; desc: string; features: ParentFeatures; topics: ParentTopics; words: string[]; volume: ParentVolume }
 const PRESETS: readonly PresetDef[] = [
   {
@@ -188,13 +241,10 @@ const PRESETS: readonly PresetDef[] = [
   },
 ]
 
-function seed(): ParentStore {
-  const now = Date.now()
-  return {
-    version: 2, seq: SEED_ITEMS.length + 1, features: allFeatures(true),
-    items: SEED_ITEMS.map((s, i) => ({ id: i + 1, ...s, archived: false, createdAt: now })), pinHash: DEMO_PIN_HASH,
-    topics: noTopics(), extraWords: [], volume: fullVolume(), preset: null, feedMotion: 'normal', tz: null,
-  }
+function seed(deps: string[]): ParentStore {
+  const s: ParentStore = { version: 3, seq: 1, tz: null, pinHash: DEMO_PIN_HASH, members: {} }
+  for (const d of deps) s.members[d] = memberDefaults(s) // ian → premios 1..8, luna → 9..16, seq = 17
+  return s
 }
 
 /* ---------- validación (compartida por el archivo leído de disco y por la API) ---------- */
@@ -242,52 +292,53 @@ const TOO_COMMON = new Set(['de', 'del', 'la', 'el', 'los', 'las', 'un', 'una', 
 const TOPIC_STOP = new Set(['de', 'del', 'la', 'el', 'los', 'las', 'un', 'una', 'unos', 'unas', 'y', 'e', 'o', 'u', 'a', 'al', 'en', 'con', 'por', 'para', 'sobre', 'su', 'sus', 'lo', 'que', 'sin'])
 const topicWords = (topic: string) => keyOf(topic).split(/[^a-z0-9]+/).filter(w => w && !TOPIC_STOP.has(w))
 
-function checkTerm(v: unknown, what: 'tema' | 'palabra'): Check<string> {
+/** `kid` = el nombre del integrante para el texto del 400 ("bloquearía casi todo lo que lee Luna"). */
+function checkTerm(v: unknown, what: 'tema' | 'palabra', kid: string): Check<string> {
   const max = what === 'tema' ? TERMS.topicLen : TERMS.wordLen
   const t = typeof v === 'string' ? cleanText(v) : ''
   if (t.length < 2 || t.length > max) return fail(`Cada ${what} tiene que tener entre 2 y ${max} caracteres${t ? ` («${t.slice(0, 50)}»)` : ''}.`)
   if ((t.match(/[\p{L}\p{N}]/gu) ?? []).length < 2) return fail(`«${t}» no ${what === 'tema' ? 'es un tema válido' : 'es una palabra válida'}: tiene que tener letras.`)
-  if (what === 'palabra' && TOO_COMMON.has(keyOf(t))) return fail(`«${t}» es demasiado común: bloquearía casi todo lo que lee ${kidName()}.`)
+  if (what === 'palabra' && TOO_COMMON.has(keyOf(t))) return fail(`«${t}» es demasiado común: bloquearía casi todo lo que lee ${kid}.`)
   if (what === 'tema' && !topicWords(t).length) return fail(`«${t}» no dice de qué tema se trata.`)
   return { ok: true, value: t }
 }
 /** Lista de la API: TODO tiene que ser válido (si no, 400 con el motivo). Sin repetidos (gana el primero). */
-function checkTerms(v: unknown, what: 'tema' | 'palabra', max: number): Check<string[]> {
+function checkTerms(v: unknown, what: 'tema' | 'palabra', max: number, kid: string): Check<string[]> {
   if (!Array.isArray(v)) return fail(what === 'tema' ? 'Los temas tienen que venir en una lista.' : 'Las palabras tienen que venir en una lista.')
   if (v.length > max * 3) return fail(`Hasta ${max} ${what === 'tema' ? 'temas por lista' : 'palabras'}.`)
   const out: string[] = [], seen = new Set<string>()
   for (const raw of v) {
-    const c = checkTerm(raw, what)
+    const c = checkTerm(raw, what, kid)
     if (!c.ok) return c
     const k = keyOf(c.value)
     if (!seen.has(k)) { seen.add(k); out.push(c.value) }
   }
   return out.length <= max ? { ok: true, value: out } : fail(`Hasta ${max} ${what === 'tema' ? 'temas por lista' : 'palabras'}.`)
 }
-/** Lista leída de disco: lo inválido o repetido se saltea con un aviso (no tumba el resto). */
-function sanitizeTerms(v: unknown, what: 'tema' | 'palabra', max: number): string[] {
+/** Lista leída de disco: lo inválido o repetido se saltea con un aviso (no tumba el resto). `who` = el integrante. */
+function sanitizeTerms(v: unknown, what: 'tema' | 'palabra', max: number, who: string): string[] {
   const out: string[] = [], seen = new Set<string>()
   for (const raw of Array.isArray(v) ? v : []) {
-    const c = checkTerm(raw, what)
-    if (!c.ok) { console.warn(`[parent] ${what} inválido en parent.json, lo salteo: ${JSON.stringify(raw).slice(0, 80)}`); continue }
+    const c = checkTerm(raw, what, memberName(who))
+    if (!c.ok) { console.warn(`[parent] ${what} inválido en parent.json (${who}), lo salteo: ${JSON.stringify(raw).slice(0, 80)}`); continue }
     const k = keyOf(c.value)
     if (!seen.has(k) && out.length < max) { seen.add(k); out.push(c.value) }
   }
   return out
 }
-function sanitizeTopics(v: unknown): ParentTopics {
-  const r = (v && typeof v === 'object' ? v : {}) as Record<string, unknown>
-  const black = sanitizeTerms(r.black, 'tema', TERMS.topics)
+function sanitizeTopics(v: unknown, who: string): ParentTopics {
+  const r = isObject(v) ? v : {}
+  const black = sanitizeTerms(r.black, 'tema', TERMS.topics, who)
   const inBlack = new Set(black.map(keyOf))
   // Un tema no puede estar en las dos listas; si pasó (archivo editado a mano), gana la negra (fail-closed).
-  return { white: sanitizeTerms(r.white, 'tema', TERMS.topics).filter(t => !inBlack.has(keyOf(t))), black }
+  return { white: sanitizeTerms(r.white, 'tema', TERMS.topics, who).filter(t => !inBlack.has(keyOf(t))), black }
 }
 function checkVolume(v: unknown, label: string): Check<number> {
   const n = toInt(v)
   return n !== null && n >= 0 && n <= 100 ? { ok: true, value: n } : fail(`${label} tiene que ser un número entero entre 0 y 100.`)
 }
 function sanitizeVolume(v: unknown): ParentVolume {
-  const r = (v && typeof v === 'object' ? v : {}) as Record<string, unknown>
+  const r = isObject(v) ? v : {}
   const one = (x: unknown) => { const c = checkVolume(x, 'tope'); return c.ok ? c.value : 100 } // sin dato válido = sin tope (como Smarty)
   return { maxMusic: one(r.maxMusic), maxNoise: one(r.maxNoise) }
 }
@@ -297,115 +348,229 @@ function writeAtomic(s: ParentStore): boolean {
   try { writeFileSync(FILE + '.tmp', JSON.stringify(s, null, 2)); renameSync(FILE + '.tmp', FILE); return true }
   catch (e) { console.error('[parent] no pude guardar parent.json:', e); return false }
 }
-/** Lee parent.json validando todo. Lo que falta o vino mal en `features` queda APAGADO (fail-closed). */
-function sanitize(raw: unknown): ParentStore {
-  const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
-  const rf = (r.features && typeof r.features === 'object' ? r.features : {}) as Record<string, unknown>
+/** Copia LITERAL del archivo de antes de migrar; si ya existe, no se pisa (queda la de la primera migración). */
+function backupOnce(path: string, text: string): void {
+  try {
+    if (existsSync(path)) return
+    writeFileSync(path, text)
+    console.log(`[parent] respaldo de la versión anterior en ${basename(path)}`)
+  } catch (e) { console.error(`[parent] no pude escribir el respaldo ${basename(path)}:`, e) }
+}
+/** Un integrante leído de disco, validando todo (el cuerpo de la v2 por integrante). Lo que falta o vino mal en `features`
+ *  queda APAGADO (fail-closed). `seen` = ids de premio de TODA la familia: uno repetido entre integrantes se saltea (los
+ *  canjes y la lista de deseos no saben de integrantes). */
+function sanitizeMember(raw: unknown, seen: Set<number>, who: string): MemberConfig {
+  const r = isObject(raw) ? raw : {}
+  const rf = isObject(r.features) ? r.features : {}
   const features = allFeatures(false)
   for (const k of FEATURE_KEYS) {
     if (typeof rf[k] === 'boolean') features[k] = rf[k] as boolean
-    else console.warn(`[parent] parent.json sin "${k}" válido: queda APAGADO hasta que el padre lo prenda`)
+    else console.warn(`[parent] parent.json: ${who} sin "${k}" válido: queda APAGADO hasta que el adulto lo prenda`)
   }
   const items: ParentItem[] = []
   for (const it of Array.isArray(r.items) ? r.items : []) {
-    const o = (it && typeof it === 'object' ? it : {}) as Record<string, unknown>
+    const o = isObject(it) ? it : {}
     const id = toInt(o.id), title = checkTitle(o.title), desc = checkDesc(o.desc), price = checkPrice(o.price), emoji = checkEmoji(o.emoji), stock = checkStock(o.stock)
-    if (id === null || id < 1 || items.some(x => x.id === id) || !title.ok || !desc.ok || !price.ok || !emoji.ok || !stock.ok) {
-      console.warn('[parent] premio inválido en parent.json, lo salteo:', JSON.stringify(it).slice(0, 160)); continue
+    if (id !== null && seen.has(id)) { console.warn(`[parent] premio #${id} repetido en parent.json (${who}): ya es de otro integrante o está dos veces, lo salteo`); continue }
+    if (id === null || id < 1 || !title.ok || !desc.ok || !price.ok || !emoji.ok || !stock.ok) {
+      console.warn(`[parent] premio inválido en parent.json (${who}), lo salteo:`, JSON.stringify(it).slice(0, 160)); continue
     }
+    seen.add(id)
     const updatedAt = toInt(o.updatedAt)
     items.push({
       id, emoji: emoji.value, title: title.value, ...(desc.value ? { desc: desc.value } : {}), price: price.value, stock: stock.value,
       archived: o.archived === true, createdAt: toInt(o.createdAt) ?? Date.now(), ...(updatedAt ? { updatedAt } : {}),
     })
   }
-  const seq = Math.max(toInt(r.seq) ?? 1, ...items.map(i => i.id + 1), 1)
   return {
-    version: 2, seq, features, items,
-    // Sin pinHash válido (parent.json de antes del PIN) → el del PIN del demo; load() lo deja escrito.
-    pinHash: isPinHash(r.pinHash) ? r.pinHash : DEMO_PIN_HASH,
-    // v2 (aditivos con default: un parent.json de la v1 no los tiene y migra así)
-    topics: sanitizeTopics(r.topics),
-    extraWords: sanitizeTerms(r.extraWords, 'palabra', TERMS.words),
+    features, items,
+    topics: sanitizeTopics(r.topics, who),
+    extraWords: sanitizeTerms(r.extraWords, 'palabra', TERMS.words, who),
     volume: sanitizeVolume(r.volume),
     preset: typeof r.preset === 'string' && PRESETS.some(p => p.id === r.preset) ? r.preset : null,
-    // Feed v6 (aditivo con default; no entra en V2_FIELDS: su falta no reescribe el archivo)
+    // Feed v6 (aditivo con default; su falta no reescribe el archivo)
     feedMotion: isFeedMotion(r.feedMotion) ? r.feedMotion : 'normal',
-    // zona horaria de la familia (deuda 14-oct; aditivo con default null, tampoco reescribe el archivo)
-    tz: isValidTimeZone(r.tz) ? r.tz : null,
   }
 }
+/** parent.json v3 (ya en esa forma: familyMigrate.upgradeParentRaw) → store validado. */
+function sanitize(raw: Record<string, unknown>): ParentStore {
+  const seen = new Set<number>()
+  const members: Record<string, MemberConfig> = {}
+  for (const [id, m] of Object.entries(isObject(raw.members) ? raw.members : {})) {
+    if (!MEMBER_ID.test(id)) { console.warn(`[parent] integrante con un id inválido en parent.json, lo salteo: ${JSON.stringify(id).slice(0, 60)}`); continue }
+    members[id] = sanitizeMember(m, seen, id)
+  }
+  const ids = Object.values(members).flatMap(m => m.items.map(i => i.id + 1))
+  return {
+    version: 3, seq: Math.max(toInt(raw.seq) ?? 1, ...ids, 1),
+    // zona horaria de la familia (deuda 14-oct; null = la del server)
+    tz: isValidTimeZone(raw.tz) ? raw.tz : null,
+    // Sin pinHash válido (parent.json de antes del PIN) → el del PIN del demo; load() lo deja escrito.
+    pinHash: isPinHash(raw.pinHash) ? raw.pinHash : DEMO_PIN_HASH,
+    members,
+  }
+}
+/** Cada dependiente del seed sin entrada nace con la config de fábrica (consume `seq`). Devuelve a quiénes creó. */
+function ensureMembers(s: ParentStore, deps: string[]): string[] {
+  const created: string[] = []
+  for (const d of deps) if (!Object.hasOwn(s.members, d)) { s.members[d] = memberDefaults(s); created.push(d) }
+  return created
+}
+/** Los campos de la v2 que le faltaban a algún integrante de un v3 (p. ej. un v1 pegado a mano adentro): reescribe. */
 const V2_FIELDS = ['topics', 'extraWords', 'volume', 'preset'] as const
+function memberFieldsMissing(raw: Record<string, unknown>): string[] {
+  const out: string[] = []
+  for (const [id, m] of Object.entries(isObject(raw.members) ? raw.members : {})) {
+    if (!MEMBER_ID.test(id)) continue
+    for (const k of V2_FIELDS) if (!isObject(m) || !(k in m)) out.push(`${id}: ${k}`)
+  }
+  return out
+}
 function load(): ParentStore {
+  const deps = allDependents() // ['ian','luna']
   if (!existsSync(FILE)) {
-    const s = seed()
+    const s = seed(deps)
     writeAtomic(s) // primera vez: queda escrito ya, no espera a un cambio
-    console.log('[parent] parent.json creado: funcionalidades prendidas + premios demo del padre + PIN del demo (hash)')
+    console.log(`[parent] parent.json creado (v3): ${deps.join(', ')} con las funcionalidades prendidas y los premios demo + PIN del demo (hash)`)
     return s
   }
+  // Leer y llevar a la forma v3: si ESTO falla, el archivo es ilegible. El saneo va afuera del try a propósito: escrito
+  // para no tirar con ningún dato, y si tirara por un bug, mejor que el server no arranque a que renombre la config real.
+  let up: ReturnType<typeof upgradeParentRaw>, text: string
   try {
-    const raw: unknown = JSON.parse(readFileSync(FILE, 'utf8'))
-    const s = sanitize(raw)
-    const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
-    const missing = V2_FIELDS.filter(k => !(k in r))
-    if (!isPinHash(r.pinHash) || missing.length || r.version !== 2) {
-      writeAtomic(s) // migración en el acto
-      console.log(`[parent] parent.json migrado a la v2${missing.length ? ` (campos nuevos con su valor por defecto: ${missing.join(', ')})` : ''}${isPinHash(r.pinHash) ? '' : ' + hash del PIN del demo'}`)
-    }
-    return s
+    text = readFileSync(FILE, 'utf8')
+    up = upgradeParentRaw(JSON.parse(text), DEFAULT_USER_ID)
   } catch (e) {
     // Fail-closed: sin la config del padre no se prende nada opcional. Se guarda copia del roto. El PIN
     // vuelve al del demo (si no, nadie podría entrar a la Zona de padres a prender las cosas de nuevo).
-    console.error('[parent] parent.json ilegible → arranco CERRADO (todo apagado, sin premios); copia en .roto-*:', e)
+    console.error('[parent] parent.json ilegible → arranco CERRADO (todos los integrantes con todo apagado y sin premios); copia en .roto-*:', e)
     try { renameSync(FILE, `${FILE}.roto-${Date.now()}`) } catch { /* sin copia: seguimos igual */ }
-    const s: ParentStore = { version: 2, seq: 1, features: allFeatures(false), items: [], pinHash: DEMO_PIN_HASH, topics: noTopics(), extraWords: [], volume: fullVolume(), preset: null, feedMotion: 'normal', tz: null }
+    const s: ParentStore = { version: 3, seq: 1, tz: null, pinHash: DEMO_PIN_HASH, members: Object.fromEntries(deps.map(d => [d, closedMember()])) }
     writeAtomic(s) // si no, el próximo arranque vería "sin archivo" y sembraría todo prendido
     return s
   }
+  if (up.from !== 3) backupOnce(`${FILE}.pre-v3`, text)
+  const s = sanitize(up.raw)
+  const created = ensureMembers(s, deps)
+  const missing = memberFieldsMissing(up.raw)
+  const noPin = !isPinHash(up.raw.pinHash)
+  if (up.from !== 3 || created.length || missing.length || noPin) {
+    writeAtomic(s) // migración en el acto
+    console.log(`[parent] parent.json → v3${up.from !== 3 ? ` (desde v${up.from}: lo de antes pasa a ${DEFAULT_USER_ID})` : ''}${created.length ? ` · integrantes nuevos con la config de fábrica: ${created.join(', ')}` : ''}${missing.length ? ` · campos con su valor por defecto: ${missing.join(', ')}` : ''}${noPin ? ' · hash del PIN del demo' : ''}`)
+  }
+  return s
 }
 const store: ParentStore = load()
 const save = () => writeAtomic(store)
 // schedule.ts evalúa las franjas en la zona de la familia: se la PRESTA este módulo (dueño del dato) sin que schedule.ts
-// lo importe (no hay ciclo; la función recién se llama al atender pedidos).
+// lo importe (no hay ciclo; la función recién se llama al atender pedidos). Lo mismo progress.ts (U4: el corte de semana de
+// la XP y el día de la racha, en la misma zona que el ciclo de liga).
 setFamilyTzSource(() => store.tz)
+setProgressTzSource(() => store.tz)
+
+/** La config de un integrante (sin crear nada); undefined si no tiene. */
+const memberConf = (id: string): MemberConfig | undefined => (Object.hasOwn(store.members, id) ? store.members[id] : undefined)
+/** El integrante M de las rutas de Familia (memberFor ya lo validó: es un dependiente, y load() creó a todos). */
+function mem(id: string): MemberConfig {
+  const m = memberConf(id)
+  if (m) return m
+  // No debería pasar (load() crea a todos los dependientes del seed): por las dudas nace con la config de fábrica.
+  const fresh = memberDefaults(store)
+  store.members[id] = fresh
+  save()
+  console.warn(`[parent] ${id} no tenía configuración: nace con la de fábrica`)
+  return fresh
+}
 
 /* ---------- API para los módulos del server (imports, no HTTP) ---------- */
-/** ¿Esta funcionalidad está prendida? Fail-closed: clave desconocida → false. */
-export const featureOn = (key: FeatureKey): boolean => store.features[key] === true
-export const features = (): ParentFeatures => ({ ...store.features })
-/** Todos los premios del padre (archivados incluidos), como copias. */
-export const parentItems = (): ParentItem[] => store.items.map(i => ({ ...i }))
-export function parentItem(id: number): ParentItem | undefined {
-  const it = store.items.find(i => i.id === id)
+/* ACCESOS EXPLÍCITOS (rutas de Familia sobre el integrante M y el gating que tiene req: index/market/leagues/friends). */
+/** ¿Esta funcionalidad está prendida PARA ESTE CHICO? Fail-closed: clave o integrante desconocidos → false. */
+export const featureOn = (key: FeatureKey, childId: string): boolean => memberConf(childId)?.features[key] === true
+/** Los on-off de un integrante (copia); sin config → todo apagado (fail-closed). */
+export const memberFeatures = (id: string): ParentFeatures => { const m = memberConf(id); return m ? { ...m.features } : allFeatures(false) }
+/** Los topes de volumen de un integrante (copia); sin config → 100/100 (sin tope, como Smarty). */
+export const memberVolume = (id: string): ParentVolume => { const m = memberConf(id); return m ? { ...m.volume } : fullVolume() }
+/** De qué integrante es un premio (los ids son únicos en la familia); undefined si no es de nadie. */
+export function itemOwner(itemId: number): string | undefined {
+  for (const [id, m] of Object.entries(store.members)) if (m.items.some(i => i.id === itemId)) return id
+  return undefined
+}
+/** Un premio de CUALQUIER integrante (copia): para el 400 de "solo se puede regalar ropa". */
+export function anyParentItem(itemId: number): ParentItem | undefined {
+  for (const m of Object.values(store.members)) { const it = m.items.find(i => i.id === itemId); if (it) return { ...it } }
+  return undefined
+}
+/** Zona horaria IANA de la familia (null = la del server): la franja del Feed (feedFake.ts) se lee en ella. */
+export const familyTz = (): string | null => store.tz
+
+/* POLÍTICA VIGENTE (requestContext.ts): lo que rige en ESTE pedido según su usuario activo (tabla §1.7 de la spec U3). */
+interface Policy {
+  /** de qué integrante es (null: el adulto o "sin pedido") */ memberId: string | null
+  features: ParentFeatures; topics: ParentTopics; extraWords: readonly string[]; feedMotion: FeedMotion; items: readonly ParentItem[]
+}
+const CLOSED: MemberConfig = closedMember() // un chico sin config: nada opcional (no se muta nunca)
+const policyOf = (id: string, m: MemberConfig): Policy => ({ memberId: id, features: m.features, topics: m.topics, extraWords: m.extraWords, feedMotion: m.feedMotion, items: m.items })
+const ADULT_POLICY: Policy = { memberId: null, features: allFeatures(true), topics: noTopics(), extraWords: [], feedMotion: 'normal', items: [] }
+/** D1 (coordinador, 28-oct): al ADULTO no lo alcanzan los filtros ni los candados de sus hijos — protección de FÁBRICA
+ *  sola (sin temas ni palabras de la familia), todo prendido, sin topes, Feed normal y la Tienda solo con la ropa de
+ *  plataforma (los premios son para los chicos). Si Esteban pide "el adulto con la suma de los filtros de sus hijos",
+ *  esta función pasa a devolver `unionPolicy()` (y nada más cambia). */
+const adultPolicy = (): Policy => ADULT_POLICY
+/** Sin pedido (arranque, timers sueltos): una funcionalidad rige prendida solo si TODOS los integrantes la tienen
+ *  prendida; temas negros y palabras = la unión de todos (fail-closed: esconde de más, nunca de menos); sin sugerencias. */
+function unionPolicy(): Policy {
+  const ms = allDependents().map(d => memberConf(d) ?? CLOSED)
+  const features = allFeatures(true)
+  for (const k of FEATURE_KEYS) features[k] = ms.every(m => m.features[k] === true)
+  const union = (lists: readonly (readonly string[])[]) => {
+    const out: string[] = [], seen = new Set<string>()
+    for (const l of lists) for (const t of l) { const k = keyOf(t); if (!seen.has(k)) { seen.add(k); out.push(t) } }
+    return out
+  }
+  return { memberId: null, features, topics: { white: [], black: union(ms.map(m => m.topics.black)) }, extraWords: union(ms.map(m => m.extraWords)), feedMotion: 'normal', items: [] }
+}
+function policyNow(): Policy {
+  const u = currentUser()
+  if (!u) return unionPolicy()
+  if (u.kind === 'adult') return adultPolicy()
+  return policyOf(u.id, memberConf(u.id) ?? CLOSED)
+}
+/** ¿Prendida para el usuario del pedido en curso? (feed, respuesta en vuelo de los NPC). Adulto → siempre. */
+export const featureOnNow = (key: FeatureKey): boolean => policyNow().features[key] === true
+/** El integrante cuya config rige en este pedido (el chico activo); null con un adulto o sin pedido. */
+export const policyMemberId = (): string | null => policyNow().memberId
+/** Los premios del chico activo (archivados incluidos), como copias; con un adulto, ninguno (D1). */
+export const policyItems = (): ParentItem[] => policyNow().items.map(i => ({ ...i }))
+export function policyItem(id: number): ParentItem | undefined {
+  const it = policyNow().items.find(i => i.id === id)
   return it ? { ...it } : undefined
 }
-/** Palabras bloqueadas de la familia (se suman a las de fábrica en filters.matchBlockedWord y en el veto de medios del chat). */
-export const familyWords = (): readonly string[] => store.extraWords
+/** Palabras bloqueadas de la familia que rigen (se suman a las de fábrica en filters.matchBlockedWord y en el veto de
+ *  medios del chat). */
+export const familyWords = (): readonly string[] => policyNow().extraWords
 /** Lo que filters.matchBlockedWord corta POR DEFECTO además de las palabras de fábrica: las palabras de la familia y el
  *  nombre de cada tema NEGRO de la familia como frase exacta (así un tema negro tampoco aparece en búsquedas, títulos,
  *  Mi espacio, ejercicios, el chat o los mensajes a amigos; el sentido del tema lo vigilan además los jueces). */
 export function familyBlockedTerms(): string[] {
-  return store.topics.black.length ? [...store.extraWords, ...store.topics.black] : store.extraWords
+  const p = policyNow()
+  return p.topics.black.length ? [...p.extraWords, ...p.topics.black] : [...p.extraWords]
 }
-/** Temas de la familia (copias): el feed los usa para filtrar (negros) y priorizar (blancos). */
-export const familyTopics = (): ParentTopics => ({ white: [...store.topics.white], black: [...store.topics.black] })
+/** Temas de la familia que rigen (copias): el feed los usa para filtrar (negros) y priorizar (blancos). */
+export const familyTopics = (): ParentTopics => { const t = policyNow().topics; return { white: [...t.white], black: [...t.black] } }
 type Topic = ReturnType<typeof blackTopics>[number]
-function withFamily(base: Topic[], extra: string[], kind: Topic['kind']): Topic[] {
+function withFamily(base: Topic[], extra: readonly string[], kind: Topic['kind']): Topic[] {
   if (!extra.length) return base
   const have = new Set(base.map(t => keyOf(t.name)))
   return [...base, ...extra.filter(n => !have.has(keyOf(n))).map((name): Topic => ({ kind, name, description: '', critical: false }))]
 }
 /** Lista NEGRA que vigilan los jueces (entrada/salida del chat, lector, mensajes entre amigos): la de fábrica (Smarty) +
- *  la de la familia, sin repetidos. Reemplaza a config.blackTopics() en sus consumidores. */
-export const blackTopicsAll = (): Topic[] => withFamily(blackTopics(), store.topics.black, 'negra')
-/** Lista BLANCA (lo que el chat propone y a dónde redirige): la de fábrica + las sugerencias de la familia. */
-export const whiteTopicsAll = (): Topic[] => withFamily(whiteTopics(), store.topics.white, 'blanca')
-/** Topes de volumen vigentes (también los sirve GET /api/parent/limits, público). */
-export const volumeLimits = (): ParentVolume => ({ ...store.volume })
-/** Dial de animación del Feed vigente (feedFake lo manda en cada GET /api/feed: FeedResponse.motion). */
-export const feedMotion = (): FeedMotion => store.feedMotion
-/** Zona horaria IANA de la familia (null = la del server): la franja del Feed (feedFake.ts) se lee en ella. */
-export const familyTz = (): string | null => store.tz
+ *  la de la familia que rige, sin repetidos. Reemplaza a config.blackTopics() en sus consumidores. */
+export const blackTopicsAll = (): Topic[] => withFamily(blackTopics(), policyNow().topics.black, 'negra')
+/** Lista BLANCA (lo que el chat puede tratar): la de fábrica + las sugerencias de la familia que rigen. OJO: la de fábrica
+ *  trae temas que el chat trata SOLO si el chico pregunta (educación sexual): para proponer, familyTopics().white. */
+export const whiteTopicsAll = (): Topic[] => withFamily(whiteTopics(), policyNow().topics.white, 'blanca')
+/** Dial de animación del Feed que rige (feedFake lo manda en cada GET /api/feed: FeedResponse.motion). */
+export const feedMotion = (): FeedMotion => policyNow().feedMotion
 
 /** ¿El texto "pega" con alguno de estos temas? Determinístico (sin modelo) para el feed: todas las palabras con
  *  contenido del tema tienen que aparecer en el texto como palabra entera, sin tildes ni mayúsculas y tolerando el
@@ -424,51 +589,62 @@ export function topicHit(text: string, topics: readonly string[]): string | null
 }
 
 /* ---------- avisos al padre (RAM) ---------- */
-interface Alert { id: number; ts: number; kind: AlertKind; text: string; source: string; seen: boolean }
+interface Alert { id: number; ts: number; kind: AlertKind; text: string; source: string; seen: boolean; /** U3: el chico ACTIVO que lo disparó */ childId?: string }
 const alerts: Alert[] = [] // del más viejo al más nuevo
 let alertSeq = 1
 const MAX_ALERTS = 100
 /** Bloqueos repetidos: cuántos hacen un aviso ("insistió") y en qué ventana. El umbral es el del sondeo de Smarty
- *  (const.sondeoUmbral: N redirecciones en una sesión → evento 'sondeo' para el padre). */
+ *  (const.sondeoUmbral: N redirecciones en una sesión → evento 'sondeo' para el padre). U3: se cuentan POR CHICO y fuente
+ *  (Ian + Luna no suman un "insistió" entre los dos). */
 const BLOCK_WINDOW_MS = 10 * 60_000
 const blockTimes = new Map<string, number[]>()
 const blockThreshold = () => Math.max(2, Math.round(ov.num('const.sondeoUmbral')) || 3)
 const quote = (s: string, n: number) => { const t = cleanText(s); return t.length > n ? `${t.slice(0, n - 1)}…` : t }
+const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s)
 
-/** Aviso para el padre (Zona de padres → Avisos). Lo llaman los ganchos de friendsFake.ts y chat.ts.
+/** Aviso para el padre (Familia → Avisos). Lo llaman los ganchos de friendsFake.ts y chat.ts.
  *  - kind 'crisis': `text` = lo que el chico escribió, y el aviso lo MUESTRA entero (decisión de Esteban, 11-oct-2026:
  *    "que se vea con toda la info"; revierte la cuarentena del aviso que había elegido la tanda P — la cuarentena del
  *    CONTEXTO del chat sigue intacta, esto es solo el panel del padre).
  *  - kind 'contacto': `text` = el mensaje que el Moderador frenó (link, teléfono, otra app, encuentros, datos personales).
  *  - kind 'bloqueos': cada llamada es UN mensaje frenado; el aviso sale recién al juntar `const.sondeoUmbral` en la
  *    misma fuente dentro de 10 minutos ("insistió"), y el contador vuelve a cero.
+ *  U3: el aviso es SOBRE el chico activo del pedido (requestContext): queda etiquetado con su id y el texto usa su nombre
+ *  ("Luna escribió: «…»"); con un ADULTO activo no se genera (solo log: los avisos son sobre los integrantes); fuera de un
+ *  pedido, sin etiqueta y "tu hijo".
  *  `source` = dónde pasó, en minúscula para ir dentro de una oración ("el chat con el asistente"). Nunca tira. */
 export function notifyParent(kind: AlertKind, text: string, source: string): void {
   try {
     const src = quote(String(source ?? ''), 80) || 'Innerith'
-    const kid = kidName()
+    const u = currentUser()
+    if (u?.kind === 'adult') { console.log(`[parent] ${kind} con un adulto activo en ${src}: sin aviso (los avisos son sobre los integrantes)`); return }
+    const child = u?.kind === 'child' ? u : undefined
+    const kid = child?.name || 'tu hijo', Kid = cap(kid)
     let body: string
     if (kind === 'crisis') {
       const said = quote(String(text ?? ''), 220)
-      body = `Hubo un mensaje de crisis en ${src}.${said ? ` ${kid} escribió: «${said}».` : ''} Se le mostró el mensaje de contención de la familia, que lo invita a hablarlo con un adulto de confianza. Hablalo con ${kid} con calma cuanto antes.`
+      body = `Hubo un mensaje de crisis en ${src}.${said ? ` ${Kid} escribió: «${said}».` : ''} Se le mostró el mensaje de contención de la familia, que lo invita a hablarlo con un adulto de confianza. Hablalo con ${kid} con calma cuanto antes.`
     } else if (kind === 'contacto') {
       const said = quote(String(text ?? ''), 140)
-      body = `${kid} quiso pasar un dato de contacto o seguir la charla fuera de Innerith en ${src}${said ? `: «${said}»` : ''}. El Moderador lo frenó y el mensaje no llegó.`
+      body = `${Kid} quiso pasar un dato de contacto o seguir la charla fuera de Innerith en ${src}${said ? `: «${said}»` : ''}. El Moderador lo frenó y el mensaje no llegó.`
     } else {
-      const now = Date.now()
-      const recent = (blockTimes.get(src) ?? []).filter(t => now - t < BLOCK_WINDOW_MS)
+      const now = Date.now(), key = `${child?.id ?? '-'}|${src}`
+      const recent = (blockTimes.get(key) ?? []).filter(t => now - t < BLOCK_WINDOW_MS)
       recent.push(now)
-      if (recent.length < blockThreshold()) { blockTimes.set(src, recent); return }
-      blockTimes.delete(src)
+      if (recent.length < blockThreshold()) { blockTimes.set(key, recent); return }
+      blockTimes.delete(key)
       const said = quote(String(text ?? ''), 100)
-      body = `${kid} insistió: el Moderador frenó ${recent.length} mensajes suyos en ${src} en pocos minutos (palabras, insultos o temas que la familia no quiere). Ninguno llegó.${said ? ` El último: «${said}».` : ''}`
+      body = `${Kid} insistió: el Moderador frenó ${recent.length} mensajes suyos en ${src} en pocos minutos (palabras, insultos o temas que la familia no quiere). Ninguno llegó.${said ? ` El último: «${said}».` : ''}`
     }
-    alerts.push({ id: alertSeq++, ts: Date.now(), kind, text: body, source: src, seen: false })
+    alerts.push({ id: alertSeq++, ts: Date.now(), kind, text: body, source: src, seen: false, ...(child ? { childId: child.id } : {}) })
     if (alerts.length > MAX_ALERTS) alerts.splice(0, alerts.length - MAX_ALERTS)
-    console.log(`[parent] AVISO ${kind.toUpperCase()} en ${src}`) // nunca se loguea lo que escribió el chico
+    console.log(`[parent] AVISO ${kind.toUpperCase()} en ${src}${child ? ` · sobre ${child.id}` : ''}`) // nunca se loguea lo que escribió el chico
   } catch (e) { console.error('[parent] no pude registrar el aviso:', e) }
 }
-const alertList = () => alerts.slice().reverse().map(a => ({ ...a }))
+/** Los avisos (el más nuevo primero) con el nombre del chico; con `member`, solo los de ese integrante. */
+const alertList = (member?: string) => alerts.slice().reverse()
+  .filter(a => member === undefined || a.childId === member)
+  .map(a => ({ ...a, ...(a.childId ? { childName: userById(a.childId)?.name ?? a.childId } : {}) }))
 
 /* ---------- sesión de la Zona de padres (RAM) ---------- */
 const SESSION_MS = 15 * 60_000
@@ -505,8 +681,6 @@ function closeSession(req: IncomingMessage) { const t = tokenOf(req); if (t) ses
  *  de /api/parent/*: la ingesta de YouTube (mytube.ts: /api/mytube/admin/*). Sin sesión → 401. (Mentores, /api/mentors*, no
  *  pasa por acá: es SOLO del adulto activo —isAdultReq—, sin token.) */
 export function hasParentSession(req: IncomingMessage): boolean { return isAdultReq(req) || touchSession(req) }
-/** El 401 de esas pantallas: `{ error: PARENT_SESSION_EXPIRED }`. */
-export const PARENT_SESSION_EXPIRED = 'Sesión del padre vencida. Volvé a entrar con el PIN.'
 
 /* ---------- PIN de la Zona de padres ---------- */
 const MAX_FAILS = 5
@@ -529,34 +703,37 @@ function tryUnlock(pin: unknown): { ok: boolean; token?: string; waitSeconds?: n
   return { ok: false, waitSeconds: WAIT_MS / 1000 }
 }
 
-/* ---------- lógica ---------- */
-/** Editar algo a mano deja la configuración como "propia" (sin preset aplicado). */
-function touchedByHand() { if (store.preset !== null) { console.log(`[parent] cambio a mano: el preset «${store.preset}» deja de estar aplicado`); store.preset = null } }
+/* ---------- lógica (TODO sobre el integrante `mid`, ya validado por memberFor) ---------- */
+/** Editar algo a mano deja la configuración de ESE integrante como "propia" (sin preset aplicado). */
+function touchedByHand(m: MemberConfig, mid: string) { if (m.preset !== null) { console.log(`[parent] ${mid}: cambio a mano, el preset «${m.preset}» deja de estar aplicado`); m.preset = null } }
 
-function setFeature(key: FeatureKey, on: boolean): boolean {
-  if (store.features[key] === on) return true
-  store.features[key] = on
-  touchedByHand()
-  console.log(`[parent] ${key} → ${on ? 'prendida' : 'APAGADA'}`)
+function setFeature(mid: string, key: FeatureKey, on: boolean): boolean {
+  const m = mem(mid)
+  if (m.features[key] === on) return true
+  m.features[key] = on
+  touchedByHand(m, mid)
+  console.log(`[parent] ${mid}: ${key} → ${on ? 'prendida' : 'APAGADA'}`)
   return save()
 }
 
 type Input = Record<string, unknown>
-function addItem(b: Input): Check<ParentItem> {
+function addItem(mid: string, b: Input): Check<ParentItem> {
   const title = checkTitle(b.title); if (!title.ok) return title
   const desc = checkDesc(b.desc); if (!desc.ok) return desc
   const price = checkPrice(b.price); if (!price.ok) return price
   const emoji = checkEmoji(b.emoji); if (!emoji.ok) return emoji
   const stock = checkStock(b.stock); if (!stock.ok) return stock
+  const m = mem(mid)
   const it: ParentItem = { id: store.seq++, emoji: emoji.value, title: title.value, ...(desc.value ? { desc: desc.value } : {}), price: price.value, stock: stock.value, archived: false, createdAt: Date.now() }
-  store.items.push(it)
-  console.log(`[parent] premio #${it.id} publicado: ${it.emoji} ${it.title} (${it.price} ⚡${it.stock !== null ? ` · stock ${it.stock}` : ''})`)
+  m.items.push(it)
+  console.log(`[parent] ${mid}: premio #${it.id} publicado: ${it.emoji} ${it.title} (${it.price} ⚡${it.stock !== null ? ` · stock ${it.stock}` : ''})`)
   return save() ? { ok: true, value: { ...it } } : fail('No pude guardar el premio. Probá de nuevo.')
 }
 /** Edición parcial: solo los campos que vienen. `desc: ''` la borra · `stock: null|''` = sin límite ·
- *  `archived: false` reactiva (true archiva). 'missing' = ese premio no existe. */
-function updateItem(id: number, b: Input): Check<true> | 'missing' {
-  const it = store.items.find(i => i.id === id)
+ *  `archived: false` reactiva (true archiva). 'missing' = ese premio no existe o no es de este integrante. */
+function updateItem(mid: string, id: number, b: Input): Check<true> | 'missing' {
+  const m = mem(mid)
+  const it = m.items.find(i => i.id === id)
   if (!it) return 'missing'
   const next: ParentItem = { ...it }
   let touched = false
@@ -568,58 +745,63 @@ function updateItem(id: number, b: Input): Check<true> | 'missing' {
   if ('archived' in b) { if (typeof b.archived !== 'boolean') return fail('archived tiene que ser true o false.'); next.archived = b.archived; touched = true }
   if (!touched) return fail('No vino ningún cambio para guardar.')
   next.updatedAt = Date.now()
-  store.items[store.items.indexOf(it)] = next
-  console.log(`[parent] premio #${next.id} editado: ${next.emoji} ${next.title} · ${next.price} ⚡ · stock ${next.stock ?? '∞'}${next.archived ? ' · ARCHIVADO' : ''}`)
+  m.items[m.items.indexOf(it)] = next
+  console.log(`[parent] ${mid}: premio #${next.id} editado: ${next.emoji} ${next.title} · ${next.price} ⚡ · stock ${next.stock ?? '∞'}${next.archived ? ' · ARCHIVADO' : ''}`)
   return save() ? { ok: true, value: true } : fail('No pude guardar el cambio. Probá de nuevo.')
 }
 
 const sameList = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x, i) => x === b[i])
+const topicsOf = (m: MemberConfig): ParentTopics => ({ white: [...m.topics.white], black: [...m.topics.black] })
 /** Temas: cada lista que viene reemplaza a la anterior. Un tema no puede estar en las dos (400 con el motivo). */
-function setTopics(b: Input): Check<ParentTopics> {
+function setTopics(mid: string, b: Input): Check<ParentTopics> {
   if (!('white' in b) && !('black' in b)) return fail('No vino ninguna lista de temas (white o black).')
-  const next: ParentTopics = { white: store.topics.white, black: store.topics.black }
-  if ('white' in b) { const c = checkTerms(b.white, 'tema', TERMS.topics); if (!c.ok) return c; next.white = c.value }
-  if ('black' in b) { const c = checkTerms(b.black, 'tema', TERMS.topics); if (!c.ok) return c; next.black = c.value }
+  const m = mem(mid), kid = memberName(mid)
+  const next: ParentTopics = { white: m.topics.white, black: m.topics.black }
+  if ('white' in b) { const c = checkTerms(b.white, 'tema', TERMS.topics, kid); if (!c.ok) return c; next.white = c.value }
+  if ('black' in b) { const c = checkTerms(b.black, 'tema', TERMS.topics, kid); if (!c.ok) return c; next.black = c.value }
   const inBlack = new Set(next.black.map(keyOf))
   const both = next.white.find(t => inBlack.has(keyOf(t)))
   if (both) return fail(`«${both}» no puede estar en las dos listas: sacalo de una primero.`)
-  if (sameList(next.white, store.topics.white) && sameList(next.black, store.topics.black)) return { ok: true, value: familyTopics() }
-  store.topics = { white: [...next.white], black: [...next.black] }
-  touchedByHand()
-  console.log(`[parent] temas de la familia → blancos: ${store.topics.white.length} · negros: ${store.topics.black.length}`)
-  return save() ? { ok: true, value: familyTopics() } : fail('No pude guardar los temas. Probá de nuevo.')
+  if (sameList(next.white, m.topics.white) && sameList(next.black, m.topics.black)) return { ok: true, value: topicsOf(m) }
+  m.topics = { white: [...next.white], black: [...next.black] }
+  touchedByHand(m, mid)
+  console.log(`[parent] ${mid}: temas de la familia → blancos: ${m.topics.white.length} · negros: ${m.topics.black.length}`)
+  return save() ? { ok: true, value: topicsOf(m) } : fail('No pude guardar los temas. Probá de nuevo.')
 }
-function setWords(b: Input): Check<string[]> {
-  const c = checkTerms(b.extra, 'palabra', TERMS.words)
+function setWords(mid: string, b: Input): Check<string[]> {
+  const m = mem(mid)
+  const c = checkTerms(b.extra, 'palabra', TERMS.words, memberName(mid))
   if (!c.ok) return c
-  if (sameList(c.value, store.extraWords)) return { ok: true, value: [...store.extraWords] }
-  store.extraWords = c.value
-  touchedByHand()
-  console.log(`[parent] palabras de la familia → ${store.extraWords.length} (se suman a las ${config.blockedWords.length} de fábrica)`)
-  return save() ? { ok: true, value: [...store.extraWords] } : fail('No pude guardar las palabras. Probá de nuevo.')
+  if (sameList(c.value, m.extraWords)) return { ok: true, value: [...m.extraWords] }
+  m.extraWords = c.value
+  touchedByHand(m, mid)
+  console.log(`[parent] ${mid}: palabras de la familia → ${m.extraWords.length} (se suman a las ${config.blockedWords.length} de fábrica)`)
+  return save() ? { ok: true, value: [...m.extraWords] } : fail('No pude guardar las palabras. Probá de nuevo.')
 }
-function setVolume(b: Input): Check<ParentVolume> {
+function setVolume(mid: string, b: Input): Check<ParentVolume> {
   if (!('maxMusic' in b) && !('maxNoise' in b)) return fail('No vino ningún tope (maxMusic o maxNoise).')
-  const next = { ...store.volume }
+  const m = mem(mid)
+  const next = { ...m.volume }
   if ('maxMusic' in b) { const c = checkVolume(b.maxMusic, 'El tope de la música'); if (!c.ok) return c; next.maxMusic = c.value }
   if ('maxNoise' in b) { const c = checkVolume(b.maxNoise, 'El tope de los ruidos'); if (!c.ok) return c; next.maxNoise = c.value }
-  if (next.maxMusic === store.volume.maxMusic && next.maxNoise === store.volume.maxNoise) return { ok: true, value: volumeLimits() }
-  store.volume = next
-  touchedByHand()
-  console.log(`[parent] topes de volumen → música ${next.maxMusic} · ruidos ${next.maxNoise}`)
-  return save() ? { ok: true, value: volumeLimits() } : fail('No pude guardar los topes. Probá de nuevo.')
+  if (next.maxMusic === m.volume.maxMusic && next.maxNoise === m.volume.maxNoise) return { ok: true, value: { ...m.volume } }
+  m.volume = next
+  touchedByHand(m, mid)
+  console.log(`[parent] ${mid}: topes de volumen → música ${next.maxMusic} · ruidos ${next.maxNoise}`)
+  return save() ? { ok: true, value: { ...m.volume } } : fail('No pude guardar los topes. Probá de nuevo.')
 }
 /** Dial de animación del Feed (patrón de los topes: valida, guarda al toque y rige en el próximo GET del feed). Los
  *  presets no dicen nada de la animación, así que moverlo NO deja la configuración como "propia" (no toca el preset). */
-function setFeedMotion(b: Input): Check<FeedMotion> {
+function setFeedMotion(mid: string, b: Input): Check<FeedMotion> {
   if (!isFeedMotion(b.motion)) return fail(`La animación tiene que ser una de: ${FEED_MOTIONS.join(', ')}.`)
-  if (b.motion === store.feedMotion) return { ok: true, value: store.feedMotion }
-  store.feedMotion = b.motion
-  console.log(`[parent] animación del Feed → ${store.feedMotion}`)
-  return save() ? { ok: true, value: store.feedMotion } : fail('No pude guardar la animación. Probá de nuevo.')
+  const m = mem(mid)
+  if (b.motion === m.feedMotion) return { ok: true, value: m.feedMotion }
+  m.feedMotion = b.motion
+  console.log(`[parent] ${mid}: animación del Feed → ${m.feedMotion}`)
+  return save() ? { ok: true, value: m.feedMotion } : fail('No pude guardar la animación. Probá de nuevo.')
 }
 
-/** Zona horaria de la familia: una IANA que este motor conoce (se guarda canónica, p. ej. "america/new_york" →
+/** Zona horaria de la FAMILIA: una IANA que este motor conoce (se guarda canónica, p. ej. "america/new_york" →
  *  "America/New_York") o null = Automática. */
 function setTz(b: Input): Check<string | null> {
   const raw = b.tz
@@ -631,49 +813,60 @@ function setTz(b: Input): Check<string | null> {
   return save() ? { ok: true, value: store.tz } : fail('No pude guardar la zona horaria. Probá de nuevo.')
 }
 
-const wordsView = () => ({ extra: [...store.extraWords], builtin: config.blockedWords.length })
-const configView = () => ({ topics: familyTopics(), words: wordsView(), volume: volumeLimits(), preset: store.preset, feedMotion: store.feedMotion, tz: store.tz })
+const wordsView = (m: MemberConfig) => ({ extra: [...m.extraWords], builtin: config.blockedWords.length })
+/** ParentConfig de un integrante (+ `member` y sus `features`; la `tz` es de la familia). */
+function configView(mid: string) {
+  const m = mem(mid)
+  return { topics: topicsOf(m), words: wordsView(m), volume: { ...m.volume }, preset: m.preset, feedMotion: m.feedMotion, tz: store.tz, member: mid, features: { ...m.features } }
+}
 const presetView = (p: PresetDef) => ({
   id: p.id, name: p.name, desc: p.desc,
   // aditivo (ver cabecera): lo que deja configurado, para que el panel muestre qué prende y qué apaga
   spec: { features: { ...p.features }, topics: { white: [...p.topics.white], black: [...p.topics.black] }, words: [...p.words], volume: { ...p.volume } },
 })
-function applyPreset(id: unknown): { ok: true; preset: PresetDef } | { ok: false; status: number; error: string } {
+function applyPreset(mid: string, id: unknown): { ok: true; preset: PresetDef } | { ok: false; status: number; error: string } {
   const p = PRESETS.find(x => x.id === id)
   if (!p) return { ok: false, status: 400, error: 'Ese preset no existe.' }
-  store.features = { ...p.features }
-  store.topics = { white: [...p.topics.white], black: [...p.topics.black] }
-  store.extraWords = [...p.words]
-  store.volume = { ...p.volume }
-  store.preset = p.id
-  console.log(`[parent] preset «${p.name}» aplicado: ${FEATURE_KEYS.map(k => `${k} ${p.features[k] ? 'on' : 'OFF'}`).join(' · ')} · temas ${p.topics.white.length}+/${p.topics.black.length}- · palabras ${p.words.length} · topes ${p.volume.maxMusic}/${p.volume.maxNoise}`)
+  const m = mem(mid)
+  m.features = { ...p.features }
+  m.topics = { white: [...p.topics.white], black: [...p.topics.black] }
+  m.extraWords = [...p.words]
+  m.volume = { ...p.volume }
+  m.preset = p.id
+  console.log(`[parent] ${mid}: preset «${p.name}» aplicado: ${FEATURE_KEYS.map(k => `${k} ${p.features[k] ? 'on' : 'OFF'}`).join(' · ')} · temas ${p.topics.white.length}+/${p.topics.black.length}- · palabras ${p.words.length} · topes ${p.volume.maxMusic}/${p.volume.maxNoise}`)
   return save() ? { ok: true, preset: p } : { ok: false, status: 500, error: 'No pude guardar el preset. Probá de nuevo.' }
 }
 
-/** Lo que ya protege el backend real: lo de fábrica SIEMPRE + lo que sumó la familia (solo lectura en el panel). */
-function protections() {
+/** Lo que ya protege el backend real para ESTE integrante: lo de fábrica SIEMPRE + lo que sumó la familia para él
+ *  (solo lectura en el panel). */
+function protections(m: MemberConfig) {
   return {
     /** Sitios de la lista blanca activos (los únicos de donde se leen artículos). */ sites: whitelistSites().length,
     /** Videos del catálogo aprobado (buscador, chat, Mi espacio y Aprender salen de acá). */ videos: catalogSize(),
-    /** Palabras bloqueadas: de fábrica + de la familia (búsquedas, títulos, chat, mensajes, ejercicios). */ blockedWords: config.blockedWords.length + store.extraWords.length,
-    /** Temas de la lista negra que vigila el revisor automático: de fábrica + de la familia. */ blockedTopics: blackTopicsAll().length,
+    /** Palabras bloqueadas: de fábrica + de la familia (búsquedas, títulos, chat, mensajes, ejercicios). */ blockedWords: config.blockedWords.length + m.extraWords.length,
+    /** Temas de la lista negra que vigila el revisor automático: de fábrica + de la familia. */ blockedTopics: withFamily(blackTopics(), m.topics.black, 'negra').length,
     /** Modo de dominios para artículos: 'blanca' (solo la lista) · 'negra' · 'hibrido'. */ domainMode: config.articulosModo,
     policyVersion: config.policyVersion,
   }
 }
 
-function activity() {
-  const s = summary()
+/** La actividad que ve el adulto de un integrante. U4: TODO es DEL INTEGRANTE —su progreso (XP/⚡/racha), lo que está
+ *  practicando, lo guardado en SU Mi espacio, sus premios, canjes y protecciones—. Accesos EXPLÍCITOS con `mid`: dentro de
+ *  /api/parent/* el usuario del pedido es el ADULTO (summary() devolvería lo de él). */
+function activity(mid: string) {
+  const s = summaryOf(mid)
+  const m = mem(mid)
   return {
     xpWeek: s.xpWeek, ec: s.ec, streakDays: s.streakDays, continue: s.continue,
-    saved: allSavedForParent(),
-    redemptions: listRedemptions(),
+    saved: allSavedForParent(mid),
+    redemptions: listRedemptions(mid),
     // aditivos de la v1 (ya formalizados en types.ts)
-    items: store.items.map(i => ({
+    items: m.items.map(i => ({
       id: i.id, emoji: i.emoji, title: i.title, ...(i.desc ? { desc: i.desc } : {}), price: i.price,
       stock: i.stock, left: stockLeft(i), redeemed: redeemedCount(i.id), archived: i.archived, createdAt: i.createdAt,
     })),
-    protections: protections(),
+    protections: protections(m),
+    member: mid,
   }
 }
 
@@ -687,7 +880,16 @@ const POSTS = new Set([
   '/api/parent/deliver', '/api/parent/topics', '/api/parent/words', '/api/parent/volume', '/api/parent/alerts/seen', '/api/parent/presets/apply',
   '/api/parent/feed-motion', '/api/parent/music/add', '/api/parent/music/remove', '/api/parent/schedules', '/api/parent/tz',
 ])
-const NO_SESSION = { error: 'La sesión de la Zona de padres venció o no es válida: ingresá el PIN de nuevo.' }
+/** U3: las rutas POR INTEGRANTE (`?member=`; ausente = el primero). tz, music*, unlock y lock son de la familia; alerts y
+ *  alerts/seen llevan member OPCIONAL (sin él: todos). */
+const MEMBER_GETS = new Set(['/api/parent/activity', '/api/parent/config', '/api/parent/presets'])
+const MEMBER_POSTS = new Set([
+  '/api/parent/features', '/api/parent/items', '/api/parent/items/update', '/api/parent/items/archive', '/api/parent/deliver',
+  '/api/parent/topics', '/api/parent/words', '/api/parent/volume', '/api/parent/feed-motion', '/api/parent/presets/apply', '/api/parent/schedules',
+])
+/** El 401 de Familia sin sesión. Texto neutro (28-oct; el mismo que el de /api/mytube/admin/*): el portón de PIN y la
+ *  "Zona de padres" se retiraron el 14-oct, y con un chico activo la respuesta solo dice que es del adulto. */
+const NO_SESSION = { error: 'Solo para un adulto de la familia.' }
 
 export async function parentRoutes(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
   const path = url.pathname.replace(/\/+$/, '')
@@ -695,8 +897,20 @@ export async function parentRoutes(req: IncomingMessage, res: ServerResponse, ur
   if (!GETS.has(path) && !POSTS.has(path)) return send(res, 404, { error: 'not found' })
 
   // --- Públicas: las dos que lee la UI del chico, y el portón (dormido: el cliente ya no lo llama). ---
-  if (method === 'GET' && path === '/api/parent/features') return send(res, 200, features())
-  if (method === 'GET' && path === '/api/parent/limits') return send(res, 200, volumeLimits())
+  // Con un CHICO activo, `member` se ignora: cada chico ve lo suyo y nunca lo de un hermano.
+  if (method === 'GET' && path === '/api/parent/features') {
+    const me = actingUser(req)
+    if (me.kind === 'child') return send(res, 200, memberFeatures(me.id))
+    // Adulto (A4): los del integrante M —sin member, el primero: lo que muestra el panel de hoy—; sin integrantes, todo
+    // prendido (sus propios candados no existen).
+    if (!me.dependents?.length) return send(res, 200, allFeatures(true))
+    const m = memberFor(req, url)
+    return m.ok ? send(res, 200, memberFeatures(m.id)) : send(res, m.status, { error: m.error })
+  }
+  if (method === 'GET' && path === '/api/parent/limits') {
+    const me = actingUser(req)
+    return send(res, 200, me.kind === 'child' ? memberVolume(me.id) : fullVolume()) // el adulto no tiene topes (D1)
+  }
   if (method === 'POST' && path === '/api/parent/unlock') {
     // Un cuerpo ilegible es un PIN mal formado más: mismo camino, misma respuesta (200 {ok:false}).
     let pin: unknown
@@ -707,12 +921,26 @@ export async function parentRoutes(req: IncomingMessage, res: ServerResponse, ur
   // --- Todo lo demás: con la sesión del padre (fail-closed): el ADULTO activo pasa todo; un chico, solo con el token dormido. ---
   if (!hasParentSession(req)) return send(res, 401, NO_SESSION)
 
+  // --- El integrante M (antes de leer el cuerpo): `?member=` o el primero; uno que no es de la familia → 400. ---
+  let member = ''
+  if ((method === 'GET' && MEMBER_GETS.has(path)) || (method === 'POST' && MEMBER_POSTS.has(path))) {
+    const m = memberFor(req, url)
+    if (!m.ok) return send(res, m.status, { error: m.error })
+    member = m.id
+  }
+  let alertsOf: string | undefined // avisos: member OPCIONAL (sin él, TODOS: excepción deliberada a "el primero")
+  if ((path === '/api/parent/alerts' || path === '/api/parent/alerts/seen') && (url.searchParams.get('member') ?? '').trim()) {
+    const m = memberFor(req, url)
+    if (!m.ok) return send(res, m.status, { error: m.error })
+    alertsOf = m.id
+  }
+
   if (method === 'GET') {
     switch (path) {
-      case '/api/parent/activity': return send(res, 200, activity())
-      case '/api/parent/config': return send(res, 200, configView())
-      case '/api/parent/alerts': return send(res, 200, { alerts: alertList() })
-      case '/api/parent/presets': return send(res, 200, { presets: PRESETS.map(presetView), current: store.preset })
+      case '/api/parent/activity': return send(res, 200, activity(member))
+      case '/api/parent/config': return send(res, 200, configView(member))
+      case '/api/parent/alerts': return send(res, 200, { alerts: alertList(alertsOf) })
+      case '/api/parent/presets': return send(res, 200, { presets: PRESETS.map(presetView), current: mem(member).preset })
       case '/api/parent/music': return send(res, 200, { tracks: allTracks() })
     }
     return send(res, 405, { error: 'Método no permitido: usá POST.' })
@@ -733,11 +961,11 @@ export async function parentRoutes(req: IncomingMessage, res: ServerResponse, ur
       const key = b.key
       if (typeof key !== 'string' || !(FEATURE_KEYS as readonly string[]).includes(key)) return send(res, 400, { error: `key tiene que ser una de: ${FEATURE_KEYS.join(', ')}.` })
       if (typeof b.on !== 'boolean') return send(res, 400, { error: 'on tiene que ser true o false.' })
-      if (!setFeature(key as FeatureKey, b.on)) return send(res, 500, { error: 'No pude guardar el cambio. Probá de nuevo.' })
-      return send(res, 200, features())
+      if (!setFeature(member, key as FeatureKey, b.on)) return send(res, 500, { error: 'No pude guardar el cambio. Probá de nuevo.' })
+      return send(res, 200, memberFeatures(member))
     }
     case '/api/parent/items': {
-      const r = addItem(b)
+      const r = addItem(member, b)
       if (!r.ok) return send(res, 400, { error: r.error })
       const it = r.value
       // Forma MarketItem (lo que vería el chico): recién publicado → stock completo y fuera de la lista de deseos.
@@ -748,29 +976,29 @@ export async function parentRoutes(req: IncomingMessage, res: ServerResponse, ur
       const id = parseId(b)
       if (id === null) return send(res, 400, { ok: false, error: 'Falta el premio (id entero positivo).' })
       const patch: Input = path.endsWith('/archive') ? { archived: true } : Object.fromEntries(Object.entries(b).filter(([k]) => k !== 'id'))
-      const r = updateItem(id, patch)
+      const r = updateItem(member, id, patch)
       if (r === 'missing') return send(res, 200, { ok: false, error: 'Ese premio no existe.' })
       return r.ok ? send(res, 200, { ok: true }) : send(res, 400, { ok: false, error: r.error })
     }
     case '/api/parent/deliver': {
       const id = parseId(b)
       if (id === null) return send(res, 400, { ok: false, error: 'Falta el canje (id entero positivo).' })
-      return send(res, 200, { ok: deliverRedemption(id) })
+      return send(res, 200, { ok: deliverRedemption(id, member) })
     }
     case '/api/parent/topics': {
-      const r = setTopics(b)
+      const r = setTopics(member, b)
       return r.ok ? send(res, 200, r.value) : send(res, 400, { error: r.error })
     }
     case '/api/parent/words': {
-      const r = setWords(b)
+      const r = setWords(member, b)
       return r.ok ? send(res, 200, { extra: r.value, builtin: config.blockedWords.length }) : send(res, 400, { error: r.error })
     }
     case '/api/parent/volume': {
-      const r = setVolume(b)
+      const r = setVolume(member, b)
       return r.ok ? send(res, 200, r.value) : send(res, 400, { error: r.error })
     }
     case '/api/parent/feed-motion': {
-      const r = setFeedMotion(b)
+      const r = setFeedMotion(member, b)
       return r.ok ? send(res, 200, { feedMotion: r.value }) : send(res, 400, { error: r.error })
     }
     case '/api/parent/tz': {
@@ -779,25 +1007,25 @@ export async function parentRoutes(req: IncomingMessage, res: ServerResponse, ur
     }
     case '/api/parent/alerts/seen': {
       const id = parseId(b)
-      const a = id === null ? undefined : alerts.find(x => x.id === id)
+      const a = id === null ? undefined : alerts.find(x => x.id === id && (alertsOf === undefined || x.childId === alertsOf))
       if (a) a.seen = true
       return send(res, 200, { ok: !!a })
     }
     case '/api/parent/presets/apply': {
-      const r = applyPreset(b.id)
-      return r.ok ? send(res, 200, { ok: true, config: configView(), features: features() }) : send(res, r.status, { ok: false, error: r.error })
+      const r = applyPreset(member, b.id)
+      return r.ok ? send(res, 200, { ok: true, config: configView(member), features: memberFeatures(member) }) : send(res, r.status, { ok: false, error: r.error })
     }
     // After Day (W6): lo que no es un link de video (o falta) es un rechazo de negocio más, con el texto del POC.
     case '/api/parent/music/add':
       return send(res, 200, await addTrack(typeof b.url === 'string' ? b.url : '', typeof b.title === 'string' ? b.title : undefined))
     case '/api/parent/music/remove':
       return send(res, 200, { ok: typeof b.videoId === 'string' && b.videoId !== '' && removeTrack(b.videoId) })
-    // Horarios por sección (W7): forma inválida (sección desconocida, otra cantidad de días, horas que no son HH:MM) → 400.
+    // Horarios por sección (W7) de M: forma inválida (sección desconocida, otra cantidad de días, horas que no son HH:MM) → 400.
     case '/api/parent/schedules': {
       const c = checkPatch(b.patch)
       if (!c.ok) return send(res, 400, { error: c.error })
-      const s = patchSchedules(c.value)
-      return s ? send(res, 200, { schedules: s, serverNow: Date.now(), tz: store.tz }) : send(res, 500, { error: 'No pude guardar los horarios. Probá de nuevo.' })
+      const s = patchSchedules(member, c.value)
+      return s ? send(res, 200, { schedules: s, serverNow: Date.now(), tz: store.tz, member }) : send(res, 500, { error: 'No pude guardar los horarios. Probá de nuevo.' })
     }
   }
   return send(res, 404, { error: 'not found' })

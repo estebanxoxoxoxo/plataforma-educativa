@@ -15,8 +15,9 @@
 // economía y viven en RAM (market.ts: se resetean con cada carga de página, regla 9), mientras que el look es un ACTIVO
 // que persiste. Por eso, tras recargar, Ian puede seguir con la gorra PUESTA aunque su guardarropas arranque vacío
 // (decisión del coordinador, FLAG para Esteban: ver docs/VISION.md §13). Si algún día las compras persisten, este POST
-// puede pasar a exigir la posesión consultando el guardarropas de market.ts. (El guardarropas del demo es UNO, compartido
-// por los dos usuarios: USUARIOS.md §7.)
+// puede pasar a exigir la posesión consultando el guardarropas de market.ts. (Desde U4 el guardarropas también es de cada
+// usuario: market.ts, docs/USUARIOS.md §10.) El look de cada uno lo lee además la tabla de la semana de la familia
+// (lookOf, abajo; GET /api/leagues/family en leaguesFake.ts).
 // PERSISTE en server/data/identity.json (regla 9: es un ACTIVO del usuario, como space.json y wishlist.json — NO es
 // economía y NO se registra en /api/demo/reset: recargar la página no lo toca). Escritura atómica tmp+rename (space.ts).
 //   v2 (14-oct): { version: 2, users: { [id]: { look, updatedAt } } }. El formato VIEJO ({ look, updatedAt }, de cuando
@@ -31,7 +32,7 @@ import { SERVER_ROOT } from './config'
 import { DEFAULT_USER_ID, actingUser, type UserInfo } from './users'
 import { readJson, send } from './web'
 
-type AvatarLook = { variant: number; color: string; accessory: string | null } | null
+export type AvatarLook = { variant: number; color: string; accessory: string | null } | null
 
 /* ---------- ESPEJO de src/shared/components/Avatar.tsx: cantidad de personajes, paleta, sal, hash y el set de ropa ---------- */
 const VARIANTS = 16
@@ -120,6 +121,9 @@ function identityOf(u: Pick<UserInfo, 'id' | 'nick'>): { nick: string; look: Ava
   const e = stored.users[u.id]
   return { nick: u.nick, look: e ? e.look : defaultLook(u.nick) }
 }
+/** U4 (la tabla de la semana de la familia, leaguesFake.ts): el look ELEGIDO de un usuario (o el de arranque derivado
+ *  de su nick, si nunca eligió; null = iniciales). Solo lectura: lo mismo que GET /api/identity le devuelve a ese usuario. */
+export function lookOf(u: Pick<UserInfo, 'id' | 'nick'>): AvatarLook { return identityOf(u).look }
 
 /* ---------- rutas ---------- */
 export async function identityRoutes(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
