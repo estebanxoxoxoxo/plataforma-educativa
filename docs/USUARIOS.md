@@ -445,6 +445,16 @@ que entró en vivo (ráfagas, cierres de liga), reacciones, "ver menos", el cont
 cruza entre hermanos. Ids de noticias `ff-*` por lugar y lo nuevo SIEMPRE al final (`NEWS` +2, `NPC_NEWS` +4, `SHARERS` +2):
 las ráfagas y los ids de Ian salen idénticos. Al adulto la tarjeta de su liga le dice "otros 11 grandes de tu nivel", y su
 medalla de un cierre no dice "la ven tus amigos" (no tiene).
+**Actualización «Feed diverso» (28-oct, pedido del dueño: «5 por vez y de diversos tipos… que haya cards de muchos tipos»).**
+La ráfaga cambió A PROPÓSITO (ya no sale idéntica a la de U4): EXACTAMENTE 5 por toque, una de cada tipo —racha, insignia,
+unidad completada, ruta compartida del catálogo de Learn y la carrera de TU liga con XP real—, nunca dos del mismo tipo,
+protagonistas distintos dentro de la ráfaga (y otros que los de la anterior cuando se puede), sin repetir una noticia hasta
+agotar su tipo (Ian: 13 por tipo social) y al reciclar nunca lo de la ráfaga anterior. Sigue siendo POR USUARIO y de quien
+ves (Luna: sus 4 amigas + FedeAjedrez). El pool (`NPC_NEWS`, re-tipado por tipo; sin los "va 2º en su liga", que no son
+ninguno de los 5) y `SHARERS` (cualquier NPC visible) viven en `server/src/feedMix.ts`, puro y con tests. Con Amigos apagado
+del chico, `POST /api/feed/simulate-npcs` → 403 (antes 200 `{added: 0}`); con Ligas apagado salen 4; el adulto (sin amigos
+chicos) recibe 1, la carrera de su liga. El seed suma 14 noticias AL FINAL de `NEWS` (los `ff-*` de Ian no se corren) y la
+unidad completada pasa a tener ícono propio (`unit`, aditivo en `types.ts`: la card dice "Unidad", no "Insignia").
 
 **Tabla de la semana de la familia (D2; audios 1008-1011).** `GET /api/leagues/family` → `FamilyLeague` = todos los
 integrantes de la familia de quien mira (`familyOf`: grandes y chicos) por su XP de la semana —los ⚡ que ganó aprendiendo:
@@ -517,3 +527,213 @@ cambio a propósito; los intereses reales por usuario llegan con el algoritmo de
   chico). El aviso "Resultados solo de fuentes verificadas para chicos" de Buscar también lo ve el adulto: es cierto (lo
   protege la lista de fábrica). La app no tiene diseño de teléfono (la barra lateral fija aprieta todo a 375 px): no es
   de esta tanda.
+
+## 11. Ciclo del día (F1, 28-oct)
+
+> Pedido del dueño (28-oct): una pestaña nueva de Familia, "Ciclo del día", donde el padre indica RANGOS HORARIOS y QUÉ
+> PUNTOS DE MENÚ están disponibles en cada rango; y, para la demo, un selector para elegir en qué rango está el usuario.
+> REEMPLAZA a los "Horarios por sección" (porte W7: por sección, una franja por día de la semana). Tanda en partes: **F1
+> server + contratos** (hecha, 28-oct) → **F2 cliente** (hecha, 28-oct: la pestaña, el selector de demo, las reglas
+> compartidas y la reestructura de Familia —MyTube y After Day con la grilla del chico—; detalle al final de esta sección).
+
+**Modelo.** Por integrante, hasta 8 rangos `CycleRange {id, name, from, to, sections}` (`src/api/types.ts`): `from`/`to`
+"HH:MM" canónicas, el rango cubre [from, to), `to < from` cruza la medianoche, `from == to` = las 24 h; SIN día de la
+semana (los rangos rigen todos los días); `sections` ⊆ las mismas 8 de antes (`chat`, `buscar`, `mytube`, `aprender`,
+`tienda`, `calendario`, `espacio`, `afterday`), sin repetir y en el orden del menú (puede ser vacía). El Feed nunca se gatea.
+
+**Regla de disponibilidad** (solo con un CHICO activo — al adulto no lo gatea nada, como antes; `src/shared/lib/cycleRules.ts`
+—mudado de `server/src/` en F2: el mismo código en server y cliente—, puro y con tests en `server/src/__tests__/cycleRules.test.ts`):
+- una sección que NO figura en ningún rango → siempre disponible;
+- una que figura en ≥ 1 rango → disponible SOLO cuando el reloj del server, leído en la ZONA HORARIA DE LA FAMILIA
+  (`parent.json` `tz`; null = la del server), cae dentro de alguno de SUS rangos (los solapados suman);
+- datos inválidos → disponible (fail-open, la regla de la casa): un rango con horas que no son HH:MM abre sus secciones
+  las 24 h; cualquier excepción al evaluar → disponible;
+- `opensAt` (el "se abre de nuevo a las…" del 403) = el próximo minuto de HOY en que abre, "HH:MM", o null (hoy ya no abre;
+  no se promete mañana, mismo espíritu que W7).
+
+**Override de DEMO** ("estás en este rango"). `POST /api/demo/cycle {rangeId}`: el integrante se evalúa COMO SI el reloj
+estuviera dentro de ese rango — sus secciones disponibles, las que figuran en OTROS rangos y no en ése cerradas, las que no
+figuran en ninguno disponibles. Los rangos se toman como momentos exclusivos: un solapamiento con otro rango NO abre nada.
+Con override no hay `opensAt` (no sigue al reloj). `null` = reloj real. RAM y POR USUARIO (`perUser`): lo limpia `POST
+/api/demo/reset` de ESE usuario (`{scope:'all'}`: todos) y también guardar un ciclo que ya no trae ese rango; un id que ya no
+existe = reloj real. Chico activo → SU override (`member` se ignora: nunca toca a un hermano). **Aditivo de F1** (decisión del
+implementador, para que F2 pueda poner el selector también en Familia): con un ADULTO activo, `?member=<id>` elige el del
+integrante (misma regla `memberFor`; ajeno → 400; sin integrantes → 400). El override es del integrante: si lo elige el
+adulto, lo limpia el F5 del CHICO (no el del adulto).
+
+**Persistencia.** `server/data/schedules.json` **v3** `{version: 3, members: {[id]: {ranges: CycleRange[]}}}` (config del
+padre: fuera del reset; escritura atómica; sin entrada = sin rangos = todo disponible). Migración (`familyMigrate.ts:
+upgradeCycleRaw`, pura, con tests): un v1/v2 **NO se convierte** — una semana por sección no es "en este rango del día, estas
+secciones", y adivinar podría encerrar al chico —; el original queda UNA vez en `schedules.json.pre-v3` y cada integrante
+arranca con `ranges: []` (en este repo: el v2 era `{ian: {}, luna: {}}`, sin horarios cargados; no se perdió nada). Al leer,
+lo raro de un archivo editado a mano se sanea hacia ABIERTO (`sanitizeStoredRanges`: horas inválidas → 24 h, secciones
+desconocidas afuera, ids/nombres nuevos) con aviso en el log; ilegible → `.roto-<ms>` y todo disponible. ⚠ Un checkout
+pre-F1 con el server corriendo leería el v3 como un v1 y lo reescribiría como v2 (los rangos quedarían adentro de
+`members.ian`, recuperables a mano): no hacerlo.
+
+**Contratos (congelados; `src/api/types.ts`, aditivos).**
+
+```
+CycleRange       {id, name, from, to, sections: SectionKey[]}
+CycleConfig      {ranges: CycleRange[]}
+CycleResponse    {cycle, member, serverNow, tz, demoRange}
+CycleSaveRequest {ranges: (CycleRange con id opcional)[]}
+DemoCycleRequest {rangeId: string | null}
+SchedulesResponse {serverNow, tz, member, cycle, demoRange}   (sin `schedules`: la compat de F1 se retiró, ver abajo)
+
+GET  /api/parent/cycle?member           (sesión del adulto)  → CycleResponse
+POST /api/parent/cycle?member {ranges}  (sesión)  → CycleResponse · la lista COMPLETA reemplaza a la anterior · 400 con motivo:
+       no es lista · más de 8 · id repetido o inválido ([A-Za-z0-9_-]{1,40}; los que faltan los pone el server: r1, r2…) ·
+       nombre fuera de 1-30 o sin letras/números · horas que no son HH:MM · sección desconocida o secciones que no son lista
+       (los textos nombran al rango: «Tarde»: …; y al integrante: "El ciclo de Ian admite hasta 8 rangos")
+GET  /api/schedules[?member]            (público) → SchedulesResponse {serverNow, tz, member, cycle, demoRange}
+       chico → lo suyo (member ignorado) · adulto → el de ?member (ausente = el primero; ajeno → 400) · adulto sin
+       integrantes → {serverNow, tz, cycle: {ranges: []}, demoRange: null} sin member
+POST /api/demo/cycle[?member] {rangeId} → SchedulesResponse (la misma que daría GET /api/schedules) · rangeId ajeno, ausente
+       o que no es string/null → 400 · GET → 405 · nunca se gatea
+POST /api/parent/schedules              → 410 {error: 'Los horarios por sección fueron reemplazados por el Ciclo del día.'}
+       (con cualquier método y sin mirar integrante; un chico recibe antes el 401 de la sesión)
+403 de una sección no disponible        → {error: 'horario', section, opensAt}   (la MISMA forma de W7)
+```
+
+**Enforcement.** `closedSectionFor(path, childId)` evalúa el ciclo (+ el override) con el MISMO `sectionForApi` de W7 y las
+mismas exclusiones (Feed, lector, reproductor, `/api/parent/*`, demo —también `/api/demo/cycle`, para poder salir de un
+rango—, amigos, progreso, ligas, Mentores, Mis listas/Seguir, el selector de carpetas…). Capas como antes: con Chat/Tienda
+APAGADOS gana el apagado (su propio 403).
+
+**Compat con el cliente de antes de F2 — RETIRADA (28-oct).** F1 había dejado en `GET /api/schedules` un campo `schedules`
+con el ciclo "congelado" en la forma vieja de W7 (`legacySnapshot`), para que el cliente de antes de F2 siguiera andando sin
+tocar `src/`. Desde F2 nadie lo lee y se retiró entero: el campo de la respuesta (`schedule.ts`), `legacySnapshot`/`LegacyDay`/
+`LegacySchedule` de `src/shared/lib/cycleRules.ts`, el bloque «compat» de `server/src/__tests__/cycleRules.test.ts`, lo que
+quedaba de `src/sections/parent/lib/scheduleRules.ts` y `schedules` + `DaySchedule`/`FeatureSchedule` de `src/api/types.ts`.
+Hoy la respuesta es SOLO `{serverNow, tz, member, cycle, demoRange}`. `POST /api/parent/schedules` sigue en 410.
+
+**Verificado (28-oct, dev del usuario).** tsc ambos + build + `npm test` (27 archivos, 283 tests: +29 de reglas del ciclo, +5
+de migración). Humo por API, 60/60: CRUD por integrante (ian y luna independientes; ajeno 400; chico 401), 400s de
+validación, 403 real fuera de rango con `opensAt` (adulto y Luna pasan; Feed nunca), la compat de entonces (ya retirada)
+leída por el proxy de Vite y evaluada con las reglas del cliente (abierta/cerrada y "se abre a las" = server), override (secciones correctas, `opensAt`
+null, null → reloj real, reset de Ian no toca a Luna, guardar sin el rango lo apaga, el adulto por `?member`), tz de la
+familia corrida a Pacific/Pago_Pago (la misma sección pasa de 403 a disponible), 410. En el navegador (5173, como Ian): el
+menú sin "Aprender" fuera de rango, `/aprender` con "Esta parte está descansando ahora… Se abre de nuevo a las 15:09." y, al
+elegir el override, Aprender vuelve y MyTube sale sin recargar. Estado restaurado (ciclos vacíos, overrides null, tz null).
+
+**Para F2 (cliente) — CUMPLIDO** (en F2 y en la retirada de la compat; queda como registro de lo que se pidió).
+- Leer `cycle` + `demoRange` + `serverNow` + `tz` de `GET /api/schedules` (el store del chico) y espejar las reglas de
+  `server/src/cycleRules.ts` (`sectionAvailableAt`, `opensAtToday`, `rangeCovers`, `parseHHMM`; el archivo solo importa
+  `zonedClock.ts`: se puede mudar a `src/shared/lib/` y usar el MISMO código en los dos lados, como `zonedClock`). Lo que hoy
+  hace `scheduleRules.ts` (`isOpenAt`, `nextOpenLabelAt`, `SCHEDULABLE`, `sectionForPath`) pasa a evaluar el ciclo; el delta
+  con `serverNow`, el tick de 30 s, el foco, el BroadcastChannel y el FAIL-OPEN se conservan.
+- La pestaña de Familia: `GET /api/parent/cycle?member` y `POST /api/parent/cycle?member {ranges}` (manda la lista entera;
+  los rangos nuevos pueden ir sin id; mostrar el `error` del 400 tal cual: `rejectedReason`). La tz de la familia sigue
+  siendo `POST /api/parent/tz`.
+- El selector de demo: `POST /api/demo/cycle {rangeId | null}` con el chico activo (o desde Familia con `?member=`); la
+  respuesta es una `SchedulesResponse` lista para adoptar. Es chip de demo (regla 9 de AGENTS: solo dispara el endpoint y
+  refetchea). Cada F5 del chico lo limpia (reset por usuario).
+- Retirar `SchedulesPanel` (Horarios por sección), `api.parentSchedules` y `normalizeSchedule`/`defaultSchedule` (hecho en
+  F2); y, cuando nadie leyera `SchedulesResponse.schedules`, sacarlo del server con el bloque "compat" de `cycleRules.test.ts`
+  (hecho: ver «Compat… — RETIRADA» más arriba).
+- Los docs desfasados que F1 dejó anotados (el párrafo "Horarios por sección" del README, la línea de AGENTS sobre los
+  horarios y la tabla visión↔código de VISION) se pusieron al día en F2.
+
+**Bordes (F1).** Sin día de la semana (un fin de semana distinto no se puede expresar: pedido explícito del diseño v1).
+`opensAt` no mira mañana. El override toma los rangos como exclusivos aunque se solapen. El cliente puede quedar hasta 30 s
+atrasado DESPUÉS de un borde (su tick; el server no: enforcea al minuto). Un rango sin secciones es válido (sirve
+de "momento" en el selector de la demo: con él elegido, todo lo que figura en otros rangos se cierra).
+
+**F2 — cliente (HECHA, 28-oct; sin commitear).** Pedido del dueño (28-oct): After Day en una pestaña propia; la pestaña YouTube
+se llama MyTube; "el listado está súper mal: tiene que ser el MISMO tipo de grilla que ve el chico, con una forma de agregar";
+una pestaña nueva "Ciclo del día"; y, para la demo, un selector en la barra de menú para elegir en qué rango está el usuario.
+- **Solapas de Familia** (`components/ParentHeader.tsx`), en este orden: Funcionalidades · Temas y palabras · **MyTube**
+  (`/familia/mytube`; `/familia/youtube[/*]` redirige conservando `?m=`) · **After Day** (`/familia/afterday`) · Límites (SOLO
+  topes de volumen + la zona horaria de la familia, ahora en su propio panel) · **Ciclo del día** (`/familia/ciclo`, POR
+  INTEGRANTE) · Avisos · Premios · Mentorías · Actividad · Protecciones. Todas conservan `?m=` (también la vista de un canal y
+  su «‹ MyTube»). Con 11 solapas la fila no entra en la columna de 1040: van SIEMPRE como fichas que bajan de línea (el modo que
+  ya existía para pantallas angostas; umbral del container query subido a 1240 px). De TODA la familia (`lib/member.ts`:
+  `FAMILY_WIDE` + `familyNoteFor`, que también cubre las subrutas): MyTube, After Day y Mentorías.
+- **MyTube del padre** (`containers/FamilyMyTubePanel.tsx`): arriba el AGREGAR por URL (el lote con progreso de siempre); abajo
+  "Canales (N)" con «Buscar un canal» (título o @handle, sin tildes) y la MISMA tarjeta del chico (`sections/mytube/cards/
+  ChannelCard.tsx`, que suma el prop opcional `counting` → "… videos"; el MyTube del chico no lo pasa) en dos grupos: «Sumados
+  por tu familia» (canales con alguna entrada, del más reciente; con un ⋮ que abre `components/MtEntriesSheet.tsx`: las entradas
+  de ese canal con Reingestar y Eliminar → `ConfirmSheet` con el texto de la cascada) y «Del catálogo de Innerith» (en el orden
+  del server, como el chico). Las entradas sin canal conocido van como tarjeta suelta en el primer grupo. "N videos": el admin
+  no trae conteos (contrato congelado) y `GET /api/mytube/channel` dispara el enriquecimiento con YouTube + IA, así que sale del
+  `total` de `GET /api/mytube/channel/videos?limit=1` (= el "Videos (N)" que ve el chico adentro del canal; puede diferir en
+  poco del número de su tarjeta, que no descuenta palabras bloqueadas: quirk del POC) y se pide A DEMANDA, cuando la tarjeta
+  entra en pantalla, de a 3 (`lib/mtCounts.ts`; ~200 ms de server por canal: los 151 de golpe serían ~5 s); se olvidan tras
+  agregar/eliminar/reingestar/completar/quitar duplicados. Tocar una tarjeta → `/familia/mytube/canal/:id`
+  (`containers/FamilyChannelPanel.tsx`): la cabecera del chico (`ChannelHeader`, ahora con `onFollow` opcional: sin él no hay
+  «Seguir») + "Cómo lo ve tu familia" (la descripción editable; sigue a la del server mientras no se toque) + las entradas de
+  ese canal con su mantenimiento + "Videos (N)" con la `VideoList` del chico (40 + «Ver más»; tocar uno abre el reproductor y
+  «‹ Canal» vuelve). Abrir un canal por primera vez dispara su enriquecimiento on-demand en el server, igual que cuando lo abre
+  el chico. Completar canales, Quitar duplicados y el tope por entrada: plegados al pie en «Mantenimiento». Retirados
+  `YouTubePanel.tsx`, `YtChannelRow.tsx` (y su tabla/lista de 151 textareas) y sus estilos.
+- **After Day del padre** (`containers/FamilyAfterDayPanel.tsx`): el agregar (link + nombre opcional) y la MISMA grilla del
+  chico (`.ad-grid` + `sections/afterday/cards/TrackCard.tsx`, que suma el prop opcional `corner` → «Quitar» arriba a la derecha;
+  tocar = escuchar de fondo y «Ver» = el video contenido, también para el adulto). Retirado `AfterDayMusicPanel.tsx`.
+- **Ciclo del día** (`containers/CyclePanel.tsx` + `components/CycleRangeCard.tsx`; lo puro en `lib/cycleDraft.ts` con tests):
+  `GET /api/parent/cycle?member` → borrador; por rango: nombre, desde/hasta (`<input type="time">`), "Rige de 14:00 a 18:00,
+  todos los días" (o "cruza la medianoche" / "todo el día" / "Revisá las horas"), las 8 secciones como fichas (`aria-pressed`) y
+  «Borrar»; «+ Agregar rango» (máx. 8; arranca donde termina el último, 3 h); «Guardar ciclo» (solo con cambios) manda la lista
+  ENTERA (`api.parentCycleSave`, los nuevos sin id) y un 400 se muestra con el `error` del server tal cual (`rejectedReason`;
+  el cliente NO pre-valida: una hora vacía viaja vacía); «Descartar cambios». Arriba, la regla ("Una sección que no está en
+  ningún rango queda siempre disponible. El Feed nunca se cierra.") y la hora de la familia con el link a Límites; abajo, qué
+  queda siempre disponible para ese integrante. Badges "Ahora" (el reloj de la familia cae en el rango) y "En la demo, {kid}
+  está acá" (el override vigente). Lo guardado se adopta (`adoptCycle`): rige ya donde ese chico es el usuario activo (esta
+  pestaña y las otras) y el selector de demo toma los rangos nuevos.
+- **Store del chico** (`lib/cycle.ts`, reemplaza a `lib/schedules.ts`): `GET /api/schedules` → `cycle` + `demoRange` +
+  `serverNow` + `tz` (el campo `schedules` YA NO se lee), delta con el server, tick de 30 s, foco, BroadcastChannel
+  `innerith:cycle` (mensajes `cycle` por integrante y `tz`), FAIL-OPEN; evalúa con `sectionAvailableAt`/`opensAtToday` de las
+  reglas COMPARTIDAS (`src/shared/lib/cycleRules.ts`, importado también por `server/src/schedule.ts` y su test; sin duplicar).
+  API: `useCycle`, `serverDate`, `refreshCycle`, `isSectionOpen`, `cycleAllows` (Sidebar), `useCycleGate` (ScheduleGate, misma
+  UX "descansando… se abre a las HH:MM"; con override, sin "se abre"), `adoptCycle`, `adoptFamilyTz`, `onMemberCycle` (oyentes
+  por integrante) y `useMemberCycle` (el ciclo de un integrante visto por el adulto). El mapa ruta → sección y la ruta de cada
+  sección: `lib/cycleSections.ts` (tests). TopBar, Feed, Calendario, Mentores y ProfileCard pasaron a `useCycle` (solo usan
+  tz/delta y, ProfileCard, `isSectionOpen('tienda')`).
+- **Retirado**: `SchedulesPanel.tsx`, `lib/schedules.ts`, `api.parentSchedules`, `normalizeSchedule`/`defaultSchedule`/
+  `DEFAULT_DAY`/`SCHEDULABLE`, su test y los estilos `pz-sch-*`. Después, con la retirada de la compat, también
+  `lib/scheduleRules.ts` entero (`isOpenAt`/`nextOpenLabelAt`, que solo los usaba el bloque «compat» del test, retirado junto).
+- **Selector de demo** «Ciclo (demo)» (`containers/CycleDemoControl.tsx` + `components/CycleDemoPicker.tsx`, CSS `cyd-` en
+  shell.css): abajo del menú, arriba del MiniPlayer, un `<select>` con borde punteado (lenguaje de los chips de demo): "Reloj
+  real" + "Tarde · 14:00–18:00"… Elegir → `api.demoCycle(rangeId[, member])` y `adoptCycle` de la respuesta (menú y ruta cambian
+  al instante, sin recargar). **Decisión F2 (con el adulto)**: el selector aparece SOLO dentro de Familia y opera sobre el
+  integrante del `?m=` ("Ciclo de Luna (demo)", con `?member=`; misma regla de Familia: ausente o ajeno = el primero, así nunca
+  sale un pedido inválido); fuera de Familia el adulto no lo ve (al adulto no lo gatea nada y no hay integrante a la vista: un
+  "Reloj real" suelto no diría nada). Flujo de demo: el adulto arma el ciclo, elige "Tarde" para Luna y al cambiar a Luna con el
+  switch (que no resetea) la encuentra en ese rango; su F5 vuelve al reloj real. Con un chico, aparece solo si tiene rangos.
+- **API** (`src/api/index.ts`, aditivos): `parentCycle(member?)`, `parentCycleSave(ranges, member?)`, `demoCycle(rangeId,
+  member?)`. En `types.ts`, la retirada de la compat sacó `schedules` + `DaySchedule`/`FeatureSchedule`, y el comentario del
+  Ciclo ya apunta a las reglas compartidas (`src/shared/lib/cycleRules.ts`).
+
+**Compat de F1 en el server — RETIRADA.** Lo que esta sección le pedía al server (sacar `SchedulesResponse.schedules` de
+`schedule.ts` con `legacySnapshot`/`LegacyDay`/`LegacySchedule`, el bloque «compat» del test y su import de `scheduleRules`,
+`scheduleRules.ts` del cliente y, en `types.ts`, `schedules` + `DaySchedule`/`FeatureSchedule`) está hecho: ver «Compat con el
+cliente de antes de F2 — RETIRADA» más arriba. `POST /api/parent/schedules` → 410 se dejó (nadie lo llama; no molesta).
+
+**Verificado (F2, 28-oct, dev del usuario 5173/8787).** `npx tsc -b --force` + `tsc -p tsconfig.server.json` + `npm run build`
++ `npm test` (30 archivos, 299 tests: +4 archivos —`cycle`, `cycleDraft`, `cycleSections`, `mytubeAdmin`—, −`schedules.test.ts`;
+tras retirar la compat, 30 archivos y 292 tests; con la tanda «Feed diverso» del 28-oct —`feedMix.test.ts` y `feedFake.test.ts`—,
+32 archivos y 316 tests).
+E2E con Chrome headless (49 chequeos): solapas en el orden nuevo y redirección de YouTube; grilla de canales del padre con la
+MISMA tarjeta del chico (estructura idéntica), agregar un video de prueba → aparece en «Sumados» → ⋮ → Eliminar con confirmación
+→ 0 entradas; vista de canal (videos + descripción, sin «Seguir»); After Day: agregar → la MISMA tarjeta y el mismo orden en
+Familia y en el `/afterday` del chico → Quitar; Ciclo: "Tarde" con MyTube y After Day para Luna → como Luna el menú las esconde,
+`/mytube` descansa con "Se abre de nuevo a las HH:MM." y el 403 del server coincide (sección y `opensAt`), Calendario sigue en 200;
+400 con el motivo exacto («Tarde»: las horas tienen que ser HH:MM…) al mandar una hora vacía; borrar → todo vuelve; selector
+como Ian (el menú cambia sin recargar —marca en `window` intacta—, `/aprender` descansa sin "se abre", el server tiene el
+override; "Reloj real" lo vuelve); el adulto elige la demo de Ian desde Familia (badge "En la demo" sin recargar) y fuera de
+Familia no ve el selector; `?m=` persiste en las 11 solapas; la barra entra a 1280×720 con el selector; con TODO cerrado salvo
+el Feed, Feed/Ligas/reproductor no piden APIs gateadas (0 respuestas 403). Consola limpia (el único error es el 400 provocado a
+propósito; en el reproductor, Chrome headless avisa "Failed to create WebGPU Context Provider", ajeno). Estado restaurado: ciclos
+vacíos, overrides null, After Day y entradas de MyTube vacíos; `schedules.json`, `music.json`, `parent.json`, `space.json` y
+`mytube.json` IDÉNTICOS byte a byte al respaldo previo (agregar un video refresca `entrySeq` y los sellos `metaAt` del canal en
+`mytube.json`: se restauró del respaldo y se reinició el API para que lo releyera).
+
+**Bordes (F2).** El "N videos" de una tarjeta del catálogo del padre es el de adentro del canal (aprobados visibles), no el de
+la tarjeta del chico (que no descuenta palabras bloqueadas): pueden diferir en pocos. ~~Un canal del catálogo sin avatar en caché
+se ve con el círculo vacío hasta que alguien lo abre~~ — SALDADO (remate del QA F3, 28-oct): `GET /api/mytube/admin/channels`
+completa la metadata que falte por lote (`ensureMeta` → `channels.list`, 1 unidad cada 50 canales, SIN modelo: la descripción
+curada sigue on-demand al abrir el canal), cacheada en `mytube.json`; espera como mucho 4 s y si YouTube falla responde igual
+(sin avatar, como antes; el lote fallido se reintenta a los 30 min, sin escribir nada). Poblado una vez en el caché real: 133
+canales, 3 unidades, 151/151 con avatar. Los cambios sin
+guardar del Ciclo se pierden al cambiar de integrante o de solapa (el panel remonta; dice "Hay cambios sin guardar."). El
+multi-pestaña con usuarios distintos sigue sin soportarse (el BroadcastChannel solo evita cruzar ciclos de integrantes).

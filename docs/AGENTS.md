@@ -15,8 +15,8 @@ USUARIO; de la familia quedan el catálogo aprobado, After Day, la config del pa
 la cabecera `X-Innerith-User` (la pone `src/api/index.ts` desde `localStorage['innerith.user']`;
 server: `actingUser()` de `server/src/users.ts`); se cambia con el chip de la barra superior
 (switch de demo: recarga la app SIN resetear la demo; el F5 resetea solo al activo — U4-C). **Los candados son del chico**: apagados de funcionalidades y
-horarios por sección NO rigen para un adulto (server y cliente; `useFeatures()` ya devuelve todo
-prendido para él). La sesión de Familia es la del adulto activo (implícita; el PIN del server
+el CICLO DEL DÍA (rangos horarios con las secciones de cada uno; reemplazó a los horarios por sección: USUARIOS.md §11) NO rigen
+para un adulto (server y cliente; `useFeatures()` ya devuelve todo prendido para él). La sesión de Familia es la del adulto activo (implícita; el PIN del server
 quedó dormido y NUNCA se imprime).
 
 ## Reglas de arquitectura (NO negociables)
@@ -53,7 +53,9 @@ quedó dormido y NUNCA se imprime).
    como sección activa) · After Day (`/afterday`) · Tienda (`/tienda`) · Calendario (`/calendario`; muestra las clases del USUARIO ACTIVO) · Mi espacio (`/espacio/carpetas` directo)
    · **Familia (`/familia/*`) AL FONDO, SOLO PARA EL ADULTO** (línea 14-oct: la ex Zona de padres,
    sin portón de PIN; con un chico activo la ruta navega al Feed y el link discreto del Sidebar ya
-   no existe; `/padres/*` redirige conservando subruta; la tab "Profesores" es ahora "Mentorías").
+   no existe; `/padres/*` redirige conservando subruta; la tab "Profesores" es ahora "Mentorías"; F2, 28-oct: la solapa "YouTube" es
+   "MyTube" —`/familia/youtube` redirige— y After Day y Ciclo del día tienen solapa propia; orden: Funcionalidades · Temas y
+   palabras · MyTube · After Day · Límites · Ciclo del día · Avisos · Premios · Mentorías · Actividad · Protecciones).
    LIGAS TAMPOCO ES PUNTO DE MENÚ (12-oct): la posición vive SIEMPRE en la BARRA SUPERIOR estilo
    GT7 (src/shared/components/TopBar.tsx: liga → link a /ligas · ⚡ Energy Coins · fecha/hora
    compacta · CHIP DEL USUARIO ACTIVO con el switch de demo (14-oct) · campana de notificaciones con las solicitudes y los no-leídos del dock; respeta los
@@ -71,11 +73,16 @@ quedó dormido y NUNCA se imprime).
    NO resetea: la demo de la familia sigue; `{scope:'all'}` resetea a todos — para QA). Si tu módulo guarda estado
    económico o de demo: hacelo con `perUser(seed)`, exponé `reset(userId?)` y registralo en ese endpoint. SÍ persisten, POR
    USUARIO: `space.json` v2, `wishlist.json` v2, `learn-results.json` v2, `identity.json` v2; y la config de la familia
-   (`parent.json` v3 por integrante, `schedules.json` v2, `teachers.json` v2, `music.json`, `mytube.json`). Los AVISOS al
+   (`parent.json` v3 por integrante, `schedules.json` v3 —el Ciclo del día—, `teachers.json` v2, `music.json`, `mytube.json`). Los AVISOS al
    padre viven en RAM y no entran en el reset.
    Detalle de lo persistido (tandas anteriores): `parent.json` v3 —members[id]: on-off de funcionalidades, premios de la
    Tienda, temas blancos/negros, palabras de la familia, topes de volumen, preset aplicado y dial del Feed; tz y PIN de la
-   familia; migra solo del v2 con respaldo .pre-v3—; `schedules.json` v2: horarios por integrante, respaldo .pre-v2;
+   familia; migra solo del v2 con respaldo .pre-v3—; `schedules.json` **v3** (tanda F1, 28-oct; `docs/USUARIOS.md` §11): el CICLO DEL DÍA
+   de cada integrante `{version: 3, members: {[id]: {ranges}}}` —rangos horarios `{id, name, from, to, sections}`; reemplazó a los
+   horarios por sección (v2), que NO se convierten: el v2 queda UNA vez en `.pre-v3` y cada integrante arranca sin rangos; las
+   reglas puras en `src/shared/lib/cycleRules.ts` —el MISMO código en server y cliente desde F2, como `zonedClock.ts`—; el editor es
+   Familia → Ciclo del día y el selector «Ciclo (demo)» vive abajo del menú—; su override de demo ("estás en este rango", `POST /api/demo/cycle`) es RAM por
+   usuario y SÍ entra en `/api/demo/reset`;
    `teachers.json` v2: CONTRATOS de mentorías —mentor + beneficiario + plan + días, más `seq` (contador de ids que solo
    crece: un id cancelado no se reusa; tanda B1); migra solo del v1— y las clases NO se guardan: se derivan al leer por
    slot, ancladas en la ZONA HORARIA DE LA FAMILIA (tz null = la del server) y la serie corre sola. U4: `space.json`,
