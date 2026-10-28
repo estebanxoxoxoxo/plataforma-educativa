@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MEMBER_FIELDS, upgradeParentRaw, upgradeSchedulesRaw } from '../familyMigrate';
+import { MEMBER_FIELDS, upgradeCycleRaw, upgradeParentRaw, upgradeSchedulesRaw } from '../familyMigrate';
 
 /* U3 (familia con varios integrantes): las migraciones PURAS de parent.json (v1/v2 → v3) y schedules.json (v1 → v2). El
    saneo campo por campo y los integrantes nuevos (Luna con los defaults de fábrica) los hace parent.ts al cargar: acá solo
@@ -95,5 +95,40 @@ describe('upgradeSchedulesRaw', () => {
 
   it('lo que no es un objeto tira', () => {
     for (const bad of [null, 7, 'x', [], false]) expect(() => upgradeSchedulesRaw(bad, 'ian')).toThrow();
+  });
+});
+
+/* Ciclo del día (F1, 28-oct): schedules.json v1/v2 → v3. Lo de antes NO se convierte (semana por sección ≠ rangos del
+   día): cada integrante arranca sin rangos y schedule.ts deja el original UNA vez en .pre-v3. */
+describe('upgradeCycleRaw', () => {
+  const WEEK = Array.from({ length: 7 }, (_, d) => ({ open: d !== 0, from: '16:00', to: '19:00' }));
+  const DEPS = ['ian', 'luna'];
+
+  it('v2 (el archivo real de hoy) → v3 con cada integrante sin rangos, from 2', () => {
+    const v2 = { version: 2, members: { ian: {}, luna: { mytube: { restrictionActive: true, week: WEEK } } } };
+    expect(upgradeCycleRaw(v2, DEPS)).toEqual({ raw: { version: 3, members: { ian: { ranges: [] }, luna: { ranges: [] } } }, from: 2 });
+  });
+
+  it('v1 (con o sin secciones) → v3 sin rangos, from 1: nada se convierte', () => {
+    expect(upgradeCycleRaw({}, DEPS).from).toBe(1);
+    const up = upgradeCycleRaw({ chat: { restrictionActive: true, week: WEEK } }, DEPS);
+    expect(up).toEqual({ raw: { version: 3, members: { ian: { ranges: [] }, luna: { ranges: [] } } }, from: 1 });
+  });
+
+  it('v3 pasa tal cual (el saneo de los rangos lo hace schedule.ts), from 3', () => {
+    const v3 = { version: 3, members: { ian: { ranges: [{ id: 'a', name: 'Mañana', from: '08:00', to: '12:00', sections: ['aprender'] }] }, luna: { ranges: [] } } };
+    const up = upgradeCycleRaw(v3, DEPS);
+    expect(up.from).toBe(3);
+    expect(up.raw).toEqual(v3);
+  });
+
+  it('v3 sin members (o con members que no es un objeto) tira; lo que no es un objeto tira', () => {
+    expect(() => upgradeCycleRaw({ version: 3 }, DEPS)).toThrow();
+    expect(() => upgradeCycleRaw({ version: 3, members: [] }, DEPS)).toThrow();
+    for (const bad of [null, 7, 'x', [], false]) expect(() => upgradeCycleRaw(bad, DEPS)).toThrow();
+  });
+
+  it('nunca crea un integrante "__proto__"', () => {
+    expect(Object.hasOwn(upgradeCycleRaw({}, ['__proto__', 'ian']).raw.members, '__proto__')).toBe(false);
   });
 });

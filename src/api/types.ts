@@ -95,16 +95,53 @@ export type PlaylistDetail = { id: number; name: string; videos: VideoResult[] }
    SOLO como fondo (nunca video). Independiente del catálogo de MyTube, sin key de YouTube. ---------- */
 export type AfterDayTrack = { videoId: string; url: string; title?: string; thumb: string; addedAt: number };
 
-/* ---------- Horarios por sección (porte Smarty W7): franjas por día de semana, config del padre.
-   `week` son 7 días con getDay() de JS (0 = domingo). Sin entrada para una sección = siempre abierta.
-   El Feed (la home) NUNCA se gatea: siempre hay un lugar a donde volver. ---------- */
-export type DaySchedule = { open: boolean; from: string; to: string }; // "HH:MM" [from, to)
-export type FeatureSchedule = { restrictionActive: boolean; week: DaySchedule[] };
+/* ---------- Los Horarios por sección (porte Smarty W7) fueron RETIRADOS por el Ciclo del día (F1/F2, 28-oct):
+   la compat (`SchedulesResponse.schedules`, DaySchedule/FeatureSchedule) se retiró cuando el cliente dejó de leerla. ---------- */
+/** Las 8 secciones que el Ciclo del día puede gatear (el Feed no está: nunca se cierra). */
 export type SectionKey = 'chat' | 'buscar' | 'mytube' | 'aprender' | 'tienda' | 'calendario' | 'espacio' | 'afterday';
-export type SchedulesResponse = { schedules: Partial<Record<SectionKey, FeatureSchedule>>; /** reloj del server (ms) */ serverNow: number;
-  /** Zona horaria IANA de la familia (null = la del server); las franjas y el daypart se evalúan en ella. */ tz?: string | null;
-  /** U3: de qué integrante son estos horarios (el chico activo, o el ?member= que pidió el adulto). Ausente = ninguno
-   *  (adulto sin integrantes: schedules vacío). */ member?: string };
+
+/* ---------- Ciclo del día (tanda F1, 28-oct; docs/USUARIOS.md §11): config del padre, POR INTEGRANTE ----------
+   El padre arma RANGOS horarios del día y elige qué secciones están disponibles en cada uno. Rigen TODOS los días (sin día
+   de la semana) y SOLO para un chico activo (al adulto no lo gatea nada). Regla (src/shared/lib/cycleRules.ts: el MISMO
+   código en server y cliente desde F2):
+   · una sección que no figura en ningún rango → siempre disponible;
+   · una que figura en ≥ 1 rango → disponible solo cuando el reloj (hora del SERVER, `serverNow`, en la zona de la FAMILIA,
+     `tz`) cae dentro de ALGUNO de sus rangos ([from, to); to < from cruza la medianoche; from == to = las 24 h);
+   · datos inválidos → disponible (fail-open);
+   · con override de demo (`demoRange`): como si el reloj estuviera dentro de ESE rango — sus secciones disponibles, las que
+     figuran en otros rangos y no en ése cerradas, las que no figuran en ninguno disponibles (los solapamientos no cuentan).
+   Fuera de rango, la API de la sección responde `403 {error: 'horario', section, opensAt}` (opensAt = "HH:MM" del próximo
+   minuto de HOY en que abre, o null; null también con override). ---------- */
+export type CycleRange = {
+  /** Único en el ciclo del integrante: 1-40 de [A-Za-z0-9_-]. En el POST puede faltar: el server pone r1, r2… */ id: string;
+  /** 1-30 caracteres, con alguna letra o número (se guarda limpio: espacios colapsados). */ name: string;
+  /** "HH:MM" canónica (el server acepta "8:00" y guarda "08:00"). */ from: string;
+  /** "HH:MM" canónica; < from cruza la medianoche; == from = las 24 h. */ to: string;
+  /** Disponibles en este rango (sin repetir, en el orden del menú; puede ser vacía). */ sections: SectionKey[];
+};
+/** El ciclo de un integrante: hasta 8 rangos (sin rangos = todo disponible siempre). */
+export type CycleConfig = { ranges: CycleRange[] };
+/** GET /api/parent/cycle?member y POST /api/parent/cycle?member {ranges} (sesión del adulto). */
+export type CycleResponse = { cycle: CycleConfig; member: string; /** reloj del server (ms) */ serverNow: number;
+  /** zona IANA de la familia (null = la del server) */ tz: string | null;
+  /** override de demo vigente de ese integrante (id de un rango suyo) o null = reloj real */ demoRange: string | null };
+/** POST /api/parent/cycle?member: la lista COMPLETA reemplaza a la anterior (los rangos nuevos pueden venir sin id). */
+export type CycleSaveRequest = { ranges: (Omit<CycleRange, 'id'> & { id?: string })[] };
+/** POST /api/demo/cycle {rangeId} → SchedulesResponse (la misma que GET /api/schedules daría ya). Chico activo → su
+ *  override (member se ignora); adulto → el del integrante de `?member=`. null = vuelve el reloj real. RAM por usuario:
+ *  lo limpia POST /api/demo/reset de ese usuario. rangeId que no es de un rango del integrante → 400. */
+export type DemoCycleRequest = { rangeId: string | null };
+
+/** GET /api/schedules[?member] (público) y POST /api/demo/cycle. Chico activo → lo suyo (member ignorado); adulto → el
+ *  integrante de ?member= (ausente = el primero; ajeno → 400); adulto sin integrantes → sin member, ciclo vacío. */
+export type SchedulesResponse = {
+  /** reloj del server (ms) */ serverNow: number;
+  /** Zona horaria IANA de la familia (null = la del server); el ciclo y el daypart se evalúan en ella. */ tz?: string | null;
+  /** U3: de qué integrante es (el chico activo, o el ?member= que pidió el adulto). Ausente = ninguno (adulto sin
+   *  integrantes). */ member?: string;
+  /** F1: el ciclo del día de ese integrante (vacío si no hay integrante). */ cycle: CycleConfig;
+  /** F1: el override de demo vigente de ese integrante (id de un rango de `cycle`) o null = reloj real. */ demoRange: string | null;
+};
 
 /* ---------- Progreso real: XP semanal (el puntaje ÚNICO de liga/zona/país) + Energy Coin ---------- */
 export type ProgressSummary = {
@@ -239,7 +276,8 @@ export type FeedItem =
   | { kind: 'video'; id: string; time: string; reason: string; video: VideoResult }
   | { kind: 'article'; id: string; time: string; reason: string; title: string; url: string; source: string; snippet?: string }
   | { kind: 'route'; id: string; time: string; reason: string; course: { id: string; name: string; /** postas */ units: number; img: string; bg: [string, string]; emoji?: string } }
-  | { kind: 'friend'; id: string; time: string; reason?: string; friend: { nick: string; color: string }; text: string; icon: 'medal' | 'streak' | 'badge' | 'route' | 'league'; reactions: FeedReaction[] }
+  /** `icon`: 'unit' = unidad completada (ADITIVO, tanda "Feed diverso" 28-oct; antes iba como 'badge'). */
+  | { kind: 'friend'; id: string; time: string; reason?: string; friend: { nick: string; color: string }; text: string; icon: 'medal' | 'streak' | 'badge' | 'unit' | 'route' | 'league'; reactions: FeedReaction[] }
   | { kind: 'league'; id: string; time: string; reason?: string; name: string; desc: string }
   /* v6 — bloques nuevos del hilo (el server arma la mezcla; el cliente solo dibuja): */
   /** "Fijado · tu siguiente paso": el hero de la edición. SIEMPRE aprendizaje, jamás comercio. */

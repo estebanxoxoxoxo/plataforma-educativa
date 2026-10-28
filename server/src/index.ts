@@ -13,8 +13,8 @@
 //   /api/friends*                 → FAKE (demo): amigos NPC con moderación REAL y respuestas del modelo (friendsFake.ts)
 //   /api/mentors* · GET /api/calendar → FAKE (demo): mentores del ADULTO (plan, beneficiario y días) + las clases del
 //                                   usuario activo (teachersFake.ts)
-// Los CANDADOS de la familia (horarios por sección y funcionalidades apagadas) son del CHICO: con un adulto como usuario
-// activo no rigen (docs/USUARIOS.md §4; acá, market.ts, leaguesFake.ts y friendsFake.ts). U3 (docs/USUARIOS.md §9): rige
+// Los CANDADOS de la familia (el ciclo del día —F1, ex horarios por sección— y funcionalidades apagadas) son del CHICO:
+// con un adulto activo no rigen (docs/USUARIOS.md §4; acá, market.ts, leaguesFake.ts y friendsFake.ts). U3 (§9): rige
 // la config DEL CHICO ACTIVO —cada integrante tiene la suya— y cada pedido corre dentro de su contexto
 // (requestContext.ts: runWithRequest), así filtros, jueces, feed y chat aplican la política de ese chico sin recibir req.
 // U4 (docs/USUARIOS.md §10): cada usuario tiene lo suyo —XP/⚡/racha, canjes y guardarropas, wishlist, Learn, Mi espacio,
@@ -39,7 +39,7 @@ import { identityRoutes } from './identity'
 import { teachersRoutes } from './teachersFake'
 import { simulateNpcs } from './feedFake'
 import { afterdayRoutes } from './afterday'
-import { closedSectionFor, scheduleRoutes } from './schedule'
+import { closedSectionFor, resetCycleDemo, scheduleRoutes } from './schedule'
 import { learnRoutesRoutes } from './learnRoutes'
 import { learnResultsRoutes } from './learnResults'
 import { createRoutes } from './create'
@@ -103,18 +103,20 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
       resetFriends(id) // el grafo social del demo (amigos aceptados, solicitudes, hilos) también vuelve al seed
       resetLeagues(id) // el ciclo de liga simulado (cierres de semana del botón de demo) vuelve al seed
       resetFeed(id) // las noticias en vivo (cierres, ráfagas de NPCs) y las reacciones vuelven al seed
+      resetCycleDemo(id) // el "estás en este rango" del Ciclo del día (F1) vuelve al reloj real
       resetUnlockAttempts() // del portón dormido de la FAMILIA: da igual el alcance
       console.log(`[demo] reset ${all ? 'de TODOS los usuarios' : `de ${id}`}`)
       return send(res, 200, { ok: true, scope: all ? 'all' : 'user', ...(id ? { user: id } : {}) })
     }
 
-    // --- HORARIOS POR SECCIÓN (porte Smarty W7): fuera de la franja que fijó el padre, la API de esa sección responde 403
-    //     ANTES de rutear (el POC solo escondía la vista; acá el server es el candado). Qué prefijo es de qué sección —y qué
-    //     no se gatea nunca: Feed, amigos, progreso, ligas, Zona de padres, demo, lector y reproductor— en
-    //     schedule.ts:sectionForApi. Capas independientes: si la familia APAGÓ la sección (Chat/Tienda), gana el apagado
-    //     (responde la ruta con su propio 403); el horario rige solo si está prendida.
-    //     Los horarios son del CHICO: con un adulto como usuario activo no se mira (docs/USUARIOS.md §4). U3: los de ESE
-    //     chico (cada integrante tiene los suyos), y el "gana el apagado" con SUS on-off.
+    // --- CICLO DEL DÍA (tanda F1, 28-oct; reemplaza a los horarios por sección del porte W7): una sección que figura en
+    //     rangos del ciclo del chico y no está disponible ahora (reloj del server en la zona de la familia, o el override de
+    //     demo) responde 403 ANTES de rutear (el server es el candado). Qué prefijo es de qué sección —y qué no se gatea
+    //     nunca: Feed, amigos, progreso, ligas, Familia, demo, lector y reproductor— en schedule.ts:sectionForApi. Capas
+    //     independientes: si la familia APAGÓ la sección (Chat/Tienda), gana el apagado (responde la ruta con su propio
+    //     403); el ciclo rige solo si está prendida. El ciclo es del CHICO: con un adulto como usuario activo no se mira
+    //     (docs/USUARIOS.md §4). U3: el de ESE chico (cada integrante tiene el suyo), y el "gana el apagado" con SUS on-off.
+    //     Misma forma de 403 que antes: {error: 'horario', section, opensAt} (opensAt = "HH:MM" de hoy o null).
     const closed = me.kind === 'child' ? closedSectionFor(url.pathname, me.id) : null
     if (closed && !((closed.key === 'chat' || closed.key === 'tienda') && !featureOn(closed.key, me.id))) {
       return send(res, 403, { error: 'horario', section: closed.key, opensAt: closed.opensAt })
@@ -131,7 +133,8 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     if (url.pathname === '/api/teachers' || url.pathname.startsWith('/api/teachers/')) return send(res, 404, { error: 'not found' })
     // Porte Smarty: rutas de Learn (catálogo) y la auditoría de facts de /crear
     if (url.pathname === '/api/afterday') return await afterdayRoutes(req, res, url)
-    if (url.pathname === '/api/schedules') return await scheduleRoutes(req, res, url)
+    // Ciclo del día (F1): el GET público (el ciclo del integrante + reloj y tz) y el override de demo "estás en este rango".
+    if (url.pathname === '/api/schedules' || url.pathname === '/api/demo/cycle') return await scheduleRoutes(req, res, url)
     if (url.pathname.startsWith('/api/learn-routes')) return await learnRoutesRoutes(req, res, url)
     if (url.pathname.startsWith('/api/learn/')) return await learnResultsRoutes(req, res, url)
     if (url.pathname.startsWith('/api/create/')) return await createRoutes(req, res, url)
@@ -158,8 +161,11 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
       if (!b.id) return send(res, 400, { error: 'id' })
       return send(res, 200, feedLess(String(b.id), b.undo === true))
     }
-    // Botón de demo "Simular NPCs" (Home): ráfaga de noticias frescas de los NPCs.
+    // Botón de demo "Simular NPCs" (Feed): ráfaga de 5 noticias frescas de los NPCs, una de cada tipo (feedFake/feedMix).
+    // Con Amigos apagado del CHICO activo la ráfaga no existe: 403 fail-closed antes de tocar nada, como /api/friends*
+    // (mismo texto; tanda "Feed diverso", 28-oct — antes respondía 200 {added: 0}). Con un adulto no rige.
     if (url.pathname === '/api/feed/simulate-npcs' && req.method === 'POST') {
+      if (me.kind === 'child' && !featureOn('amigos', me.id)) return send(res, 403, { error: 'Los amigos están apagados por tu familia' })
       return send(res, 200, simulateNpcs())
     }
 

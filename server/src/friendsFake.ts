@@ -90,8 +90,9 @@ export interface Friend {
 export interface FriendMessage { id: string; from: 'me' | 'them'; text: string }
 export interface FriendRequest { id: string; nick: string; color: string; note?: string }
 export type SendMessageResult = { status: 'ok'; msg: FriendMessage } | { status: 'blocked'; notice: string }
-/** Íconos de las noticias de amigos del feed (los mismos de FeedItem 'friend'). */
-export type NewsIcon = 'medal' | 'streak' | 'badge' | 'route' | 'league'
+/** Íconos de las noticias de amigos del feed (los mismos de FeedItem 'friend'). 'unit' = unidad completada (tanda "Feed
+ *  diverso", 28-oct: antes iba como 'badge' y la card decía "Insignia"). */
+export type NewsIcon = 'medal' | 'streak' | 'badge' | 'unit' | 'route' | 'league'
 /* Buscar → Personas (tanda F2): formas FORMALIZADAS en src/api/types.ts (consolidación 12-oct). Espejo server de
    src/api/types.ts. friend = ya son amigos · incoming = él le mandó una solicitud al activo · sent = el activo se la mandó y
    espera. */
@@ -231,13 +232,29 @@ const NEWS: { f: string; text: string; icon: NewsIcon }[] = [
   { f: 'f2', text: 'se ganó la insignia «Guardiana de los Volcanes»', icon: 'badge' },
   { f: 'f6', text: 'compartió la ruta «El cuerpo humano por dentro»', icon: 'route' },
   { f: 'f4', text: 'subió a la Liga Estrella ⭐', icon: 'league' },
-  { f: 'f5', text: 'terminó la unidad 1 de Fracciones', icon: 'badge' },
+  { f: 'f5', text: 'terminó la unidad 1 de Fracciones', icon: 'unit' },
   { f: 'f3', text: 'completó 40 pasos este mes 💪', icon: 'streak' },
   { f: 'f1', text: 'ganó la medalla de bronce 🥉 en la Liga Cometa', icon: 'medal' }, // la plata de esa liga fue de Ian (leaguesFake lastWeek)
   { f: 'f2', text: 'compartió la ruta «Volcanes de Argentina»', icon: 'route' },
   // U4: de las amigas nuevas de Luna (Ian no las ve: no son sus amigas)
   { f: 'f12', text: 'llegó a una racha de 7 días seguidos practicando', icon: 'streak' },
   { f: 'f8', text: 'se ganó la insignia «Oído Musical»', icon: 'badge' },
+  // Tanda "Feed diverso" (28-oct): más subtipos en la edición de cada uno (insignias, unidades, rachas), alternados para Ian
+  // y para Luna; ningún texto repite uno de la ráfaga (feedMix.NPC_NEWS). f9 (FedeAjedrez) le pidió contacto a Luna.
+  { f: 'f3', text: 'se ganó la insignia «Paleontólogo Junior» en Dinosaurios 🦕', icon: 'badge' },
+  { f: 'f4', text: 'terminó la unidad «Greetings» de Inglés inicial: hello! 👋', icon: 'unit' },
+  { f: 'f5', text: 'volvió a practicar y arrancó una racha nueva ⚡', icon: 'streak' },
+  { f: 'f9', text: 'se ganó la insignia «Rey de los Acertijos» en Fracciones ♟️', icon: 'badge' },
+  { f: 'f12', text: 'terminó la unidad «El Sol» de El sistema solar ☀️', icon: 'unit' },
+  { f: 'f1', text: 'terminó la unidad «Los planetas gigantes» de El sistema solar 🪐', icon: 'unit' },
+  { f: 'f6', text: 'se ganó la insignia «Exploradora del Cuerpo» en Mi cuerpo 🔬', icon: 'badge' },
+  { f: 'f8', text: 'terminó la unidad «Family» de Inglés inicial 🏡', icon: 'unit' },
+  { f: 'f9', text: 'completó 35 pasos este mes ♟️', icon: 'streak' },
+  { f: 'f7', text: 'terminó la unidad «Sumar fracciones» de Fracciones 🤖', icon: 'unit' },
+  { f: 'f12', text: 'se ganó la insignia «Exploradora Lunar» en El sistema solar 🌕', icon: 'badge' },
+  { f: 'f6', text: 'terminó la unidad «Los cinco sentidos» de Mi cuerpo 👀', icon: 'unit' },
+  { f: 'f8', text: 'practicó con música tranquila y no cortó su racha 🎶', icon: 'streak' },
+  { f: 'f4', text: 'se ganó la insignia «Estrella Fugaz» en Inglés inicial 🌠', icon: 'badge' },
 ]
 /** Las noticias que son de ligas (medallas, ascensos): con Ligas apagado el chico no las ve (feedFake). */
 const LEAGUEISH: ReadonlySet<NewsIcon> = new Set<NewsIcon>(['medal', 'league'])

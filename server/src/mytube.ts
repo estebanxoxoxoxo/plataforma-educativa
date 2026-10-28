@@ -51,7 +51,9 @@
 //        `total` = videos aprobados (catálogo base + filas de la familia, el db.ytVideos.count() del POC).
 //   GET  /api/mytube/admin/channels → { channels: [{ channelId, title, handle?, thumb?, desc, followed }] }
 //        Todas las entidades + todos los canales con videos aprobados, por channelId (el toArray() de ytChannels). U4:
-//        `followed` = lo sigue ALGÚN integrante de la familia (el panel es de la familia).
+//        `followed` = lo sigue ALGÚN integrante de la familia (el panel es de la familia). Remate F3 (28-oct): la metadata
+//        que falte (avatar/título/handle) se completa acá por lote (channels.list, 1 unidad cada 50, SIN modelo) y queda en
+//        caché; espera como mucho ADMIN_META_WAIT_MS y si YouTube falla responde igual (sin avatar, como antes).
 //   POST /api/mytube/admin/add { url }       → { ok: true, added, title } | { ok: false, error }   (UNA url por pedido;
 //        el lote lo recorre la pantalla de a una, con progreso, como el POC). error = el código del POC (URL_INVALIDA,
 //        YA_EXISTE, SIN_VIDEOS, SIN_KEY_YOUTUBE, YT_API_<status>, CANAL_NO_ENCONTRADO) o el mensaje de la falla.
@@ -796,23 +798,46 @@ async function slot<T>(fn: () => Promise<T>): Promise<T> {
   try { return await fn() } finally { running--; waiting.shift()?.() }
 }
 
-/** Metadata que falte para un lote de canales (una llamada channels.list cada 50; sin curar descripciones). */
-async function ensureMeta(ids: string[]): Promise<void> {
-  const need = ids.filter(cid => !channels.get(cid)?.metaAt && !fresh(channels.get(cid)?.metaTriedAt))
+/** Lotes de channels.list que FALLARON (red, cuota, sin key): enfriamiento en RAM, sin escribir nada en mytube.json (antes
+ *  una falla pasajera dejaba persistido un "ya lo intenté" por canal). Lo que YouTube contestó que no existe sí se
+ *  persiste (metaTriedAt), como siempre. */
+const metaFailedAt = new Map<string, number>()
+const metaPending = (cid: string) => { const ch = channels.get(cid); return !ch?.metaAt && !fresh(ch?.metaTriedAt) && !fresh(metaFailedAt.get(cid)) }
+/** Las búsquedas de metadata van de a una (la segunda ve lo que trajo la primera: un mismo canal no se pide dos veces). */
+let metaChain: Promise<void> = Promise.resolve()
+/** Metadata que falte para un lote de canales (una llamada channels.list cada 50, los lotes en paralelo y cada uno
+ *  fail-soft por su cuenta; SIN curar descripciones: sin modelo). */
+function ensureMeta(ids: string[]): Promise<void> {
+  const run = metaChain.then(() => fetchMissingMeta(ids))
+  metaChain = run.catch(() => undefined)
+  return run
+}
+async function fetchMissingMeta(ids: string[]): Promise<void> {
+  const need = [...new Set(ids)].filter(metaPending)
   if (!need.length) return
-  let metas = new Map<string, ChannelMeta>()
-  try { metas = await channelMeta(need) } catch (e) { console.warn('[mytube] channels.list falló:', (e as Error).message) }
-  const now = Date.now()
-  for (const cid of need) {
-    const m = metas.get(cid)
-    const ch = channels.get(cid)
-    if (!m) { if (ch) ch.metaTriedAt = now; else channels.set(cid, { channelId: cid, title: catalogTitle(cid) ?? cid, createdAt: now, metaTriedAt: now }); continue }
-    channels.set(cid, {
-      ...ch, channelId: cid, title: m.title || ch?.title || catalogTitle(cid) || cid, handle: m.handle, thumb: m.thumb,
-      descRaw: m.description, createdAt: ch?.createdAt ?? now, metaAt: now,
-    })
-  }
-  save()
+  let changed = false
+  await Promise.all(chunk(need, 50).map(async (group) => {
+    let metas: Map<string, ChannelMeta>
+    try { metas = await channelMeta(group) } catch (e) {
+      console.warn(`[mytube] channels.list falló (${group.length} canal(es); se reintenta en ${COOLDOWN_MS / 60000} min):`, (e as Error).message)
+      const at = Date.now()
+      for (const cid of group) metaFailedAt.set(cid, at)
+      return
+    }
+    const now = Date.now()
+    changed = true
+    for (const cid of group) {
+      metaFailedAt.delete(cid)
+      const m = metas.get(cid)
+      const ch = channels.get(cid)
+      if (!m) { if (ch) ch.metaTriedAt = now; else channels.set(cid, { channelId: cid, title: catalogTitle(cid) ?? cid, createdAt: now, metaTriedAt: now }); continue }
+      channels.set(cid, {
+        ...ch, channelId: cid, title: m.title || ch?.title || catalogTitle(cid) || cid, handle: m.handle, thumb: m.thumb,
+        descRaw: m.description, createdAt: ch?.createdAt ?? now, metaAt: now,
+      })
+    }
+  }))
+  if (changed) save()
 }
 
 /** Metadata → descripción curada → playlists propias, de a un paso, en segundo plano (single-flight por canal). */
@@ -872,8 +897,23 @@ function adminState() {
   }
 }
 
-function adminChannels() {
+/** Cuánto espera el panel a la metadata que falta antes de responder con lo que haya (el lote sigue de fondo y queda en
+ *  la caché: la próxima carga ya trae los avatares). */
+const ADMIN_META_WAIT_MS = 4000
+/** Familia → MyTube (remate del QA F3, 28-oct): antes la grilla salía con el círculo vacío en los canales del catálogo
+ *  base que nadie había abierto (133 de 151) porque acá no se completaba la metadata. Ahora se completa con ensureMeta
+ *  —channels.list por lote: 1 unidad de cuota cada 50 canales, SIN modelo (la descripción curada sigue siendo on-demand al
+ *  abrir el canal)— y queda en mytube.json como el resto. Fail-soft: si YouTube falla o tarda, tarjetas sin avatar como
+ *  antes. */
+async function adminChannels() {
   const ids = new Set<string>([...channels.keys(), ...allChannels().map(c => c.id), ...famByChannel.keys()])
+  const missing = [...ids].filter(metaPending)
+  if (missing.length) {
+    const job = ensureMeta(missing).catch(e => console.error('[mytube] metadata del panel:', e))
+    let timer: NodeJS.Timeout | undefined
+    await Promise.race([job, new Promise<void>(r => { timer = setTimeout(r, ADMIN_META_WAIT_MS) })])
+    clearTimeout(timer)
+  }
   return {
     channels: [...ids].sort(cmpKey).map(cid => {
       const ch = channels.get(cid)
@@ -912,7 +952,7 @@ export async function mytubeRoutes(req: IncomingMessage, res: ServerResponse, ur
       return pl ? send(res, 200, { videos: playlistVideos(pl) }) : send(res, 404, { error: 'playlist' })
     }
     if (path === '/api/mytube/admin/state') return send(res, 200, adminState())
-    if (path === '/api/mytube/admin/channels') return send(res, 200, adminChannels())
+    if (path === '/api/mytube/admin/channels') return send(res, 200, await adminChannels())
     if (path === '/api/mytube/admin/usage') return send(res, 200, usage)
     return send(res, 404, { error: 'not found' })
   }

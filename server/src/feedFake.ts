@@ -8,6 +8,10 @@
 //         la edición sembrada: noticia de amigos → 1-2 "para vos" (lectura/ruta) → la grilla 'videos' → más social →
 //         el 'summary' (que CONFIESA la mezcla y cómo cambia con la hora) → el resto ].
 //     Las páginas siguientes siguen la edición, más vieja, sin hero ni resumen; la última trae next=null ("Estás al día").
+//     MEZCLA DIVERSA (tanda "Feed diverso", 28-oct; reglas puras en feedMix.ts): la cabeza de la edición sigue la plantilla
+//     de la franja y el resto se reparte balanceado (ninguna página de un solo tipo; antes la cola eran 5-6 videos
+//     seguidos), lo del cierre de liga entra espaciado, las lecturas cubren todos los intereses del chico (intercaladas
+//     por tema) y lo social trae rachas, insignias, unidades completadas y rutas compartidas.
 //     El cursor es la posición en la edición sembrada: lo que entra en vivo va siempre arriba de la primera página, así
 //     una ráfaga nueva no corre las páginas que el chico ya pidió.
 //   - FRANJA DEL DÍA (hora REAL del server, 6/13/20 h, en la ZONA HORARIA DE LA FAMILIA si el padre eligió una —parent.ts
@@ -48,8 +52,10 @@
 //     Learn DEL ACTIVO (learnResults.resultRows) y la tarjeta de la liga, de SU ciclo (leaguesFake).
 //   - DEMO VIVO (RAM, docs/AGENTS.md regla 9): lo que entra en vivo pasa por los MISMOS filtros vivos al servirse:
 //       · injectLeagueClose(): las noticias del cierre simulado de liga (lo orquesta leaguesFake.closeWeek).
-//       · simulateNpcs() (botón "Simular NPCs" del Feed): una ráfaga de 4-6 noticias frescas de los NPCs del demo. El
-//         cliente NO las mete solo: muestra la píldora "N novedades ↑" y las trae cuando el chico la toca.
+//       · simulateNpcs() (botón "Simular NPCs" del Feed): una ráfaga de EXACTAMENTE 5 noticias frescas, una de cada tipo
+//         (racha, insignia, unidad completada, ruta compartida del catálogo real y la carrera de tu liga con XP real;
+//         tanda "Feed diverso", 28-oct — las reglas en feedMix.planBurst). El cliente NO las mete solo: muestra la píldora
+//         "N novedades ↑" y las trae cuando el chico la toca. Con Amigos apagado del chico el endpoint responde 403.
 //       · feedLess(): "Ver menos de esto" — los ids ocultos se filtran de TODAS las respuestas siguientes (reversible).
 //     Después de un cierre, lo de semanas anteriores se fecha por semanas. resetFeed(userId?) vuelve al seed lo de ese
 //     usuario (sin id, lo de todos; va en /api/demo/reset).
@@ -72,10 +78,15 @@ import { routeInProgress, routeRuns, type RouteRun } from './learnProgress'
 import { searchVideosStrict, toVideoResult, type CatalogVideo } from './videos'
 import { perUser } from './perUser'
 import { currentUser } from './requestContext'
+import {
+  EDITIONS, NPC_NEWS, SHARERS, interleave, newBurstMemory, planBurst, roundRobinBy, spaceOut,
+  type BurstCand, type BurstMemory, type Daypart, type Slot,
+} from './feedMix'
 
 type VideoCard = ReturnType<typeof toVideoResult>
 export interface FeedReaction { emoji: string; count: number; mine: boolean }
-type NewsIcon = 'medal' | 'streak' | 'badge' | 'route' | 'league'
+/** 'unit' = unidad completada (tanda "Feed diverso", 28-oct; antes iba como 'badge'). */
+type NewsIcon = 'medal' | 'streak' | 'badge' | 'unit' | 'route' | 'league'
 /** La ruta como la dibuja la card (forma `course` del contrato): `units` = sus postas (sin contar los repasos), `img` = la
  *  portada ('' si no hay: la card cae al emoji). `emoji` = ADITIVO de W3 (pendiente de formalizar en src/api/types.ts por
  *  el coordinador): el ícono de la ruta, para la card sin portada. */
@@ -106,15 +117,17 @@ interface Live {
   fresh: Fresh[]
   freshSeq: number
   bursts: number
-  /** Noticias del pool de los NPCs ya publicadas: no se repiten hasta agotarlo (y nunca las de la ráfaga anterior). */
-  usedNews: Set<string>
-  lastBurstKeys: string[]
+  /** Lo social de las ráfagas (feedMix.planBurst): lo ya publicado no se repite hasta agotar SU tipo (y nunca lo de la
+   *  ráfaga anterior); protagonistas y rutas de la anterior, para variar. */
+  burst: BurstMemory
+  /** Quién corrió la carrera de la liga en la ráfaga anterior (en la siguiente, otro). */
+  lastRace: string[]
   /** Reacciones por ítem de amigo (las de los demás + la del usuario: mine). */
   reactions: Map<string, FeedReaction[]>
   /** Ids que el usuario pidió ver menos: no salen en NINGUNA respuesta siguiente hasta que lo deshaga (o se resetee). */
   hidden: Set<string>
 }
-const lives = perUser((): Live => ({ fresh: [], freshSeq: 0, bursts: 0, usedNews: new Set(), lastBurstKeys: [], reactions: new Map(), hidden: new Set() }))
+const lives = perUser((): Live => ({ fresh: [], freshSeq: 0, bursts: 0, burst: newBurstMemory(), lastRace: [], reactions: new Map(), hidden: new Set() }))
 /** Lo vivo del usuario del pedido (fuera de un pedido, ian). */
 const live = () => lives.now()
 
@@ -181,14 +194,27 @@ const npcWhy = (nick: string) => {
 
 /* ---------- pools de demo ---------- */
 // Noticias de amigos: NO viven acá — las publica cada NPC en friendsFake (friendNews(), en el orden de intercalado).
-// Lecturas: URLs reales de la lista blanca (verificadas con el lector moderado).
-const ARTICLES: { title: string; url: string; source: string; snippet: string; topic: string }[] = [
+// Lecturas: URLs reales de la lista blanca (verificadas con el lector moderado). Tanda "Feed diverso" (28-oct): las 6 de
+// antes eran todas del espacio; se suman 9 de los otros intereses del chico (AL FINAL: los ids fa-N son por lugar),
+// verificadas ese día con GET /api/article (gate de sitio + juez; quedaron afuera las que el juez bloqueó y una de NASA que
+// se extrae en inglés). En la edición se intercalan por tema (roundRobinBy). `why` = el motivo propio cuando el del tema
+// (TOPIC_WHY, pensado para videos) no le queda a una lectura.
+const ARTICLES: { title: string; url: string; source: string; snippet: string; topic: string; why?: string }[] = [
   { title: 'Apolo 11: el viaje a la Luna', url: 'https://es.wikipedia.org/wiki/Apolo_11', source: 'es.wikipedia.org', snippet: 'La misión que llevó a los primeros seres humanos a pisar la Luna, en julio de 1969.', topic: 'el espacio' },
   { title: 'Cómo es nuestro sol con respecto a otras estrellas', url: 'https://spaceplace.nasa.gov/sun-compare/sp/', source: 'NASA Space Place', snippet: 'Nuestro sol es impresionante, pero ¿cómo se compara con las demás estrellas de la galaxia?', topic: 'el espacio' },
   { title: 'Estrellas fugaces', url: 'https://www.esa.int/kids/es/Aprende/Nuestro_Universo/Cometas_y_meteoritos/Estrellas_fugaces', source: 'ESA Kids', snippet: '¿Qué son en realidad las estrellas fugaces y por qué aparecen en lluvias?', topic: 'el espacio' },
   { title: 'El cinturón de asteroides', url: 'https://es.wikipedia.org/wiki/Cintur%C3%B3n_de_asteroides', source: 'es.wikipedia.org', snippet: 'Entre Marte y Júpiter hay millones de rocas girando alrededor del Sol.', topic: 'el espacio' },
   { title: '¿Qué es un cometa?', url: 'https://concepto.de/cometas/', source: 'concepto.de', snippet: 'Cuerpos celestes con núcleo de hielo y polvo que desarrollan una cola brillante.', topic: 'el espacio' },
   { title: 'La Vía Láctea', url: 'https://es.wikipedia.org/wiki/V%C3%ADa_L%C3%A1ctea', source: 'es.wikipedia.org', snippet: 'La galaxia espiral donde vive el sistema solar, con cientos de miles de millones de estrellas.', topic: 'el espacio' },
+  { title: 'Tyrannosaurus rex, el rey de los dinosaurios', url: 'https://es.wikipedia.org/wiki/Tyrannosaurus_rex', source: 'es.wikipedia.org', snippet: 'Uno de los carnívoros más grandes que pisaron la Tierra: vivió al final del Cretácico.', topic: 'dinosaurios' },
+  { title: '¿Qué es un volcán?', url: 'https://concepto.de/volcan/', source: 'concepto.de', snippet: 'Cómo se forman, qué tipos hay y por qué algunos están dormidos durante siglos.', topic: 'volcanes' },
+  { title: 'El tiburón blanco', url: 'https://concepto.de/tiburon/', source: 'concepto.de', snippet: 'Dónde vive, qué come y cómo es uno de los grandes cazadores del océano.', topic: 'tiburones' },
+  { title: 'Arduino: la placa para armar robots', url: 'https://es.wikipedia.org/wiki/Arduino', source: 'es.wikipedia.org', snippet: 'La placa electrónica con la que chicos y grandes arman robots, luces y sensores.', topic: 'robots' },
+  { title: 'La imprenta', url: 'https://es.wikipedia.org/wiki/Imprenta', source: 'es.wikipedia.org', snippet: 'El invento que permitió copiar libros en cantidad y cambió cómo aprende el mundo.', topic: 'inventos' },
+  { title: 'El método científico', url: 'https://concepto.de/metodo-cientifico/', source: 'concepto.de', snippet: 'Observar, preguntar, probar y sacar conclusiones: los pasos de todo buen experimento.', topic: 'experimentos para niños' },
+  { title: 'Fracciones', url: 'https://www.disfrutalasmatematicas.com/fracciones.html', source: 'disfrutalasmatematicas.com', snippet: 'Qué son el numerador y el denominador, explicado con pizzas y dibujos.', topic: 'fracciones', why: 'Para jugar con fracciones leyendo' },
+  { title: 'Triceratops', url: 'https://es.wikipedia.org/wiki/Triceratops', source: 'es.wikipedia.org', snippet: 'El dinosaurio de los tres cuernos y el gran escudo de hueso en la cabeza.', topic: 'dinosaurios' },
+  { title: 'Las fases de la Luna', url: 'https://es.wikipedia.org/wiki/Fase_lunar', source: 'es.wikipedia.org', snippet: 'Por qué la Luna se ve llena, en cuarto o nueva a lo largo del mes.', topic: 'la luna' },
 ]
 /* Rutas: el CATÁLOGO real de Learn (ver la cabecera). El catálogo no trae colores: el fondo de la card sale de un par fijo
    de la paleta de Innerith según el id (estable). */
@@ -326,9 +352,9 @@ function build(): Pool {
   }
   // Lecturas y noticias sin lo que pega con un tema negro (las rutas se arman al servir: catálogo + avance reales). Los ids
   // conservan el lugar en su pool (las reacciones de las noticias van por id: no se corren cuando se filtra una).
-  const arts = ARTICLES.map((a, n) => ({ a, n: n + 1 }))
-    .filter(({ a }) => !blocked(`${a.title} ${a.snippet} ${a.topic}`))
-    .map(({ a, n }) => ({ n, title: a.title, url: a.url, source: a.source, snippet: a.snippet, reason: why(a.title, kidWhy(a.topic)) }))
+  // Las lecturas, intercaladas por tema (feedMix.roundRobinBy): no salen todas las del espacio juntas.
+  const arts = roundRobinBy(ARTICLES.map((a, n) => ({ a, n: n + 1 })).filter(({ a }) => !blocked(`${a.title} ${a.snippet} ${a.topic}`)), ({ a }) => a.topic)
+    .map(({ a, n }) => ({ n, title: a.title, url: a.url, source: a.source, snippet: a.snippet, reason: why(a.title, a.why ?? kidWhy(a.topic)) }))
   const news = friendNews().map((e, i) => ({ ...e, n: i + 1 })).filter(e => !blocked(e.text))
   const pool: Pool = { vids: pickVids(1500), short: pickVids(SHORT_SEC), arts, news }
   pools.set(key, pool)
@@ -336,8 +362,7 @@ function build(): Pool {
   return pool
 }
 
-/* ---------- la edición: franja del día + plantilla editorial ---------- */
-type Daypart = 'manana' | 'tarde' | 'noche'
+/* ---------- la edición: franja del día + plantilla editorial (las reglas puras de la mezcla viven en feedMix.ts) ---------- */
 /** Franja por la hora REAL del server (mismos cortes que el subtítulo del Feed en el cliente: 6, 13 y 20 h), leída en la ZONA
  *  HORARIA DE LA FAMILIA si el padre eligió una (deuda 14-oct; sin zona, la del server). */
 const daypartOf = (d: Date): Daypart => { const h = wallClock(d, familyTz()).hour; return h >= 6 && h < 13 ? 'manana' : h >= 13 && h < 20 ? 'tarde' : 'noche' }
@@ -357,14 +382,6 @@ const LATER: Record<Daypart, string> = {
   tarde: 'a la nochecita cambia a repaso tranquilo',
   noche: 'mañana arranca con más para aprender',
 }
-type Slot = 'friend' | 'article' | 'route' | 'video'
-/** La plantilla de cada franja: el orden de los tipos (se repite hasta agotar), y en qué lugar de la edición sembrada
- *  van la grilla de videos y el resumen (primera página: noticia → 1-2 "para vos" → grilla → más social → resumen…). */
-const EDITIONS: Record<Daypart, { pattern: readonly Slot[]; shelfAfter: number; summaryAfter: number }> = {
-  manana: { pattern: ['friend', 'article', 'route', 'friend', 'article', 'video', 'friend', 'video', 'route', 'article', 'video'], shelfAfter: 3, summaryAfter: 4 },
-  tarde: { pattern: ['friend', 'route', 'friend', 'article', 'video', 'friend', 'video', 'article', 'video', 'route', 'video'], shelfAfter: 2, summaryAfter: 4 },
-  noche: { pattern: ['friend', 'article', 'friend', 'video', 'route', 'friend', 'video', 'article', 'video'], shelfAfter: 2, summaryAfter: 3 },
-}
 /** Horas desde el cierre de liga del seed (lunes 00:00 de esta semana), en la ZONA HORARIA DE LA FAMILIA como la franja
  *  (sin zona, la del server). Horas "de pared" desde el lunes: en la semana del cambio de horario puede correrse una
  *  hora, y da igual (ubica en la escala de ageOf, que va de 1 a 100 h). */
@@ -376,7 +393,9 @@ function closeAgeHours(now = new Date()): number {
 /** La edición SEMBRADA (sin lo que entró en vivo), en orden: estable mientras no cambien la familia, los on-off ni la
  *  franja. Las páginas se cortan por POSICIÓN acá; lo oculto con "ver menos" (y la tarjeta de liga vieja tras un cierre)
  *  se saca DESPUÉS de cortar, así ocultar algo no corre las páginas. Los tiempos van por lugar ("hace 1 h"… "esta
- *  semana"); lo que se repartió en el cierre de liga va fechado ahí y entra donde le toca por antigüedad. */
+ *  semana"); lo que se repartió en el cierre de liga va fechado ahí y entra donde le toca por antigüedad, ESPACIADO.
+ *  Tanda "Feed diverso" (28-oct): la cabeza sigue la plantilla de la franja y el resto se reparte balanceado
+ *  (feedMix.interleave: ninguna página de un solo tipo). */
 function seedStream(dp: Daypart): FeedItem[] {
   const p = build()
   const amigos = featureOnNow('amigos'), ligas = featureOnNow('ligas')
@@ -394,12 +413,7 @@ function seedStream(dp: Daypart): FeedItem[] {
     route: routes.map(({ route, run }): Of<'route'> => ({ kind: 'route', id: `fr-${run.id}`, time: '', reason: routeWhy(run), course: routeCourse(route, run) })),
     video: (dp === 'noche' ? p.short : p.vids).map(({ video, reason }): Of<'video'> => ({ kind: 'video', id: `fv-${video.id}`, time: '', reason, video })),
   }
-  const { pattern } = EDITIONS[dp]
-  const out: FeedItem[] = []
-  for (let k = 0; queues.friend.length || queues.article.length || queues.route.length || queues.video.length; k++) {
-    const it = queues[pattern[k % pattern.length]].shift()
-    if (it) out.push(withTime(it, timeOf(out.length)))
-  }
+  const out = interleave(queues, EDITIONS[dp].pattern).map((it, i) => withTime(it, timeOf(i)))
   // Lo del cierre: la tarjeta de la liga de la semana (la liga se ASIGNA por resultados: la noticia cuenta el ciclo, no
   // invita a unirse; su texto se arma al servir) y las medallas/ascensos de los amigos.
   const late: FeedItem[] = [
@@ -409,8 +423,7 @@ function seedStream(dp: Daypart): FeedItem[] {
   const h = closeAgeHours()
   let at = 0
   while (at < out.length && ageOf(at) <= h) at++
-  out.splice(at, 0, ...late)
-  return out
+  return spaceOut(out, late, at)
 }
 
 /** Las rutas del catálogo que la familia deja ver, con su avance real (las que pegan con un tema negro o una palabra de la
@@ -594,107 +607,53 @@ export function injectLeagueClose(r: CloseNews): number {
 const friendColor = (nick: string) => npcInfo(nick)?.color ?? '#3A5BD9'
 /** ¿El activo ve lo de este NPC (por nick)? Amigo o te pidió contacto, en SU grafo (friendsFake.isVisibleNpc). */
 const visibleNick = (nick: string) => isVisibleNpc(npcInfo(nick)?.id)
-/** Logros coherentes con cada amigo (sus cursos, su racha y su liga del perfil) y con Practicar: las medallas e
- *  insignias son las REALES de los recorridos (Medalla de ballenas, Brújula Espacial…) y las unidades, las de cada curso.
- *  Las medallas de LIGA (oro/plata/bronce) y los ascensos solo salen del cierre de la semana: acá, el podio "va 2º". */
-const NPC_NEWS: { key: string; nick: string; text: string; icon: NewsIcon }[] = [
-  { key: 'tomi-brujula', nick: 'TomiCohete', text: 'se ganó la «Brújula Espacial» en El sistema solar 🚀', icon: 'badge' },
-  { key: 'tomi-cometas', nick: 'TomiCohete', text: 'terminó la unidad «Cometas y asteroides» de El sistema solar ☄️', icon: 'badge' },
-  { key: 'tomi-podio', nick: 'TomiCohete', text: 'se metió en el podio de su Liga Cometa: va 3º 🥉', icon: 'medal' },
-  { key: 'tomi-pasos', nick: 'TomiCohete', text: 'completó 25 pasos esta semana 💪', icon: 'streak' },
-  { key: 'luli-ballenas', nick: 'LuliVolcan', text: 'se ganó la «Medalla de ballenas» en Animales del océano 🐋', icon: 'badge' },
-  { key: 'luli-pulpos', nick: 'LuliVolcan', text: 'terminó la unidad «Pulpos, medusas y estrellas» de Animales del océano 🐙', icon: 'badge' },
-  { key: 'luli-racha', nick: 'LuliVolcan', text: 'llegó a 8 días seguidos practicando 🔥', icon: 'streak' },
-  { key: 'mateo-racha', nick: 'MateoDino', text: 'llegó a 3 semanas de racha: ¡21 días seguidos! 🔥', icon: 'streak' },
-  { key: 'mateo-llave', nick: 'MateoDino', text: 'se ganó la «Llave de Equivalencias» en Fracciones 🔑', icon: 'badge' },
-  { key: 'mateo-primero', nick: 'MateoDino', text: 'va 1º en su Liga Estrella 🥇', icon: 'medal' },
-  { key: 'mateo-comparar', nick: 'MateoDino', text: 'terminó la unidad «Comparar y ordenar» de Fracciones', icon: 'badge' },
-  { key: 'cata-colores', nick: 'CataEstrella', text: 'se ganó la «Medalla de Colores» en Inglés inicial 🎨', icon: 'badge' },
-  { key: 'cata-numbers', nick: 'CataEstrella', text: 'terminó la unidad «Numbers» de Inglés inicial: one, two, three! 🔢', icon: 'badge' },
-  { key: 'cata-racha', nick: 'CataEstrella', text: 'arrancó una racha: 3 días seguidos practicando ✨', icon: 'streak' },
-  { key: 'juanchi-equiv', nick: 'JuanchiRayo', text: 'terminó la unidad «Fracciones equivalentes» ⚡', icon: 'badge' },
-  { key: 'juanchi-primero', nick: 'JuanchiRayo', text: 'va 1º en su Liga Chispa ⚽', icon: 'medal' },
-  { key: 'juanchi-racha', nick: 'JuanchiRayo', text: 'ya lleva 2 días seguidos practicando 💪', icon: 'streak' },
-  { key: 'martu-corazon', nick: 'MartuLuna', text: 'se ganó la «Medalla de Corazón» en Mi cuerpo ❤️', icon: 'badge' },
-  { key: 'martu-luna', nick: 'MartuLuna', text: 'terminó la unidad «La Luna» de El sistema solar 🌙', icon: 'badge' },
-  { key: 'martu-racha', nick: 'MartuLuna', text: 'llegó a 5 días seguidos practicando 🔥', icon: 'streak' },
-  { key: 'nico-decimales', nick: 'NicoRobot', text: 'se ganó el «Sello de decimales» en Fracciones 🤖', icon: 'badge' },
-  { key: 'nico-espacio', nick: 'NicoRobot', text: 'terminó la unidad «Explorar el espacio» de El sistema solar 🛰️', icon: 'badge' },
-  { key: 'nico-podio', nick: 'NicoRobot', text: 'va 2º en su Liga Chispa 🥈', icon: 'medal' },
-  // U4: de las amigas nuevas de Luna (al FINAL: las ráfagas de Ian no cambian; él no las ve, no son sus amigas)
-  { key: 'lea-saturno', nick: 'LeaTelescopio', text: 'anotó los anillos de Saturno en su cuaderno de astronomía 🪐', icon: 'badge' },
-  { key: 'lea-racha', nick: 'LeaTelescopio', text: 'llegó a 7 días seguidos practicando 🔭', icon: 'streak' },
-  { key: 'trini-oido', nick: 'TriniPiano', text: 'se ganó la «Medalla del Oído Musical» en Inglés inicial 🎹', icon: 'badge' },
-  { key: 'trini-pasos', nick: 'TriniPiano', text: 'completó 20 pasos esta semana 💪', icon: 'streak' },
-]
-/** Los amigos que comparten rutas (kind 'route'): cada ráfaga impar, el que toca —de los que el activo ve— comparte una
- *  ruta REAL del catálogo de Learn (en ronda; se abre en Aprender). Lo nuevo, AL FINAL. */
-const SHARERS = ['TomiCohete', 'LuliVolcan', 'CataEstrella', 'MartuLuna', 'JuanchiRayo', 'LeaTelescopio', 'TriniPiano']
 /** La carrera de la liga, contada para el chico. */
 function raceText(ev: NpcRace): string {
   if (ev.passedMe) return `te pasó en la ${ev.league}: sumó ${ev.gain} XP y ahora va ${ev.to}º 😮`
   if (ev.to < ev.from) return `sumó ${ev.gain} XP y subió al ${ev.to}º puesto de tu ${ev.league} 📈`
   return `practicó un montón: +${ev.gain} XP en tu ${ev.league} 💪`
 }
+const NPC_NEWS_BY_KEY = new Map(NPC_NEWS.map(e => [e.key, e]))
 
-/** Botón "Simular NPCs" (Feed): los NPCs "viven" un rato EN EL FEED DEL ACTIVO (su liga, sus amigos; U4). Deja listas
- *  4-6 noticias frescas y variadas (entran ARRIBA de la primera página cuando el chico toca la píldora "N novedades ↑"),
- *  con reacciones de arranque:
- *  - la carrera de tu liga: 1-2 compañeros de tu tabla practican DE VERDAD (su XP sube en Ligas: leaguesFake.npcPractice);
- *  - una ráfaga sí, una no: un amigo comparte una ruta (kind 'route', curso real);
- *  - logros de los amigos del pool (rachas, medallas e insignias de Practicar, unidades, podio en su liga), sin repetir.
- *  Pasa por los mismos filtros vivos de la familia; con Ligas apagado no hay noticias de ligas, y con Amigos apagado no
- *  hay noticias sociales (no entra nada). Devuelve cuántas entraron. */
+/** Botón "Simular NPCs" (Feed): los NPCs "viven" un rato EN EL FEED DEL ACTIVO (su liga, sus amigos; U4). Tanda "Feed
+ *  diverso" (28-oct, pedido del dueño: «que sean 5 por vez y de diversos tipos»): deja listas EXACTAMENTE 5 noticias
+ *  frescas, UNA DE CADA TIPO (entran ARRIBA de la primera página cuando el chico toca la píldora "N novedades ↑"), con
+ *  reacciones de arranque:
+ *  - lo social (feedMix.planBurst): una RACHA, una INSIGNIA y una UNIDAD COMPLETADA de los amigos (feedMix.NPC_NEWS) y una
+ *    RUTA COMPARTIDA (kind 'route', del catálogo REAL de Learn: se abre en Aprender). Protagonistas distintos dentro de la
+ *    ráfaga y, primero, otros que los de la anterior; nada se repite hasta agotar su tipo (y al reciclar, nunca lo de la
+ *    ráfaga anterior); la ruta compartida cambia de ruta entre ráfagas seguidas.
+ *  - la CARRERA DE TU LIGA: UN compañero de tu tabla practica DE VERDAD (su XP sube en Ligas: leaguesFake.npcPractice), otro
+ *    que el de la ráfaga anterior.
+ *  Solo de quien el activo ve (isVisibleNpc: su grafo) y por los mismos filtros vivos de la familia: un tipo que se queda
+ *  sin candidatos no sale (honestidad antes que relleno) — con Ligas apagado no hay carrera (salen 4). Con Amigos
+ *  apagado no entra nada (el endpoint ya responde 403 antes: index.ts). Devuelve cuántas entraron. */
 export function simulateNpcs(): { added: number } {
   if (!featureOnNow('amigos')) return { added: 0 }
   const L = live()
   const n = ++L.bursts, week = cycleWeek()
   const r = rng(hashOf(`npcs:${n}:${week}`))
   const blocked = familyFilter(), ligas = featureOnNow('ligas')
-  const want = 4 + Math.floor(r() * 3) // 4-6
   const out: FeedItem[] = []
-  const who = new Set<string>() // un NPC por noticia en cada ráfaga
+  const routes = catalogRuns().filter(({ run }) => !blocked(run.title))
+  const cands: BurstCand[] = [
+    ...NPC_NEWS.filter(e => visibleNick(e.nick) && !blocked(e.text)).map((e): BurstCand => ({ key: e.key, type: e.type, nick: e.nick })),
+    ...SHARERS.filter(visibleNick).flatMap(nick => routes.map(({ run }): BurstCand => ({ key: `share:${nick}:${run.id}`, type: 'route', nick, ref: run.id }))),
+  ]
+  for (const c of planBurst(cands, L.burst, r)) {
+    const s = c.type === 'route' ? routes.find(x => x.run.id === c.ref) : undefined
+    const e = NPC_NEWS_BY_KEY.get(c.key)
+    if (s) out.push({ kind: 'route', id: `fs-${++L.freshSeq}`, time: 'recién', reason: `La compartió ${c.nick}`, course: routeCourse(s.route, s.run) })
+    else if (e) out.push(newsItem(e.nick, friendColor(e.nick), e.text, e.type, npcWhy(e.nick)))
+  }
   if (ligas) {
-    for (const ev of npcPractice(r, r() < 0.5 ? 1 : 2)) {
-      const text = raceText(ev)
-      if (!blocked(text)) { out.push(newsItem(ev.nick, ev.color, text, 'league', 'Compite en tu liga esta semana')); who.add(ev.nick) }
-    }
+    const [ev] = npcPractice(r, 1, new Set(L.lastRace))
+    const text = ev ? raceText(ev) : ''
+    if (ev && !blocked(text)) { out.push(newsItem(ev.nick, ev.color, text, 'league', 'Compite en tu liga esta semana')); L.lastRace = [ev.nick] }
   }
-  if (n % 2 === 1) {
-    const k = (n - 1) / 2
-    const routes = catalogRuns().filter(({ run }) => !blocked(run.title))
-    const sharers = SHARERS.filter(visibleNick) // solo comparte quien el activo ve (Ian: los 5 de siempre, en su orden)
-    const nick = sharers.length ? sharers[k % sharers.length] : null
-    const s = routes.length ? routes[k % routes.length] : null
-    if (s && nick) {
-      out.push({ kind: 'route', id: `fs-${++L.freshSeq}`, time: 'recién', reason: `La compartió ${nick}`, course: routeCourse(s.route, s.run) })
-      who.add(nick)
-    }
-  }
-  // El podio de un amigo en "su Liga X" no se publica si X es la liga de Ian esta semana: en la tabla de Ian ese amigo
-  // no está (compite en otro grupo) y "va 3º" lo contradiría.
-  const mine = myLeague().name
-  // Solo lo de quien el activo ve (sus amigos y quien le pidió contacto): para Ian queda EXACTAMENTE la lista de siempre,
-  // en el mismo orden (el shuffle de la ráfaga no cambia).
-  const pool = NPC_NEWS.filter(e => visibleNick(e.nick) && (e.icon !== 'medal' || (ligas && !e.text.includes(mine))) && !blocked(e.text))
-  const picked: string[] = []
-  const pickFrom = (cands: typeof pool) => {
-    for (const e of cands) {
-      if (out.length >= want) break
-      if (who.has(e.nick) || L.usedNews.has(e.key)) continue
-      L.usedNews.add(e.key); who.add(e.nick); picked.push(e.key)
-      out.push(newsItem(e.nick, friendColor(e.nick), e.text, e.icon, npcWhy(e.nick)))
-    }
-  }
-  pickFrom(shuffle(pool, r))
-  if (out.length < want) { // pool agotado: vuelve a empezar, sin repetir lo de esta ráfaga ni lo de la anterior
-    L.usedNews = new Set([...L.lastBurstKeys, ...picked])
-    pickFrom(shuffle(pool, r))
-  }
-  L.lastBurstKeys = picked
   const items = shuffle(out, r)
   pushFresh(items, week)
-  console.log(`[feed] Simular NPCs #${n} de ${lives.nowId()}: +${items.length} noticias (esperan la píldora del Feed)`)
+  console.log(`[feed] Simular NPCs #${n} de ${lives.nowId()}: +${items.length} noticias (${items.map(it => (it.kind === 'friend' ? it.icon : it.kind)).join(', ')}; esperan la píldora del Feed)`)
   return { added: items.length }
 }
 

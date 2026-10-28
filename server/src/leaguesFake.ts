@@ -32,8 +32,9 @@
 //     4. el resultado pasa a ser lastWeek (estandarte de Ligas, medallita del aside, noticia de la liga del feed) y
 //        feedFake.injectLeagueClose() mete arriba del feed DEL ACTIVO las noticias del cierre.
 //     Varios cierres seguidos = varias semanas seguidas (lastWeek es siempre el ÚLTIMO).
-//   - "Simular NPCs" (feedFake.simulateNpcs): los compañeros de tu tabla practican (npcPractice) y su XP de la semana
-//     sube DE VERDAD acá; el feed lo cuenta ("te pasó", "subió al 5º puesto").
+//   - "Simular NPCs" (feedFake.simulateNpcs): UN compañero de tu tabla practica por ráfaga (npcPractice; otro que el de
+//     la ráfaga anterior si se puede) y su XP de la semana sube DE VERDAD acá; el feed lo cuenta ("te pasó", "subió al 5º
+//     puesto").
 //   Todo vive en RAM: resetLeagues(userId?) vuelve al seed el ciclo de ese usuario (sin id, el de todos) — va en
 //   POST /api/demo/reset, como el resto de la economía del demo.
 //   El CIERRE REAL (el domingo a la noche, con chicos reales y sus amigos viendo las medallas) es del backend futuro.
@@ -416,14 +417,18 @@ export function closeWeek() {
 export interface NpcRace { nick: string; color: string; gain: number; from: number; to: number; passedMe: boolean; league: string }
 /** `count` compañeros de la tabla del activo practican un rato: su XP de la semana sube DE VERDAD (la misma tabla que se
  *  ve en Ligas). Como mucho uno por ráfaga, y a veces, es el que viene justo atrás de "Vos" y lo pasa ("estoy a dos pasos
- *  de mengano", audio 24). Devuelve qué pasó, para que el feed lo cuente. */
-export function npcPractice(r: () => number, count: number): NpcRace[] {
+ *  de mengano", audio 24). Devuelve qué pasó, para que el feed lo cuente. `avoid` (tanda "Feed diverso", 28-oct): nicks
+ *  que se prefiere NO repetir (los de la ráfaga anterior: entre ráfagas seguidas cambia el protagonista); si no queda
+ *  otro, se usan igual. */
+export function npcPractice(r: () => number, count: number, avoid: ReadonlySet<string> = new Set()): NpcRace[] {
   const c = cy()
   const out: NpcRace[] = []
   let chased = false
   for (let k = 0; k < count; k++) {
     const rows = standing(), me = rows.find(x => x.me)!
-    const free = rows.filter(x => !x.me && !out.some(o => o.nick === x.nick))
+    const all = rows.filter(x => !x.me && !out.some(o => o.nick === x.nick))
+    const fresh = all.filter(x => !avoid.has(x.nick))
+    const free = fresh.length ? fresh : all
     if (!free.length) break
     const behind = free.find(x => x.pos === me.pos + 1)
     let who: Row, gain: number

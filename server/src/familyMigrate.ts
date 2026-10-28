@@ -5,8 +5,10 @@
 //     lo de antes pasa ENTERO a members[owner] (owner = DEFAULT_USER_ID = 'ian'). El saneo campo por campo y los integrantes
 //     que falten los completa parent.ts (sanitize / ensureMembers).
 //   · schedules.json v1 (el objeto entero eran las secciones de ian) → v2 { version:2, members: {[id]: secciones} }.
-// Los dos TIRAN si el archivo no se puede leer como objeto (o es un v3/v2 sin `members`): el que llama lo trata como
-// ilegible (parent: fail-closed; horarios: fail-open), igual que antes.
+//   · schedules.json v1/v2 → v3 (Ciclo del día, F1): { version:3, members: {[id]: {ranges: []}} } — lo de antes NO se
+//     convierte (ver upgradeCycleRaw).
+// Todas TIRAN si el archivo no se puede leer como objeto (o es un v3/v2 sin `members`): el que llama lo trata como
+// ilegible (parent: fail-closed; horarios/ciclo: fail-open), igual que antes.
 
 export const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v)
 
@@ -31,7 +33,8 @@ export function upgradeParentRaw(raw: unknown, owner: string): UpgradedParent {
 }
 
 export type UpgradedSchedules = { raw: { version: 2; members: Record<string, unknown> }; from: 1 | 2 }
-/** schedules.json → forma v2. En v1 el objeto entero eran las secciones de `owner`. Tira si no se puede leer. */
+/** schedules.json → forma v2. En v1 el objeto entero eran las secciones de `owner`. Tira si no se puede leer.
+ *  (Histórico desde F1: schedule.ts ya no la usa —lee con upgradeCycleRaw—; queda por sus tests y como registro del v2.) */
 export function upgradeSchedulesRaw(raw: unknown, owner: string): UpgradedSchedules {
   if (!isObject(raw)) throw new Error('schedules.json no es un objeto')
   if (raw.version === 2) {
@@ -39,4 +42,22 @@ export function upgradeSchedulesRaw(raw: unknown, owner: string): UpgradedSchedu
     return { raw: { version: 2, members: raw.members }, from: 2 }
   }
   return { raw: { version: 2, members: { [owner]: raw } }, from: 1 }
+}
+
+/* Ciclo del día (tanda F1, 28-oct; docs/USUARIOS.md §11): schedules.json v3 = { version: 3, members: { [id]: { ranges } } }.
+   Los horarios SEMANALES por sección (v1/v2: por sección, 7 días con su franja) NO se convierten a rangos: los modelos no
+   mapean (una semana por sección no es "en este rango del día, estas secciones") y adivinar podría encerrar al chico. Un
+   v1/v2 arranca con cada integrante SIN rangos (todo disponible) y el que llama deja el original UNA vez en .pre-v3. */
+export type UpgradedCycle = { raw: { version: 3; members: Record<string, unknown> }; from: 1 | 2 | 3 }
+/** schedules.json → forma v3 (sin sanear: los rangos los sanea schedule.ts con sanitizeStoredRanges). v3 se lee tal cual;
+ *  v1/v2 → `members` = cada id de `memberIds` con `{ranges: []}`. Tira si no es un objeto o es un v3 sin members. */
+export function upgradeCycleRaw(raw: unknown, memberIds: readonly string[]): UpgradedCycle {
+  if (!isObject(raw)) throw new Error('schedules.json no es un objeto')
+  if (raw.version === 3) {
+    if (!isObject(raw.members)) throw new Error('schedules.json v3 sin members')
+    return { raw: { version: 3, members: raw.members }, from: 3 }
+  }
+  const members: Record<string, unknown> = {}
+  for (const id of memberIds) if (id !== '__proto__') members[id] = { ranges: [] }
+  return { raw: { version: 3, members }, from: raw.version === 2 ? 2 : 1 }
 }

@@ -62,7 +62,7 @@
 //   POST /api/parent/presets/apply?member {id}    → {ok, config: ParentConfig de M, features: de M}
 //   POST /api/parent/tz {tz}                      → {tz}  FAMILIA (deuda 14-oct: IANA válida —se prueba construyendo un
 //                                                   Intl.DateTimeFormat; se guarda canónica— o null = Automática, la del server;
-//                                                   otra cosa → 400. GET config la trae; las franjas por sección (schedule.ts)
+//                                                   otra cosa → 400. GET config la trae; el ciclo del día (schedule.ts)
 //                                                   y la franja del Feed (feedFake.ts) de CADA integrante se evalúan en ella y
 //                                                   viaja en GET /api/schedules. No forma parte de los presets)
 //   GET  /api/parent/music                        → {tracks}  FAMILIA (After Day, porte Smarty W6; la lógica y music.json
@@ -70,12 +70,15 @@
 //   POST /api/parent/music/add {url, title?}      → {ok:true, track} | {ok:false, error}  FAMILIA (rechazos de negocio con
 //                                                   200: "No es un link de un video de YouTube" / "Ese video ya está en la lista.")
 //   POST /api/parent/music/remove {videoId}       → {ok}  FAMILIA
-//   POST /api/parent/schedules?member {patch}     → {schedules, serverNow, tz, member}  (Horarios por sección de M, W7: el
-//                                                   patch trae el horario COMPLETO de cada sección tocada —o null = sin
-//                                                   horario—; forma inválida → 400. La lógica, la validación y schedules.json
-//                                                   viven en schedule.ts)
-//   En tz, music*, unlock y lock `member` se IGNORA. After Day y los horarios NO forman parte de los presets: tocarlos no
-//   deja la configuración como "propia".
+//   GET  /api/parent/cycle?member                 → CycleResponse {cycle: {ranges}, member, serverNow, tz, demoRange}
+//                                                   (Ciclo del día de M, tanda F1 — docs/USUARIOS.md §11)
+//   POST /api/parent/cycle?member {ranges}        → CycleResponse  (la lista COMPLETA reemplaza a la anterior; inválida —ids
+//                                                   repetidos, nombre, horas, secciones, más de 8— → 400 con el motivo. La
+//                                                   lógica, la validación y schedules.json v3 viven en schedule.ts/cycleRules.ts)
+//   POST /api/parent/schedules                    → 410 {error}  (los Horarios por sección de W7, RETIRADOS por el Ciclo del
+//                                                   día: con cualquier método y sin mirar integrante; F2 retira el panel viejo)
+//   En tz, music*, unlock y lock `member` se IGNORA. After Day y el ciclo del día NO forman parte de los presets: tocarlos
+//   no deja la configuración como "propia".
 // EXTENSIONES ADITIVAS (no rompen el contrato; pendientes de formalizar en types.ts por el coordinador):
 //   · GET /api/parent/activity suma `items` y `protections` (v1; ya formalizados como opcionales) y `member` (U3).
 //   · GET /api/parent/presets: cada preset trae además `spec` = qué deja configurado (features, temas, palabras,
@@ -123,7 +126,7 @@ import { SERVER_ROOT, blackTopics, config, ov, whiteTopics, whitelistSites } fro
 import { isObject, upgradeParentRaw } from './familyMigrate'
 import { deliverRedemption, listRedemptions, redeemedCount, stockLeft } from './market'
 import { currentUser } from './requestContext'
-import { checkPatch, patchSchedules, setFamilyTzSource } from './schedule'
+import { checkCycle, cycleView, saveCycle, setFamilyTzSource } from './schedule'
 import { setProgressTzSource, summaryOf } from './progress'
 import { allSavedForParent } from './space'
 import { DEFAULT_USER_ID, actingUser, allDependents, isAdultReq, memberFor, userById } from './users'
@@ -462,7 +465,7 @@ function load(): ParentStore {
 }
 const store: ParentStore = load()
 const save = () => writeAtomic(store)
-// schedule.ts evalúa las franjas en la zona de la familia: se la PRESTA este módulo (dueño del dato) sin que schedule.ts
+// schedule.ts evalúa el ciclo del día en la zona de la familia: se la PRESTA este módulo (dueño del dato) sin que schedule.ts
 // lo importe (no hay ciclo; la función recién se llama al atender pedidos). Lo mismo progress.ts (U4: el corte de semana de
 // la XP y el día de la racha, en la misma zona que el ciclo de liga).
 setFamilyTzSource(() => store.tz)
@@ -874,19 +877,22 @@ function activity(mid: string) {
 const parseId = (b: Input): number | null => { const n = toInt(b.id); return n !== null && n > 0 ? n : null }
 
 /* ---------- rutas ---------- */
-const GETS = new Set(['/api/parent/features', '/api/parent/limits', '/api/parent/activity', '/api/parent/config', '/api/parent/alerts', '/api/parent/presets', '/api/parent/music'])
+const GETS = new Set(['/api/parent/features', '/api/parent/limits', '/api/parent/activity', '/api/parent/config', '/api/parent/alerts', '/api/parent/presets', '/api/parent/music', '/api/parent/cycle'])
 const POSTS = new Set([
   '/api/parent/unlock', '/api/parent/lock', '/api/parent/features', '/api/parent/items', '/api/parent/items/update', '/api/parent/items/archive',
   '/api/parent/deliver', '/api/parent/topics', '/api/parent/words', '/api/parent/volume', '/api/parent/alerts/seen', '/api/parent/presets/apply',
-  '/api/parent/feed-motion', '/api/parent/music/add', '/api/parent/music/remove', '/api/parent/schedules', '/api/parent/tz',
+  '/api/parent/feed-motion', '/api/parent/music/add', '/api/parent/music/remove', '/api/parent/schedules', '/api/parent/tz', '/api/parent/cycle',
 ])
 /** U3: las rutas POR INTEGRANTE (`?member=`; ausente = el primero). tz, music*, unlock y lock son de la familia; alerts y
- *  alerts/seen llevan member OPCIONAL (sin él: todos). */
-const MEMBER_GETS = new Set(['/api/parent/activity', '/api/parent/config', '/api/parent/presets'])
+ *  alerts/seen llevan member OPCIONAL (sin él: todos). F1: `cycle` (GET y POST) es por integrante; `schedules` ya no
+ *  existe (410 antes de mirar el integrante). */
+const MEMBER_GETS = new Set(['/api/parent/activity', '/api/parent/config', '/api/parent/presets', '/api/parent/cycle'])
 const MEMBER_POSTS = new Set([
   '/api/parent/features', '/api/parent/items', '/api/parent/items/update', '/api/parent/items/archive', '/api/parent/deliver',
-  '/api/parent/topics', '/api/parent/words', '/api/parent/volume', '/api/parent/feed-motion', '/api/parent/presets/apply', '/api/parent/schedules',
+  '/api/parent/topics', '/api/parent/words', '/api/parent/volume', '/api/parent/feed-motion', '/api/parent/presets/apply', '/api/parent/cycle',
 ])
+/** F1 (28-oct): el editor de horarios por sección se retiró; el cliente viejo (SchedulesPanel) le pega hasta que F2 lo saque. */
+const SCHEDULES_GONE = { error: 'Los horarios por sección fueron reemplazados por el Ciclo del día.' }
 /** El 401 de Familia sin sesión. Texto neutro (28-oct; el mismo que el de /api/mytube/admin/*): el portón de PIN y la
  *  "Zona de padres" se retiraron el 14-oct, y con un chico activo la respuesta solo dice que es del adulto. */
 const NO_SESSION = { error: 'Solo para un adulto de la familia.' }
@@ -920,6 +926,8 @@ export async function parentRoutes(req: IncomingMessage, res: ServerResponse, ur
 
   // --- Todo lo demás: con la sesión del padre (fail-closed): el ADULTO activo pasa todo; un chico, solo con el token dormido. ---
   if (!hasParentSession(req)) return send(res, 401, NO_SESSION)
+  // Horarios por sección (W7): RETIRADOS por el Ciclo del día (F1). 410 con cualquier método, sin mirar integrante ni cuerpo.
+  if (path === '/api/parent/schedules') return send(res, 410, SCHEDULES_GONE)
 
   // --- El integrante M (antes de leer el cuerpo): `?member=` o el primero; uno que no es de la familia → 400. ---
   let member = ''
@@ -942,6 +950,7 @@ export async function parentRoutes(req: IncomingMessage, res: ServerResponse, ur
       case '/api/parent/alerts': return send(res, 200, { alerts: alertList(alertsOf) })
       case '/api/parent/presets': return send(res, 200, { presets: PRESETS.map(presetView), current: mem(member).preset })
       case '/api/parent/music': return send(res, 200, { tracks: allTracks() })
+      case '/api/parent/cycle': return send(res, 200, cycleView(member)) // Ciclo del día de M (F1)
     }
     return send(res, 405, { error: 'Método no permitido: usá POST.' })
   }
@@ -1020,12 +1029,12 @@ export async function parentRoutes(req: IncomingMessage, res: ServerResponse, ur
       return send(res, 200, await addTrack(typeof b.url === 'string' ? b.url : '', typeof b.title === 'string' ? b.title : undefined))
     case '/api/parent/music/remove':
       return send(res, 200, { ok: typeof b.videoId === 'string' && b.videoId !== '' && removeTrack(b.videoId) })
-    // Horarios por sección (W7) de M: forma inválida (sección desconocida, otra cantidad de días, horas que no son HH:MM) → 400.
-    case '/api/parent/schedules': {
-      const c = checkPatch(b.patch)
+    // Ciclo del día (F1) de M: {ranges} REEMPLAZA la lista completa. Inválido (ids repetidos, nombre, horas, secciones, más de
+    // 8 rangos) → 400 con el motivo; la validación y schedules.json viven en schedule.ts / cycleRules.ts.
+    case '/api/parent/cycle': {
+      const c = checkCycle(b.ranges, memberName(member))
       if (!c.ok) return send(res, 400, { error: c.error })
-      const s = patchSchedules(member, c.value)
-      return s ? send(res, 200, { schedules: s, serverNow: Date.now(), tz: store.tz, member }) : send(res, 500, { error: 'No pude guardar los horarios. Probá de nuevo.' })
+      return saveCycle(member, c.value) ? send(res, 200, cycleView(member)) : send(res, 500, { error: 'No pude guardar el ciclo del día. Probá de nuevo.' })
     }
   }
   return send(res, 404, { error: 'not found' })

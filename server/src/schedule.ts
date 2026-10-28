@@ -1,92 +1,107 @@
-// Horarios por sección (porte Smarty W7) — el "candado por reloj" de HORARIOS.md del POC, server-side. En el POC vivía en
-// localStorage del navegador ("todo en localStorage, que el niño puede editar": nota de seguridad del informe 03 §6); acá
-// el server es la VERDAD y además ENFORCEA: fuera de la franja, la API de esa sección responde 403 (index.ts).
-// Modelo EXACTO del POC (lib/featureSchedule.ts): por sección `{ restrictionActive, week }`, `week` = 7 días indexados con
-// getDay() de JS (0 = domingo), cada día `{ open, from: "HH:MM", to: "HH:MM" }` abierto en [from, to). Sin entrada para
-// una sección (o `restrictionActive:false`) = siempre abierta. El FEED (la home) nunca se gatea.
-// CONFIG del padre (regla 9): PERSISTE en server/data/schedules.json, FUERA de /api/demo/reset.
-// U3 (27-oct, docs/USUARIOS.md §9): los horarios son POR INTEGRANTE. schedules.json v2 = { version: 2, members: { [id]:
-// secciones } } (un integrante sin entrada = sin horarios: todo abierto); el v1 (el objeto entero eran las secciones de
-// ian) migra solo al cargar (familyMigrate.ts, puro) y el original queda UNA vez en schedules.json.pre-v2.
+// Ciclo del día (tanda F1, 28-oct; docs/USUARIOS.md §11) — el "candado por reloj" de la familia, server-side. REEMPLAZA a
+// los Horarios por sección (porte Smarty W7, HORARIOS.md del POC: por sección, una franja por día de la semana) con el
+// pedido del dueño (28-oct): el padre arma RANGOS horarios del día y elige QUÉ puntos de menú están disponibles en cada
+// uno; y, para la demo, se puede elegir en qué rango está el chico. Las reglas PURAS (disponibilidad, opensAt, validación y
+// saneo) viven en src/shared/lib/cycleRules.ts (el MISMO código que usa el cliente, desde F2); acá: el archivo, el override
+// de demo, el enforcement y las rutas públicas. El server es la VERDAD y ENFORCEA: con un CHICO activo, la API de una sección no disponible responde
+// 403 (index.ts). Al adulto no lo alcanza nunca.
 //
-//   GET  /api/schedules[?member] → { schedules, serverNow, tz, member }   (público: el menú del chico y la pantalla
-//        "cerrado" pintan con esto; serverNow para evaluar la franja con la hora del SERVER y no con el reloj del cliente;
-//        tz = la zona horaria de la FAMILIA, IANA o null = la del server). Chico activo → los SUYOS (member ignorado:
-//        nunca los de un hermano). Adulto → los del integrante de `?member=` (users.ts:memberFor; ausente = el primero;
-//        uno que no es de la familia → 400); adulto sin integrantes → { schedules: {}, serverNow, tz } sin member (la
-//        TopBar del adulto lo lee para el reloj: nunca 400 sin member).
-//   POST /api/parent/schedules?member {patch} → { schedules, serverNow, tz, member }   (vive en parent.ts, con la sesión;
-//        valida con `checkPatch` y guarda con `patchSchedules(member, …)`)
+// PERSISTENCIA (config del padre, regla 9: FUERA de /api/demo/reset): server/data/schedules.json v3
+//   { version: 3, members: { [childId]: { ranges: CycleRange[] } } }   (sin entrada = sin rangos = todo disponible)
+// Un v1/v2 (los horarios semanales por sección) NO se convierte (familyMigrate.ts:upgradeCycleRaw; los modelos no mapean):
+// el original queda UNA vez en schedules.json.pre-v3 y cada integrante arranca sin rangos. Lo raro de un archivo editado a
+// mano se sanea hacia ABIERTO al leer (cycleRules.ts:sanitizeStoredRanges). Ilegible → .roto-<ms> y todo disponible.
+// ⚠ Un checkout pre-F1 con el server corriendo leería el v3 como un v1 y lo reescribiría como v2 (los rangos quedarían
+// adentro de members.ian, recuperables a mano): no hacerlo.
 //
-// Semántica fiel del POC (`isFeatureOpen`): día con open:false = cerrada todo el día; from == to = las 24 h; to < from =
-// cruza la medianoche; datos incompletos o inválidos (un archivo editado a mano) = ABIERTA ("nunca encerramos al niño por
-// un horario mal cargado; cerrar es siempre EXPLÍCITO"). `nextOpenLabel` = "se abre de nuevo a las HH:MM" solo si HOY abre
-// más tarde (v1 del POC: no mira días siguientes).
-// QUIRK FIEL (informe 03 §6): cerrar la franja NO corta el audio de fondo que ya sonaba (el server no puede, y el cliente
-// a propósito no lo toca).
-// ZONA HORARIA DE LA FAMILIA (deuda 14-oct): el día y la hora de la franja se leen en la zona IANA que eligió el padre
-// (parent.json `tz`, Zona de padres → Límites) con el helper Intl compartido con el cliente (src/shared/lib/zonedClock.ts);
-// sin zona (Automática), en la del server, como antes. El dato lo tiene parent.ts y lo PRESTA con setFamilyTzSource (así
-// este módulo no importa parent.ts: parent.ts ya importa éste).
+// OVERRIDE DE DEMO (RAM, POR USUARIO con perUser, regla 9): POST /api/demo/cycle {rangeId} → el chico se evalúa "como si el
+// reloj estuviera dentro de ese rango" (cycleRules.ts). Lo limpia POST /api/demo/reset de ESE usuario ({scope:'all'}: el de
+// todos) y también guardar un ciclo que ya no trae ese rango.
+//
+// ZONA HORARIA DE LA FAMILIA (deuda 14-oct): el minuto del día se lee en la zona IANA del padre (parent.json `tz`) con el
+// helper Intl compartido con el cliente (src/shared/lib/zonedClock.ts); sin zona (Automática), en la del server. El dato lo
+// PRESTA parent.ts con setFamilyTzSource (este módulo no importa parent.ts: parent.ts ya importa éste).
+//
+//   GET  /api/schedules[?member] → SchedulesResponse {serverNow, tz, member, cycle, demoRange}   (público)
+//        Chico activo → lo SUYO (member ignorado: nunca lo de un hermano). Adulto → el integrante de ?member= (users.ts:
+//        memberFor; ausente = el primero; ajeno → 400); adulto sin integrantes y sin member → {serverNow, tz,
+//        cycle: {ranges: []}, demoRange: null} sin member (la TopBar del adulto lo lee para el reloj: nunca 400 sin member).
+//        `cycle` = los rangos del integrante · `demoRange` = su override vigente (id de un rango que existe, o null). (El
+//        campo `schedules` de compat con el cliente de antes de F2 se RETIRÓ cuando nadie lo leía: docs/USUARIOS.md §11.)
+//   POST /api/demo/cycle[?member] {rangeId: string | null} → SchedulesResponse (la misma que GET /api/schedules daría ya)
+//        Chico activo → SU override (member ignorado). Adulto → el del integrante de ?member= (ADITIVO de F1: así el selector
+//        de la demo puede vivir también en Familia). rangeId que no es de un rango de ese integrante → 400; null = el reloj
+//        real. Sin cuerpo JSON o sin rangeId → 400.
+//   GET/POST /api/parent/cycle?member → viven en parent.ts (sesión + integrante) con cycleView / checkCycle / saveCycle.
+//   POST /api/parent/schedules → 410 (parent.ts): los horarios por sección se retiraron.
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { join } from 'node:path'
 import { SERVER_ROOT } from './config'
-import { isObject, upgradeSchedulesRaw } from './familyMigrate'
-import { DEFAULT_USER_ID, actingUser, memberFor } from './users'
-import { send } from './web'
-import { wallClock } from '../../src/shared/lib/zonedClock'
+import { type CycleRange, type SectionKey, findRange, minuteOfDay, opensAtToday, sanitizeStoredRanges, sectionAvailableAt } from '../../src/shared/lib/cycleRules'
+import { isObject, upgradeCycleRaw } from './familyMigrate'
+import { perUser } from './perUser'
+import { actingUser, allDependents, memberFor, userById } from './users'
+import { readJson, send } from './web'
 
-export type SectionKey = 'chat' | 'buscar' | 'mytube' | 'aprender' | 'tienda' | 'calendario' | 'espacio' | 'afterday'
-export interface DaySchedule { open: boolean; from: string; to: string }
-export interface FeatureSchedule { restrictionActive: boolean; week: DaySchedule[] }
-export type Schedules = Partial<Record<SectionKey, FeatureSchedule>>
-/** schedules.json v2 (U3): los horarios de cada integrante. */
-interface SchedulesFile { version: 2; members: Record<string, Schedules> }
+export type { CycleRange, SectionKey } from '../../src/shared/lib/cycleRules'
+export { checkCycle, isSectionKey } from '../../src/shared/lib/cycleRules'
 
-const KEYS: SectionKey[] = ['chat', 'buscar', 'mytube', 'aprender', 'tienda', 'calendario', 'espacio', 'afterday']
-const LABEL: Record<SectionKey, string> = {
-  chat: 'Chat', buscar: 'Buscar', mytube: 'MyTube', aprender: 'Aprender', tienda: 'Tienda', calendario: 'Calendario', espacio: 'Mi espacio', afterday: 'After Day',
-}
-const DAY_NAME = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
+/** schedules.json v3 (F1): el ciclo del día de cada integrante. */
+interface MemberCycle { ranges: CycleRange[] }
+interface CycleFile { version: 3; members: Record<string, MemberCycle> }
 const FILE = join(SERVER_ROOT, 'data', 'schedules.json')
 
-function load(): SchedulesFile {
-  if (!existsSync(FILE)) return { version: 2, members: {} } // todo abierto; no se escribe hasta el primer guardado
-  let text: string, up: ReturnType<typeof upgradeSchedulesRaw>
-  try {
-    text = readFileSync(FILE, 'utf8')
-    up = upgradeSchedulesRaw(JSON.parse(text), DEFAULT_USER_ID)
-  } catch (e) {
-    console.error('[schedule] schedules.json ilegible → todo abierto (como el POC); copia en .roto-*:', e)
-    try { renameSync(FILE, `${FILE}.roto-${Date.now()}`) } catch { /* sin copia: seguimos igual */ }
-    return { version: 2, members: {} }
-  }
-  // Lo raro se evalúa igual con isOpenIn (falla en abierto); acá solo se descarta lo que ni siquiera es un objeto. Un
-  // integrante que ya no es dependiente de nadie se conserva (no se pierde config) y no se sirve.
-  const members: Record<string, Schedules> = {}
-  for (const [id, v] of Object.entries(up.raw.members)) if (id !== '__proto__') members[id] = isObject(v) ? (v as Schedules) : {}
-  const s: SchedulesFile = { version: 2, members }
-  if (up.from === 1) {
-    try { if (!existsSync(`${FILE}.pre-v2`)) { writeFileSync(`${FILE}.pre-v2`, text); console.log('[schedule] respaldo de la versión anterior en schedules.json.pre-v2') } }
-    catch (e) { console.error('[schedule] no pude escribir el respaldo schedules.json.pre-v2:', e) }
-    if (write(s)) console.log(`[schedule] schedules.json → v2 (los horarios de antes pasan a ${DEFAULT_USER_ID})`)
-  }
-  return s
+const copyRange = (r: CycleRange): CycleRange => ({ id: r.id, name: r.name, from: r.from, to: r.to, sections: [...r.sections] })
+/** Todos los dependientes del seed sin rangos (arranque sin archivo, o archivo ilegible). */
+const emptyFile = (): CycleFile => ({ version: 3, members: Object.fromEntries(allDependents().map(id => [id, { ranges: [] }])) })
+
+function backupOnce(path: string, text: string): void {
+  try { if (!existsSync(path)) { writeFileSync(path, text); console.log(`[ciclo] respaldo de la versión anterior en ${path.split(/[\\/]/).pop()}`) } }
+  catch (e) { console.error(`[ciclo] no pude escribir el respaldo ${path}:`, e) }
 }
 
-function write(next: SchedulesFile): boolean {
+function load(): CycleFile {
+  if (!existsSync(FILE)) return emptyFile() // todo disponible; no se escribe hasta el primer guardado
+  let text: string, up: ReturnType<typeof upgradeCycleRaw>
+  try {
+    text = readFileSync(FILE, 'utf8')
+    up = upgradeCycleRaw(JSON.parse(text), allDependents())
+  } catch (e) {
+    console.error('[ciclo] schedules.json ilegible → todo disponible (fail-open); copia en .roto-*:', e)
+    try { renameSync(FILE, `${FILE}.roto-${Date.now()}`) } catch { /* sin copia: seguimos igual */ }
+    return emptyFile()
+  }
+  // Un integrante que ya no es dependiente de nadie se conserva (no se pierde config) y no se sirve.
+  const members: Record<string, MemberCycle> = {}
+  for (const [id, v] of Object.entries(up.raw.members)) {
+    if (id === '__proto__') continue
+    if (!isObject(v)) console.warn(`[ciclo] ${id}: la entrada no era un objeto → sin rangos`)
+    const s = sanitizeStoredRanges(isObject(v) ? v.ranges : undefined)
+    if (s.fixes.length) console.warn(`[ciclo] ${id}: ${s.fixes.join(' · ')}`)
+    members[id] = { ranges: s.ranges }
+  }
+  for (const id of allDependents()) if (!Object.hasOwn(members, id)) members[id] = { ranges: [] }
+  const f: CycleFile = { version: 3, members }
+  if (up.from !== 3) {
+    backupOnce(`${FILE}.pre-v3`, text)
+    if (write(f)) console.log(`[ciclo] schedules.json v${up.from} → v3 (Ciclo del día): los horarios por sección NO se convierten; cada integrante arranca sin rangos`)
+  }
+  return f
+}
+
+function write(next: CycleFile): boolean {
   try {
     const tmp = `${FILE}.tmp`
     writeFileSync(tmp, JSON.stringify(next, null, 1))
     renameSync(tmp, FILE)
     return true
   } catch (e) {
-    console.error('[schedule] no pude guardar schedules.json:', e)
+    console.error('[ciclo] no pude guardar schedules.json:', e)
     return false
   }
 }
-let file: SchedulesFile = load()
+let file: CycleFile = load()
 
 /* ---------- la zona horaria de la familia (la presta parent.ts, dueño del dato) ---------- */
 let tzSource: () => string | null = () => null
@@ -94,133 +109,75 @@ export function setFamilyTzSource(fn: () => string | null): void { tzSource = fn
 /** La zona IANA de la familia, o null = la del server. */
 export const familyTzNow = (): string | null => tzSource()
 
-/** Los horarios de un integrante (sin entrada = ninguno: todo abierto). */
-export function schedulesOf(member: string): Schedules { return Object.hasOwn(file.members, member) ? file.members[member] : {} }
-export function isSectionKey(k: string): k is SectionKey { return (KEYS as string[]).includes(k) }
+/* ---------- el ciclo de cada integrante ---------- */
+const rangesOf = (member: string): readonly CycleRange[] => (Object.hasOwn(file.members, member) ? file.members[member].ranges : [])
+/** Los rangos de un integrante (copia; sin entrada = ninguno: todo disponible). */
+export function cycleOf(member: string): CycleRange[] { return rangesOf(member).map(copyRange) }
 
-/* ---------- evaluación: port EXACTO de isFeatureOpen / nextOpenLabel del POC (sin los interruptores beta
-   learnActivo/searchActivo, que en Innerith no existen: el on-off del padre es otra capa, parent.ts) ---------- */
-
-/** Default del editor (defaultSchedule del POC): los 7 días abiertos de 08:00 a 20:00. */
-const DEFAULT_DAY: DaySchedule = { open: true, from: '08:00', to: '20:00' }
-
-function parseHHMM(s: string): number | null {
-  const m = /^(\d{1,2}):(\d{2})$/.exec((s ?? '').trim())
-  if (!m) return null
-  const h = +m[1], min = +m[2]
-  if (h > 23 || min > 59) return null
-  return h * 60 + min
-}
-
-/** ¿Abierta en `now` según este horario? Fail-safe: sin restricción o con datos incompletos/inválidos ⇒ abierta.
- *  `tz` = la zona de la familia (null/ausente = la del server). */
-export function isOpenIn(sched: FeatureSchedule | undefined, now: Date, tz?: string | null): boolean {
-  try {
-    if (!sched || !sched.restrictionActive) return true
-    const week = sched.week
-    if (!week || typeof week !== 'object') return true // forma inválida (ej. week ausente) → fail-safe abierto
-    const clock = wallClock(now, tz)
-    const day = (week as Record<number, DaySchedule | undefined>)[clock.day]
-    if (!day) return true // día sin datos → no encerrar
-    if (!day.open) return false // día explícitamente cerrado
-    const from = parseHHMM(day.from), to = parseHHMM(day.to)
-    if (from == null || to == null) return true // datos inválidos → fail-safe abierto
-    const cur = clock.minutes
-    if (to <= from) return cur >= from || cur < to // ventana que cruza medianoche (o 24 h si from == to)
-    return cur >= from && cur < to
-  } catch {
-    return true // dato corrupto: NUNCA encierra al chico (fail-open, el contrato del POC)
+/** Reemplaza la lista COMPLETA de rangos de UN integrante (ya validada con checkCycle). Escribe el archivo entero (los demás
+ *  integrantes intactos). Si su override de demo apuntaba a un rango que ya no está, deja de regir. null si no se pudo
+ *  escribir (no cambia nada). */
+export function saveCycle(member: string, ranges: readonly CycleRange[]): CycleRange[] | null {
+  const next: CycleFile = { version: 3, members: { ...file.members, [member]: { ranges: ranges.map(copyRange) } } }
+  if (!write(next)) return null
+  file = next
+  const d = demo.of(member)
+  if (d.rangeId && !ranges.some(r => r.id === d.rangeId)) {
+    console.log(`[ciclo] ${member}: el rango del override de demo («${d.rangeId}») ya no está → vuelve el reloj real`)
+    d.rangeId = null
   }
+  console.log(`[ciclo] ciclo de ${member} guardado → ${ranges.length ? ranges.map(r => `${r.name} ${r.from}–${r.to} [${r.sections.join(',') || '—'}]`).join(' · ') : 'sin rangos (todo disponible)'}`)
+  return cycleOf(member)
 }
-/** "Se abre de nuevo a las HH:MM" si HOY abre más tarde; null si no se puede precisar. */
-export function nextOpenLabelIn(sched: FeatureSchedule | undefined, now: Date, tz?: string | null): string | null {
-  try {
-    if (!sched || !sched.restrictionActive) return null
-    const clock = wallClock(now, tz)
-    const day = (sched.week as Record<number, DaySchedule | undefined> | undefined)?.[clock.day]
-    if (day?.open) {
-      const from = parseHHMM(day.from)
-      const cur = clock.minutes
-      if (from != null && cur < from) return day.from
-    }
-    return null
-  } catch { return null }
-}
-/** ¿La sección está abierta AHORA para este integrante (reloj del server, en la zona de la familia)? */
-export function isOpen(key: SectionKey, member: string, now: Date = new Date()): boolean { return isOpenIn(schedulesOf(member)[key], now, tzSource()) }
-export function nextOpenLabel(key: SectionKey, member: string, now: Date = new Date()): string | null { return nextOpenLabelIn(schedulesOf(member)[key], now, tzSource()) }
 
-/* ---------- edición del padre ---------- */
+/* ---------- override de DEMO (RAM, por usuario: lo limpia /api/demo/reset) ---------- */
+const demo = perUser<{ rangeId: string | null }>(() => ({ rangeId: null }))
+/** El override vigente de un integrante: el id de un rango QUE EXISTE en su ciclo, o null (sin override = reloj real). */
+export function demoRangeOf(member: string): string | null {
+  const id = demo.of(member).rangeId
+  return id && findRange(rangesOf(member), id) ? id : null
+}
+/** Vuelve al reloj real el override de un usuario; sin id, el de TODOS (POST /api/demo/reset {scope:'all'}). */
+export function resetCycleDemo(userId?: string): void { demo.reset(userId) }
+
 type Check<T> = { ok: true; value: T } | { ok: false; error: string }
-const fail = (error: string): { ok: false; error: string } => ({ ok: false, error })
-/** Un patch por sección: el horario COMPLETO de esa sección, o null = "sin horario" (se borra la entrada). */
-export type SchedulePatch = Partial<Record<SectionKey, FeatureSchedule | null>>
-
-/** "8:00" → "08:00" (se guarda canónico: HH:MM con dos dígitos; parseHHMM ya lo validó). */
-const hhmm = (s: string) => { const [h, m] = s.trim().split(':'); return `${h.padStart(2, '0')}:${m}` }
-/** Valida la forma del patch (cada sección conocida; 7 días; open booleano; from/to HH:MM válidas). Todo o nada. */
-export function checkPatch(raw: unknown): Check<SchedulePatch> {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return fail('Los horarios tienen que venir como un objeto {sección: horario}.')
-  const out: SchedulePatch = {}
-  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
-    if (!isSectionKey(k)) return fail(`No hay una sección «${k.slice(0, 40)}» (son: ${KEYS.join(', ')}).`)
-    if (v === null) { out[k] = null; continue }
-    const s = v as Record<string, unknown>
-    if (!s || typeof s !== 'object' || Array.isArray(s)) return fail(`El horario de ${LABEL[k]} tiene que ser un objeto.`)
-    if (typeof s.restrictionActive !== 'boolean') return fail(`Falta si ${LABEL[k]} se restringe por horario (restrictionActive).`)
-    if (!Array.isArray(s.week) || s.week.length !== 7) return fail(`El horario de ${LABEL[k]} tiene que traer los 7 días (0 = domingo … 6 = sábado).`)
-    const week: DaySchedule[] = []
-    for (let d = 0; d < 7; d++) {
-      const day = s.week[d] as Record<string, unknown> | null
-      if (!day || typeof day !== 'object' || typeof day.open !== 'boolean') return fail(`${LABEL[k]}, ${DAY_NAME[d]}: falta si está abierto.`)
-      if (typeof day.from !== 'string' || typeof day.to !== 'string' || parseHHMM(day.from) == null || parseHHMM(day.to) == null) {
-        return fail(`${LABEL[k]}, ${DAY_NAME[d]}: las horas tienen que ser HH:MM (de 00:00 a 23:59).`)
-      }
-      week.push({ open: day.open, from: hhmm(day.from), to: hhmm(day.to) })
-    }
-    out[k] = { restrictionActive: s.restrictionActive, week }
+function setDemoRange(member: string, raw: unknown): Check<string | null> {
+  const name = userById(member)?.name ?? member
+  if (raw === null) {
+    demo.of(member).rangeId = null
+    console.log(`[ciclo] demo: ${member} vuelve al reloj real`)
+    return { ok: true, value: null }
   }
-  return { ok: true, value: out }
+  if (typeof raw !== 'string' || !raw.trim()) return { ok: false, error: 'rangeId tiene que ser el id de un rango del ciclo, o null para volver al reloj real.' }
+  const r = findRange(rangesOf(member), raw.trim())
+  if (!r) return { ok: false, error: `Ese rango no está en el ciclo del día de ${name}.` }
+  demo.of(member).rangeId = r.id
+  console.log(`[ciclo] demo: ${member} pasa a estar en «${r.name}» (${r.from}–${r.to})`)
+  return { ok: true, value: r.id }
 }
 
-const isDefaultWeek = (w: DaySchedule[]) => w.length === 7 && w.every(d => d.open === DEFAULT_DAY.open && d.from === DEFAULT_DAY.from && d.to === DEFAULT_DAY.to)
-
-/** Merge por sección sobre los horarios de UN integrante: cada sección del patch REEMPLAZA su horario completo. null —o
- *  "sin restringir" con la semana de fábrica, que es lo mismo que no tener entrada— la borra; "sin restringir" con una
- *  semana PROPIA se guarda, porque el editor del POC la recuerda al volver a tildar. Escribe el archivo ENTERO (los demás
- *  integrantes intactos). null si no se pudo escribir (no cambia nada). */
-export function patchSchedules(member: string, patch: SchedulePatch): Schedules | null {
-  const next: Schedules = { ...schedulesOf(member) }
-  for (const k of Object.keys(patch) as SectionKey[]) {
-    if (!isSectionKey(k)) continue
-    const v = patch[k]
-    if (!v || (!v.restrictionActive && isDefaultWeek(v.week))) delete next[k]
-    else next[k] = { restrictionActive: v.restrictionActive, week: v.week.map(d => ({ open: d.open, from: d.from, to: d.to })) }
-  }
-  const nextFile: SchedulesFile = { version: 2, members: { ...file.members, [member]: next } }
-  if (!write(nextFile)) return null
-  file = nextFile
-  const on = KEYS.filter(k => next[k]?.restrictionActive)
-  console.log(`[schedule] horarios de ${member} guardados → ${on.length ? `restringidas: ${on.join(', ')}` : 'ninguna sección restringida'}`)
-  return next
+/* ---------- evaluación (reloj del server en la ZONA DE LA FAMILIA + el override del integrante) ---------- */
+/** ¿La sección está disponible AHORA para este integrante? */
+export function isOpen(key: SectionKey, member: string, now: Date = new Date()): boolean {
+  return sectionAvailableAt(rangesOf(member), key, minuteOfDay(now, tzSource()), demoRangeOf(member))
 }
 
 /* ---------- ENFORCEMENT: a qué sección pertenece cada pedido de API (lo usa index.ts antes de rutear) ----------
-   Mapa del contrato W7, afinado para no cerrar lo que el POC NO cerraba: en el POC el horario gatea la SECCIÓN (su vista);
-   el lector, el reproductor y el selector de carpeta son overlays del shell y siguen andando con la sección cerrada. Por eso:
+   El mismo mapa de W7 (el ciclo gatea las mismas 8 secciones): en el POC el horario gatea la SECCIÓN (su vista); el lector,
+   el reproductor y el selector de carpeta son overlays del shell y siguen andando con la sección cerrada. Por eso:
    · buscar = solo /api/search/* (las búsquedas). /api/article (el lector) y /api/video (el reproductor) NO se gatean: los
      usan el Feed, Mi espacio, el chat, MyTube y las postas de lectura de Aprender.
    · espacio = solo el Drive (/api/space/drive*: la vista, la papelera, mover, borrar, restaurar), MENOS crear carpeta
      (POST /api/space/drive/folder), que también usa la hoja "¿Dónde lo guardás?" (como el FolderPicker del POC). Seguir
      canales y Mis listas (/api/space/follow, /api/space/playlist*) son de MyTube; guardar (/api/space/save) y el árbol de
      carpetas (/api/space/folders) son del selector compartido.
-   · calendario = /api/calendar: la sección Calendario DEL CHICO (cada usuario lee ahí SUS clases; los horarios solo se
-     miran con un chico activo —index.ts, 14-oct—, así que al adulto no lo alcanzan).
-   · /api/mentors* (tanda U2: Buscar → Mentores y Familia → Mentorías, SOLO del adulto) NO es de ninguna sección: no
-     matchea ningún prefijo de acá —ni siquiera el de buscar, que es /api/search/*— y así tiene que quedar: como
-     /api/mytube/admin/*, lo del adulto siempre es alcanzable (y un chico igual recibe 401 ahí).
-   · NUNCA se gatean: /api/feed*, /api/friends*, /api/progress*, /api/leagues*, /api/parent/*, /api/demo/*, /api/me,
-     /api/identity, /api/video, /api/article, /api/schedules, /api/mentors*, /api/mytube/admin/*. */
+   · calendario = /api/calendar: la sección Calendario DEL CHICO (cada usuario lee ahí SUS clases; el ciclo solo se mira
+     con un chico activo —index.ts—, así que al adulto no lo alcanza).
+   · /api/mentors* (tanda U2: SOLO del adulto) NO es de ninguna sección: no matchea ningún prefijo de acá —ni siquiera el de
+     buscar, que es /api/search/*— y así tiene que quedar: como /api/mytube/admin/*, lo del adulto siempre es alcanzable.
+   · NUNCA se gatean: /api/feed*, /api/friends*, /api/progress*, /api/leagues*, /api/parent/*, /api/demo/* (también
+     /api/demo/cycle: el selector de la demo tiene que poder sacarte de un rango), /api/me, /api/identity, /api/video,
+     /api/article, /api/schedules, /api/mentors*, /api/mytube/admin/*. */
 export function sectionForApi(pathname: string): SectionKey | null {
   const p = pathname.replace(/\/+$/, '')
   const under = (pre: string) => p === pre || p.startsWith(pre + '/')
@@ -236,23 +193,59 @@ export function sectionForApi(pathname: string): SectionKey | null {
   return null
 }
 
-/** La sección CERRADA para este integrante a la que pertenece este pedido (con el "se abre a las…"), o null si pasa. */
+/** La sección NO DISPONIBLE para este integrante a la que pertenece este pedido (con el "se abre a las…" de hoy), o null si
+ *  pasa. Quien llama decide que solo rige con un CHICO activo y que el apagado de la funcionalidad gana (index.ts). */
 export function closedSectionFor(pathname: string, member: string, now: Date = new Date()): { key: SectionKey; opensAt: string | null } | null {
   const key = sectionForApi(pathname)
-  if (!key || isOpen(key, member, now)) return null
-  return { key, opensAt: nextOpenLabel(key, member, now) }
+  if (!key) return null
+  const ranges = rangesOf(member), cur = minuteOfDay(now, tzSource()), d = demoRangeOf(member)
+  if (sectionAvailableAt(ranges, key, cur, d)) return null
+  return { key, opensAt: opensAtToday(ranges, key, cur, d) }
 }
 
+/* ---------- vistas ---------- */
+type SchedulesView = {
+  serverNow: number; tz: string | null; member?: string
+  cycle: { ranges: CycleRange[] }; demoRange: string | null
+}
+/** SchedulesResponse de un integrante (sin integrante: la vacía del adulto sin dependientes). */
+function schedulesView(member: string | undefined, now: Date = new Date()): SchedulesView {
+  const tz = tzSource()
+  if (!member) return { serverNow: now.getTime(), tz, cycle: { ranges: [] }, demoRange: null }
+  return { serverNow: now.getTime(), tz, member, cycle: { ranges: cycleOf(member) }, demoRange: demoRangeOf(member) }
+}
+/** CycleResponse de GET/POST /api/parent/cycle (parent.ts). */
+export function cycleView(member: string): { cycle: { ranges: CycleRange[] }; member: string; serverNow: number; tz: string | null; demoRange: string | null } {
+  return { cycle: { ranges: cycleOf(member) }, member, serverNow: Date.now(), tz: tzSource(), demoRange: demoRangeOf(member) }
+}
+
+/* ---------- rutas públicas ---------- */
 export async function scheduleRoutes(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
-  if (url.pathname === '/api/schedules' && req.method === 'GET') {
-    const me = actingUser(req)
-    const reply = (member?: string) => send(res, 200, { schedules: member ? schedulesOf(member) : {}, serverNow: Date.now(), tz: tzSource(), ...(member ? { member } : {}) })
-    // Un chico ve SUS horarios (member ignorado). El adulto: los del integrante pedido; sin integrantes y sin member, nada
-    // (lee esto para el reloj de la TopBar: nunca 400 sin member).
-    if (me.kind === 'child') return reply(me.id)
-    if (!me.dependents?.length && !(url.searchParams.get('member') ?? '').trim()) return reply()
+  const me = actingUser(req)
+  const path = url.pathname.replace(/\/+$/, '')
+  // De quién es este pedido: un chico, lo suyo (member ignorado); el adulto, el integrante de ?member= (sin integrantes y
+  // sin member: nadie, la respuesta vacía; nunca 400 sin member en el GET).
+  const whose = (): { ok: true; id?: string } | { ok: false; status: number; error: string } => {
+    if (me.kind === 'child') return { ok: true, id: me.id }
+    if (!me.dependents?.length && !(url.searchParams.get('member') ?? '').trim()) return { ok: true }
     const m = memberFor(req, url)
-    return m.ok ? reply(m.id) : send(res, m.status, { error: m.error })
+    return m.ok ? { ok: true, id: m.id } : m
+  }
+  if (path === '/api/schedules') {
+    if (req.method !== 'GET') return send(res, 405, { error: 'Método no permitido: usá GET.' })
+    const w = whose()
+    return w.ok ? send(res, 200, schedulesView(w.id)) : send(res, w.status, { error: w.error })
+  }
+  if (path === '/api/demo/cycle') {
+    if (req.method !== 'POST') return send(res, 405, { error: 'Método no permitido: usá POST.' })
+    const w = whose()
+    if (!w.ok) return send(res, w.status, { error: w.error })
+    if (!w.id) return send(res, 400, { error: 'No tenés integrantes en tu familia para configurar.' })
+    let b: unknown
+    try { b = await readJson<unknown>(req) } catch { return send(res, 400, { error: 'Pedido inválido (se esperaba un objeto JSON).' }) }
+    if (!isObject(b) || !('rangeId' in b)) return send(res, 400, { error: 'Falta rangeId: el id de un rango del ciclo, o null para volver al reloj real.' })
+    const r = setDemoRange(w.id, b.rangeId)
+    return r.ok ? send(res, 200, schedulesView(w.id)) : send(res, 400, { error: r.error })
   }
   return send(res, 404, { error: 'No existe.' })
 }
