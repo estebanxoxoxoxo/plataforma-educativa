@@ -155,6 +155,7 @@
 .hf-evt svg{width:12px;height:12px}
 .hf-evt[data-icon="streak"]{--hf-evt:#C24B1F}
 .hf-evt[data-icon="badge"]{--hf-evt:#0B6B66}
+.hf-evt[data-icon="unit"]{--hf-evt:#5431B3}
 .hf-evt[data-icon="route"]{--hf-evt:#2843A8}
 .hf-ft{display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;min-width:0}
 .hf-ft .rbar,.hf-act .rbar{margin-top:0}

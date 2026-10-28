@@ -3,7 +3,7 @@
 // módulo + useSyncExternalStore (el patrón de features.ts), con UNA entrada por integrante: los paneles de una misma solapa
 // comparten la lectura (antes eran cinco GET iguales) y al volver a un integrante se ve lo último conocido mientras se
 // relee. NADA OPTIMISTA: solo entra lo que respondió el server (una lectura o la respuesta de un guardado: patch).
-// Los stores públicos del chico (features.ts, limits.ts, schedules.ts) son OTRA cosa: lo que rige para el usuario ACTIVO.
+// Los stores públicos del chico (features.ts, limits.ts, cycle.ts) son OTRA cosa: lo que rige para el usuario ACTIVO.
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import { api } from '../../../api';
 import type { ParentConfig } from '../../../api/types';

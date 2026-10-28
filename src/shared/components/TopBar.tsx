@@ -6,7 +6,7 @@ import { useUser } from '../../hooks/user';
 import { chatFriendsChanged, openChat, useChatDock } from '../../sections/friends/lib/chatDock';
 import { useSocial } from '../../sections/friends/lib/social';
 import { useFeatures } from '../../sections/parent/lib/features';
-import { useSchedules } from '../../sections/parent/lib/schedules';
+import { useCycle } from '../../sections/parent/lib/cycle';
 import { wallClock } from '../lib/zonedClock';
 import { Avatar, lookFor } from './Avatar';
 import { IcBell, IcCheck, IcNavLeagues, IcSwap } from './icons';
@@ -60,7 +60,7 @@ function useDismiss(open: boolean, ref: RefObject<HTMLElement | null>, setOpen: 
 export function TopBar() {
   const user = useUser();
   const features = useFeatures();
-  const sched = useSchedules(); // tz de la familia + delta con el server, para el reloj
+  const sched = useCycle(); // tz de la familia + delta con el server, para el reloj
   const dock = useChatDock();
   const [league, setLeague] = useState<AssignedLeague | null>(null);
   const [ec, setEc] = useState<number | null>(null);

@@ -5,7 +5,7 @@ import type { AvatarLook, Identity, User } from '../../api/types';
 import { useUser } from '../../hooks/user';
 import { MEDAL_INFO, lastWeekLabel, type Medal } from '../../sections/leagues/lib/cycle';
 import { useFeatures } from '../../sections/parent/lib/features';
-import { isSectionOpen, refreshSchedules, useSchedules } from '../../sections/parent/lib/schedules';
+import { isSectionOpen, refreshCycle, useCycle } from '../../sections/parent/lib/cycle';
 import { ACCESSORIES, AVATAR_COLORS, AVATAR_VARIANT_COUNT, Avatar, accessoryById, avatarVariantName } from './Avatar';
 import { IcClose } from './icons';
 
@@ -156,7 +156,7 @@ export function ProfileCard({ user }: { user?: User }) {
 type Wardrobe = { state: 'loading' | 'ok' | 'off' | 'closed' | 'error'; owned: string[] };
 function useWardrobe(): Wardrobe {
   const tienda = useFeatures()?.tienda; // con un adulto activo, siempre prendida (useFeatures: los candados son del chico)
-  const sched = useSchedules();
+  const sched = useCycle();
   // Los horarios también son del chico: al adulto la Tienda nunca le cierra (docs/USUARIOS.md §4; el server no le da 403).
   const closed = useUser()?.kind !== 'adult' && !isSectionOpen('tienda', sched);
   const [w, setW] = useState<Wardrobe>({ state: 'loading', owned: [] });
@@ -170,7 +170,7 @@ function useWardrobe(): Wardrobe {
       (e) => {
         if (!alive) return;
         if (!(e instanceof ApiError && e.status === 403)) { setW({ state: 'error', owned: [] }); return; }
-        void refreshSchedules().then(() => { if (alive) setW({ state: isSectionOpen('tienda') ? 'error' : 'closed', owned: [] }); });
+        void refreshCycle().then(() => { if (alive) setW({ state: isSectionOpen('tienda') ? 'error' : 'closed', owned: [] }); });
       },
     );
     return () => { alive = false; };

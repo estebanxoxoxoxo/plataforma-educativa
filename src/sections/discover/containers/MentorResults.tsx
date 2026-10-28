@@ -3,7 +3,7 @@ import { api } from '../../../api';
 import type { Mentor, MentorContract, MentorPlan, MentorsResponse, TeacherSlot } from '../../../api/types';
 import { useUser } from '../../../hooks/user';
 import { firstClass, forWho, mentorMatches } from '../../../shared/lib/mentors';
-import { useSchedules } from '../../parent/lib/schedules';
+import { useCycle } from '../../parent/lib/cycle';
 import { MentorCard } from '../cards/MentorCard';
 import { MentorSheet, type MentorSheetState } from '../components/MentorSheet';
 
@@ -28,7 +28,7 @@ export function MentorResults({ q, agendar, onAgendarUsed }: {
   /** Ya se usó `agendar`: el que lo pasó lo saca de la URL. */ onAgendarUsed: () => void;
 }) {
   const me = useUser()?.id ?? '';
-  const tz = useSchedules().tz; // la zona de la familia (la lee el store desde que monta la barra superior)
+  const tz = useCycle().tz; // la zona de la familia (la lee el store desde que monta la barra superior)
   /** La zona vigente cuando vuelve el agendado (el `schedule` en vuelo es de un render anterior). */
   const tzNow = useRef(tz);
   useEffect(() => { tzNow.current = tz; });

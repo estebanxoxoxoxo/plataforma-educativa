@@ -4,11 +4,11 @@
 import type {
   ActivityResultInput, ActivityResultRow,
   AfterDayTrack, ArticleResponse, AuditFact, AuditResult, AvatarLook, CalendarEvent, ChatReply, ChatTurn, CloseWeekResult, ConnectResult, ContractResult, DriveFolder, DriveItem, DriveView,
-  DefinitionRecipeData, EcTx, FamilyLeague, FeatureSchedule, FeedMotion, FeedReaction, FeedResponse, FolderNode, FriendThread, Friend, FriendRequest, GiftResult, Identity, ImportBundleResult, LearnRouteData, LearnRouteListItem,
+  CycleResponse, CycleSaveRequest, DefinitionRecipeData, DemoCycleRequest, EcTx, FamilyLeague, FeedMotion, FeedReaction, FeedResponse, FolderNode, FriendThread, Friend, FriendRequest, GiftResult, Identity, ImportBundleResult, LearnRouteData, LearnRouteListItem,
   MentorPlan, MentorsResponse, MtAdminChannel, MtAdminState, MtChannelCard, MtChannelDetail, MtIngestResult, MtVideo, NewMarketItem, PeopleSearchResponse, RouteBundle, SendMessageResult,
   ParentActivity, ParentAlert, ParentConfig, ParentFeatures, ParentItemPatch, ParentPreset, ParentTopics, ParentVolume, ParentWords,
   AssignedLeague, GeoRanking, GeoScope, ImageResult, LeagueStanding, MarketItem, PageResult, Playlist, PlaylistDetail,
-  ProgressSummary, Redemption, SavePayload, ScheduleResult, SearchResponse, SchedulesResponse, SectionKey, SimulateNpcsResult, Tab, TeacherSlot, TrashView, User, UserInfo, Video, VideoResult,
+  ProgressSummary, Redemption, SavePayload, ScheduleResult, SearchResponse, SchedulesResponse, SimulateNpcsResult, Tab, TeacherSlot, TrashView, User, UserInfo, Video, VideoResult,
 } from './types';
 
 export type { FriendThread } from './types';
@@ -285,15 +285,25 @@ export const api = {
          route-lab se llama DIRECTO desde el navegador como en el POC (URL configurable en la vista,
          default http://localhost:5203): no lleva claves. La auditoría de facts sí va por NUESTRO
          server (misma lógica del factAudit del POC; claves jamás al cliente). ---- */
-  /* ---- After Day (W6) + Horarios (W7): server/src/{afterday,schedule}.ts ---- */
+  /* ---- After Day (W6) + Ciclo del día (F1/F2, docs/USUARIOS.md §11): server/src/{afterday,schedule}.ts ---- */
   afterDay: () => http<{ tracks: AfterDayTrack[] }>('/api/afterday'),
-  /** PÚBLICO: chico → los suyos; adulto → los del integrante `member` (sin member, el primero; lo lee el reloj de la TopBar). */
+  /** PÚBLICO: el ciclo del día (`cycle` + `demoRange`, con `serverNow` y la `tz` de la familia). Chico → el suyo (member
+   *  ignorado); adulto → el del integrante `member` (sin member, el primero; lo lee también el reloj de la TopBar). (El
+   *  campo `schedules` de compat de F1 ya no existe: se retiró cuando el cliente dejó de leerlo.) */
   schedules: (member?: string) => http<SchedulesResponse>(withMember('/api/schedules', member)),
   parentMusic: () => http<{ tracks: AfterDayTrack[] }>('/api/parent/music'),
   parentMusicAdd: (youtubeUrl: string, title?: string) =>
     http<{ ok: true; track: AfterDayTrack } | { ok: false; error: string }>('/api/parent/music/add', { url: youtubeUrl, title }),
   parentMusicRemove: (videoId: string) => http<{ ok: boolean }>('/api/parent/music/remove', { videoId }),
-  parentSchedules: (patch: Partial<Record<SectionKey, FeatureSchedule>>, member?: string) => http<SchedulesResponse>(withMember('/api/parent/schedules', member), { patch }),
+  /** Familia → Ciclo del día (sesión del adulto): el ciclo del integrante `member`. */
+  parentCycle: (member?: string) => http<CycleResponse>(withMember('/api/parent/cycle', member)),
+  /** Guarda la lista COMPLETA de rangos del integrante (reemplaza a la anterior; los nuevos sin id). 400 con el motivo. */
+  parentCycleSave: (ranges: CycleSaveRequest['ranges'], member?: string) =>
+    http<CycleResponse>(withMember('/api/parent/cycle', member), { ranges } satisfies CycleSaveRequest),
+  /** DEMO (regla 9): "estás en este rango" (null = reloj real). Chico → el suyo; adulto → el del integrante `member`. RAM por
+   *  usuario: el F5 de ese chico lo limpia. Responde lo mismo que GET /api/schedules daría ya (lista para adoptar). */
+  demoCycle: (rangeId: string | null, member?: string) =>
+    http<SchedulesResponse>(withMember('/api/demo/cycle', member), { rangeId } satisfies DemoCycleRequest),
 
   /** Resultados de Learn (W3): todas las filas (el cliente deriva progreso/urgencia por target, como el POC). */
   learnResults: () => http<{ rows: ActivityResultRow[] }>('/api/learn/results'),

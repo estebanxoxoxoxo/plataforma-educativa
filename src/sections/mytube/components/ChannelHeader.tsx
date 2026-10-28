@@ -3,9 +3,11 @@ import type { MtChannel } from '../../../api/types';
 import { IcMtPlus } from './MtIcons';
 
 /** Cabecera de la vista de canal (ChannelView del POC): avatar, título (o «Canal»), @handle, Seguir/Siguiendo y la
- *  descripción curada en dos líneas que se expande al tocarla. Sin suscriptores (el POC no los muestra). */
+ *  descripción curada en dos líneas que se expande al tocarla. Sin suscriptores (el POC no los muestra).
+ *  La reusa la vista de un canal de Familia → MyTube (tanda F2) SIN `onFollow` (seguir es de cada uno, no del panel): sin él
+ *  no hay botón. El MyTube del chico siempre lo pasa. */
 export function ChannelHeader({ channel, followed, descOpen, onFollow, onToggleDesc }: {
-  channel: MtChannel | null; followed: boolean; descOpen: boolean; onFollow: () => void; onToggleDesc: () => void;
+  channel: MtChannel | null; followed: boolean; descOpen: boolean; onFollow?: () => void; onToggleDesc: () => void;
 }) {
   return (
     <>
@@ -16,9 +18,11 @@ export function ChannelHeader({ channel, followed, descOpen, onFollow, onToggleD
         <div className="mt-chmeta">
           <h2>{channel?.title ?? 'Canal'}</h2>
           {channel?.handle && <p className="mt-handle">{channel.handle}</p>}
-          <button type="button" className={`mt-follow${followed ? ' on' : ''}`} aria-pressed={followed} onClick={onFollow}>
-            {followed ? <><IcCheck />Siguiendo</> : <><IcMtPlus />Seguir</>}
-          </button>
+          {onFollow && (
+            <button type="button" className={`mt-follow${followed ? ' on' : ''}`} aria-pressed={followed} onClick={onFollow}>
+              {followed ? <><IcCheck />Siguiendo</> : <><IcMtPlus />Seguir</>}
+            </button>
+          )}
         </div>
       </div>
       {channel?.desc && (

@@ -22,7 +22,7 @@ import { FeedSkeleton } from '../components/FeedSkeleton';
 import { NewsPill } from '../components/NewsPill';
 import { PinnedZone } from '../components/PinnedZone';
 import { SimulateNpcsChip } from '../components/SimulateNpcsChip';
-import { serverDate, useSchedules } from '../../parent/lib/schedules';
+import { serverDate, useCycle } from '../../parent/lib/cycle';
 import { daypartLine } from '../lib/daypart';
 import { shelfAllUrl } from '../lib/extras';
 import { type Highlight, type PinPhase, mergeContacts } from '../lib/highlights';
@@ -72,7 +72,7 @@ export function FeedPage() {
   // adulto ni se piden. El chip "Simular NPCs" sigue con Amigos (al adulto le trae la carrera de SU liga).
   const socialOn = useSocial() === true;
   const reduced = useReducedMotion();
-  const sched = useSchedules(); // hora del server + zona de la familia: el subtítulo dice lo mismo que la edición
+  const sched = useCycle(); // hora del server + zona de la familia: el subtítulo dice lo mismo que la edición
   const view = useRef<HTMLElement>(null);
 
   const [items, setItems] = useState<FeedItem[] | null>(null);

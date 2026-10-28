@@ -31,7 +31,10 @@
 .ad-card.is-on .ad-play{background:#fff}
 .ad-card.is-on .ad-play svg{animation:ad-pulse 1.4s ease-in-out infinite}
 @keyframes ad-pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.ad-t{padding:10px 12px 12px;padding-right:62px;font-size:13.5px;font-weight:800;line-height:1.3;color:#1B2238;overflow-wrap:anywhere;
+/* El título: 2 líneas como mucho. El aire va en MARGEN, no en padding: el line-clamp recorta en el borde del padding, así
+   que con padding abajo asomaba el pedazo de arriba de una 3ª línea (herencia W6). align-self:start + max-height = la caja
+   nunca pasa de 2 líneas aunque la fila de la grilla venga más alta (la card del lado con título más largo). */
+.ad-t{align-self:start;margin:10px 62px 12px 12px;max-height:2.6em;font-size:13.5px;font-weight:800;line-height:1.3;color:#1B2238;overflow-wrap:anywhere;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .ad-card.is-on .ad-t{color:#5B36B8}
 
@@ -69,3 +72,7 @@ i.ad-sk{display:block;height:12px;margin:12px 12px 14px;width:70%;border-radius:
   .ad-card,.ad-th img,.ad-th::after{transition:none}
   .ad-card.is-on .ad-play svg,.ad-sk{animation:none}
 }
+
+/* ---- una acción más en la esquina de la tarjeta (Familia → After Day: «Quitar», tanda F2). El After Day del chico no la
+   usa. Arriba a la derecha, sobre la miniatura (no pisa el play del centro ni el «Ver» del pie). ---- */
+.ad-corner{position:absolute;top:8px;right:8px;z-index:2;display:flex}

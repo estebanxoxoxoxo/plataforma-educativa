@@ -1,7 +1,7 @@
 /* Hora "de pared" de un instante en una ZONA HORARIA IANA (tanda "Deudas técnicas", 14-oct: la zona horaria de la familia).
    Pura (solo Intl, sin estado de app): la usan el SERVER (server/src/schedule.ts: franjas por sección y "se abre a las…";
-   server/src/feedFake.ts: la franja del Feed) y el CLIENTE (sections/parent/lib/scheduleRules.ts, el espejo de los
-   horarios) — el mismo código en los dos lados, como el núcleo del registry de Learn.
+   server/src/feedFake.ts: la franja del Feed) y el CLIENTE (las reglas del Ciclo del día, src/shared/lib/cycleRules.ts, que
+   comparten server y cliente desde F2) — el mismo código en los dos lados, como el núcleo del registry de Learn.
    Sin zona (null/undefined) = el reloj LOCAL del proceso (getDay/getHours: lo de siempre); una zona que este motor no conoce
    también cae a la local (nunca tira: los horarios son fail-open). */
 

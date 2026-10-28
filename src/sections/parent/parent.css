@@ -347,11 +347,12 @@
 }
 
 /* ---- secciones de la zona cuando no entran en una fila ----
-   Con 8 secciones la fila mide ~850 px (~900 con los contadores de canjes y avisos): a 1280 de ventana entra; más
-   angosto (1024: ~690 px) las últimas quedaban escondidas en un scroll sin barra. Debajo de 920 px de cabecera las
-   secciones pasan a fichas que bajan de línea (todas a la vista); la elegida, en el azul del acento. */
+   Con 8 secciones la fila medía ~850 px y con 9 (YouTube) ~990. Con las 11 de la tanda F2 (MyTube, After Day y Ciclo del
+   día con solapa propia) mide ~1150 px: no entra en la columna común (1040 máx.), y las últimas quedaban escondidas en un
+   scroll sin barra. Debajo de 1240 px de cabecera —o sea, siempre— las secciones son fichas que bajan de línea (todas a la
+   vista); la elegida, en el azul del acento. Si algún día vuelven a entrar, bajar este umbral. */
 .pz-head{container:pz-head / inline-size}
-@container pz-head (max-width: 920px){
+@container pz-head (max-width: 1240px){
   .pz-tabs{flex-wrap:wrap;gap:6px;padding-bottom:14px;overflow:visible}
   .pz-tab{padding:7px 12px;border:1px solid #E1E5EE;border-radius:8px;background:#fff}
   .pz-tab:hover{background:#ECEFF6}
@@ -373,86 +374,36 @@
 .pz-yt-cap{margin-top:6px;max-width:720px}
 .pz-yt-ok{font-size:13px;font-weight:700;color:#25734A}
 .pz-yt-err{font-size:13px;font-weight:700;color:#B32D33}
-/* entradas (tabla) */
-.pz-table--yt{min-width:620px}
-.pz-c-yt-type{width:96px}
-.pz-c-yt-n{width:84px}
-.pz-c-yt-act{width:190px}
+/* entradas: el tipo (video/playlist/canal) y el «Eliminar» en rojo — los usa la lista de entradas de Familia → MyTube */
 .pz-yt-type{display:inline-block;padding:2px 7px;border-radius:5px;background:#F1F3F8;color:#47506B;font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
 .pz-yt-del{color:#B32D33}
 .pz-yt-del:hover:not(:disabled){background:#FDF1F1}
-/* canales de MyTube: una tarjeta por canal con su descripción editable */
-.pz-yt-chhelp{margin:-4px 0 2px;max-width:720px;line-height:1.5}
-.pz-yt-chs{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
-.pz-yt-ch{display:grid;gap:8px;min-width:0;padding:12px 14px;border:1px solid #E4E8F1;border-radius:10px;background:#fff}
-.pz-yt-ch-top{display:flex;align-items:center;gap:10px;min-width:0}
-.pz-yt-av{flex:none;width:32px;height:32px;border-radius:50%;object-fit:cover;background:#EEF1F7}
-.pz-yt-ch-t{min-width:0;font-size:14.5px;font-weight:800;color:#1B2238;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pz-yt-badge{flex:none;padding:1px 8px;border-radius:6px;background:#EEF2FD;color:#1F3487;font-size:11.5px;font-weight:800}
-.pz-yt-handle{flex:none;margin-left:auto;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;color:#6A7390}
+/* la descripción editable de un canal (la vista de un canal de Familia → MyTube) */
 .pz-yt-desc{min-height:62px;resize:vertical;line-height:1.45;font-size:14px}
-/* Con YouTube son 9 secciones: a 1280 (cabecera de 945 px) la fila medía 945 px y con los contadores de canjes y avisos
-   ~990 → la última quedaba escondida en el scroll sin barra. Fuera del modo fichas, 4 px menos de aire por lado. */
-@container pz-head (min-width: 921px){
-  .pz-tab{padding-left:10px;padding-right:10px}
-  .pz-tab.is-on::after{left:8px;right:8px}
-}
 
-/* =================== After Day + Horarios por sección (porte Smarty W6 + W7) =================== */
-/* Aditivo, mismo lenguaje del panel (neutros + el acento #2843A8). Prefijos pz-mus- (música de After Day, al pie de
-   YouTube), pz-sch- (horarios, debajo de los topes de volumen) y pz-off-sub (la pantalla "cerrado" del chico, sobre
-   .pz-off de FeatureOff). Grepeados en todo el css de src: sin choques. */
+/* =================== After Day + zona horaria (porte Smarty W6; los horarios por sección W7 se retiraron en F2) =========== */
+/* Aditivo, mismo lenguaje del panel (neutros + el acento #2843A8). Prefijos pz-mus- (el agregar de Familia → After Day),
+   pz-tz- (la zona horaria) y pz-off-sub (la pantalla "descansando" del chico, sobre .pz-off de FeatureOff). Grepeados en
+   todo el css de src: sin choques. */
 
 /* ---- el chico: sección fuera de horario (la línea "Se abre de nuevo a las HH:MM.") ---- */
 .pz-off-sub{margin:-6px 0 0;font-size:15px;font-weight:700;line-height:1.45;color:#5A6380;font-variant-numeric:tabular-nums}
 
-/* ---- música de After Day: link + nombre opcional + Agregar; lista con miniatura, nombre, videoId y Quitar ---- */
+/* ---- After Day (Familia → After Day desde F2): link + nombre opcional + Agregar; la lista es la grilla del chico ---- */
 .pz-mus-add{display:flex;flex-wrap:wrap;gap:8px}
 .pz-mus-url{flex:1 1 300px;min-width:0}
 .pz-mus-name{flex:0 1 200px;min-width:0}
 .pz-mus-add .pz-input:disabled{background:#F4F5F9;color:#6A7390}
 .pz-mus-msg{margin:-4px 0 0;font-size:13.5px;font-weight:700;line-height:1.45;color:#25734A;overflow-wrap:anywhere}
 .pz-mus-msg.is-err{color:#B32D33}
-.pz-mus-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
-.pz-mus-row{display:flex;align-items:center;gap:12px;min-width:0;padding:8px 10px 8px 8px;border:1px solid #E4E8F1;border-radius:10px;background:#fff}
-.pz-mus-th{flex:none;width:64px;height:36px;border-radius:6px;object-fit:cover;background:#EEF1F7}
-.pz-mus-txt{flex:1;min-width:0;display:grid;gap:1px}
-.pz-mus-t{font-size:14.5px;font-weight:800;color:#1B2238;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pz-mus-id{font-size:12px;font-weight:600;color:#6A7390;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
-.pz-mus-del{flex:none;color:#B32D33}
-.pz-mus-del:hover:not(:disabled){background:#FDF1F1}
 
-/* ---- horarios por sección: una tarjeta por sección; tildada, los 7 días con abierto + desde/hasta ---- */
-.pz-sch-set{margin:0;padding:0;border:0;min-width:0}
-/* align-items:start → una sección sin restringir no se estira a la altura de la vecina con su semana abierta */
-.pz-sch-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));align-items:start;gap:10px}
-.pz-sch{display:grid;gap:10px;min-width:0;padding:12px 14px;border:1px solid #E4E8F1;border-radius:10px;background:#fff;transition:border-color .2s,background-color .2s}
-.pz-sch.is-on{border-color:#C9D3F2;background:#FBFCFF}
-.pz-sch-toggle{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:800;line-height:1.3;color:#1B2238;cursor:pointer}
-.pz-sch input[type="checkbox"]{flex:none;width:18px;height:18px;margin:0;accent-color:#2843A8;cursor:pointer}
-.pz-sch-set:disabled input{cursor:default}
-.pz-sch-week{display:grid;gap:6px;padding-top:10px;border-top:1px solid #EDF0F5}
-.pz-sch-day{display:grid;grid-template-columns:34px 96px minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px;min-width:0}
-.pz-sch-dl{font-size:13px;font-weight:800;color:#47506B}
-.pz-sch-open{display:inline-flex;align-items:center;gap:7px;cursor:pointer}
-.pz-sch-open span{font-size:12.5px;font-weight:700;color:#6A7390}
-.pz-sch-day.is-closed .pz-sch-open span{color:#8E2328}
-.pz-sch-time{min-height:34px;padding:4px 8px;font-size:14px;font-variant-numeric:tabular-nums}
-.pz-sch-time:disabled{background:#F4F5F9;color:#A5ACBD;border-color:#E4E8F1;cursor:not-allowed}
-.pz-sch-a{font-size:13px;font-weight:700;color:#6A7390}
-.pz-sch-foot{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px}
-.pz-sch-msg{margin:0;min-height:20px;font-size:13.5px;font-weight:700;line-height:1.45;color:#25734A}
-.pz-sch-msg.is-err{color:#B32D33}
-/* Zona horaria de la familia (deuda 14-oct): arriba de los horarios, en el mismo panel */
+/* Zona horaria de la familia (deuda 14-oct): desde F2, su propio panel en Límites (debajo de los topes) */
 .pz-tz{margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #E7EAF2}
 .pz-tz-row{display:flex;align-items:center;flex-wrap:wrap;gap:10px 14px}
 .pz-tz-sel{width:auto;min-width:220px;max-width:100%;cursor:pointer}
 .pz-tz-sel:disabled{cursor:default;background:#F4F5F9}
 .pz-tz-now{font-size:13px;font-weight:700;color:#6A7390;font-variant-numeric:tabular-nums}
 
-@media (prefers-reduced-motion: reduce){
-  .pz-sch{transition:none}
-}
 
 /* =================== U3 · M2: el selector de integrante de la familia (28-oct) =================== */
 /* Prefijo pz-mem- (grepeado en todo el css de src: libre). Un chip por integrante (avatar + "Ian · 9" + sus avisos sin
@@ -486,4 +437,88 @@
 
 @media (prefers-reduced-motion: reduce){
   .pz-mem-opt{transition:none}
+}
+
+/* =================== F2 (28-oct): MyTube y After Day con la grilla del chico + el Ciclo del día =================== */
+/* Prefijos pz-mt- (Familia → MyTube), pz-ad- (Familia → After Day) y pz-cy- (Ciclo del día), grepeados en todo el css de
+   src: libres. Las tarjetas son las del chico (mt-chcard de mytube.css, ad-card de afterday.css) sobre el fondo de la
+   página, como en su MyTube y su After Day; lo del padre (agregar, mantenimiento, descripción, editor) va en .pz-panel. */
+.pz-panel--tz .pz-tz{margin:0;padding:0;border:0}
+
+/* ---- MyTube: barra "Canales (N)" + buscar, los dos grupos, la tarjeta con su ⋮ ---- */
+.pz-mt-bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 16px;margin-top:4px}
+.pz-mt-bar-t{margin:0;display:flex;align-items:center;gap:10px;font-size:19px;font-weight:800;color:#1B2238}
+.pz-mt-q{width:min(320px,100%);min-height:38px;padding:7px 12px}
+.pz-mt-sec{display:grid;gap:12px;min-width:0}
+.pz-mt-help{margin:-6px 0 0}
+.pz-mt-tile{position:relative;display:grid;min-width:0}
+.pz-mt-tile > .mt-chcard{height:100%}
+.pz-mt-dots{position:absolute;top:6px;right:6px;width:34px;height:34px;display:grid;place-items:center;border-radius:8px;color:#47506B;background:rgba(255,255,255,.9);cursor:pointer;transition:background-color .15s,color .15s}
+.pz-mt-dots:hover{background:#ECEFF6;color:#1B2238}
+.pz-mt-dots:focus-visible{outline:3px solid var(--blue);outline-offset:1px}
+.pz-mt-dots svg{width:19px;height:19px}
+/* el ⋮: hoja con las entradas de ese canal */
+.pz-mt-ov{animation:fadein .2s both}
+.pz-mt-sheet{width:min(560px,94vw);display:grid;gap:12px}
+.pz-mt-sheet-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.pz-mt-sheet-t{margin:0;min-width:0;font-size:18px;font-weight:800;line-height:1.25;color:#1B2238;overflow-wrap:anywhere}
+.pz-mt-entries{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.pz-mt-entry{display:flex;align-items:center;gap:10px;min-width:0;padding:9px 10px;border:1px solid #E4E8F1;border-radius:9px;background:#fff}
+.pz-mt-entry-txt{flex:1;min-width:0;display:grid;gap:1px}
+.pz-mt-entry-txt .pz-cell-title,.pz-mt-entry-txt .pz-cell-sub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pz-mt-entry-act{flex:none;display:flex;gap:2px}
+/* mantenimiento general, plegado al pie */
+.pz-mt-maint{gap:12px}
+.pz-mt-maint:not([open]){padding-top:14px;padding-bottom:14px}
+.pz-mt-maint-s{font-size:15px;font-weight:800;color:#1B2238;cursor:pointer;list-style-position:inside}
+.pz-mt-maint-s::marker{color:#6A7390}
+/* la vista de un canal: cabecera del chico + panel del padre + la lista de videos del chico */
+.pz-mt-ch{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;min-width:0}
+.pz-mt-ch > .back{justify-self:start}
+.pz-mt-vids{display:grid;gap:10px;min-width:0}
+
+/* ---- After Day: la grilla del chico con «Quitar» en la esquina de cada tarjeta ---- */
+.pz-ad-sec{display:grid;gap:12px;min-width:0}
+.pz-ad-x{padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.94);color:#B32D33;font-weight:800;font-size:12.5px;line-height:1;box-shadow:0 1px 6px rgba(14,18,32,.22);cursor:pointer;transition:background-color .15s}
+.pz-ad-x:hover:not(:disabled){background:#FDF1F1}
+.pz-ad-x:disabled{color:#A5ACBD;cursor:not-allowed}
+
+/* ---- Ciclo del día: la regla, un tarjetón por rango (nombre, desde/hasta, fichas de secciones), el pie ---- */
+.pz-cy-rule{margin:-4px 0 0;padding:10px 14px;border-radius:9px;background:#EEF2FD;border:1px solid #CBD6F6;color:#1F3487;font-size:14px;font-weight:700;line-height:1.45}
+.pz-cy-rule b{font-weight:800}
+.pz-cy-tz{margin:-6px 0 0;font-variant-numeric:tabular-nums}
+.pz-cy-tz b{font-weight:800;color:#1B2238}
+.pz-cy-empty{padding:16px 18px;border:1px dashed #D3D9E6;border-radius:10px;background:#FBFCFE}
+.pz-cy-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+.pz-cy-range{min-width:0;padding:14px 16px;border:1px solid #E4E8F1;border-radius:10px;background:#fff;transition:border-color .2s,background-color .2s}
+.pz-cy-range.is-now{border-color:#C9D3F2;background:#FBFCFF}
+.pz-cy-set{margin:0;padding:0;border:0;min-width:0;display:grid;gap:10px}
+.pz-cy-top{display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px 12px}
+.pz-cy-field{display:grid;gap:4px;min-width:0}
+.pz-cy-field label{font-size:12.5px;font-weight:800;color:#47506B}
+.pz-cy-name{flex:1 1 220px}
+.pz-cy-time{width:132px;font-variant-numeric:tabular-nums}
+.pz-cy-del{margin-left:auto;align-self:center}
+.pz-cy-span{margin:0;display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;font-size:13px;font-weight:700;color:#5A6380;font-variant-numeric:tabular-nums}
+.pz-cy-span .is-bad{color:#B32D33}
+.pz-cy-badge{padding:2px 8px;border-radius:6px;font-size:11.5px;font-weight:800;letter-spacing:.02em}
+.pz-cy-badge.is-now{background:#E2F5EA;color:#1E6B3F}
+.pz-cy-badge.is-demo{background:#FFF3D6;color:#6B4600}
+.pz-cy-secs{display:flex;flex-wrap:wrap;gap:6px}
+.pz-cy-sec{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:5px 12px;border:1px solid #D9DFEA;border-radius:8px;background:#fff;color:#47506B;font-size:13.5px;font-weight:800;line-height:1.2;cursor:pointer;transition:background-color .15s,border-color .15s,color .15s}
+.pz-cy-sec:hover:not(:disabled){background:#F6F7FB}
+.pz-cy-sec.is-on{border-color:#2843A8;background:#EEF2FD;color:#1F3487;box-shadow:0 0 0 1px #2843A8 inset}
+.pz-cy-sec svg{width:14px;height:14px}
+.pz-cy-sec:disabled{cursor:default;opacity:.6}
+.pz-cy-none{margin:0;font-size:12.5px;font-weight:700;color:#6A7390}
+.pz-cy-free{margin:0;font-size:13.5px;font-weight:600;line-height:1.5;color:#5A6380}
+.pz-cy-free b{font-weight:800;color:#1B2238}
+.pz-cy-foot{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}
+.pz-cy-gap{flex:1}
+.pz-cy-msg{margin:-4px 0 0;min-height:20px;font-size:13.5px;font-weight:700;line-height:1.45;color:#25734A;overflow-wrap:anywhere}
+.pz-cy-msg.is-err{color:#B32D33}
+@media (max-width:620px){ .pz-cy-time{width:118px} .pz-cy-del{margin-left:0} }
+@media (prefers-reduced-motion: reduce){
+  .pz-mt-dots,.pz-ad-x,.pz-cy-range,.pz-cy-sec{transition:none}
+  .pz-mt-ov{animation:none}
 }

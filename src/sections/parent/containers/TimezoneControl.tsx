@@ -3,7 +3,7 @@ import { api } from '../../../api';
 import type { RowStatus } from '../cards/FeatureRow';
 import { parentCall, rejectedReason } from '../lib/adultGate';
 import { patchFamilyTz, useMemberConfig } from '../lib/memberConfig';
-import { adoptFamilyTz } from '../lib/schedules';
+import { adoptFamilyTz } from '../lib/cycle';
 
 /** Las zonas que ofrece el selector (pedido 14-oct): Automática = la del servidor (null). */
 const OPTIONS: { tz: string | null; label: string }[] = [
@@ -33,10 +33,10 @@ function nowIn(tz: string | null): string {
   }
 }
 
-/** "Zona horaria de la familia" (deuda 14-oct; Familia → Límites, arriba de los horarios). Patrón del dial del Feed
- *  (FeedMotionControl): se lee de la config (api.parentConfig), se guarda al toque en el server (api.parentTz → parent.json)
- *  y rige ya: las franjas por sección, la franja del día del Feed, el Calendario y las clases con mentores (Buscar →
- *  Mentores; tandas B1-B2) se calculan y se escriben en esa zona. Después de guardar se adopta la zona nueva
+/** "Zona horaria de la familia" (deuda 14-oct; Familia → Límites, debajo de los topes de volumen desde F2). Patrón del dial
+ *  del Feed (FeedMotionControl): se lee de la config (api.parentConfig), se guarda al toque en el server (api.parentTz →
+ *  parent.json) y rige ya: el Ciclo del día de cada integrante (Familia → Ciclo del día, que linkea acá), la franja del día
+ *  del Feed, el Calendario y las clases con mentores (Buscar → Mentores; tandas B1-B2) se calculan y se escriben en esa zona. Después de guardar se adopta la zona nueva
  *  (adoptFamilyTz), así el menú y las pantallas de cada chico cambian en el acto —en esta pestaña y en las otras del
  *  navegador, y también el reloj de la barra superior del adulto—; otro dispositivo, en el próximo tick (≤ 30 s).
  *  U3: es de la FAMILIA, no del integrante elegido (vive en Límites, entre los paneles de un integrante, y lo dice): se lee
@@ -67,7 +67,7 @@ export function TimezoneControl({ member }: { member: string }) {
       patchFamilyTz(r.tz); // de toda la familia: la ven los paneles de cada integrante
       adoptFamilyTz(r.tz); // y rige ya en esta pestaña y en las otras del navegador
       if (!alive.current) return;
-      setStatus({ kind: 'saved', text: `Guardado: los horarios de toda la familia, el Calendario y las clases con mentores van con la hora de «${labelOf(r.tz)}».` });
+      setStatus({ kind: 'saved', text: `Guardado: el ciclo del día de toda la familia, el Calendario y las clases con mentores van con la hora de «${labelOf(r.tz)}».` });
       clear.current = setTimeout(() => { if (alive.current) setStatus(null); }, 6000);
     } catch (e) {
       if (alive.current) setStatus({ kind: 'error', text: rejectedReason(e) ?? 'No se pudo guardar. Probá de nuevo.' });
@@ -80,7 +80,7 @@ export function TimezoneControl({ member }: { member: string }) {
   return (
     <section className="pz-block pz-tz" aria-labelledby="pz-tz-h">
       <h4 className="pz-block-h" id="pz-tz-h">Zona horaria de la familia <span className="pz-mem-fam">Toda la familia</span></h4>
-      <p className="pz-help" id="pz-tz-d">Vale para toda la familia, no solo para el integrante elegido: con esta hora se calculan los horarios de cada integrante (y la franja del día de su Feed), el Calendario y las clases con mentores. Automática = la hora del servidor.</p>
+      <p className="pz-help" id="pz-tz-d">Vale para toda la familia, no solo para el integrante elegido: con esta hora se calculan el ciclo del día de cada integrante (y la franja del día de su Feed), el Calendario y las clases con mentores. Automática = la hora del servidor.</p>
       {failed && value === undefined ? (
         <div className="pz-fail"><p>No pude leer la zona horaria.</p><button type="button" className="pz-btn pz-btn--ghost pz-btn--sm" onClick={() => void reload()}>Reintentar</button></div>
       ) : (

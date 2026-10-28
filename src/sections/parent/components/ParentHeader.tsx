@@ -10,9 +10,15 @@ import { MemberPicker } from './MemberPicker';
 const TABS = [
   { to: '/familia', label: 'Funcionalidades', end: true },
   { to: '/familia/temas', label: 'Temas y palabras', end: false },
-  // Porte Smarty W5: videos, playlists y canales de YouTube de la familia (se suman al catálogo; canales de MyTube).
-  { to: '/familia/youtube', label: 'YouTube', end: false },
+  // MyTube (F2, 28-oct; ex «YouTube», /familia/youtube redirige): la MISMA grilla de canales que ve el chico + el agregar por
+  // URL (porte W5: videos, playlists y canales de YouTube que se suman al catálogo). De toda la familia.
+  { to: '/familia/mytube', label: 'MyTube', end: false },
+  // After Day con solapa propia (F2; antes vivía al pie de YouTube): la misma grilla del chico + agregar/quitar.
+  { to: '/familia/afterday', label: 'After Day', end: false },
+  // Límites = topes de volumen + la zona horaria de la familia.
   { to: '/familia/limites', label: 'Límites', end: false },
+  // Ciclo del día (F2, docs/USUARIOS.md §11): rangos horarios y qué secciones hay en cada uno, por integrante.
+  { to: '/familia/ciclo', label: 'Ciclo del día', end: false },
   { to: '/familia/avisos', label: 'Avisos', end: false },
   { to: '/familia/premios', label: 'Premios', end: false },
   // Mentorías (tanda U2): lo contratado en Buscar → Mentores, para el adulto y sus dependientes (antes, "Profesores").

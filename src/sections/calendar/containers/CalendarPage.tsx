@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../../../api';
 import type { CalendarEvent } from '../../../api/types';
 import { useUser } from '../../../hooks/user';
-import { useSchedules } from '../../parent/lib/schedules';
+import { useCycle } from '../../parent/lib/cycle';
 import { CalendarEmpty, CalendarFail, CalendarSkeleton } from '../components/CalendarStates';
 import { NextClassHero } from '../components/NextClassHero';
 import { UpcomingList } from '../components/UpcomingList';
@@ -21,7 +21,7 @@ const TICK_MS = 30_000;
  *  vuelve (o falla) se muestra el esqueleto, para no pintar un instante con la hora del navegador y saltar después. */
 export function CalendarPage() {
   const adult = useUser()?.kind === 'adult';
-  const sched = useSchedules();
+  const sched = useCycle();
   const tz = sched.tz;
   const tzReady = sched.syncedAt > 0 || sched.failed;
   const [events, setEvents] = useState<CalendarEvent[] | null>(null);

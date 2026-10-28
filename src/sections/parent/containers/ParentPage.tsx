@@ -10,26 +10,31 @@ import { ParentHeader } from '../components/ParentHeader';
 import { ProtectionsPanel } from '../components/ProtectionsPanel';
 import { parentCall } from '../lib/adultGate';
 import { listEs } from '../lib/format';
-import { FAMILY_NOTE, FAMILY_WIDE, famTo, useFamilyMembers, useSelectedMember } from '../lib/member';
+import { famTo, familyNoteFor, useFamilyMembers, useSelectedMember } from '../lib/member';
 import type { ParentDashboard } from '../lib/types';
-import { AfterDayMusicPanel } from './AfterDayMusicPanel';
+import { CyclePanel } from './CyclePanel';
+import { FamilyAfterDayPanel } from './FamilyAfterDayPanel';
+import { FamilyChannelPanel } from './FamilyChannelPanel';
+import { FamilyMyTubePanel } from './FamilyMyTubePanel';
 import { FeaturesPanel } from './FeaturesPanel';
 import { LimitsPanel } from './LimitsPanel';
 import { MentorshipsPanel } from './MentorshipsPanel';
 import { PresetsPanel } from './PresetsPanel';
 import { RewardsPanel } from './RewardsPanel';
-import { SchedulesPanel } from './SchedulesPanel';
+import { TimezoneControl } from './TimezoneControl';
 import { TopicsPanel } from './TopicsPanel';
-import { YouTubePanel } from './YouTubePanel';
 
 /** Familia (/familia/*; la ex Zona de padres, /padres/* redirige acá): el punto de menú del ADULTO, abajo de todo
  *  (docs/USUARIOS.md §5). SIN portón: la sesión es la del usuario activo (el server la da por buena si es un adulto). La
  *  configuración de CADA integrante de su familia (U3 · M2, §9: el selector de la cabecera, `?m=<id>` en la URL) en
- *  secciones con URL propia — /familia (presets + funcionalidades), /familia/temas, /familia/youtube (porte Smarty W5:
- *  ingesta de YouTube + canales de MyTube; W6: + la música de After Day — DE TODA LA FAMILIA), /familia/limites (topes de
- *  volumen; W7: + horarios por sección y la zona horaria, que es de la familia), /familia/avisos, /familia/premios,
- *  /familia/mentorias (tanda U2: lo contratado en Buscar → Mentores, para el adulto y sus dependientes — DE TODA LA FAMILIA;
- *  /familia/profesores redirige acá), /familia/actividad y /familia/protecciones.
+ *  secciones con URL propia (orden de la tanda F2, 28-oct) — /familia (presets + funcionalidades), /familia/temas,
+ *  /familia/mytube (ex «YouTube», porte W5: la grilla de canales del chico + agregar por URL; un canal en
+ *  /familia/mytube/canal/:id; /familia/youtube redirige — DE TODA LA FAMILIA), /familia/afterday (porte W6, solapa propia:
+ *  la grilla del chico + agregar/quitar — DE TODA LA FAMILIA), /familia/limites (topes de volumen + la zona horaria, que es
+ *  de la familia), /familia/ciclo (Ciclo del día: rangos horarios y qué secciones hay en cada uno — reemplazó a los horarios
+ *  por sección; docs/USUARIOS.md §11), /familia/avisos, /familia/premios, /familia/mentorias (tanda U2: lo contratado en
+ *  Buscar → Mentores, para el adulto y sus dependientes — DE TODA LA FAMILIA; /familia/profesores redirige acá),
+ *  /familia/actividad y /familia/protecciones.
  *  Con un CHICO como usuario activo la ruta no existe: navega al Feed (y el server igual responde 401).
  *  Estética sobria de adulto (parent.css, pz-). */
 export function ParentPage() {
@@ -146,7 +151,7 @@ function ParentZone({ members }: { members: FamilyMember[] }) {
   const crisis = unseen.some((a) => a.kind === 'crisis');
   const crisisNames = crisisKids.length ? listEs(crisisKids.map((m) => m.name)) : 'tu familia';
   const crisisTo = famTo('/familia/avisos', crisisKids[0]?.id ?? mid);
-  const note = FAMILY_WIDE.has(pathname) ? FAMILY_NOTE[pathname] ?? 'Esta sección vale para toda la familia.' : null;
+  const note = familyNoteFor(pathname);
   const home = famTo('/familia', mid);
 
   return (
@@ -161,16 +166,20 @@ function ParentZone({ members }: { members: FamilyMember[] }) {
           </p>
         )}
         {/* key = el integrante: cambiarlo REMONTA los paneles (obligatorio: LimitsPanel guarda al desmontar los topes que
-            quedaron a medio guardar —con el integrante de ESE montaje—, y los borradores de Horarios y Premios arrancan de
-            cero; sin remontar, lo pendiente de un integrante iría al otro). */}
+            quedaron a medio guardar —con el integrante de ESE montaje—, y los borradores del Ciclo del día y de Premios
+            arrancan de cero; sin remontar, lo pendiente de un integrante iría al otro). */}
         <Routes key={mid}>
           <Route index element={<><PresetsPanel kid={member.name} member={mid} /><FeaturesPanel kid={member.name} member={mid} /></>} />
           <Route path="presets" element={<Navigate to={home} replace />} />
           <Route path="temas" element={<TopicsPanel kid={member.name} member={mid} />} />
-          {/* YouTube + al pie la música de After Day (W6): de TODA la familia. Límites = topes de volumen + debajo los
-              horarios por sección (W7), del integrante; la zona horaria (dentro de Horarios) es de la familia */}
-          <Route path="youtube" element={<><YouTubePanel /><AfterDayMusicPanel /></>} />
-          <Route path="limites" element={<><LimitsPanel kid={member.name} member={mid} /><SchedulesPanel kid={member.name} member={mid} /></>} />
+          {/* MyTube y After Day (F2): de TODA la familia, cada una con su solapa; la ruta vieja de YouTube redirige a MyTube.
+              Límites = topes de volumen (del integrante) + la zona horaria (de la familia). Ciclo del día, del integrante. */}
+          <Route path="mytube" element={<FamilyMyTubePanel member={mid} />} />
+          <Route path="mytube/canal/:id" element={<FamilyChannelPanel member={mid} />} />
+          <Route path="youtube/*" element={<Navigate to={famTo('/familia/mytube', mid)} replace />} />
+          <Route path="afterday" element={<FamilyAfterDayPanel />} />
+          <Route path="limites" element={<><LimitsPanel kid={member.name} member={mid} /><section className="pz-panel pz-panel--tz"><TimezoneControl member={mid} /></section></>} />
+          <Route path="ciclo" element={<CyclePanel kid={member.name} member={mid} />} />
           <Route path="avisos" element={<AlertsPanel member={member} members={members} alerts={alerts} failed={alertsFailed} busy={seenBusy}
             onSeen={(id) => void markSeen([id])} onSeenAll={(ids) => void markSeen(ids)} onRetry={() => void loadAlerts()} />} />
           <Route path="premios" element={<RewardsPanel kid={member.name} member={mid} dash={d} failed={failed} reload={load} />} />

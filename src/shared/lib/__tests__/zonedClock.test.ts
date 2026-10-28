@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { isValidTimeZone, wallClock } from '../zonedClock';
-import { isOpenAt, nextOpenLabelAt } from '../../../sections/parent/lib/scheduleRules';
-import type { FeatureSchedule } from '../../../api/types';
+import { minuteOfDay, opensAtToday, sectionAvailableAt } from '../cycleRules';
 
 /* Zona horaria de la familia (tanda "Deudas técnicas", 14-oct): el helper Intl que usan el server (schedule.ts, feedFake.ts)
-   y el cliente (scheduleRules.ts). Instantes en UTC fijos: no dependen de la zona de la máquina que corre los tests. */
+   y el cliente (el store del Ciclo del día, sections/parent/lib/cycle.ts, con las reglas compartidas de cycleRules.ts —F2,
+   28-oct; antes, el espejo de los horarios por sección—). Instantes en UTC fijos: no dependen de la zona de la máquina. */
 
 describe('wallClock (hora de pared en una zona IANA)', () => {
   it('cruce de medianoche: el mismo instante es otro DÍA en otra zona', () => {
@@ -35,20 +35,20 @@ describe('wallClock (hora de pared en una zona IANA)', () => {
   });
 });
 
-describe('franjas evaluadas en la zona de la familia (scheduleRules, espejo de server/src/schedule.ts)', () => {
-  const week = (from: string, to: string): FeatureSchedule => ({ restrictionActive: true, week: Array.from({ length: 7 }, () => ({ open: true, from, to })) });
+describe('el ciclo del día evaluado en la zona de la familia (cycleRules: el mismo código en server y cliente)', () => {
+  const R = (from: string, to: string) => [{ id: 'r', name: 'Rango', from, to, sections: ['aprender' as const] }];
   const at = new Date('2026-10-14T14:00:00Z'); // Madrid 16:00 · Los Ángeles 07:00
-  it('una franja abierta acá puede estar cerrada allá (y "se abre a las…" se calcula en esa zona)', () => {
-    const tarde = week('15:00', '20:00');
-    expect(isOpenAt(tarde, at, 'Europe/Madrid')).toBe(true);
-    expect(isOpenAt(tarde, at, 'America/Los_Angeles')).toBe(false);
-    expect(nextOpenLabelAt(tarde, at, 'America/Los_Angeles')).toBe('15:00');
-    expect(nextOpenLabelAt(tarde, at, 'Europe/Madrid')).toBeNull();
+  it('un rango disponible acá puede estar cerrado allá (y "se abre a las…" se calcula en esa zona)', () => {
+    const tarde = R('15:00', '20:00');
+    expect(sectionAvailableAt(tarde, 'aprender', minuteOfDay(at, 'Europe/Madrid'))).toBe(true);
+    expect(sectionAvailableAt(tarde, 'aprender', minuteOfDay(at, 'America/Los_Angeles'))).toBe(false);
+    expect(opensAtToday(tarde, 'aprender', minuteOfDay(at, 'America/Los_Angeles'))).toBe('15:00');
+    expect(opensAtToday(tarde, 'aprender', minuteOfDay(at, 'Europe/Madrid'))).toBeNull();
   });
-  it('la franja que cruza la medianoche se evalúa con el día de ESA zona', () => {
-    const noche = { restrictionActive: true, week: Array.from({ length: 7 }, (_, d) => ({ open: d === 2, from: '22:00', to: '02:00' })) }; // solo los martes
-    const t = new Date('2026-10-14T05:30:00Z'); // martes 22:30 en Los Ángeles · miércoles 07:30 en Madrid
-    expect(isOpenAt(noche, t, 'America/Los_Angeles')).toBe(true);
-    expect(isOpenAt(noche, t, 'Europe/Madrid')).toBe(false);
+  it('el rango que cruza la medianoche se evalúa con la hora de ESA zona', () => {
+    const noche = R('22:00', '02:00');
+    const t = new Date('2026-10-14T05:30:00Z'); // 22:30 en Los Ángeles · 07:30 en Madrid
+    expect(sectionAvailableAt(noche, 'aprender', minuteOfDay(t, 'America/Los_Angeles'))).toBe(true);
+    expect(sectionAvailableAt(noche, 'aprender', minuteOfDay(t, 'Europe/Madrid'))).toBe(false);
   });
 });

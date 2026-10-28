@@ -2,7 +2,8 @@ import type { ComponentType } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { User } from '../../api/types';
 import { featureAllows, useFeatures } from '../../sections/parent/lib/features';
-import { scheduleAllows, useSchedules } from '../../sections/parent/lib/schedules';
+import { CycleDemoControl } from '../../sections/parent/containers/CycleDemoControl';
+import { cycleAllows, useCycle } from '../../sections/parent/lib/cycle';
 import { BrandMark } from './BrandMark';
 import { MiniPlayer } from './MiniPlayer';
 import { ProfileCard } from './ProfileCard';
@@ -61,13 +62,14 @@ function activeFrom(path: string): { sec?: Sec; sub?: string } {
 /** Barra lateral estilo Duolingo (estilos en shell.css): píldora activa con borde por sección, etiquetas en
  *  mayúsculas e íconos rellenos que no cambian con el estado. Sin submenús (pedido 12-oct): Mi espacio
  *  va directo a sus carpetas. Con un ADULTO como usuario activo suma Familia al fondo y no la alcanzan los candados
- *  del chico (apagados ni horarios: docs/USUARIOS.md §4). */
+ *  del chico (apagados ni ciclo del día: docs/USUARIOS.md §4). Abajo, arriba del MiniPlayer, el selector de DEMO del ciclo
+ *  ("Ciclo (demo)": en qué rango del día está el chico; CycleDemoControl decide cuándo aparece). */
 export function Sidebar({ user }: { user?: User }) {
   const { pathname } = useLocation();
   const go = useNavigate();
   const { sec } = activeFrom(pathname);
   const features = useFeatures();
-  const schedules = useSchedules();
+  const cycle = useCycle();
   const adult = user?.kind === 'adult';
 
   const item = (n: (typeof NAV)[number]) => {
@@ -76,9 +78,10 @@ export function Sidebar({ user }: { user?: User }) {
     if (!adult) {
       // Tienda, Ligas, Amigos y Chat los puede apagar el padre: apagados (o sin saber todavía) no existen.
       if (!featureAllows(features, n.to)) return null;
-      // Horarios por sección (porte Smarty W7): fuera de su franja la sección sale del menú (el tick de 30 s la saca y la
-      // vuelve a poner sin recargar). El Feed no tiene horario.
-      if (!scheduleAllows(schedules, n.to)) return null;
+      // Ciclo del día (F2, docs/USUARIOS.md §11): una sección que no está disponible en el rango en curso (o en el que eligió
+      // el selector de demo) sale del menú; el tick de 30 s, el selector y Familia la sacan y la vuelven a poner sin
+      // recargar. El Feed nunca se gatea.
+      if (!cycleAllows(cycle, n.to)) return null;
     }
     const on = sec === n.sec;
     return (
@@ -99,6 +102,7 @@ export function Sidebar({ user }: { user?: User }) {
           </div>
         ))}
       </nav>
+      <CycleDemoControl user={user} />
       <MiniPlayer />
       <ProfileCard user={user} />
     </aside>

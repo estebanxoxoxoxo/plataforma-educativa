@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { UserInfo } from '../../../../api/types';
-import { FAMILY_NOTE, FAMILY_WIDE, famTo, membersOf, pickMember } from '../member';
+import { FAMILY_NOTE, FAMILY_WIDE, famTo, familyNoteFor, membersOf, pickMember } from '../member';
 
 /* U3 · M2 — el selector de integrante de Familia: quiénes son los integrantes (los dependents del adulto, en su orden), a
    quién apunta `?m=` (trim + minúsculas como el ?member= del server; ausente/ajeno → el primero) y los links con `?m=`. */
@@ -50,11 +50,20 @@ describe('famTo y las solapas de familia', () => {
     expect(famTo('/familia/temas', 'luna')).toEqual({ pathname: '/familia/temas', search: '?m=luna' });
     expect(famTo('/familia', 'a b')).toEqual({ pathname: '/familia', search: '?m=a%20b' });
   });
-  it('YouTube y Mentorías son de toda la familia, cada una con su nota; el resto, del integrante', () => {
-    expect([...FAMILY_WIDE].sort()).toEqual(['/familia/mentorias', '/familia/youtube']);
+  it('MyTube, After Day y Mentorías son de toda la familia, cada una con su nota; el resto, del integrante', () => {
+    expect([...FAMILY_WIDE].sort()).toEqual(['/familia/afterday', '/familia/mentorias', '/familia/mytube']);
     for (const p of FAMILY_WIDE) expect(FAMILY_NOTE[p]).toBeTruthy();
-    for (const p of ['/familia', '/familia/temas', '/familia/limites', '/familia/avisos', '/familia/premios', '/familia/actividad', '/familia/protecciones']) {
+    for (const p of ['/familia', '/familia/temas', '/familia/limites', '/familia/ciclo', '/familia/avisos', '/familia/premios', '/familia/actividad', '/familia/protecciones']) {
       expect(FAMILY_WIDE.has(p)).toBe(false);
+      expect(familyNoteFor(p)).toBeNull();
     }
+  });
+  it('familyNoteFor: la solapa y sus subrutas (la vista de un canal de MyTube) llevan la nota; un prefijo parecido no', () => {
+    expect(familyNoteFor('/familia/mytube')).toBe(FAMILY_NOTE['/familia/mytube']);
+    expect(familyNoteFor('/familia/mytube/')).toBe(FAMILY_NOTE['/familia/mytube']);
+    expect(familyNoteFor('/familia/mytube/canal/UCabc')).toBe(FAMILY_NOTE['/familia/mytube']);
+    expect(familyNoteFor('/familia/afterday')).toBe(FAMILY_NOTE['/familia/afterday']);
+    expect(familyNoteFor('/familia/mytubex')).toBeNull();
+    expect(familyNoteFor('/familia/youtube')).toBeNull(); // ruta vieja: redirige a /familia/mytube
   });
 });

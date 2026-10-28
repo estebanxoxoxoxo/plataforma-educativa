@@ -7,13 +7,23 @@ import { useSearchParams } from 'react-router-dom';
 import { api } from '../../../api';
 import type { FamilyMember, UserInfo } from '../../../api/types';
 
-/** Las solapas que son de TODA la familia: el selector no aplica (se ve deshabilitado, con su nota). */
-export const FAMILY_WIDE: ReadonlySet<string> = new Set(['/familia/youtube', '/familia/mentorias']);
+/** Las solapas que son de TODA la familia: el selector no aplica (se ve deshabilitado, con su nota). F2 (28-oct): YouTube
+ *  pasó a llamarse MyTube (/familia/youtube redirige) y After Day tiene su solapa propia. */
+export const FAMILY_WIDE: ReadonlySet<string> = new Set(['/familia/mytube', '/familia/afterday', '/familia/mentorias']);
 /** Nota del selector en cada solapa de familia. */
 export const FAMILY_NOTE: Record<string, string> = {
-  '/familia/youtube': 'YouTube y la música de After Day valen para toda la familia.',
+  '/familia/mytube': 'MyTube vale para toda la familia: lo que aprobás acá lo puede ver cada integrante.',
+  '/familia/afterday': 'After Day vale para toda la familia: la misma lista suena en el After Day de cada integrante.',
   '/familia/mentorias': 'Las mentorías son de toda la familia: cada una dice para quién es (también las tuyas).',
 };
+
+/** La nota de la solapa de toda la familia a la que pertenece `pathname` (también sus subrutas, como la vista de un canal
+ *  en /familia/mytube/canal/:id); null = la ruta es de una solapa del integrante elegido. */
+export function familyNoteFor(pathname: string): string | null {
+  const p = pathname.replace(/\/+$/, '');
+  for (const tab of FAMILY_WIDE) if (p === tab || p.startsWith(tab + '/')) return FAMILY_NOTE[tab] ?? 'Esta sección vale para toda la familia.';
+  return null;
+}
 
 /** Los integrantes que configura el adulto `me`: sus `dependents`, en su orden (los ids que no están en `users` se saltean). */
 export function membersOf(users: UserInfo[], me: string | undefined): FamilyMember[] {
