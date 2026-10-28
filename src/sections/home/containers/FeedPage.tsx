@@ -4,6 +4,7 @@ import { ApiError, api } from '../../../api';
 import type { FeedItem, FeedMotion, FeedReaction, VideoResult } from '../../../api/types';
 import { useUser } from '../../../hooks/user';
 import { chatFriendsChanged, openChat, useChatDock } from '../../friends/lib/chatDock';
+import { useSocial } from '../../friends/lib/social';
 import { LEAGUE_WEEK_CLOSED } from '../../leagues/lib/cycle';
 import { useFeatures } from '../../parent/lib/features';
 import { FeedArticleCard } from '../cards/FeedArticleCard';
@@ -67,6 +68,9 @@ export function FeedPage() {
   const go = useNavigate();
   const features = useFeatures();
   const amigosOn = features?.amigos === true;
+  // Las solicitudes de la zona pinneada son SOCIALES y lo social es de los chicos (U4 · D4, friends/lib/social.ts): con un
+  // adulto ni se piden. El chip "Simular NPCs" sigue con Amigos (al adulto le trae la carrera de SU liga).
+  const socialOn = useSocial() === true;
   const reduced = useReducedMotion();
   const sched = useSchedules(); // hora del server + zona de la familia: el subtítulo dice lo mismo que la edición
   const view = useRef<HTMLElement>(null);
@@ -124,11 +128,11 @@ export function FeedPage() {
   // Personas): lo que se está respondiendo o yéndose se queda hasta terminar su animación.
   const { friendsRev } = useChatDock();
   useEffect(() => {
-    if (!amigosOn) { setPins([]); return; }
+    if (!socialOn) { setPins([]); return; }
     let alive = true;
     api.requests().then((r) => { if (alive) setPins((cur) => mergeContacts(cur, r.requests)); }, () => { /* sin destacados: no hay zona */ });
     return () => { alive = false; };
-  }, [amigosOn, friendsRev]);
+  }, [socialOn, friendsRev]);
   const setPin = useCallback((key: string, patch: Partial<{ phase: PinPhase; accepted: boolean }>) =>
     setPins((cur) => cur.map((h) => (h.key === key ? { ...h, ...patch } : h))), []);
   /** El destacado se pliega y después sale de la lista (con movimiento reducido, directo). */
@@ -337,9 +341,9 @@ export function FeedPage() {
           demo={amigosOn ? <SimulateNpcsChip busy={npc.busy} note={npc.note} failed={npc.failed} onClick={() => void simulateNpcs()} /> : undefined} />
         {/* La zona Destacado (pedido 14-oct): el hero "tu siguiente paso" + las solicitudes. La píldora y lo que
             entra con Simular NPCs van DEBAJO de esta zona (el hero ya no está en el hilo). */}
-        {(heroIt || (amigosOn && pins.length > 0)) && (
+        {(heroIt || (socialOn && pins.length > 0)) && (
           <PinnedZone hero={heroIt && <FeedNextCard it={heroIt} onGo={(to) => go(to)} />}
-            items={amigosOn ? pins : []} onAccept={(p) => void acceptPin(p)} onDecline={(p) => void declinePin(p)} />
+            items={socialOn ? pins : []} onAccept={(p) => void acceptPin(p)} onDecline={(p) => void declinePin(p)} />
         )}
         {/* la píldora: pegada arriba del hilo mientras se scrollea; región viva (anuncia que hay novedades) */}
         <div className="hf-pillbar" aria-live="polite">

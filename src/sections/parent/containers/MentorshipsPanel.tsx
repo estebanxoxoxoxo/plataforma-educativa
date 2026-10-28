@@ -6,7 +6,7 @@ import { useUser } from '../../../hooks/user';
 import { calendarOf, forWho, usd, weeklyPrice } from '../../../shared/lib/mentors';
 import { MentorshipRow } from '../cards/MentorshipRow';
 import { PanelState } from '../components/PanelState';
-import { parentCall } from '../lib/adultGate';
+import { parentCall, rejectedReason } from '../lib/adultGate';
 
 const NET_ERR = 'No se pudo completar. Revisá la conexión y probá de nuevo.';
 
@@ -80,8 +80,8 @@ export function MentorshipsPanel() {
       } else {
         setErrors((e) => ({ ...e, [c.id]: r.error ?? 'Esa contratación ya no estaba (puede que se haya cancelado desde otra pestaña).' }));
       }
-    } catch {
-      if (alive.current) setErrors((e) => ({ ...e, [c.id]: NET_ERR }));
+    } catch (err) {
+      if (alive.current) setErrors((e) => ({ ...e, [c.id]: rejectedReason(err) ?? NET_ERR }));
     } finally {
       inflight.current = false;
       if (alive.current) { setBusy(null); setConfirming(null); }

@@ -33,6 +33,28 @@ export function isValidTimeZone(tz: unknown): tz is string {
   }
 }
 
+/** Fecha de pared: año, mes (0 = enero), día del mes y día de la semana (0 = domingo, como getDay()). */
+export type WallDate = { y: number; m: number; d: number; wd: number };
+const ymdFmts = new Map<string, Intl.DateTimeFormat>();
+/** La fecha que marca el reloj de pared de `tz` en el instante `t`; sin zona (o desconocida), la local (como wallClock). */
+export function wallDate(t: number, tz?: string | null): WallDate {
+  const at = new Date(t);
+  if (tz) {
+    try {
+      let f = ymdFmts.get(tz);
+      if (!f) {
+        f = new Intl.DateTimeFormat('en-US', { timeZone: tz, year: 'numeric', month: 'numeric', day: 'numeric' });
+        ymdFmts.set(tz, f);
+      }
+      const parts = f.formatToParts(at);
+      const get = (k: Intl.DateTimeFormatPartTypes) => Number(parts.find((p) => p.type === k)?.value);
+      const y = get('year'), m = get('month') - 1, d = get('day');
+      if (Number.isInteger(y) && Number.isInteger(m) && Number.isInteger(d)) return { y, m, d, wd: new Date(Date.UTC(y, m, d)).getUTCDay() };
+    } catch { /* zona que este motor no conoce: la local, como wallClock */ }
+  }
+  return { y: at.getFullYear(), m: at.getMonth(), d: at.getDate(), wd: at.getDay() };
+}
+
 /** Día (0 = domingo) y hora/minutos de `at` en la zona `tz`; sin zona (o desconocida), en la local del proceso. */
 export function wallClock(at: Date, tz?: string | null): WallClock {
   if (tz) {

@@ -2,8 +2,10 @@ import { TYPE_LABEL, fmtFull, fmtNum, fmtWhen, isoOf } from '../lib/format';
 import type { ParentDashboard } from '../lib/types';
 import { PanelState } from './PanelState';
 
-/** "Actividad de Ian" (solo lectura): XP de la semana, Energy Coins, racha, qué está practicando y todo
- *  lo que guardó en Mi espacio con su carpeta. Pura: los datos llegan del contenedor. */
+/** "Actividad de {integrante}" (solo lectura): XP de la semana, Energy Coins, racha, qué está practicando y todo
+ *  lo que guardó en Mi espacio con su carpeta. U4 (docs/USUARIOS.md §10): TODO es DEL INTEGRANTE elegido (antes, en U3,
+ *  estos números eran compartidos y la nota lo avisaba); la nota ahora dice qué sigue siendo de la familia —el catálogo:
+ *  las rutas de Aprender y el YouTube aprobado—. Pura: los datos llegan del contenedor. */
 export function ActivityPanel({ kid, dash, failed, onRetry }: { kid: string; dash: ParentDashboard | null; failed: boolean; onRetry: () => void }) {
   const c = dash?.continue ?? null;
   const pct = c ? Math.max(0, Math.min(100, Math.round((c.done / Math.max(1, c.total)) * 100))) : 0;
@@ -13,6 +15,11 @@ export function ActivityPanel({ kid, dash, failed, onRetry }: { kid: string; das
         <h3 id="pz-act-h">Actividad de {kid}</h3>
         <p>Cómo viene la semana y lo que fue guardando. Solo lectura.</p>
       </header>
+      <p className="pz-note">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" strokeWidth="1.6" /><path d="M10 9v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /><circle cx="10" cy="6.2" r="1.1" fill="currentColor" /></svg>
+        Todo lo de acá es de {kid}: su XP, sus ⚡ y su racha, lo que está practicando y lo que guardó en su Mi espacio. Lo que
+        sigue siendo de toda la familia es el catálogo: las rutas de Aprender y el YouTube que aprobás.
+      </p>
       {!dash ? <PanelState failed={failed} onRetry={onRetry} /> : (
         <>
           <dl className="pz-stats">

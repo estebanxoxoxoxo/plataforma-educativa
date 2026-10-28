@@ -8,15 +8,17 @@ const ICON: Record<ParentAlert['kind'], ReactNode> = {
   bloqueos: <svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" strokeWidth="1.7" /><path d="M5.2 14.8l9.6-9.6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>,
 };
 
-/** Un aviso para el padre: qué pasó (el texto ya viene armado y en cuarentena si es crisis), dónde y cuándo, y
- *  "Marcar como visto". Pura. */
-export function AlertRow({ a, busy, onSeen }: { a: ParentAlert; busy: boolean; onSeen: () => void }) {
+/** Un aviso para el padre: qué pasó (el texto ya viene armado por el server; en una crisis trae lo que escribió el chico,
+ *  textual —decisión 11-oct—), dónde y cuándo, y "Marcar como visto". `who` (U3: la vista "Toda la familia") = sobre qué
+ *  integrante es. Pura. */
+export function AlertRow({ a, who, busy, onSeen }: { a: ParentAlert; who: string | null; busy: boolean; onSeen: () => void }) {
   return (
-    <li className={`pz-alert pz-alert--${a.kind}${a.seen ? ' is-seen' : ''}`} data-alert={a.id} data-kind={a.kind}>
+    <li className={`pz-alert pz-alert--${a.kind}${a.seen ? ' is-seen' : ''}`} data-alert={a.id} data-kind={a.kind} data-child={a.childId}>
       <span className="pz-alert-ic" aria-hidden="true">{ICON[a.kind]}</span>
       <div className="pz-alert-main">
         <p className="pz-alert-t">
           {ALERT_TITLE[a.kind]}
+          {who && <span className="pz-alert-who">Sobre {who}</span>}
           {!a.seen && <span className="pz-alert-new">Nuevo</span>}
         </p>
         <p className="pz-alert-text">{a.text}</p>

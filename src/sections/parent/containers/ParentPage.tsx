@@ -1,13 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { api } from '../../../api';
-import type { ParentAlert } from '../../../api/types';
+import type { FamilyMember, ParentAlert } from '../../../api/types';
 import { useUser } from '../../../hooks/user';
 import { ActivityPanel } from '../components/ActivityPanel';
 import { AlertsPanel } from '../components/AlertsPanel';
+import { PanelState } from '../components/PanelState';
 import { ParentHeader } from '../components/ParentHeader';
 import { ProtectionsPanel } from '../components/ProtectionsPanel';
 import { parentCall } from '../lib/adultGate';
+import { listEs } from '../lib/format';
+import { FAMILY_NOTE, FAMILY_WIDE, famTo, useFamilyMembers, useSelectedMember } from '../lib/member';
 import type { ParentDashboard } from '../lib/types';
 import { AfterDayMusicPanel } from './AfterDayMusicPanel';
 import { FeaturesPanel } from './FeaturesPanel';
@@ -21,40 +24,64 @@ import { YouTubePanel } from './YouTubePanel';
 
 /** Familia (/familia/*; la ex Zona de padres, /padres/* redirige acá): el punto de menú del ADULTO, abajo de todo
  *  (docs/USUARIOS.md §5). SIN portón: la sesión es la del usuario activo (el server la da por buena si es un adulto). La
- *  configuración de la cuenta de su dependiente en secciones con URL propia — /familia (presets + funcionalidades),
- *  /familia/temas, /familia/youtube (porte Smarty W5: ingesta de YouTube + canales de MyTube; W6: + la música de After Day),
- *  /familia/limites (topes de volumen; W7: + horarios por sección), /familia/avisos, /familia/premios, /familia/mentorias
- *  (tanda U2: lo contratado en Buscar → Mentores, para el adulto y sus dependientes; /familia/profesores redirige acá),
- *  /familia/actividad y /familia/protecciones.
+ *  configuración de CADA integrante de su familia (U3 · M2, §9: el selector de la cabecera, `?m=<id>` en la URL) en
+ *  secciones con URL propia — /familia (presets + funcionalidades), /familia/temas, /familia/youtube (porte Smarty W5:
+ *  ingesta de YouTube + canales de MyTube; W6: + la música de After Day — DE TODA LA FAMILIA), /familia/limites (topes de
+ *  volumen; W7: + horarios por sección y la zona horaria, que es de la familia), /familia/avisos, /familia/premios,
+ *  /familia/mentorias (tanda U2: lo contratado en Buscar → Mentores, para el adulto y sus dependientes — DE TODA LA FAMILIA;
+ *  /familia/profesores redirige acá), /familia/actividad y /familia/protecciones.
  *  Con un CHICO como usuario activo la ruta no existe: navega al Feed (y el server igual responde 401).
  *  Estética sobria de adulto (parent.css, pz-). */
 export function ParentPage() {
   const user = useUser();
   const adult = user?.kind === 'adult';
-  // `kid` = el nombre del PRIMER dependiente del adulto (GET /api/users; una sola vez). Hasta saberlo no se pinta nada
-  // (sin un "Cuenta de tu hijo" que después cambia); si la lectura falla, 'tu hijo'.
-  const [kid, setKid] = useState<string | null>(null);
-  const userId = user?.id;
-  useEffect(() => {
-    if (!adult) return;
-    let alive = true;
-    api.users().then(
-      (r) => {
-        const dep = r.users.find((u) => u.id === userId)?.dependents?.[0];
-        if (alive) setKid(r.users.find((u) => u.id === dep)?.name ?? 'tu hijo');
-      },
-      () => { if (alive) setKid('tu hijo'); },
-    );
-    return () => { alive = false; };
-  }, [adult, userId]);
+  // Los integrantes = los dependientes del adulto (GET /api/users, una vez). Hasta saberlos no se pinta nada (sin un
+  // "Cuenta de tu hijo" que después cambia).
+  const { members, failed, retry } = useFamilyMembers(adult ? user?.id : undefined);
   if (!user) return null;
   if (!adult) return <Navigate to="/" replace />;
-  return kid === null ? null : <ParentZone kid={kid} />;
+  if (!members) {
+    return failed ? (
+      <section className="view" id="v-parent">
+        <div className="pz-page">
+          <FamilyHeadOnly />
+          <PanelState failed onRetry={retry} />
+        </div>
+      </section>
+    ) : null;
+  }
+  if (!members.length) {
+    return (
+      <section className="view" id="v-parent">
+        <div className="pz-page">
+          <FamilyHeadOnly />
+          <section className="pz-panel"><p className="pz-muted">Todavía no hay integrantes en tu familia para configurar.</p></section>
+        </div>
+      </section>
+    );
+  }
+  return <ParentZone members={members} />;
 }
 
-function ParentZone({ kid }: { kid: string }) {
+/** La cabecera mínima mientras no hay a quién configurar (lectura fallida o adulto sin dependientes). */
+function FamilyHeadOnly() {
+  return (
+    <header className="pz-head">
+      <div className="pz-head-id">
+        <p className="pz-kicker">Familia</p>
+        <h2 className="pz-title">Familia</h2>
+      </div>
+    </header>
+  );
+}
+
+function ParentZone({ members }: { members: FamilyMember[] }) {
   const { pathname } = useLocation();
-  const [dash, setDash] = useState<ParentDashboard | null>(null);
+  const [member, pick] = useSelectedMember(members);
+  const mid = member.id;
+  // El tablero del integrante (actividad + canjes + premios + protecciones). Va etiquetado con su integrante: al cambiar de
+  // integrante no se muestra un instante el del otro.
+  const [dash, setDash] = useState<{ of: string; d: ParentDashboard } | null>(null);
   const [failed, setFailed] = useState(false);
   const [alerts, setAlerts] = useState<ParentAlert[] | null>(null);
   const [alertsFailed, setAlertsFailed] = useState(false);
@@ -63,18 +90,18 @@ function ParentZone({ kid }: { kid: string }) {
   const aseq = useRef(0);
   const view = useRef<HTMLElement>(null);
 
-  /** El tablero del padre (actividad + canjes + premios + protecciones) en una sola lectura. Las
-   *  recargas no tapan lo que ya hay; solo cuenta la respuesta de la última. */
+  /** El tablero del integrante elegido en una sola lectura. Las recargas no tapan lo que ya hay; solo cuenta la respuesta
+   *  de la última (también si en el medio se eligió a otro integrante). */
   const load = useCallback(async () => {
     const my = ++seq.current;
     try {
-      const d = (await parentCall(api.parentActivity())) as ParentDashboard;
-      if (my === seq.current) { setDash(d); setFailed(false); }
+      const d = (await parentCall(api.parentActivity(mid))) as ParentDashboard;
+      if (my === seq.current) { setDash({ of: mid, d }); setFailed(false); }
     } catch {
       if (my === seq.current) setFailed(true);
     }
-  }, []);
-  /** Los avisos (para la sección y para el contador de la navegación). */
+  }, [mid]);
+  /** Los avisos de TODA la familia (una lectura, sin member): de ahí salen el panel, los contadores y la barra de crisis. */
   const loadAlerts = useCallback(async () => {
     const my = ++aseq.current;
     try {
@@ -85,8 +112,8 @@ function ParentZone({ kid }: { kid: string }) {
     }
   }, []);
 
-  // Fresco en cada sección y al volver a la pestaña (el chico puede haber canjeado, guardado o escrito algo mientras
-  // tanto); cada sección arranca arriba de todo.
+  // Fresco en cada sección, al cambiar de integrante y al volver a la pestaña (un chico puede haber canjeado, guardado o
+  // escrito algo mientras tanto); cada sección arranca arriba de todo.
   useEffect(() => { void load(); void loadAlerts(); }, [load, loadAlerts, pathname]);
   useEffect(() => { view.current?.scrollTo({ top: 0 }); }, [pathname]);
   useEffect(() => {
@@ -106,37 +133,53 @@ function ParentZone({ kid }: { kid: string }) {
     setSeenBusy((b) => b.filter((x) => !ids.includes(x)));
   };
 
-  const pending = dash?.redemptions.filter((r) => r.status === 'pendiente').length ?? 0;
-  const unseen = alerts?.filter((a) => !a.seen) ?? [];
+  const d = dash?.of === mid ? dash.d : null;
+  const pending = d?.redemptions.filter((r) => r.status === 'pendiente').length ?? 0;
+  const unseen = useMemo(() => alerts?.filter((a) => !a.seen) ?? [], [alerts]);
+  const unseenBy = useMemo(() => {
+    const by: Record<string, number> = {};
+    for (const a of unseen) if (a.childId) by[a.childId] = (by[a.childId] ?? 0) + 1;
+    return by;
+  }, [unseen]);
+  // La barra de crisis es de TODA la familia: nombra a cada chico con una crisis sin ver, aunque se esté mirando a otro.
+  const crisisKids = members.filter((m) => unseen.some((a) => a.kind === 'crisis' && a.childId === m.id));
   const crisis = unseen.some((a) => a.kind === 'crisis');
+  const crisisNames = crisisKids.length ? listEs(crisisKids.map((m) => m.name)) : 'tu familia';
+  const crisisTo = famTo('/familia/avisos', crisisKids[0]?.id ?? mid);
+  const note = FAMILY_WIDE.has(pathname) ? FAMILY_NOTE[pathname] ?? 'Esta sección vale para toda la familia.' : null;
+  const home = famTo('/familia', mid);
 
   return (
     <section className="view" id="v-parent" ref={view}>
       <div className="pz-page">
-        <ParentHeader kid={kid} pending={pending} alerts={unseen.length} crisis={crisis} />
+        <ParentHeader member={member} members={members} note={note} onPick={pick} unseenBy={unseenBy} pending={pending} alerts={unseen.length} crisis={crisis} />
         {crisis && pathname !== '/familia/avisos' && (
           <p className="pz-crisis-bar" role="alert">
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.8l7.6 13.4H2.4z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /><path d="M10 8v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /><circle cx="10" cy="14.3" r="1" fill="currentColor" /></svg>
-            Hay un aviso de crisis sin ver sobre {kid}.
-            <Link to="/familia/avisos" className="pz-inline">Ver avisos</Link>
+            Hay un aviso de crisis sin ver sobre {crisisNames}.
+            <Link to={crisisTo} className="pz-inline">Ver avisos</Link>
           </p>
         )}
-        <Routes>
-          <Route index element={<><PresetsPanel kid={kid} /><FeaturesPanel kid={kid} /></>} />
-          <Route path="presets" element={<Navigate to="/familia" replace />} />
-          <Route path="temas" element={<TopicsPanel kid={kid} />} />
-          {/* YouTube + al pie la música de After Day (W6); Límites = topes de volumen + debajo los horarios por sección (W7) */}
-          <Route path="youtube" element={<><YouTubePanel kid={kid} /><AfterDayMusicPanel kid={kid} /></>} />
-          <Route path="limites" element={<><LimitsPanel kid={kid} /><SchedulesPanel kid={kid} /></>} />
-          <Route path="avisos" element={<AlertsPanel kid={kid} alerts={alerts} failed={alertsFailed} busy={seenBusy}
-            onSeen={(id) => void markSeen([id])} onSeenAll={() => void markSeen(unseen.map((a) => a.id))} onRetry={() => void loadAlerts()} />} />
-          <Route path="premios" element={<RewardsPanel kid={kid} dash={dash} failed={failed} reload={load} />} />
-          {/* Mentorías (U2): administra lo contratado en Buscar → Mentores; la ruta vieja de Profesores redirige acá */}
+        {/* key = el integrante: cambiarlo REMONTA los paneles (obligatorio: LimitsPanel guarda al desmontar los topes que
+            quedaron a medio guardar —con el integrante de ESE montaje—, y los borradores de Horarios y Premios arrancan de
+            cero; sin remontar, lo pendiente de un integrante iría al otro). */}
+        <Routes key={mid}>
+          <Route index element={<><PresetsPanel kid={member.name} member={mid} /><FeaturesPanel kid={member.name} member={mid} /></>} />
+          <Route path="presets" element={<Navigate to={home} replace />} />
+          <Route path="temas" element={<TopicsPanel kid={member.name} member={mid} />} />
+          {/* YouTube + al pie la música de After Day (W6): de TODA la familia. Límites = topes de volumen + debajo los
+              horarios por sección (W7), del integrante; la zona horaria (dentro de Horarios) es de la familia */}
+          <Route path="youtube" element={<><YouTubePanel /><AfterDayMusicPanel /></>} />
+          <Route path="limites" element={<><LimitsPanel kid={member.name} member={mid} /><SchedulesPanel kid={member.name} member={mid} /></>} />
+          <Route path="avisos" element={<AlertsPanel member={member} members={members} alerts={alerts} failed={alertsFailed} busy={seenBusy}
+            onSeen={(id) => void markSeen([id])} onSeenAll={(ids) => void markSeen(ids)} onRetry={() => void loadAlerts()} />} />
+          <Route path="premios" element={<RewardsPanel kid={member.name} member={mid} dash={d} failed={failed} reload={load} />} />
+          {/* Mentorías (U2): administra lo contratado en Buscar → Mentores (de toda la familia); la ruta vieja de Profesores redirige acá */}
           <Route path="mentorias" element={<MentorshipsPanel />} />
-          <Route path="profesores" element={<Navigate to="/familia/mentorias" replace />} />
-          <Route path="actividad" element={<ActivityPanel kid={kid} dash={dash} failed={failed} onRetry={() => void load()} />} />
-          <Route path="protecciones" element={<ProtectionsPanel kid={kid} dash={dash} failed={failed} onRetry={() => void load()} />} />
-          <Route path="*" element={<Navigate to="/familia" replace />} />
+          <Route path="profesores" element={<Navigate to={famTo('/familia/mentorias', mid)} replace />} />
+          <Route path="actividad" element={<ActivityPanel kid={member.name} dash={d} failed={failed} onRetry={() => void load()} />} />
+          <Route path="protecciones" element={<ProtectionsPanel kid={member.name} member={mid} dash={d} failed={failed} onRetry={() => void load()} />} />
+          <Route path="*" element={<Navigate to={home} replace />} />
         </Routes>
       </div>
     </section>

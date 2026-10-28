@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { api } from '../../../api';
 import type { ParentVolume } from '../../../api/types';
 import type { RowStatus } from '../cards/FeatureRow';
 import { PanelState } from '../components/PanelState';
 import { VolumePreview } from '../components/VolumePreview';
-import { parentCall } from '../lib/adultGate';
+import { parentCall, rejectedReason } from '../lib/adultGate';
 import { publishLimits } from '../lib/limits';
+import { savedTouchingPreset, useMemberConfig } from '../lib/memberConfig';
 
 type Key = keyof ParentVolume;
 const ROWS: { key: Key; name: string; what: 'la música' | 'los ruidos'; desc: (kid: string) => string }[] = [
@@ -16,31 +17,44 @@ const ROWS: { key: Key; name: string; what: 'la música' | 'los ruidos'; desc: (
 const SAVE_MS = 450;
 
 /** "Límites": topes de volumen de la música y los ruidos de fondo (settings.maxVol* de Smarty). Son techos: el chico
- *  elige su volumen por debajo; si lo que suena estaba más fuerte, baja en el acto (publishLimits → bgAudio). */
-export function LimitsPanel({ kid }: { kid: string }) {
+ *  elige su volumen por debajo; si lo que suena estaba más fuerte, baja en el acto (publishLimits → bgAudio).
+ *  U3: los topes son del integrante `member` (su config, lib/memberConfig.ts; POST volume?member). Lo que quedó a medio
+ *  guardar se guarda al desmontar CON EL INTEGRANTE DE ESTE MONTAJE: por eso ParentZone remonta los paneles al cambiar de
+ *  integrante (<Routes key>); sin eso, el tope a medio guardar de uno iría al otro. */
+export function LimitsPanel({ kid, member }: { kid: string; member: string }) {
+  const { cfg, failed, reload } = useMemberConfig(member);
   const [saved, setSaved] = useState<ParentVolume | null>(null);
   const [draft, setDraft] = useState<ParentVolume | null>(null);
-  const [failed, setFailed] = useState(false);
   const [status, setStatus] = useState<Partial<Record<Key, RowStatus>>>({});
   const timers = useRef<Partial<Record<Key, ReturnType<typeof setTimeout>>>>({});
   const clearers = useRef<Partial<Record<Key, ReturnType<typeof setTimeout>>>>({});
-  /** Valores movidos que todavía esperan su guardado: si el padre se va de la sección antes, se guardan igual. */
+  /** Valores movidos que todavía esperan su guardado: si el padre se va de la sección (o elige a otro integrante) antes,
+   *  se guardan igual. */
   const pending = useRef<Partial<Record<Key, number>>>({});
+  /** Guardados en vuelo por tope: mientras tanto, una lectura vieja no le pisa al slider lo que el padre eligió. */
+  const saving = useRef<Partial<Record<Key, number>>>({});
   const alive = useRef(true);
 
-  const load = useCallback(async () => {
-    setFailed(false);
-    try {
-      const c = await parentCall(api.parentConfig());
-      if (!alive.current) return;
-      setSaved(c.volume); setDraft(c.volume);
-    } catch { if (alive.current) setFailed(true); }
-  }, []);
+  // Lo que dice el server (la lectura del integrante o un guardado) entra al panel, salvo en el tope que el padre está
+  // moviendo o guardando.
+  const sv = cfg?.volume;
+  useEffect(() => {
+    if (!sv) return;
+    setSaved(sv);
+    setDraft((d) => {
+      const next = { ...(d ?? sv) };
+      for (const r of ROWS) if (pending.current[r.key] === undefined && !saving.current[r.key]) next[r.key] = sv[r.key];
+      return next;
+    });
+  }, [sv]);
 
   const commit = async (key: Key, value: number) => {
+    saving.current[key] = (saving.current[key] ?? 0) + 1;
     try {
-      const r = await parentCall(api.parentVolume({ [key]: value } as Partial<ParentVolume>));
-      publishLimits(r); // rige ya para el chico (esta pestaña y las otras del navegador)
+      const r = await parentCall(api.parentVolume({ [key]: value } as Partial<ParentVolume>, member));
+      saving.current[key] = Math.max(0, (saving.current[key] ?? 1) - 1);
+      publishLimits(r, member); // rige ya donde ese chico es el usuario activo (esta pestaña y las otras del navegador)
+      savedTouchingPreset(member, { volume: r, preset: null });
       if (!alive.current) return;
       setSaved(r);
       setDraft((d) => (d ? { ...d, [key]: r[key] } : r));
@@ -48,24 +62,25 @@ export function LimitsPanel({ kid }: { kid: string }) {
       setStatus((s) => ({ ...s, [key]: { kind: 'saved', text: v >= 100 ? 'Guardado: sin tope.' : `Guardado: ya rige el tope de ${v}.` } }));
       clearTimeout(clearers.current[key]);
       clearers.current[key] = setTimeout(() => { if (alive.current) setStatus((s) => ({ ...s, [key]: null })); }, 4000);
-    } catch {
+    } catch (e) {
+      saving.current[key] = Math.max(0, (saving.current[key] ?? 1) - 1);
       if (!alive.current) return;
       setDraft((d) => (d && saved ? { ...d, [key]: saved[key] } : d));
-      setStatus((s) => ({ ...s, [key]: { kind: 'error', text: 'No se pudo guardar. Probá de nuevo.' } }));
+      setStatus((s) => ({ ...s, [key]: { kind: 'error', text: rejectedReason(e) ?? 'No se pudo guardar. Probá de nuevo.' } }));
     }
   };
   const commitRef = useRef(commit);
   commitRef.current = commit;
   useEffect(() => {
     alive.current = true;
-    void load();
     const t = timers.current, c = clearers.current, p = pending.current;
     return () => {
       alive.current = false;
       Object.values(c).forEach((x) => clearTimeout(x));
+      // commitRef.current es el de ESTE montaje: lleva su `member` (el remonte por integrante lo garantiza)
       for (const k of Object.keys(p) as Key[]) { clearTimeout(t[k]); void commitRef.current(k, p[k]!); delete p[k]; }
     };
-  }, [load]);
+  }, []);
 
   const change = (key: Key, value: number) => {
     setDraft((d) => (d ? { ...d, [key]: value } : d));
@@ -87,7 +102,7 @@ export function LimitsPanel({ kid }: { kid: string }) {
           <button type="button" className="pz-btn pz-btn--ghost pz-btn--sm" onClick={reset}>Quitar los topes</button>
         )}
       </header>
-      {!draft ? <PanelState failed={failed} onRetry={() => void load()} /> : (
+      {!draft ? <PanelState failed={failed} onRetry={() => void reload()} /> : (
         <ul className="pz-lims">
           {ROWS.map((r) => {
             const v = draft[r.key];

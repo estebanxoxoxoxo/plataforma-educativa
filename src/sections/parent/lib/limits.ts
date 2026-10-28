@@ -8,8 +8,10 @@
 //   3. Otro dispositivo: se vuelve a preguntar al cargar, al volver el foco/visibilidad y al abrir el MiniPlayer.
 // Sin dato todavía (o si el server no responde) rige el último conocido; al arrancar, 100 = sin tope (el default de
 // Smarty): el chico necesita un gesto para que suene algo y para entonces el dato ya llegó.
+// U3 · M2: los topes son POR INTEGRANTE. Lo que publica Familia va etiquetado con su integrante y solo rige en una pestaña
+// cuyo usuario activo es ese integrante (antes, Familia le ponía los topes del chico al MiniPlayer del propio adulto).
 import { useSyncExternalStore } from 'react';
-import { api } from '../../../api';
+import { actingUserId, api } from '../../../api';
 import type { ParentVolume } from '../../../api/types';
 
 const NO_CAP: ParentVolume = { maxMusic: 100, maxNoise: 100 };
@@ -49,7 +51,10 @@ let bc: BroadcastChannel | null = null;
 function openChannel() {
   if (bc || typeof BroadcastChannel === 'undefined') return;
   bc = new BroadcastChannel(CHANNEL);
-  bc.onmessage = (e: MessageEvent) => { if (isVolume(e.data)) { version++; emit(e.data); } };
+  bc.onmessage = (e: MessageEvent) => {
+    const d = e.data as (ParentVolume & { member?: unknown }) | null;
+    if (d && d.member === actingUserId() && isVolume(d)) { version++; emit(d); }
+  };
 }
 
 const onWake = () => { if (document.visibilityState === 'visible') void refreshLimits(); };
@@ -74,12 +79,11 @@ export function subscribeLimits(cb: () => void): () => void {
 /** Los topes vigentes (re-renderiza cuando cambian). */
 export const useLimits = (): ParentVolume => useSyncExternalStore(subscribeLimits, getLimits, getLimits);
 
-/** El padre cambió los topes (panel "Límites" o un preset) y el server ya los guardó: rigen ya en esta pestaña —lo que
- *  suena baja en el acto— y en las otras del navegador. */
-export function publishLimits(v: ParentVolume) {
+/** El padre cambió los topes de `member` (panel "Límites" o un preset) y el server ya los guardó: rigen ya donde `member`
+ *  es el usuario activo —lo que suena baja en el acto—, en esta pestaña y en las otras del navegador. */
+export function publishLimits(v: ParentVolume, member: string) {
   if (!isVolume(v)) return;
-  version++;
-  emit(v);
+  if (member === actingUserId()) { version++; emit(v); }
   openChannel();
-  try { bc?.postMessage({ maxMusic: v.maxMusic, maxNoise: v.maxNoise }); } catch { /* las otras pestañas se enteran al volver el foco */ }
+  try { bc?.postMessage({ member, maxMusic: v.maxMusic, maxNoise: v.maxNoise }); } catch { /* las otras pestañas se enteran al volver el foco */ }
 }

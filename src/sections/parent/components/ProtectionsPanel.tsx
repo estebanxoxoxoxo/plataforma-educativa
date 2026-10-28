@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { FeedMotionControl } from '../containers/FeedMotionControl';
 import { DOMAIN_MODE, fmtNum } from '../lib/format';
+import { famTo } from '../lib/member';
 import type { ParentDashboard } from '../lib/types';
 import { PanelState } from './PanelState';
 
@@ -8,8 +9,9 @@ import { PanelState } from './PanelState';
  *  cuentan lo de fábrica (Smarty) + lo que sumó la familia en "Temas y palabras". Sitios y catálogo se importan del
  *  respaldo de Smarty (su edición fina —sitios, reglas de dominio, prompts— sigue en el "motor intermedio" de la POC).
  *  Debajo, el dial "Animación del Feed" (Feed v6): ese bloque es un contenedor propio (FeedMotionControl: lee y guarda la
- *  config del padre); el resto del panel es puro. */
-export function ProtectionsPanel({ kid, dash, failed, onRetry }: { kid: string; dash: ParentDashboard | null; failed: boolean; onRetry: () => void }) {
+ *  config del padre); el resto del panel es puro. U3: los números son los del integrante elegido (`dash.protections` de
+ *  GET activity?member: sus palabras y temas de la familia + los de fábrica) y el dial es el suyo. */
+export function ProtectionsPanel({ kid, member, dash, failed, onRetry }: { kid: string; member: string; dash: ParentDashboard | null; failed: boolean; onRetry: () => void }) {
   const p = dash?.protections;
   const rows = p ? [
     { k: 'Sitios aprobados para leer', v: fmtNum(p.sites), d: 'Los artículos solo se abren desde estos sitios, y cada página pasa además por un revisor automático.' },
@@ -38,9 +40,9 @@ export function ProtectionsPanel({ kid, dash, failed, onRetry }: { kid: string; 
           ))}
         </dl>
       )}
-      <FeedMotionControl kid={kid} />
+      <FeedMotionControl kid={kid} member={member} />
       <p className="pz-foot">
-        Para sumar temas o palabras de la familia, andá a <Link to="/familia/temas" className="pz-inline pz-inline--tight">Temas y palabras</Link>; los topes de volumen están en <Link to="/familia/limites" className="pz-inline pz-inline--tight">Límites</Link>.
+        Para sumar temas o palabras para {kid}, andá a <Link to={famTo('/familia/temas', member)} className="pz-inline pz-inline--tight">Temas y palabras</Link>; los topes de volumen están en <Link to={famTo('/familia/limites', member)} className="pz-inline pz-inline--tight">Límites</Link>.
       </p>
     </section>
   );

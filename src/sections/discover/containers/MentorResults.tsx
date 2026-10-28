@@ -3,6 +3,7 @@ import { api } from '../../../api';
 import type { Mentor, MentorContract, MentorPlan, MentorsResponse, TeacherSlot } from '../../../api/types';
 import { useUser } from '../../../hooks/user';
 import { firstClass, forWho, mentorMatches } from '../../../shared/lib/mentors';
+import { useSchedules } from '../../parent/lib/schedules';
 import { MentorCard } from '../cards/MentorCard';
 import { MentorSheet, type MentorSheetState } from '../components/MentorSheet';
 
@@ -14,7 +15,9 @@ const NET_ERR = 'No se pudo completar. Revisá la conexión y probá de nuevo.';
  *  materia o bio — sin query, el catálogo entero; sin red extra. Resuelve la hoja de contratación:
  *    · "Contratar" → plan + para quién → api.mentorContract (el pago del demo) → la AGENDA del post-compra.
  *    · agenda → api.mentorSchedule → "listo", con la primera clase (del calendario si el beneficiario es el usuario activo;
- *      si no, la cuenta con sus días: /api/calendar solo trae el del activo).
+ *      si no, la cuenta con sus días: /api/calendar solo trae el del activo). La fecha y la hora van en la ZONA HORARIA DE
+ *      LA FAMILIA (tanda B2: la `tz` del store de horarios, el mismo que usan la barra superior y el Calendario; null = la
+ *      del navegador), que es donde el server ancla las clases: "los miércoles a las 17:00" es la primera a las 17:00.
  *    · "Elegir los días" de un contrato pendiente (en su tarjeta, o `agendar` = el id que manda Familia → Mentorías) →
  *      la agenda directo. Cerrar en la agenda deja el contrato pendiente.
  *  Nada optimista: después de cada acción —y al cerrar la hoja, en cualquier fase— se relee (lo que se ve es lo que guardó
@@ -25,6 +28,10 @@ export function MentorResults({ q, agendar, onAgendarUsed }: {
   /** Ya se usó `agendar`: el que lo pasó lo saca de la URL. */ onAgendarUsed: () => void;
 }) {
   const me = useUser()?.id ?? '';
+  const tz = useSchedules().tz; // la zona de la familia (la lee el store desde que monta la barra superior)
+  /** La zona vigente cuando vuelve el agendado (el `schedule` en vuelo es de un render anterior). */
+  const tzNow = useRef(tz);
+  useEffect(() => { tzNow.current = tz; });
   const [data, setData] = useState<MentorsResponse | null>(null);
   const [failed, setFailed] = useState(false);
   const [sheet, setSheet] = useState<Sheet | null>(null);
@@ -129,7 +136,7 @@ export function MentorResults({ q, agendar, onAgendarUsed }: {
       const [, cal] = await Promise.all([load(), c.beneficiary === me ? api.calendar().catch(() => null) : Promise.resolve(null)]);
       if (!alive.current) return;
       const fromCal = cal?.events.filter((e) => e.teacherId === id).sort((a, b) => a.start - b.start)[0]?.start;
-      setFor(id, { phase: 'done', contract: c, first: fromCal ?? firstClass(c.slots) });
+      setFor(id, { phase: 'done', contract: c, first: fromCal ?? firstClass(c.slots, Date.now(), tzNow.current) });
     } catch {
       if (alive.current) setFor(id, { ...st, busy: false, error: NET_ERR });
     } finally {
@@ -170,7 +177,7 @@ export function MentorResults({ q, agendar, onAgendarUsed }: {
         </>
       )}
       {sheet && sheetMentor && (
-        <MentorSheet mentor={sheetMentor} me={me} people={data.people} taken={data.taken} state={sheet.state}
+        <MentorSheet mentor={sheetMentor} me={me} people={data.people} taken={data.taken} state={sheet.state} tz={tz}
           onContract={(plan, who) => void contract(plan, who)} onSchedule={(slots) => void schedule(slots)} onClose={close} />
       )}
     </>

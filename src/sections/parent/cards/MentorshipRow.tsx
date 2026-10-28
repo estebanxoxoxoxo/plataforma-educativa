@@ -2,7 +2,7 @@ import { useEffect, useRef, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import type { MentorContract, Teacher } from '../../../api/types';
 import {
-  calendarOf, firstName, forWho, planLabel, slotsEvery, usd, weeklyPrice, type People,
+  firstName, forWho, fromCalendarOf, planLabel, slotsEvery, usd, weeklyPrice, type People,
 } from '../../../shared/lib/mentors';
 import { capFirst } from '../lib/format';
 
@@ -70,7 +70,7 @@ export function MentorshipRow({ m, c, me, people, confirming, busy, error, onAsk
         <div className="pz-ms-confirm" role="group" aria-label={`Cancelar ${what}`}>
           <p>
             ¿Cancelás {m.subject} con {firstName(m.name)} {who}?{' '}
-            {pending ? 'Todavía no tenía días elegidos.' : `Las próximas clases salen de ${calendarOf(c.beneficiary, me, people)}.`}
+            {pending ? 'Todavía no tenía días elegidos.' : `Las próximas clases salen ${fromCalendarOf(c.beneficiary, me, people)}.`}
           </p>
           <div className="pz-form-btns">
             <button type="button" className="pz-btn pz-btn--sm" disabled={busy} aria-busy={busy} onClick={onConfirmCancel}>{busy ? 'Cancelando…' : 'Sí, cancelar'}</button>

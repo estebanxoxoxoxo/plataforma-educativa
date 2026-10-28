@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { api } from '../../api';
+import { actingUserId, api } from '../../api';
 import type { FolderNode } from '../../api/types';
 import { IcFolderWin } from './icons';
 
 const LAST_KEY = 'innerith.lastFolder';
+/** U4 (docs/USUARIOS.md §10): Mi espacio es de cada usuario, así que la "última carpeta usada" también (con ids únicos en
+ *  la familia una ajena igual no existiría en tu espacio; es por prolijidad). La clave vieja sin usuario se ignora. */
+const lastKey = () => `${LAST_KEY}:${actingUserId()}`;
 const ROOT = 0;
 
 /** Hoja "¿Dónde lo guardás?" / "Mover a…": selector de carpeta NAVEGABLE (breadcrumb + entrar a
@@ -35,7 +38,8 @@ export function FolderSheet({ open, title, cta, excludeId, allowRoot = false, on
     api.driveFolders().then(({ folders }) => {
       setAll(folders);
       // Arranca en la última carpeta usada (si sigue viva); un toque para guardar seguido en el mismo lugar.
-      const last = Number(localStorage.getItem(LAST_KEY) ?? ROOT) || ROOT;
+      let last = ROOT;
+      try { last = Number(localStorage.getItem(lastKey()) ?? ROOT) || ROOT; } catch { /* sin almacenamiento: la raíz */ }
       setAt(folders.some((f) => f.id === last) ? last : ROOT);
       // Sin carpetas todavía y guardando un archivo: directo a crear la primera.
       if (!folders.length && !allowRoot) setCreating(true);
@@ -84,7 +88,7 @@ export function FolderSheet({ open, title, cta, excludeId, allowRoot = false, on
     try {
       const r = await onPick(at, hereName);
       if ('error' in r) { setError(r.error); return; }
-      localStorage.setItem(LAST_KEY, String(at));
+      try { localStorage.setItem(lastKey(), String(at)); } catch { /* sin almacenamiento: no se recuerda */ }
       setDone(r.done);
       setTimeout(onClose, 900);
     } catch {

@@ -5,7 +5,7 @@ import type { ImageResult, SearchResponse, Tab } from '../../../api/types';
 import { lastSearch, useUser } from '../../../hooks/user';
 import { FolderSheet } from '../../../shared/components/FolderSheet';
 import { UnderlineTabs } from '../../../shared/components/UnderlineTabs';
-import { useFeatures } from '../../parent/lib/features';
+import { useSocial } from '../../friends/lib/social';
 import { ImageItem } from '../cards/ImageCard';
 import { PageItem } from '../cards/PageCard';
 import { VideoItem } from '../cards/VideoCard';
@@ -23,7 +23,8 @@ type Results = { [K in Tab]: TabState<SearchMap[K]> };
 /** Caché por consulta: volver a una búsqueda ya hecha no re-anima. */
 const cache = new Map<string, { [K in Tab]?: SearchResponse<SearchMap[K]> }>();
 /** Buscar: Páginas, Imágenes y Videos (contenido moderado) + Personas (tanda F2: chicos de Innerith por su nombre de
- *  usuario; solo con Amigos prendido por la familia — apagado, la solapa no existe y ?tab=people cae en Páginas) +
+ *  usuario; solo con Amigos prendido por la familia — apagado, la solapa no existe y ?tab=people cae en Páginas —; U4 · D4:
+ *  es de los CHICOS: con un ADULTO activo tampoco existe y ?tab=people cae en Páginas, como Mentores con un chico) +
  *  Mentores (tanda U2, docs/USUARIOS.md §6: clases particulares que contrata el ADULTO, para él o para un dependiente;
  *  con un chico como usuario activo la solapa no existe y ?tab=mentors cae en Páginas). Una búsqueda de contenido pide
  *  las 3 solapas en paralelo; en Personas y en Mentores NO se gastan búsquedas de contenido: se piden recién al volver a
@@ -33,15 +34,16 @@ export function SearchPage() {
   const [params, setParams] = useSearchParams();
   const q = params.get('q') ?? '';
   const agendar = params.get('agendar');
-  const features = useFeatures();
-  const peopleOn = features?.amigos === true;
-  // El usuario activo ya está resuelto al montar (UserProvider no pinta nada hasta saberlo); sin usuario (falló /api/me)
-  // se trata como chico: sin Mentores (fail-closed).
+  // Personas = lo social, que es de los chicos (lib/social.ts: Amigos prendido Y un chico activo; undefined mientras no se
+  // sabe si Amigos está prendido). El usuario activo ya está resuelto al montar (UserProvider no pinta nada hasta saberlo);
+  // sin usuario (falló /api/me) se trata como chico: sin Mentores (fail-closed) y Personas según Amigos.
+  const social = useSocial();
+  const peopleOn = social === true;
   const adult = useUser()?.kind === 'adult';
   const asked = (params.get('tab') as SearchTab) || 'pages';
-  // Personas: mientras no se sabe si Amigos está prendido, se espera (sin buscar contenido); apagado, Páginas.
+  // Personas: mientras no se sabe si Amigos está prendido, se espera (sin buscar contenido); apagado o con un adulto, Páginas.
   // Mentores: solo el adulto; con un chico, Páginas.
-  const tab: SearchTab = (asked === 'people' && features && !peopleOn) || (asked === 'mentors' && !adult) ? 'pages' : asked;
+  const tab: SearchTab = (asked === 'people' && social === false) || (asked === 'mentors' && !adult) ? 'pages' : asked;
   const isPeople = tab === 'people';
   const isMentors = tab === 'mentors';
   const noContent = !isContentTab(tab);

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../../../api';
 import type { CalendarEvent } from '../../../api/types';
 import { useUser } from '../../../hooks/user';
+import { useSchedules } from '../../parent/lib/schedules';
 import { CalendarEmpty, CalendarFail, CalendarSkeleton } from '../components/CalendarStates';
 import { NextClassHero } from '../components/NextClassHero';
 import { UpcomingList } from '../components/UpcomingList';
@@ -14,9 +15,15 @@ const TICK_MS = 30_000;
  *  Mentores, para él o para un dependiente; cada uno ve SOLO las suyas — api.calendar(): sin precios ni nada que
  *  gestionar). Arriba la próxima clase y después UN SOLO listado con todas las que vienen, agrupadas por día, que scrollea
  *  con la página (pedido 11-oct: sin tira semanal). Se mantiene al día solo: relee al volver a la pestaña (el adulto
- *  puede haber contratado o cancelado en otra) y cuando termina una clase (el server corre la serie y agrega la que sigue). */
+ *  puede haber contratado o cancelado en otra) y cuando termina una clase (el server corre la serie y agrega la que sigue).
+ *  Las horas y los días se pintan en la ZONA HORARIA DE LA FAMILIA (tanda B1): la `tz` de GET /api/schedules que ya lee el
+ *  store de horarios (el mismo que usa el reloj de la barra superior; null = la del navegador). Hasta que esa lectura
+ *  vuelve (o falla) se muestra el esqueleto, para no pintar un instante con la hora del navegador y saltar después. */
 export function CalendarPage() {
   const adult = useUser()?.kind === 'adult';
+  const sched = useSchedules();
+  const tz = sched.tz;
+  const tzReady = sched.syncedAt > 0 || sched.failed;
   const [events, setEvents] = useState<CalendarEvent[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -60,7 +67,7 @@ export function CalendarPage() {
     if (events?.some((e) => endOf(e) <= now && endOf(e) > fetchedAt.current)) void load();
   }, [events, now, load]);
 
-  const view = useMemo(() => (events ? buildCalendar(events, now) : null), [events, now]);
+  const view = useMemo(() => (events && tzReady ? buildCalendar(events, now, tz) : null), [events, now, tz, tzReady]);
 
   return (
     <section className="view cal-view" id="v-calendar">
@@ -73,7 +80,7 @@ export function CalendarPage() {
         : !view.hero ? <CalendarEmpty adult={adult} /> : (
           <>
             <NextClassHero hero={view.hero} />
-            <UpcomingList groups={view.groups} nextId={view.hero.event.id} now={now} />
+            <UpcomingList groups={view.groups} nextId={view.hero.event.id} now={now} tz={tz} />
           </>
         )}
     </section>

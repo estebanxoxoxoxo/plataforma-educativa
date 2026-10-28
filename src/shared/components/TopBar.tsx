@@ -4,6 +4,7 @@ import { EC_CHANGED_EVT, api, setActingUser } from '../../api';
 import type { AssignedLeague, Friend, FriendRequest, UserInfo } from '../../api/types';
 import { useUser } from '../../hooks/user';
 import { chatFriendsChanged, openChat, useChatDock } from '../../sections/friends/lib/chatDock';
+import { useSocial } from '../../sections/friends/lib/social';
 import { useFeatures } from '../../sections/parent/lib/features';
 import { useSchedules } from '../../sections/parent/lib/schedules';
 import { wallClock } from '../lib/zonedClock';
@@ -17,8 +18,11 @@ import { MyAvatar } from './ProfileCard';
  *  notificaciones (solicitudes de amistad con Aceptar/Ahora no + conversaciones sin leer del dock).
  *  Respeta los apagados del padre: sin Ligas no hay chip de liga, sin Tienda no se nombra la moneda,
  *  sin Amigos no hay campana — al CHICO: con un adulto activo, useFeatures() ya da todo prendido (los candados son del
- *  dependiente, docs/USUARIOS.md §4). Datos: carga al montar, al volver el foco y cada 60 s; escucha el evento
- *  del cierre de semana (innerith:league-week-closed) para refrescar la liga al instante. */
+ *  dependiente, docs/USUARIOS.md §4). U4 · D4: la campana es SOCIAL (solicitudes + no leídos del dock) y lo social es de los
+ *  chicos (sections/friends/lib/social.ts): con un adulto activo no se piden solicitudes ni amigos, no cuenta nada y no
+ *  hay campana (su contenido no existiría nunca). Datos: carga al montar, al volver el foco y cada 60 s; escucha el evento
+ *  del cierre de semana (innerith:league-week-closed) para refrescar la liga al instante. U4: el switch recarga SIN
+ *  resetear la demo (setActingUser marca la carga; el reset de cada F5 es del usuario activo). */
 
 const CLOCK_MS = 30_000;
 const POLL_MS = 60_000;
@@ -75,7 +79,8 @@ export function TopBar() {
   // Con un adulto activo, useFeatures() ya devuelve todo prendido (los candados son del chico).
   const ligasOn = features?.ligas === true;
   const tiendaOn = features?.tienda === true;
-  const amigosOn = features?.amigos === true;
+  // Lo social (campana: solicitudes + no leídos del dock) es de los chicos con Amigos prendido (U4 · D4).
+  const amigosOn = useSocial() === true;
 
   // Con un apagado del padre NO se pide lo apagado (antes salían 403 a consola con Amigos off).
   const load = useCallback(async () => {
@@ -169,7 +174,8 @@ export function TopBar() {
         <b>{hm}</b><span className="tb-date">{date}</span>
       </span>
       {user && (
-        /* Switch de usuario (DEMO, docs/USUARIOS.md §2): elegir a otro guarda su id y recarga la app desde el Feed. */
+        /* Switch de usuario (DEMO, docs/USUARIOS.md §2): elegir a otro guarda su id y recarga la app desde el Feed, SIN
+           resetear la demo de nadie (U4). */
         <div className="tb-userwrap" ref={usersRef}>
           <button className="tb-user" type="button" aria-expanded={usersOpen} aria-haspopup="dialog" aria-label="Cambiar de usuario"
             title={`${user.name}: cambiar de usuario`} onClick={() => setUsersOpen((v) => !v)}>

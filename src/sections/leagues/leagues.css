@@ -1,4 +1,4 @@
-/* =================== Ligas: hero de mi liga (asignada) + solapas Mi liga · Tu zona · País =================== */
+/* =================== Ligas: hero de mi liga (asignada) + solapas Mi liga · Tu zona · País · Familia (U4) =================== */
 /* ancho y alineación: la columna estándar de .view (shell.css); antes cada bloque tenía su propio max-width de 780 */
 #v-leagues{background:linear-gradient(180deg,#FFFFFF 0,#F6F7FB 200px)}
 
@@ -63,6 +63,18 @@
 .rk.me .pos{color:#2843A8}
 .rk .you{font-size:11px;font-weight:800;background:#3A5BD9;color:#fff;padding:2px 7px;border-radius:999px;margin-left:8px}
 .rank.full{margin-bottom:4px}
+
+/* ---- U4 · D2: la tabla de la semana de la FAMILIA (solapa Familia). El patrón de .rank.full (puesto, avatar, nombre,
+   Vos, XP) + la racha al lado de la XP con la chispa de la racha sin presión del Feed (el mismo dorado de .hf-streak).
+   Sin ancho propio: la columna es la de .view. ---- */
+.lgf-rk .lgf-streak{flex:none;display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:800;color:#6A7390;font-variant-numeric:tabular-nums;white-space:nowrap}
+.lgf-rk .lgf-streak svg{width:12px;height:12px;color:#E39710}
+.lgf-rk .xp{flex:none;min-width:76px;text-align:right}
+.lgf-foot{margin:10px 0 0 2px;font-size:13px;font-weight:700;line-height:1.45;color:#6A7390}
+@media (max-width:480px){
+  .lgf-rk{gap:8px;padding:0 8px}
+  .lgf-rk .xp{min-width:0}
+}
 
 .lempty{color:#A5ACBD;font-weight:800;margin-top:14px}
 

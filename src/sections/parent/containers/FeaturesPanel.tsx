@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { FeatureRow, type RowStatus } from '../cards/FeatureRow';
-import { refreshFeatures, saveFeature, useFeaturesStatus, type FeatureKey } from '../lib/features';
+import { rejectedReason } from '../lib/adultGate';
+import { saveFeature, type FeatureKey } from '../lib/features';
+import { savedTouchingPreset, useMemberConfig } from '../lib/memberConfig';
 
 /** Los cuatro grandes on-off, con UNA línea de descripción cada uno (audio 66: "configurar hoy es un
  *  infierno: tienen que ser grandes on-off"). */
@@ -11,11 +13,12 @@ const COPY: { key: FeatureKey; label: string; desc: string }[] = [
   { key: 'chat', label: 'Chat', desc: 'Preguntas y búsquedas conversando con el asistente de IA.' },
 ];
 
-/** Panel "Funcionalidades": cada cambio se guarda al instante (POST) y el menú del chico cambia en el
- *  acto (ver lib/features.ts). El switch muestra enseguida el valor elegido mientras se guarda; si el
- *  server falla, vuelve al valor real y lo avisa. */
-export function FeaturesPanel({ kid }: { kid: string }) {
-  const { features, failed } = useFeaturesStatus();
+/** Panel "Funcionalidades" del integrante `member` (U3: los on-off de SU config, de lib/memberConfig.ts): cada cambio se
+ *  guarda al instante (POST ?member) y su menú cambia en el acto (ver lib/features.ts). El switch muestra enseguida el valor
+ *  elegido mientras se guarda; si el server falla, vuelve al valor real y lo avisa. */
+export function FeaturesPanel({ kid, member }: { kid: string; member: string }) {
+  const { cfg, failed, reload } = useMemberConfig(member);
+  const features = cfg?.features ?? null;
   const [pending, setPending] = useState<Partial<Record<FeatureKey, boolean>>>({});
   const [status, setStatus] = useState<Partial<Record<FeatureKey, RowStatus>>>({});
   const timers = useRef<Partial<Record<FeatureKey, ReturnType<typeof setTimeout>>>>({});
@@ -32,13 +35,14 @@ export function FeaturesPanel({ kid }: { kid: string }) {
     setStatus((s) => ({ ...s, [key]: null }));
     setPending((p) => ({ ...p, [key]: on }));
     try {
-      await saveFeature(key, on);
+      const f = await saveFeature(key, on, member);
+      savedTouchingPreset(member, { features: f }); // lo que guardó el server (y Presets se entera si el preset dejó de regir)
       if (!alive.current) return;
       setStatus((s) => ({ ...s, [key]: { kind: 'saved', text: on ? `Guardado: ya está en el menú de ${kid}.` : `Guardado: ya no está en el menú de ${kid}.` } }));
       timers.current[key] = setTimeout(() => { if (alive.current) setStatus((s) => ({ ...s, [key]: null })); }, 4000);
-    } catch {
+    } catch (e) {
       if (!alive.current) return;
-      setStatus((s) => ({ ...s, [key]: { kind: 'error', text: 'No se pudo guardar. Probá de nuevo.' } }));
+      setStatus((s) => ({ ...s, [key]: { kind: 'error', text: rejectedReason(e) ?? 'No se pudo guardar. Probá de nuevo.' } }));
     } finally {
       if (alive.current) setPending((p) => { const n = { ...p }; delete n[key]; return n; });
     }
@@ -53,7 +57,7 @@ export function FeaturesPanel({ kid }: { kid: string }) {
       {!features && failed && (
         <div className="pz-fail" role="alert">
           <p>No pude leer la configuración actual.</p>
-          <button type="button" className="pz-btn pz-btn--ghost" onClick={() => void refreshFeatures()}>Reintentar</button>
+          <button type="button" className="pz-btn pz-btn--ghost" onClick={() => void reload()}>Reintentar</button>
         </div>
       )}
       <ul className="pz-feats">
@@ -65,7 +69,7 @@ export function FeaturesPanel({ kid }: { kid: string }) {
       </ul>
       <p className="pz-note">
         <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" strokeWidth="1.6" /><path d="M10 9v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /><circle cx="10" cy="6.2" r="1.1" fill="currentColor" /></svg>
-        Los cambios se aplican al instante en la cuenta de {kid}.
+        Los cambios se aplican al instante en la cuenta de {kid}; no tocan la de los demás integrantes.
       </p>
     </section>
   );

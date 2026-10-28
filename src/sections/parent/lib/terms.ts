@@ -1,6 +1,7 @@
 // Términos de la familia (temas blancos/negros y palabras bloqueadas) del lado del panel. La validación es un ESPEJO
-// de server/src/parent.ts (checkTerm/checkTerms): el server valida igual y es el que manda, pero el cliente de api
-// (src/api/index.ts) no expone el motivo de un 400, así que acá se avisa antes de mandar y con las mismas palabras.
+// de server/src/parent.ts (checkTerm/checkTerms): el server valida igual y es el que manda (si rechaza algo que acá
+// pasó —p. ej. un choque con la otra lista que esta pestaña no veía—, su motivo llega en el ApiError y el panel lo
+// muestra: rejectedReason de adultGate.ts); acá se avisa ANTES de mandar, sin ida y vuelta, y con las mismas palabras.
 // Mismo criterio de "repetido" que el filtro de palabras: sin tildes, sin mayúsculas, espacios colapsados.
 
 export type TermKind = 'tema' | 'palabra';

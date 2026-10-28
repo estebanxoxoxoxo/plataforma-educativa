@@ -1,13 +1,14 @@
 import type { CalendarEvent } from '../../../api/types';
 import { ClassRow } from '../cards/ClassRow';
-import { isLive, type DayGroup } from '../lib/calendar';
+import { isLive, type DayGroup, type Tz } from '../lib/calendar';
 
 /** "Próximas clases": TODAS las que vienen, agrupadas por día ("Hoy", "Mañana", "Martes 13"…) en un solo
  *  listado que scrollea con la página (pedido 11-oct: sin tira semanal ni "Ver más"). Pura. */
-export function UpcomingList({ groups, nextId, now }: {
+export function UpcomingList({ groups, nextId, now, tz }: {
   groups: DayGroup[];
   /** La próxima clase (se marca "La próxima"). */ nextId: number | null;
   now: number;
+  /** La zona de la familia: las horas de cada fila se leen en su pared (null = la del navegador). */ tz: Tz;
 }) {
   const total = groups.reduce((n, g) => n + g.events.length, 0);
   const tagOf = (e: CalendarEvent) => (isLive(e, now) ? 'live' : e.id === nextId ? 'next' : null);
@@ -22,7 +23,7 @@ export function UpcomingList({ groups, nextId, now }: {
           <div key={g.date} className="cal-group">
             <h4 className="cal-group-h">{g.title}{g.sub && <span> · {g.sub}</span>}</h4>
             <ul className="cal-rows">
-              {g.events.map((e) => <ClassRow key={e.id} e={e} tag={tagOf(e)} />)}
+              {g.events.map((e) => <ClassRow key={e.id} e={e} tag={tagOf(e)} tz={tz} />)}
             </ul>
           </div>
         ))}

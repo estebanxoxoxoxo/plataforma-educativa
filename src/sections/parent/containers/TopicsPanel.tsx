@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../../api';
 import type { ParentConfig } from '../../../api/types';
 import { ChipEditor, type TermsStatus } from '../components/ChipEditor';
 import { PanelState } from '../components/PanelState';
-import { parentCall } from '../lib/adultGate';
+import { parentCall, rejectedReason } from '../lib/adultGate';
 import { fmtNum, quoted } from '../lib/format';
+import { famTo } from '../lib/member';
+import { savedTouchingPreset, useMemberConfig } from '../lib/memberConfig';
 import { TERM_LIMITS, termError, termKey } from '../lib/terms';
 
 type Key = 'white' | 'black' | 'words';
@@ -13,22 +15,18 @@ const NAME: Record<Key, string> = { white: 'las sugerencias', black: 'los temas 
 
 /** "Temas y palabras": lo que la familia promueve, lo que no quiere que aparezca y sus palabras bloqueadas (VISION §10;
  *  audios 8 y 35: el padre programa el algoritmo). Cada cambio se guarda al instante y se aplica en el server: no es un
- *  filtro de pantalla. Lo que el server guardó es lo que se ve (nada optimista); quitar algo se puede deshacer. */
-export function TopicsPanel({ kid }: { kid: string }) {
-  const [cfg, setCfg] = useState<ParentConfig | null>(null);
-  const [failed, setFailed] = useState(false);
+ *  filtro de pantalla. Lo que el server guardó es lo que se ve (nada optimista); quitar algo se puede deshacer.
+ *  U3: todo es del integrante `member` (su config, lib/memberConfig.ts; los POST llevan ?member). Las palabras y temas de un
+ *  hermano no se ven acá ni lo alcanzan. */
+export function TopicsPanel({ kid, member }: { kid: string; member: string }) {
+  const { cfg, failed, reload } = useMemberConfig(member);
   const [busy, setBusy] = useState<Key | null>(null);
   const [status, setStatus] = useState<Record<Key, TermsStatus>>({ white: null, black: null, words: null });
   const cur = useRef<ParentConfig | null>(null);
   const alive = useRef(true);
   cur.current = cfg;
 
-  const load = useCallback(async () => {
-    setFailed(false);
-    try { const c = await parentCall(api.parentConfig()); if (alive.current) setCfg(c); }
-    catch { if (alive.current) setFailed(true); }
-  }, []);
-  useEffect(() => { alive.current = true; void load(); return () => { alive.current = false; }; }, [load]);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   // Los avisos de éxito se van solos (con "Deshacer", un rato más); los errores quedan hasta la próxima acción.
   useEffect(() => {
     const keys = (Object.keys(status) as Key[]).filter((k) => status[k]?.kind === 'saved');
@@ -45,17 +43,19 @@ export function TopicsPanel({ kid }: { kid: string }) {
     setBusy(k);
     say(k, null);
     try {
+      // la respuesta es lo que guardó el server; editar a mano deja el preset sin aplicar (se relee para confirmarlo)
       if (k === 'words') {
-        const r = await parentCall(api.parentWords(next));
-        if (alive.current) setCfg((c) => (c ? { ...c, words: r, preset: null } : c));
+        const r = await parentCall(api.parentWords(next, member));
+        savedTouchingPreset(member, { words: r, preset: null });
       } else {
-        const r = await parentCall(api.parentTopics(k === 'white' ? { white: next } : { black: next }));
-        if (alive.current) setCfg((c) => (c ? { ...c, topics: r, preset: null } : c));
+        const r = await parentCall(api.parentTopics(k === 'white' ? { white: next } : { black: next }, member));
+        savedTouchingPreset(member, { topics: r, preset: null });
       }
       if (alive.current) say(k, { kind: 'saved', text: ok, undo });
       return true;
-    } catch {
-      if (alive.current) say(k, { kind: 'error', text: 'No se pudo guardar. Revisá la conexión y probá de nuevo.' });
+    } catch (e) {
+      // el motivo del server si lo rechazó (p. ej. un choque con la otra lista que esta pestaña todavía no veía)
+      if (alive.current) say(k, { kind: 'error', text: rejectedReason(e) ?? 'No se pudo guardar. Revisá la conexión y probá de nuevo.' });
       return false;
     } finally {
       if (alive.current) setBusy(null);
@@ -102,14 +102,14 @@ export function TopicsPanel({ kid }: { kid: string }) {
         <h3 id="pz-topics-h">Temas y palabras</h3>
         <p>Vos le das forma a lo que {kid} ve: qué temas promover, cuáles no tienen que aparecer y qué palabras se frenan. Cada cambio se aplica al instante.</p>
       </header>
-      {!cfg && <PanelState failed={failed} onRetry={() => void load()} />}
+      {!cfg && <PanelState failed={failed} onRetry={() => void reload()} />}
       {cfg && (
         <div className="pz-terms-grid">
           <ChipEditor id="white" tone="white" title="Sugerencias de la familia" items={cfg.topics.white} busy={busy === 'white'} status={status.white}
             help={<>Temas que querés promover. El Feed los pone primero —uno de cada tres videos, con «Porque a tu familia le interesa»— y el chat los propone. Guían, no dirigen: el resto sigue los intereses de {kid}.</>}
             empty="Todavía no sugeriste ningún tema." placeholder="Por ejemplo: historia, astronomía" onAdd={add('white')} onRemove={remove('white')} />
           <ChipEditor id="black" tone="black" title="Temas que no tienen que aparecer" items={cfg.topics.black} busy={busy === 'black'} status={status.black}
-            help={<>El revisor automático los rechaza en lecturas, chat y mensajes entre amigos; el Feed saca lo que pega con ellos y el nombre se frena en búsquedas. Se suman a los temas que Innerith ya vigila de fábrica (<Link to="/familia/protecciones" className="pz-inline pz-inline--tight">ver Protecciones</Link>).</>}
+            help={<>El revisor automático los rechaza en lecturas, chat y mensajes entre amigos; el Feed saca lo que pega con ellos y el nombre se frena en búsquedas. Se suman a los temas que Innerith ya vigila de fábrica (<Link to={famTo('/familia/protecciones', member)} className="pz-inline pz-inline--tight">ver Protecciones</Link>).</>}
             empty="No agregaste temas: rige solo la protección de fábrica." placeholder="Por ejemplo: Halloween, videojuegos violentos" onAdd={add('black')} onRemove={remove('black')} />
           <ChipEditor id="words" tone="word" title="Palabras bloqueadas de la familia" items={cfg.words.extra} busy={busy === 'words'} status={status.words}
             help={<>Corte exacto, sin importar mayúsculas ni tildes y por palabra entera: frena búsquedas, títulos de videos, respuestas del chat y mensajes a amigos. Se suman a las {fmtNum(cfg.words.builtin)} de fábrica.</>}

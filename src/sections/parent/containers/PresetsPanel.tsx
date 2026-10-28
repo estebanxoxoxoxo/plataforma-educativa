@@ -3,10 +3,11 @@ import { api } from '../../../api';
 import type { ParentConfig, ParentFeatures } from '../../../api/types';
 import { PresetCard } from '../cards/PresetCard';
 import { PanelState } from '../components/PanelState';
-import { parentCall } from '../lib/adultGate';
-import { adoptFeatures, useFeaturesStatus } from '../lib/features';
+import { parentCall, rejectedReason } from '../lib/adultGate';
+import { adoptFeatures } from '../lib/features';
 import { FEATURE_LABEL, FEATURE_ORDER, listEs, quoted } from '../lib/format';
 import { publishLimits } from '../lib/limits';
+import { patchMemberConfig, useMemberConfig } from '../lib/memberConfig';
 import type { PresetView } from '../lib/types';
 
 type Data = { presets: PresetView[]; current: string | null };
@@ -39,11 +40,14 @@ function changesFor(p: PresetView, f: ParentFeatures | null, c: ParentConfig | n
 
 /** Presets (audios 56 y 66: "grandes presets, no mil detalles"): puntos de partida que dejan configurado de una vez lo
  *  que existe —on-off, temas, palabras de la familia y topes de volumen—. Aplicar reemplaza la configuración (se
- *  confirma diciendo qué cambia); después se ajusta lo que se quiera y el preset deja de figurar como aplicado. */
-export function PresetsPanel({ kid }: { kid: string }) {
-  const { features } = useFeaturesStatus(); // la config REAL del padre (useFeatures() es lo que rige para el adulto activo: todo prendido)
+ *  confirma diciendo qué cambia); después se ajusta lo que se quiera y el preset deja de figurar como aplicado.
+ *  U3: todo sobre el integrante `member` (D3: un preset se aplica a UN integrante). La lista viene de GET presets?member y
+ *  lo vigente (preset aplicado, on-off, temas, topes) de su config compartida (lib/memberConfig.ts): un switch del panel
+ *  de abajo la relee y esta tarjeta pasa sola a "configuración propia". */
+export function PresetsPanel({ kid, member }: { kid: string; member: string }) {
+  const { cfg, reload: reloadCfg } = useMemberConfig(member);
+  const features: ParentFeatures | null = cfg?.features ?? null;
   const [data, setData] = useState<Data | null>(null);
-  const [cfg, setCfg] = useState<ParentConfig | null>(null);
   const [failed, setFailed] = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [applying, setApplying] = useState<string | null>(null);
@@ -55,17 +59,12 @@ export function PresetsPanel({ kid }: { kid: string }) {
     const my = ++seq.current;
     setFailed(false);
     try {
-      const [p, c] = await Promise.all([parentCall(api.parentPresets()), parentCall(api.parentConfig())]);
+      const p = await parentCall(api.parentPresets(member));
       if (!alive.current || my !== seq.current) return;
       setData({ presets: p.presets as PresetView[], current: p.current });
-      setCfg(c);
     } catch { if (alive.current && my === seq.current) setFailed(true); }
-  }, []);
-  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
-  // Al montar y cada vez que cambian los on-off (el panel de abajo, otra pestaña): un cambio a mano deja el preset sin
-  // aplicar, y la tarjeta tiene que decirlo.
-  const fKey = features ? FEATURE_ORDER.map((k) => (features[k] ? 1 : 0)).join('') : '';
-  useEffect(() => { void load(); }, [load, fKey]);
+  }, [member]);
+  useEffect(() => { alive.current = true; void load(); return () => { alive.current = false; }; }, [load]);
   useEffect(() => {
     if (!notice || notice.err) return;
     const t = setTimeout(() => setNotice((n) => (n === notice ? null : n)), 7000);
@@ -77,38 +76,40 @@ export function PresetsPanel({ kid }: { kid: string }) {
     setApplying(p.id);
     setNotice(null);
     try {
-      const r = await parentCall(api.applyPreset(p.id));
+      const r = await parentCall(api.applyPreset(p.id, member));
       if (!r.ok) throw new Error('rechazado');
-      adoptFeatures(r.features); // el menú del chico cambia ya (y en las otras pestañas)
-      publishLimits(r.config.volume); // y lo que suena respeta los topes nuevos
+      adoptFeatures(r.features, member); // el menú de ese chico cambia ya (donde él es el usuario activo)
+      publishLimits(r.config.volume, member); // y lo que le suena respeta los topes nuevos
+      patchMemberConfig(member, { ...r.config, features: r.features }); // Funcionalidades (abajo) y las otras solapas lo ven
       if (!alive.current) return;
-      setCfg(r.config);
       setData((d) => (d ? { ...d, current: r.config.preset } : d));
       setConfirming(null);
       setNotice({ text: `Listo: «${p.name}» ya se aplica a ${kid}. Podés ajustar lo que quieras abajo y en las otras secciones.` });
-    } catch {
-      if (alive.current) setNotice({ text: 'No se pudo aplicar el preset. Probá de nuevo.', err: true });
+    } catch (e) {
+      if (alive.current) setNotice({ text: rejectedReason(e) ?? 'No se pudo aplicar el preset. Probá de nuevo.', err: true });
     } finally {
       if (alive.current) setApplying(null);
     }
   };
 
-  const current = data?.presets.find((p) => p.id === data.current) ?? null;
+  // Lo vigente sale de la config del integrante cuando ya está (se relee tras cada cambio a mano); si no, de la lista.
+  const currentId = cfg ? cfg.preset : data?.current ?? null;
+  const current = data?.presets.find((p) => p.id === currentId) ?? null;
   return (
     <section className="pz-panel" aria-labelledby="pz-pre-h">
       <header className="pz-panel-head">
         <h3 id="pz-pre-h">Presets</h3>
-        <p>Puntos de partida para no configurar todo a mano. Aplicar uno deja listas de una vez las funcionalidades, los temas, las palabras de la familia y los topes de volumen; después ajustás lo que quieras.</p>
+        <p>Puntos de partida para no configurar todo a mano. Aplicar uno deja listas de una vez las funcionalidades, los temas, las palabras bloqueadas y los topes de volumen de {kid}; después ajustás lo que quieras.</p>
       </header>
       <p className={`pz-notice${notice?.err ? ' is-err' : ''}${notice ? '' : ' is-empty'}`} role="status">{notice?.text}</p>
-      {!data ? <PanelState failed={failed} onRetry={() => void load()} /> : (
+      {!data ? <PanelState failed={failed} onRetry={() => { void load(); void reloadCfg(); }} /> : (
         <>
           <p className="pz-preset-now">
-            {current ? <>Ahora rige <b>{current.name}</b>.</> : <>Ahora rige una <b>configuración propia</b>: ningún preset aplicado (o se cambió algo a mano después).</>}
+            {current ? <>Para {kid} rige <b>{current.name}</b>.</> : <>Para {kid} rige una <b>configuración propia</b>: ningún preset aplicado (o se cambió algo a mano después).</>}
           </p>
           <ul className="pz-presets">
             {data.presets.map((p) => (
-              <PresetCard key={p.id} p={p} applied={data.current === p.id} confirming={confirming === p.id} busy={applying === p.id}
+              <PresetCard key={p.id} p={p} applied={currentId === p.id} confirming={confirming === p.id} busy={applying === p.id}
                 changes={confirming === p.id ? changesFor(p, features, cfg) : []}
                 onApply={() => { setConfirming(p.id); setNotice(null); }} onConfirm={() => void apply(p)} onCancel={() => setConfirming(null)} />
             ))}

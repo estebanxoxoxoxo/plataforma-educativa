@@ -18,8 +18,11 @@
 // bgAudio, ni el server puede.
 // FAIL-OPEN, como el POC ("nunca encerramos al niño por un horario mal cargado"): sin dato, con datos inválidos o si la
 // lectura falla, abierta. El menú no parpadea al cargar y, si de verdad estaba cerrada, la API ya responde 403.
+// U3 · M2: los horarios son POR INTEGRANTE (la respuesta dice de quién: `member`) y la zona horaria es de la FAMILIA. Lo que
+// guarda Familia se adopta solo donde ese integrante es el usuario activo; la zona (adoptFamilyTz) la adoptan TODAS las
+// pestañas, también la del adulto (el reloj de su barra superior la usa).
 import { useEffect, useState, useSyncExternalStore } from 'react';
-import { api } from '../../../api';
+import { actingUserId, api } from '../../../api';
 import type { SchedulesResponse, SectionKey } from '../../../api/types';
 import { SECTION_KEYS, isOpenAt, nextOpenLabelAt, sectionForPath } from './scheduleRules';
 
@@ -80,17 +83,38 @@ let bc: BroadcastChannel | null = null;
 function openChannel() {
   if (bc || typeof BroadcastChannel === 'undefined') return;
   bc = new BroadcastChannel(CHANNEL);
-  bc.onmessage = (e: MessageEvent) => { if (isResponse(e.data)) { version++; const now = Date.now(); adopt(e.data, now, now); } };
+  bc.onmessage = (e: MessageEvent) => {
+    const d = e.data as (SchedulesResponse & { tzOnly?: unknown }) | null;
+    if (d?.tzOnly === true) { applyTz(d.tz); return; }
+    if (isResponse(d) && d.member === actingUserId()) { version++; const now = Date.now(); adopt(d, now, now); }
+  };
 }
 
-/** El padre guardó horarios (el server ya respondió): rigen ya en esta pestaña y en las otras del navegador. */
+/** El padre guardó horarios de un integrante (el server ya respondió, `r.member` dice de quién): rigen ya donde ese
+ *  integrante es el usuario activo, en esta pestaña y en las otras del navegador. */
 export function adoptSchedules(r: SchedulesResponse) {
   if (!isResponse(r)) return;
-  version++;
-  const now = Date.now();
-  adopt(r, now, now);
+  if (r.member && r.member === actingUserId()) {
+    version++;
+    const now = Date.now();
+    adopt(r, now, now);
+  }
   openChannel();
-  try { bc?.postMessage({ schedules: r.schedules, serverNow: r.serverNow, tz: r.tz ?? null }); } catch { /* las otras pestañas se enteran con el tick */ }
+  try { bc?.postMessage({ schedules: r.schedules, serverNow: r.serverNow, tz: r.tz ?? null, member: r.member }); } catch { /* las otras pestañas se enteran con el tick */ }
+}
+
+/** La zona de la familia cambió: re-evalúa las franjas con ella (una lectura que salió antes ya no la pisa). */
+function applyTz(raw: unknown) {
+  const tz = typeof raw === 'string' && raw ? raw : null;
+  version++;
+  emit({ ...snap, tz, sig: sigOf(snap.schedules, serverDate(), tz) });
+}
+/** El padre guardó la ZONA HORARIA DE LA FAMILIA: rige ya en esta pestaña (también la del adulto: el reloj de la barra
+ *  superior) y en las otras del navegador, sea quien sea su usuario activo. */
+export function adoptFamilyTz(tz: string | null) {
+  applyTz(tz);
+  openChannel();
+  try { bc?.postMessage({ tzOnly: true, tz }); } catch { /* las otras pestañas se enteran con el tick */ }
 }
 
 let timer: ReturnType<typeof setInterval> | null = null;

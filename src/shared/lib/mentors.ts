@@ -2,8 +2,15 @@
 // (sections/discover: la búsqueda y la hoja de contratación con su post-compra) y Familia → Mentorías (sections/parent).
 // La verdad la tiene el server (server/src/teachersFake.ts: valida el plan, el beneficiario, los días y que el
 // beneficiario no tenga esa hora ocupada); acá solo se arman las hojas y se escriben las cosas. Sin UI.
-// weekday del contrato: 0 = lunes … 6 = domingo. Fechas en hora LOCAL, como el resto del demo.
+// weekday del contrato: 0 = lunes … 6 = domingo. Fechas en hora DE PARED de la ZONA HORARIA DE LA FAMILIA (tanda B2, la
+// misma cuenta que el Calendario —sections/calendar/lib/calendar.ts, tanda B1— y que el server, que ancla las clases en esa
+// zona): "miércoles 17:00" es el reloj de la familia aunque el navegador esté en otra parte del mundo. Sin zona (null =
+// Automática, el default) o con una que este navegador no conoce, la hora LOCAL del navegador, como antes.
 import type { MentorPlan, TakenSlot, Teacher, TeacherSlot } from '../../api/types';
+import { isValidTimeZone, wallClock, wallDate } from './zonedClock';
+
+/** Zona IANA de la familia (`tz` de GET /api/schedules: la que eligió el adulto en Familia → Límites); null = la del navegador. */
+export type Tz = string | null;
 
 export const DAYS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'] as const;
 export const DAYS_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'] as const;
@@ -32,10 +39,29 @@ export const firstName = (name: string) => name.split(' ')[0];
 export const usd = (n: number) => `USD ${Math.round(n).toLocaleString('es-AR')}`;
 /** 4.9 → "4,9" */
 export const ratingLabel = (r: number) => r.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-/** "martes 13 de octubre a las 10:00" */
-export function dateLong(ts: number): string {
-  const d = new Date(ts);
-  return `${DAYS[(d.getDay() + 6) % 7]} ${d.getDate()} de ${MONTHS[d.getMonth()]} a las ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+
+/* ---------- fechas de pared (wallDate vive en shared/lib/zonedClock, compartido con sections/calendar) ---------- */
+/** El instante en que el reloj de pared de `tz` marca esa fecha (el día del mes puede pasarse, como en new Date) a esa hora
+ *  en punto. Sin zona (o desconocida): new Date(año, mes, día, hora), la local de siempre. Con zona: se lee la fecha y la
+ *  hora como si fueran UTC y se corrige lo que se corre la pared de la zona; con un cambio de horario de verano en el medio
+ *  alcanza una vuelta más (las clases van de 9 a 19: nunca caen en la hora que se saltea el cambio, que es de madrugada). */
+function wallInstant(y: number, m: number, d: number, hour: number, tz: Tz): number {
+  if (!tz || !isValidTimeZone(tz)) return new Date(y, m, d, hour).getTime();
+  const want = Date.UTC(y, m, d, hour);
+  let t = want;
+  for (let i = 0; i < 3; i++) {
+    const day = wallDate(t, tz), clock = wallClock(new Date(t), tz);
+    const off = Date.UTC(day.y, day.m, day.d, clock.hour, clock.minute) - want;
+    if (off === 0) break;
+    t -= off;
+  }
+  return t;
+}
+
+/** "martes 13 de octubre a las 10:00", en la pared de `tz` (la zona de la familia; null = la del navegador). */
+export function dateLong(ts: number, tz: Tz = null): string {
+  const d = wallDate(ts, tz), w = wallClock(new Date(ts), tz);
+  return `${DAYS[(d.wd + 6) % 7]} ${d.d} de ${MONTHS[d.m]} a las ${w.hour}:${String(w.minute).padStart(2, '0')}`;
 }
 
 /* ---------- plan y precio ---------- */
@@ -64,6 +90,8 @@ export const pickWho = (id: string, me: string, people: People) => (id === me ? 
 export const teachesWho = (id: string, me: string, people: People) => (id === me ? 'Te da clases' : `Da clases a ${whoName(id, me, people)}`);
 /** "tu calendario" · "el calendario de Ian" */
 export const calendarOf = (id: string, me: string, people: People) => (id === me ? 'tu calendario' : `el calendario de ${whoName(id, me, people)}`);
+/** Con "de" adelante y la contracción bien hecha: "de tu calendario" · "del calendario de Ian" (nunca "de el"). */
+export const fromCalendarOf = (id: string, me: string, people: People) => (id === me ? 'de tu calendario' : `del calendario de ${whoName(id, me, people)}`);
 /** La familia en orden: el adulto primero y después sus dependientes. */
 export const familyIds = (me: string, people: People) => [me, ...Object.keys(people).filter((id) => id !== me)];
 
@@ -78,16 +106,17 @@ export function mentorMatches(t: Teacher, q: string): boolean {
 }
 
 /** La primera clase de una serie recién agendada: la próxima ocurrencia ESTRICTAMENTE futura de alguno de sus días (la
- *  misma cuenta que hace el server al agendar: hora local, sumando días). Para cuando el calendario del beneficiario no se
- *  puede leer desde acá (es el de OTRO usuario: /api/calendar trae solo el del activo). */
-export function firstClass(slots: readonly TeacherSlot[], now = Date.now()): number | null {
-  const d = new Date(now);
-  const today = (d.getDay() + 6) % 7;
+ *  misma cuenta que hace el server al agendar —nextStart de server/src/teachersFake.ts—: el día y la hora de PARED en `tz`,
+ *  la zona de la familia, sumando días de calendario; null = la local del navegador). Para cuando el calendario del
+ *  beneficiario no se puede leer desde acá (es el de OTRO usuario: /api/calendar trae solo el del activo). */
+export function firstClass(slots: readonly TeacherSlot[], now = Date.now(), tz: Tz = null): number | null {
+  const n = wallDate(now, tz);
+  const today = (n.wd + 6) % 7;
   let best: number | null = null;
   for (const s of slots) {
     const delta = (s.weekday - today + 7) % 7;
-    let t = new Date(d.getFullYear(), d.getMonth(), d.getDate() + delta, s.hour).getTime();
-    if (t <= now) t = new Date(d.getFullYear(), d.getMonth(), d.getDate() + delta + 7, s.hour).getTime();
+    let t = wallInstant(n.y, n.m, n.d + delta, s.hour, tz);
+    if (t <= now) t = wallInstant(n.y, n.m, n.d + delta + 7, s.hour, tz);
     if (best === null || t < best) best = t;
   }
   return best;

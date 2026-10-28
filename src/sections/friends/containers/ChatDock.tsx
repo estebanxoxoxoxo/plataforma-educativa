@@ -11,6 +11,7 @@ import {
   DOCK, bumpUnread, chatArrived, closeChat, minimizeChat, openChat, resetChatDock, setChatListOpen, setDockWidth, toggleChatList,
   useChatDock, type DockWin,
 } from '../lib/chatDock';
+import { useSocial } from '../lib/social';
 
 /** Cada cuánto cada ventana (abierta o minimizada) pregunta por las respuestas nuevas de su amigo. */
 const POLL_MS = 1500;
@@ -31,13 +32,14 @@ function onApiError(e: unknown) {
  *  (ⓘ o su nombre) en una hoja con racha, liga, cursos en común y "Regalale ropa"; la lista lleva a "Buscar personas";
  *  y cuando alguien acepta una solicitud que Ian mandó desde Buscar → Personas, su conversación llega sola, minimizada.
  *  Con Amigos apagado por la familia (o mientras no se sabe: patrón hide-until-known de useFeatures) NO existe; al
- *  apagarse se cierra todo (al chico: con un adulto activo, useFeatures da todo prendido). En Familia (/familia/*, la ex
- *  Zona de padres) no se muestra (las ventanas siguen vivas, ocultas). */
+ *  apagarse se cierra todo. U4 · D4: es de los CHICOS — con un ADULTO activo no se monta (no tiene amigos chicos; su grafo
+ *  está vacío): la regla vive en lib/social.ts. En Familia (/familia/*, la ex Zona de padres) no se muestra (las
+ *  ventanas siguen vivas, ocultas). */
 export function ChatDock() {
-  const features = useFeatures();
-  const off = features?.amigos === false;
+  const social = useSocial();
+  const off = social === false;
   useEffect(() => { if (off) resetChatDock(); }, [off]);
-  return features?.amigos === true ? <Dock /> : null;
+  return social === true ? <Dock /> : null;
 }
 
 function Dock() {

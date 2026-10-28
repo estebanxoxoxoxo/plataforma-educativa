@@ -3,7 +3,7 @@ import { api } from '../../../api';
 import type { DaySchedule, FeatureSchedule, SectionKey } from '../../../api/types';
 import type { RowStatus } from '../cards/FeatureRow';
 import { PanelState } from '../components/PanelState';
-import { parentCall } from '../lib/adultGate';
+import { parentCall, rejectedReason } from '../lib/adultGate';
 import { DEFAULT_DAY, SCHEDULABLE, normalizeSchedule, parseHHMM } from '../lib/scheduleRules';
 import { adoptSchedules } from '../lib/schedules';
 import { TimezoneControl } from './TimezoneControl';
@@ -27,8 +27,11 @@ const validTime = (t: string) => parseHHMM(t) !== null;
  *  además lo hace cumplir: fuera de franja, la API de esa sección responde 403.
  *  Única validación (el POC no tenía): un día ABIERTO de una sección restringida necesita sus dos horas, porque el server
  *  exige HH:MM (en el POC una hora vacía dejaba ese día abierto entero, fail-open). En días cerrados o secciones sin
- *  restringir una hora vacía vuelve al default, que es lo que el editor del POC mostraba al reabrir. */
-export function SchedulesPanel({ kid }: { kid: string }) {
+ *  restringir una hora vacía vuelve al default, que es lo que el editor del POC mostraba al reabrir.
+ *  U3: los horarios son del integrante `member` (GET /api/schedules?member y POST schedules?member; la respuesta dice de
+ *  quién son y adoptSchedules solo la aplica donde ese chico es el usuario activo). La zona horaria de arriba es de la
+ *  FAMILIA (TimezoneControl): el selector de integrante no la cambia. */
+export function SchedulesPanel({ kid, member }: { kid: string; member: string }) {
   const [saved, setSaved] = useState<Draft | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [failed, setFailed] = useState(false);
@@ -39,12 +42,13 @@ export function SchedulesPanel({ kid }: { kid: string }) {
   const load = useCallback(async () => {
     setFailed(false);
     try {
-      const r = await parentCall(api.schedules());
+      const r = await parentCall(api.schedules(member));
       if (!alive.current) return;
+      if (r.member && r.member !== member) throw new Error('horarios de otro integrante'); // fail-closed: no se pinta lo ajeno
       const d = toDraft(r.schedules);
       setSaved(d); setDraft(d);
     } catch { if (alive.current) setFailed(true); }
-  }, []);
+  }, [member]);
   useEffect(() => {
     alive.current = true;
     void load();
@@ -78,14 +82,14 @@ export function SchedulesPanel({ kid }: { kid: string }) {
     })) as Partial<Record<SectionKey, FeatureSchedule>>;
     setBusy(true); setStatus(null);
     try {
-      const r = await parentCall(api.parentSchedules(patch));
-      adoptSchedules(r); // rige ya para el chico: menú y rutas, en esta pestaña y en las otras del navegador
+      const r = await parentCall(api.parentSchedules(patch, member));
+      adoptSchedules(r); // rige ya para ese chico: menú y rutas, donde él es el usuario activo (esta pestaña o las otras)
       if (!alive.current) return;
       const d = toDraft(r.schedules);
       setSaved(d); setDraft(d);
       setStatus({ kind: 'saved', text: '✓ Guardado' });
-    } catch {
-      if (alive.current) setStatus({ kind: 'error', text: 'No se pudo guardar. Probá de nuevo.' });
+    } catch (e) {
+      if (alive.current) setStatus({ kind: 'error', text: rejectedReason(e) ?? 'No se pudo guardar. Probá de nuevo.' });
     } finally {
       if (alive.current) setBusy(false);
     }
@@ -95,10 +99,10 @@ export function SchedulesPanel({ kid }: { kid: string }) {
     <section className="pz-panel" aria-labelledby="pz-sch-h">
       <header className="pz-panel-head">
         <h3 id="pz-sch-h">Horarios por sección</h3>
-        <p>Cada sección puede limitarse a una franja por día. Fuera de horario se oculta del menú y se bloquea el acceso. Sin restringir = siempre disponible.</p>
+        <p>Cada sección de {kid} puede limitarse a una franja por día. Fuera de horario se oculta de su menú y se bloquea el acceso. Sin restringir = siempre disponible.</p>
       </header>
-      {/* la zona horaria con la que se calculan las franjas (deuda 14-oct): ARRIBA de los horarios */}
-      <TimezoneControl kid={kid} />
+      {/* la zona horaria con la que se calculan las franjas (deuda 14-oct): ARRIBA de los horarios; es de la FAMILIA */}
+      <TimezoneControl member={member} />
       {!draft ? <PanelState failed={failed} onRetry={() => void load()} /> : (
         <>
           <fieldset className="pz-sch-set" disabled={busy}>

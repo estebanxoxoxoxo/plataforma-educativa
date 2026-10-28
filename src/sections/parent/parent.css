@@ -453,3 +453,37 @@
 @media (prefers-reduced-motion: reduce){
   .pz-sch{transition:none}
 }
+
+/* =================== U3 · M2: el selector de integrante de la familia (28-oct) =================== */
+/* Prefijo pz-mem- (grepeado en todo el css de src: libre). Un chip por integrante (avatar + "Ian · 9" + sus avisos sin
+   ver) a la derecha del título; radios nativos escondidos (las flechas mueven la elección) con el foco visible en el chip.
+   Mismo lenguaje que las fichas de las secciones: borde neutro, el elegido en el azul del acento. En una solapa de toda la
+   familia (YouTube, Mentorías) se atenúa y la nota va bajo el título. .pz-mem-fam = la etiqueta "Toda la familia" de lo que
+   NO es del integrante elegido (la zona horaria, YouTube, After Day). */
+.pz-mem{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.pz-mem-opt{position:relative;display:inline-flex;align-items:center;gap:9px;min-width:0;min-height:44px;padding:6px 14px 6px 7px;border:1px solid #D9DFEA;border-radius:10px;background:#fff;color:#1B2238;font-size:14.5px;font-weight:800;line-height:1.2;cursor:pointer;transition:background-color .15s,border-color .15s,box-shadow .15s,opacity .15s}
+.pz-mem-opt input{position:absolute;opacity:0;pointer-events:none}
+.pz-mem-opt:hover{background:#F6F7FB}
+.pz-mem-opt.is-on{border-color:#2843A8;background:#EEF2FD;color:#1F3487;box-shadow:0 0 0 1px #2843A8 inset}
+.pz-mem-opt:has(input:focus-visible){outline:3px solid var(--blue);outline-offset:2px}
+.pz-mem-opt .av3{flex:none}
+.pz-mem-t{white-space:nowrap}
+.pz-mem-age{font-weight:700;color:#6A7390}
+.pz-mem-opt.is-on .pz-mem-age{color:#3F55A8}
+.pz-mem-n{min-width:20px;height:20px;padding:0 6px;border-radius:10px;display:inline-grid;place-items:center;background:#B32D33;color:#fff;font-size:11.5px;font-weight:800;font-variant-numeric:tabular-nums}
+.pz-mem.is-family .pz-mem-opt{opacity:.5;cursor:default}
+.pz-mem.is-family .pz-mem-opt:hover{background:#fff}
+.pz-mem.is-family .pz-mem-opt.is-on{border-color:#C3CADA;background:#F6F7FB;color:#47506B;box-shadow:none}
+.pz-mem-note{margin:6px 0 0;max-width:560px;font-size:13.5px;font-weight:700;line-height:1.45;color:#5A6380}
+.pz-mem-fam{display:inline-flex;align-items:center;padding:2px 8px;border-radius:6px;background:#F1F3F8;color:#47506B;font-size:11.5px;font-weight:800;letter-spacing:.02em;white-space:nowrap;vertical-align:2px}
+.pz-panel-head h3 .pz-mem-fam{margin-left:8px}
+/* Avisos: "Solo {integrante}" / "Toda la familia" (el control segmentado del dial del Feed, de a dos) */
+.pz-mem-filter{grid-template-columns:repeat(2,minmax(0,1fr));max-width:420px}
+@media (max-width:620px){ .pz-mem-filter{grid-template-columns:repeat(2,minmax(0,1fr))} }
+.pz-mem-hint{flex-wrap:wrap}
+.pz-mem-hint .pz-link{padding:2px 6px}
+.pz-alert-who{padding:1px 8px;border-radius:6px;background:#EEF2FD;color:#1F3487;font-size:12px;font-weight:800;white-space:nowrap}
+
+@media (prefers-reduced-motion: reduce){
+  .pz-mem-opt{transition:none}
+}

@@ -7,7 +7,7 @@ export const RecallRootButton = ({ count, onOpen }: { count: number; onOpen: () 
     <IcRefreshCw />
     <span className="ln-recall-t">
       <b>Active recall</b>
-      <small>Repasá lo que más necesitás · {count} temas</small>
+      <small>Repasá lo que más necesitás · {count} {count === 1 ? 'tema' : 'temas'}</small>
     </span>
     <IcChevronRight className="ln-go" />
   </button>

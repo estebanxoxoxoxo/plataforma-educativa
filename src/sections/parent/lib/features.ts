@@ -13,8 +13,12 @@
 //      una ruta apagable; si el dato tiene más de FRESH_MS, esa ruta no se muestra hasta confirmarlo.
 //   La verdad está en el server: con la Tienda apagada /api/market* responde 403 (fail-closed).
 // FAIL-CLOSED en la UI: mientras no se sabe (null), lo apagable NO se muestra.
+// U3 · M2 (docs/USUARIOS.md §9): este store es lo que rige para el usuario ACTIVO. Familia configura a CUALQUIER integrante
+// (?member), así que lo que guarda viaja ETIQUETADO con su integrante y solo se adopta en una pestaña cuyo usuario activo
+// es ese integrante (con el adulto en Familia, nunca en su propia pestaña). Los paneles de Familia leen y muestran la config
+// del integrante de lib/memberConfig.ts, no de acá.
 import { useEffect, useState, useSyncExternalStore } from 'react';
-import { api } from '../../../api';
+import { actingUserId, api } from '../../../api';
 import type { ParentFeatures } from '../../../api/types';
 import { useUser } from '../../../hooks/user';
 import { parentCall } from './adultGate';
@@ -87,7 +91,10 @@ let bc: BroadcastChannel | null = null;
 function openChannel() {
   if (bc || typeof BroadcastChannel === 'undefined') return;
   bc = new BroadcastChannel(CHANNEL);
-  bc.onmessage = (e: MessageEvent) => { if (isFeatures(e.data)) publish(e.data); };
+  bc.onmessage = (e: MessageEvent) => {
+    const d = e.data as { member?: unknown; features?: unknown } | null;
+    if (d && d.member === actingUserId() && isFeatures(d.features)) publish(d.features);
+  };
 }
 
 const onWake = () => { if (document.visibilityState === 'visible') void refreshFeatures(); };
@@ -108,8 +115,9 @@ function subscribe(cb: () => void) {
   };
 }
 
-/** Los on-off REALES del padre y si la última lectura falló (los paneles de Familia). Cada montaje dispara una lectura
- *  (deduplicada). */
+/** Los on-off del usuario ACTIVO tal como los guardó su familia y si la última lectura falló (la base de useFeatures; desde
+ *  U3 ningún panel de Familia lo usa: leen la config del integrante elegido, lib/memberConfig.ts). Cada montaje dispara una
+ *  lectura (deduplicada). */
 export function useFeaturesStatus(): { features: ParentFeatures | null; failed: boolean } {
   const s = useSyncExternalStore(subscribe, getSnap, getSnap);
   useEffect(() => { void refreshFeatures(); }, []);
@@ -145,19 +153,21 @@ export function useFeatureGate(path: string): GateState {
   return s.features![key] ? 'on' : 'off';
 }
 
-/** El padre prende/apaga: guarda en el server (con la sesión del adulto) y aplica la respuesta acá y en las otras pestañas. */
-export async function saveFeature(key: FeatureKey, on: boolean): Promise<ParentFeatures> {
-  const f = await parentCall(api.setFeature(key, on));
+/** El padre prende/apaga una funcionalidad de `member`: guarda en el server (con la sesión del adulto) y la respuesta (los
+ *  on-off de ESE integrante) se adopta donde ese integrante es el usuario activo. Devuelve lo que guardó el server. */
+export async function saveFeature(key: FeatureKey, on: boolean, member: string): Promise<ParentFeatures> {
+  const f = await parentCall(api.setFeature(key, on, member));
   if (!isFeatures(f)) throw new Error('respuesta inválida');
-  adoptFeatures(f);
+  adoptFeatures(f, member);
   return f;
 }
 
-/** Aplica on-off que ya guardó el server (un guardado o un PRESET de Familia): el menú y las páginas del
- *  chico cambian al instante en esta pestaña y en las otras del navegador. */
-export function adoptFeatures(f: ParentFeatures) {
+/** Aplica on-off que ya guardó el server para `member` (un guardado o un PRESET de Familia): si `member` es el usuario
+ *  activo de esta pestaña, el menú y las páginas cambian al instante; las otras pestañas del navegador reciben el mensaje
+ *  etiquetado y aplican la misma regla (así la config de un hermano nunca se cruza a otro). */
+export function adoptFeatures(f: ParentFeatures, member: string) {
   if (!isFeatures(f)) return;
-  publish(f);
+  if (member === actingUserId()) publish(f);
   openChannel();
-  try { bc?.postMessage(f); } catch { /* sin canal: las otras pestañas se enteran al volver el foco */ }
+  try { bc?.postMessage({ member, features: f }); } catch { /* sin canal: las otras pestañas se enteran al volver el foco */ }
 }

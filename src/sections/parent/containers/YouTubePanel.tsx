@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../../../api';
-import type { MtAdminChannel, MtAdminState } from '../../../api/types';
+import type { MtAdminChannel, MtAdminState, MtEntry } from '../../../api/types';
+import { ConfirmSheet } from '../../create/components/ConfirmSheet';
 import { YtChannelRow } from '../cards/YtChannelRow';
 import { PanelState } from '../components/PanelState';
 import { parentCall } from '../lib/adultGate';
@@ -25,7 +26,17 @@ function explainYtError(err: string): string {
 }
 const NET = 'no hubo respuesta del servidor';
 
-export function YouTubePanel({ kid }: { kid: string }) {
+/** La confirmación de "Eliminar": borrar una entrada es irreversible y en CASCADA (removeYtEntry de server/src/mytube.ts:
+ *  se van sus videos del catálogo aprobado y, si su canal se queda sin videos, el canal sale de MyTube). */
+function removeText(e: MtEntry): string {
+  const vids = e.videos === 0 ? 'No tiene videos aprobados.'
+    : e.videos === 1 ? 'Se borra su video de Innerith: nadie de tu familia lo va a poder ver.'
+    : `Se borran sus ${e.videos} videos de Innerith: nadie de tu familia los va a poder ver.`;
+  return `¿Eliminar «${e.title}»? ${vids} Si su canal no tiene otros videos aprobados, también sale de MyTube. No se puede deshacer.`;
+}
+
+/** U3 · M2: es de TODA LA FAMILIA (lo aprobado vale para cada integrante): no recibe integrante y lo dice (pz-mem-fam). */
+export function YouTubePanel() {
   const [st, setSt] = useState<MtAdminState | null>(null);
   const [chs, setChs] = useState<MtAdminChannel[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -35,6 +46,9 @@ export function YouTubePanel({ kid }: { kid: string }) {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState('');
   const [reingId, setReingId] = useState<number | null>(null); // entrada que se está reingestando
+  const [askDel, setAskDel] = useState<MtEntry | null>(null); // entrada esperando la confirmación de "Eliminar"
+  const [removing, setRemoving] = useState<number | null>(null); // entrada que se está eliminando
+  const [delNote, setDelNote] = useState<{ text: string; err: boolean } | null>(null);
   const [backfilling, setBackfilling] = useState(false);
   const [dedup, setDedup] = useState(false);
   const [cap, setCap] = useState<string | null>(null);
@@ -101,8 +115,20 @@ export function YouTubePanel({ kid }: { kid: string }) {
     await load();
   };
 
-  const remove = async (id: number) => {
-    await parentCall(api.mtRemove(id)).catch(() => null);
+  // Solo después del "sí" de la confirmación. Si falla, se dice al lado de la tabla (nada se traga) y se relee igual.
+  const remove = async (e: MtEntry) => {
+    if (removing !== null) return;
+    setRemoving(e.id); setDelNote(null);
+    try {
+      const r = await parentCall(api.mtRemove(e.id));
+      if (alive.current) setDelNote(r.ok
+        ? { text: `✓ Eliminada: «${e.title}»${e.videos === 1 ? ' y su video' : e.videos ? ` y sus ${e.videos} videos` : ''}.`, err: false }
+        : { text: `Error al eliminar «${e.title}». Probá de nuevo.`, err: true });
+    } catch {
+      if (alive.current) setDelNote({ text: `Error al eliminar «${e.title}»: ${NET}. Probá de nuevo.`, err: true });
+    } finally {
+      if (alive.current) setRemoving(null);
+    }
     await load();
   };
 
@@ -150,12 +176,12 @@ export function YouTubePanel({ kid }: { kid: string }) {
     return !!r?.ok;
   };
 
-  const locked = reingId !== null;
+  const locked = reingId !== null || removing !== null;
   return (
     <section className="pz-panel" aria-labelledby="pz-yt-h">
       <header className="pz-panel-head">
-        <h3 id="pz-yt-h">YouTube</h3>
-        <p>Videos, playlists y canales de YouTube que aprobás para {kid}. Se suman al catálogo aprobado de Innerith y los canales aparecen en su MyTube.</p>
+        <h3 id="pz-yt-h">YouTube <span className="pz-mem-fam">Vale para toda la familia</span></h3>
+        <p>Videos, playlists y canales de YouTube que aprobás para tu familia. Se suman al catálogo aprobado de Innerith y cada integrante los puede seguir en su MyTube.</p>
       </header>
       {!st || !chs ? <PanelState failed={failed} onRetry={() => void load()} /> : (
         <>
@@ -203,6 +229,9 @@ export function YouTubePanel({ kid }: { kid: string }) {
 
           <div className="pz-block">
             <h4 className="pz-block-h">Entradas <span className="pz-block-n">{st.entries.length}</span></h4>
+            {delNote && (delNote.err
+              ? <p className="pz-form-err" role="alert">{delNote.text}</p>
+              : <p className="pz-yt-msg" role="status">{delNote.text}</p>)}
             {st.entries.length === 0 ? (
               <p className="pz-muted">Sin entradas propias todavía. Además del catálogo base, Innerith solo puede mostrar videos que estén en esta lista.</p>
             ) : (
@@ -221,7 +250,8 @@ export function YouTubePanel({ kid }: { kid: string }) {
                         <td className="pz-td-act">
                           <button type="button" className="pz-link" disabled={locked} onClick={() => void reingest(e.id)}
                             title="Volver a importar: actualiza el nombre y las descripciones">{reingId === e.id ? '…' : 'Reingestar'}</button>
-                          <button type="button" className="pz-link pz-yt-del" disabled={locked} onClick={() => void remove(e.id)}>Eliminar</button>
+                          <button type="button" className="pz-link pz-yt-del" disabled={locked} aria-label={`Eliminar ${e.title}`}
+                            onClick={() => { setDelNote(null); setAskDel(e); }}>{removing === e.id ? '…' : 'Eliminar'}</button>
                         </td>
                       </tr>
                     ))}
@@ -234,13 +264,21 @@ export function YouTubePanel({ kid }: { kid: string }) {
           {chs.length > 0 && (
             <div className="pz-block">
               <h4 className="pz-block-h">Canales de MyTube ({chs.length})</h4>
-              <p className="pz-help pz-yt-chhelp">Cómo se le presenta cada canal a {kid} en MyTube. La descripción se generó automática (limpia + resumen IA) al ingerir —la de los canales del catálogo base, la primera vez que {kid} abre el canal o con «Completar canales»—; ajustala como quieras.</p>
+              <p className="pz-help pz-yt-chhelp">Cómo se le presenta cada canal a tu familia en MyTube. La descripción se generó automática (limpia + resumen IA) al ingerir —la de los canales del catálogo base, la primera vez que alguien abre el canal o con «Completar canales»—; ajustala como quieras.</p>
               <ul className="pz-yt-chs">
                 {chs.map((c) => <YtChannelRow key={c.channelId} c={c} onSave={(d) => saveDesc(c.channelId, d)} />)}
               </ul>
             </div>
           )}
         </>
+      )}
+      {askDel && (
+        <ConfirmSheet text={removeText(askDel)} confirmLabel="Eliminar" danger
+          onAnswer={(yes) => {
+            const e = askDel;
+            setAskDel(null);
+            if (yes) void remove(e);
+          }} />
       )}
     </section>
   );

@@ -3,14 +3,15 @@ import { Link } from 'react-router-dom';
 import type { Mentor, MentorContract, MentorPlan, TakenSlot, TeacherSlot } from '../../../api/types';
 import {
   CLASSES, DAYS, DAYS_SHORT, HOURS, PLANS, calendarOf, dateLong, everyDay, familyIds, firstName, forWho, hourLabel, listEs,
-  pickWho, planClasses, planLabel, slotsEvery, takenBy, usd, weeklyPrice, whoName, type People,
+  pickWho, planClasses, planLabel, slotsEvery, takenBy, usd, weeklyPrice, whoName, type People, type Tz,
 } from '../../../shared/lib/mentors';
 
 /** Estado de la hoja que maneja el contenedor (MentorResults):
  *  · plan   — cuántas clases por semana y para quién → "Contratar" (el pago del demo: instantáneo, sin cobrar nada).
  *  · agenda — el POST-COMPRA: los días del contrato `pending` (tantos como pagó), cada uno con su hora. `justPaid` = se
  *             acaba de pagar en esta hoja (si no, se reabrió un pendiente desde su tarjeta o desde Familia → Mentorías).
- *  · done   — listo: las clases ya están en el calendario del beneficiario (`first` = la primera, si se pudo saber). */
+ *  · done   — listo: las clases ya están en el calendario del beneficiario (`first` = la primera, si se pudo saber; se
+ *             escribe en la zona horaria de la familia, la prop `tz`). */
 export type MentorSheetState =
   | { phase: 'plan'; busy: boolean; error: string | null }
   | { phase: 'agenda'; contract: MentorContract; justPaid: boolean; busy: boolean; error: string | null }
@@ -23,9 +24,10 @@ type Common = { mentor: Mentor; me: string; people: People };
  *  beneficiarios, los días y las horas son grupos de radio (flechas). Cerrar en la agenda NO pierde la compra: el contrato
  *  queda pendiente y se completa después ("Elegir los días"). Pura: lo elegido vive acá; contratar y agendar los hace el
  *  contenedor (y relee los mentores al cerrar, en cualquier fase). */
-export function MentorSheet({ mentor, me, people, taken, state, onContract, onSchedule, onClose }: Common & {
+export function MentorSheet({ mentor, me, people, taken, state, tz, onContract, onSchedule, onClose }: Common & {
   /** Las horas ocupadas por beneficiario (MentorsResponse.taken). */ taken: Readonly<Record<string, TakenSlot[]>>;
   state: MentorSheetState;
+  /** Zona horaria de la familia (null = la del navegador): con ella se escribe la fecha de la primera clase. */ tz: Tz;
   onContract: (plan: MentorPlan, beneficiary: string) => void;
   onSchedule: (slots: TeacherSlot[]) => void;
   onClose: () => void;
@@ -67,7 +69,7 @@ export function MentorSheet({ mentor, me, people, taken, state, onContract, onSc
   const head = state.phase === 'plan'
     ? { t: `Contratar a ${mentor.name}`, sub: `${mentor.subject} · ${usd(mentor.pricePerHour)} la hora` }
     : state.phase === 'agenda'
-      ? { t: state.justPaid ? '¡Listo! Elegí los días' : 'Elegí los días',
+      ? { t: `${state.justPaid ? '¡Listo! Elegí' : 'Elegí'} ${state.contract.daysPerWeek === 1 ? 'el día' : 'los días'}`,
         sub: `${mentor.subject} con ${short} ${forWho(state.contract.beneficiary, me, people)} · ${planLabel(state.contract.daysPerWeek)}` }
       : { t: `Clases con ${mentor.name}`, sub: `${mentor.subject} · ${planLabel(state.contract.daysPerWeek)}` };
 
@@ -91,7 +93,7 @@ export function MentorSheet({ mentor, me, people, taken, state, onContract, onSc
           <AgendaStep key={state.contract.id} mentor={mentor} me={me} people={people} contract={state.contract} justPaid={state.justPaid}
             taken={taken[state.contract.beneficiary] ?? []} busy={state.busy} error={state.error} onSchedule={onSchedule} onLater={onClose} />
         ) : (
-          <DoneStep mentor={mentor} me={me} people={people} contract={state.contract} first={state.first} onClose={onClose} />
+          <DoneStep mentor={mentor} me={me} people={people} contract={state.contract} first={state.first} tz={tz} onClose={onClose} />
         )}
       </div>
     </div>
@@ -213,15 +215,19 @@ function AgendaStep({ mentor, me, people, contract, justPaid, taken, busy, error
   const missing = picked.findIndex((r) => r.day === null || r.hour === null);
   const which = n === 1 ? 'de la clase' : `de la clase ${missing + 1}`;
   const pending = missing < 0 ? '' : picked[missing].day === null ? `Elegí el día ${which}.` : `Ahora elegí la hora ${which}.`;
+  // Con plan 1 es UN día con su hora (nada de "cada uno"); con 2-3, los N días, cada uno con su hora.
+  const ask = n === 1
+    ? `el día y la hora de ${mentor.subject} ${forWho(contract.beneficiary, me, people)}`
+    : `los ${n} días de ${mentor.subject} ${forWho(contract.beneficiary, me, people)}, cada uno con su hora`;
 
   return (
     <>
       {justPaid ? (
         <p className="smn-lede smn-paid" id="smn-sh-d" role="status">
-          <b>Pagado.</b> Ahora elegí {n === 1 ? 'el día' : `los ${n} días`} de {mentor.subject} {forWho(contract.beneficiary, me, people)}, cada uno con su hora. Cada clase dura una hora.
+          <b>Pagado.</b> Ahora elegí {ask}. Cada clase dura una hora.
         </p>
       ) : (
-        <p className="smn-lede" id="smn-sh-d">Elegí {n === 1 ? 'el día' : `los ${n} días`} de {mentor.subject} {forWho(contract.beneficiary, me, people)}, cada uno con su hora. Cada clase dura una hora.</p>
+        <p className="smn-lede" id="smn-sh-d">Elegí {ask}. Cada clase dura una hora.</p>
       )}
       <div className="smn-rows">
         {picked.map((r, i) => {
@@ -283,7 +289,7 @@ function AgendaStep({ mentor, me, people, contract, justPaid, taken, busy, error
       <div className="smn-btns">
         <button type="button" className="smn-btn smn-btn--ghost" disabled={busy} onClick={onLater}>Elegir más tarde</button>
         <button type="button" className="smn-btn smn-go" disabled={!slots || busy} aria-busy={busy} onClick={() => { if (slots) onSchedule(slots); }}>
-          {busy ? 'Guardando…' : 'Confirmar los días'}
+          {busy ? 'Guardando…' : n === 1 ? 'Confirmar el día' : 'Confirmar los días'}
         </button>
       </div>
       <p className="smn-later">Podés elegir los días más tarde desde esta tarjeta o desde Familia → Mentorías: la compra no se pierde.</p>
@@ -292,8 +298,8 @@ function AgendaStep({ mentor, me, people, contract, justPaid, taken, busy, error
 }
 
 /* ---------- 3. listo: las clases ya están en el calendario ---------- */
-function DoneStep({ mentor, me, people, contract, first, onClose }: Common & {
-  contract: MentorContract; first: number | null; onClose: () => void;
+function DoneStep({ mentor, me, people, contract, first, tz, onClose }: Common & {
+  contract: MentorContract; first: number | null; tz: Tz; onClose: () => void;
 }) {
   const self = contract.beneficiary === me;
   const short = firstName(mentor.name);
@@ -307,7 +313,7 @@ function DoneStep({ mentor, me, people, contract, first, onClose }: Common & {
       </p>
       <p className="smn-done-p">
         Las clases ya están en {calendarOf(contract.beneficiary, me, people)}.
-        {first !== null && <> La primera es el {dateLong(first)}.</>}
+        {first !== null && <> La primera es el {dateLong(first, tz)}.</>}
       </p>
       <div className="smn-btns">
         {self && <Link className="smn-btn" to="/calendario">Ver calendario</Link>}

@@ -5,7 +5,7 @@ import type { EcTx, Friend, MarketItem, Redemption } from '../../../api/types';
 import { useUser } from '../../../hooks/user';
 import { openAvatarPicker, saveMyLook, useMyIdentity } from '../../../shared/components/ProfileCard';
 import { chatFriendsChanged, openChat } from '../../friends/lib/chatDock';
-import { useFeatures } from '../../parent/lib/features';
+import { useSocial } from '../../friends/lib/social';
 import { RewardCard } from '../cards/RewardCard';
 import type { WearState } from '../cards/WardrobeCard';
 import { BuySheet, type BuyState } from '../components/BuySheet';
@@ -55,7 +55,9 @@ export function StorePage() {
   const giftTo = params.get('regalar');
   const user = useUser();
   const { id: me } = useMyIdentity();
-  const giftOn = useFeatures()?.amigos === true;
+  // Regalar ropa a un amigo es SOCIAL: de los chicos con Amigos prendido (U4 · D4, friends/lib/social.ts; el adulto no tiene
+  // amigos chicos, así que ni el botón ni la hoja existen para él).
+  const giftOn = useSocial() === true;
   const [data, setData] = useState<StoreData | null>(null);
   const [failed, setFailed] = useState(false);
   const [sheet, setSheet] = useState<SheetState | null>(null);
@@ -313,7 +315,9 @@ export function StorePage() {
         {view === 'tienda' && (
           <header className="st-head">
             <h2 className="h2">Tienda</h2>
-            <p className="lede">Canjeá tus Energy Coins por los premios que te preparan papá y mamá, o vestí a tu avatar.</p>
+            <p className="lede">{user?.kind === 'adult'
+              ? 'La ropa del avatar se canjea con Energy Coins; los premios viven en la cuenta de cada integrante.'
+              : 'Canjeá tus Energy Coins por los premios que te preparan papá y mamá, o vestí a tu avatar.'}</p>
           </header>
         )}
 
@@ -341,8 +345,14 @@ export function StorePage() {
             <section className="st-sec" aria-labelledby="st-premios-h">
               <div className="st-sec-head">
                 <h3 id="st-premios-h">Premios</h3>
-                <p>Los publican papá y mamá. Canjeá uno y avisales para que te lo den.</p>
-                <span className="st-sec-hint">Tocá el <HeartInline /> para guardar los que más querés</span>
+                {user?.kind === 'adult' ? (
+                  <p>Cada integrante canjea los suyos; vos los administrás en Familia → Premios.</p>
+                ) : (
+                  <>
+                    <p>Los publican papá y mamá. Canjeá uno y avisales para que te lo den.</p>
+                    <span className="st-sec-hint">Tocá el <HeartInline /> para guardar los que más querés</span>
+                  </>
+                )}
               </div>
               {premios.length > 0 ? (
                 <div className="st-grid">
@@ -351,6 +361,9 @@ export function StorePage() {
                       onRedeem={(btn) => openRedeem(it, btn)} onWish={() => void toggleWish(it)} />
                   ))}
                 </div>
+              ) : user?.kind === 'adult' ? (
+                /* U3-D1: el adulto no ve premios de los chicos; los suyos no existen. */
+                <p className="st-empty">Los premios viven en la cuenta de cada integrante: publicalos en Familia → Premios.</p>
               ) : (
                 <p className="st-empty">Papá y mamá todavía no publicaron premios. ¡Seguí juntando ⚡ mientras tanto!</p>
               )}
