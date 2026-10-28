@@ -8,10 +8,13 @@ Plataforma educativa **para grandes y chicos** (homeschooling conservador de EE.
 rioplatense, voseo; para los chicos, tono amable de ~9 años). UI React 19 + TS + Vite en `src/`,
 backend Node sin framework en `server/` (puerto 8787, proxy `/api` de Vite).
 **Usuarios demo (línea 14-oct, `docs/USUARIOS.md` — LEELO si tu tanda toca usuarios, Familia,
-mentores o candados):** Ian (9, chico) y Andrés (adulto, su guardián). El usuario ACTIVO viaja en
+mentores o candados):** Ian (9, chico), Luna (12, chica; U3) y Andrés (adulto, el guardián de los dos;
+la config de cada chico es POR INTEGRANTE y Familia la elige con `?member=<id>`: USUARIOS.md §9). **Cada uno tiene lo suyo
+(U4, USUARIOS.md §10)**: XP/⚡/racha, canjes y guardarropas, wishlist, Learn, Mi espacio, liga, amigos y feed en vivo son POR
+USUARIO; de la familia quedan el catálogo aprobado, After Day, la config del padre y las mentorías. El usuario ACTIVO viaja en
 la cabecera `X-Innerith-User` (la pone `src/api/index.ts` desde `localStorage['innerith.user']`;
 server: `actingUser()` de `server/src/users.ts`); se cambia con el chip de la barra superior
-(switch de demo: recarga la app). **Los candados son del chico**: apagados de funcionalidades y
+(switch de demo: recarga la app SIN resetear la demo; el F5 resetea solo al activo — U4-C). **Los candados son del chico**: apagados de funcionalidades y
 horarios por sección NO rigen para un adulto (server y cliente; `useFeatures()` ya devuelve todo
 prendido para él). La sesión de Familia es la del adulto activo (implícita; el PIN del server
 quedó dormido y NUNCA se imprime).
@@ -62,16 +65,23 @@ quedó dormido y NUNCA se imprime).
    práctica se borraron): `/practicar*` y `/aprender/:id` redirigen a /aprender, y el hero del Feed ("Seguí con <ruta>")
    lleva a `/aprender?ruta=<id>`; `/repasar*` no existe (redirige a /aprender). "Feed" es el feed, NO el
    chat. Si cambiás rutas, dejá redirecciones de las viejas.
-9. **La economía del demo vive en RAM** (pedido de Esteban): XP/Energy Coin/canjes NO se persisten
-   a disco; cada carga de página hace POST /api/demo/reset (ver src/hooks/user.tsx) y todo vuelve a
-   los valores iniciales (seed). Si tu módulo guarda estado económico, exponé un reset() y
-   registralo en ese endpoint. SÍ persisten los activos/preferencias del chico (space.json,
-   wishlist.json, identity.json: el avatar) y la CONFIG del padre (parent.json v2: on-off de
-   funcionalidades, premios de la Tienda, temas blancos/negros, palabras de la familia, topes de
-   volumen y preset aplicado; teachers.json v2: CONTRATOS de mentorías —mentor + beneficiario +
-   plan + días; migra solo del v1— y las clases NO se guardan: se derivan al leer por slot y la
-   serie corre sola; identity.json v2: un avatar POR USUARIO). Los AVISOS al padre
-   (crisis/contacto/bloqueos) viven en RAM y hoy NO se registran en el reset del demo.
+9. **La economía del demo vive en RAM y es POR USUARIO** (pedido de Esteban; U4): XP/Energy Coin/racha/canjes/guardarropas,
+   el grafo de amigos, el ciclo de liga y el feed en vivo NO se persisten; cada usuario tiene su slice (`server/src/perUser.ts`)
+   y cada CARGA DE PÁGINA hace `POST /api/demo/reset`, que vuelve al seed **solo al usuario activo** (el switch de usuario
+   NO resetea: la demo de la familia sigue; `{scope:'all'}` resetea a todos — para QA). Si tu módulo guarda estado
+   económico o de demo: hacelo con `perUser(seed)`, exponé `reset(userId?)` y registralo en ese endpoint. SÍ persisten, POR
+   USUARIO: `space.json` v2, `wishlist.json` v2, `learn-results.json` v2, `identity.json` v2; y la config de la familia
+   (`parent.json` v3 por integrante, `schedules.json` v2, `teachers.json` v2, `music.json`, `mytube.json`). Los AVISOS al
+   padre viven en RAM y no entran en el reset.
+   Detalle de lo persistido (tandas anteriores): `parent.json` v3 —members[id]: on-off de funcionalidades, premios de la
+   Tienda, temas blancos/negros, palabras de la familia, topes de volumen, preset aplicado y dial del Feed; tz y PIN de la
+   familia; migra solo del v2 con respaldo .pre-v3—; `schedules.json` v2: horarios por integrante, respaldo .pre-v2;
+   `teachers.json` v2: CONTRATOS de mentorías —mentor + beneficiario + plan + días, más `seq` (contador de ids que solo
+   crece: un id cancelado no se reusa; tanda B1); migra solo del v1— y las clases NO se guardan: se derivan al leer por
+   slot, ancladas en la ZONA HORARIA DE LA FAMILIA (tz null = la del server) y la serie corre sola. U4: `space.json`,
+   `learn-results.json` y `wishlist.json` migran solos del v1 (todo a ian) con respaldo UNA vez en `.pre-v2`, y un archivo
+   ilegible queda como `.roto-<ms>` (no se pisa). (El switch que no resetea lo hace el cliente —U4-C—: `setActingUser` marca `sessionStorage['innerith.keepDemo']` y
+   `consumeKeepDemo()` la consume en `src/hooks/user.tsx`, una vez por carga.)
    **Botones de demo ("Simular…")**: chip discreto con el prefijo CSS de su sección, que SOLO dispara
    un endpoint de demo del server fake (nada de lógica simulada en el cliente) y refetchea; el efecto
    vive en RAM y una recarga vuelve al seed, como todo el demo.
@@ -117,6 +127,9 @@ literal del POC: NO se edita salvo pedido explícito.
   terminar el mensaje con `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>`.
 
 ## Estado demo
-`server/data/space.json` es estado real del demo (carpetas Dinos/General, 16 canales seguidos,
-lista "Música para estudiar"). No lo borres ni lo llenes de basura de prueba: si creás datos para
-probar, limpialos al final (papelera → borrar definitivo, unfollow, etc.).
+`server/data/space.json` (v2, POR USUARIO desde U4) es estado real del demo: el espacio de Ian (`users.ian`: sus carpetas y lo
+que tiene guardado, y sus 16 canales seguidos) es el que se muestra. Lo mismo `learn-results.json` v2 y `wishlist.json` v2
+(las filas de Learn y los deseos de Ian). Los espacios de Luna y Andrés nacen al usarse (con sus canales de arranque). No lo
+borres ni lo llenes de basura de prueba: si creás datos para probar, limpialos al final (papelera → borrar definitivo,
+unfollow, etc.); las filas de Learn no tienen API de borrado (si probás con POST, restaurá el archivo con el server parado o
+reportalas).

@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k -n web,api,lab -c cyan,magenta,yellow \"vite\" \"tsx watch --env-file=server/.env server/src/index.ts\" \"cd route-lab && .venv\\Scripts\\python.exe -m uvicorn server:app --port 5203\"",
+    "dev": "concurrently -k -n web,api,lab -c cyan,magenta,yellow \"vite\" \"tsx watch --env-file=server/.env server/src/index.ts\" \"cd route-lab && .venv/bin/python -m uvicorn server:app --port 5203\"",
     "dev:web": "vite",
-    "dev:server": "concurrently -k -n api,lab -c magenta,yellow \"tsx watch --env-file=server/.env server/src/index.ts\" \"cd route-lab && .venv\\Scripts\\python.exe -m uvicorn server:app --port 5203\"",
+    "dev:server": "concurrently -k -n api,lab -c magenta,yellow \"tsx watch --env-file=server/.env server/src/index.ts\" \"cd route-lab && .venv/bin/python -m uvicorn server:app --port 5203\"",
     "import:smarty": "node server/scripts/import-smarty.mjs",
     "build": "tsc -b && tsc -p tsconfig.server.json && vite build",
     "preview": "vite preview",
