@@ -1,19 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../../api';
-import type { CycleRange, CycleResponse, SectionKey } from '../../../api/types';
+import type { CycleRange, CycleResponse } from '../../../api/types';
 import { minuteOfDay, hhmm } from '../../../shared/lib/cycleRules';
 import type { RowStatus } from '../cards/FeatureRow';
 import { CycleRangeCard } from '../components/CycleRangeCard';
 import { PanelState } from '../components/PanelState';
 import { parentCall, rejectedReason } from '../lib/adultGate';
 import { adoptCycle, effectiveTz, onMemberCycle } from '../lib/cycle';
-import { MAX_RANGES, type RangeDraft, coversNow, freeSections, isDirty, newRange, toDrafts, toRequest, toggleSection } from '../lib/cycleDraft';
-import { CYCLE_SECTIONS } from '../lib/cycleSections';
-import { listEs } from '../lib/format';
+import { MAX_RANGES, type RangeDraft, coversNow, isDirty, newRange, toDrafts, toRequest, toggleSection } from '../lib/cycleDraft';
 import { famTo } from '../lib/member';
-
-const LABEL = Object.fromEntries(CYCLE_SECTIONS.map((s) => [s.key, s.label])) as Record<SectionKey, string>;
 
 /** «Ciclo del día» (tanda F2, 28-oct; docs/USUARIOS.md §11 — pedido del dueño: "rangos horarios y qué puntos de menú
  *  están disponibles en cada rango"). POR INTEGRANTE (`member`, el del selector de Familia; ParentZone remonta el panel al
@@ -98,16 +94,15 @@ export function CyclePanel({ kid, member }: { kid: string; member: string }) {
 
   const cur = clock ? minuteOfDay(new Date(Date.now() + clock.offset), clock.tz) : null;
   const dirty = !!drafts && !!saved && isDirty(drafts, saved);
-  const free = drafts ? freeSections(drafts) : [];
   const limites = famTo('/familia/limites', member);
 
   return (
     <section className="pz-panel" aria-labelledby="pz-cy-h">
       <header className="pz-panel-head">
         <h3 id="pz-cy-h">Ciclo del día de {kid}</h3>
-        <p>Armá los momentos del día de {kid} (la escuela, la tarde libre, la noche…) y elegí qué partes del menú tiene en cada uno. Los rangos rigen todos los días; fuera de un rango, lo que es de ese rango se esconde del menú y se bloquea.</p>
+        <p>Armá los momentos del día de {kid} (la escuela, la tarde libre, la noche…) y elegí qué partes del menú tiene en cada uno. Los rangos rigen todos los días; lo que no está disponible se esconde del menú y se bloquea.</p>
       </header>
-      <p className="pz-cy-rule"><b>Una sección que no está en ningún rango queda siempre disponible.</b> El Feed nunca se cierra.</p>
+      <p className="pz-cy-rule"><b>Durante un rango, {kid} solo tiene lo que marcaste en ese rango</b> (si dos rangos se pisan, suma lo de los dos); fuera de todo rango, tiene lo que no está en ninguno. El Feed nunca se cierra.</p>
       <p className="pz-help pz-cy-tz">
         Se calcula con la hora de la familia{cur != null && <> (ahora son las <b>{hhmm(cur)}</b>)</>}: la zona horaria se elige en <Link className="pz-inline pz-inline--tight" to={limites}>Límites</Link>.
       </p>
@@ -125,13 +120,6 @@ export function CyclePanel({ kid, member }: { kid: string; member: string }) {
                   onRemove={() => remove(d.key)} />
               ))}
             </ul>
-          )}
-          {drafts.length > 0 && (
-            <p className="pz-cy-free">
-              {free.length
-                ? <>Siempre disponibles para {kid} (no están en ningún rango): <b>{listEs(free.map((k) => LABEL[k]))}</b>.</>
-                : <>Todas las secciones están en algún rango: fuera de ellos, {kid} solo tiene el Feed.</>}
-            </p>
           )}
           <div className="pz-cy-foot">
             <button type="button" className="pz-btn pz-btn--ghost" disabled={busy || drafts.length >= MAX_RANGES} onClick={add}>

@@ -24,7 +24,7 @@ export function FriendEventCard({ it, onReact, onLess }: { it: It; onReact: (id:
   const ev = EVENT[it.icon];
   return (
     <FeedCard family="amigos" icon={<IcUsersLine />} label="Amigos" time={it.time} reason={it.reason} whyIcon={<IcUsersLine />} onLess={onLess}
-      thumb={<span className="hf-av"><Avatar name={it.friend.nick} color={it.friend.color} look={lookFor(it.friend.nick)} size={44} /></span>}
+      thumb={<span className="hf-av"><Avatar name={it.friend.nick} color={it.friend.color} look={lookFor(it.friend.nick)} size={48} /></span>}
       title={<><b>{it.friend.nick}</b> {it.text}</>}
       meta={<span className="hf-evt" data-icon={it.icon}><ev.I aria-hidden="true" />{ev.label}</span>}
       action={<ReactionBar reactions={it.reactions} onReact={(e) => onReact(it.id, e)} />}

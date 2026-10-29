@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CycleRange } from '../../../../api/types';
-import { MAX_RANGES, coversNow, freeSections, isDirty, newRange, rangeOptionLabel, spanLabel, toDrafts, toRequest, toggleSection } from '../cycleDraft';
+import { MAX_RANGES, coversNow, isDirty, newRange, rangeOptionLabel, spanLabel, toDrafts, toRequest, toggleSection } from '../cycleDraft';
 
 /* Ciclo del día (tanda F2): lo puro del editor de Familia → Ciclo del día. La validación es del server (el 400 se muestra
    tal cual): acá solo el borrador, el POST y los textos. */
@@ -77,9 +77,5 @@ describe('textos', () => {
     expect(coversNow(SAVED[1], m('18:00'))).toBe(false);
     expect(coversNow({ from: '22:00', to: '02:00' }, m('01:00'))).toBe(true);
     expect(coversNow({ from: '', to: '02:00' }, m('01:00'))).toBe(false); // la regla fail-open es otra cosa: esto es el "Ahora"
-  });
-  it('freeSections: las que no figuran en ningún rango (siempre disponibles)', () => {
-    expect(freeSections(SAVED)).toEqual(['chat', 'calendario', 'espacio', 'afterday']);
-    expect(freeSections([])).toHaveLength(8);
   });
 });

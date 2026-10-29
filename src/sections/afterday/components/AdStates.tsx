@@ -1,11 +1,12 @@
 import { IcAdMusic } from './AdIcons';
 
-/** Vacío (textos del POC): todavía no hay audio; lo agrega un adulto desde Familia (la ex Zona de padres). Pura. */
+/** Vacío: todavía no hay contenido; lo agrega un adulto desde Familia (la ex Zona de padres). Los textos del POC decían
+ *  «audio»: desde el 29-oct (pedido de Esteban) After Day es «contenido para ver o escuchar», y acá se habla igual. Pura. */
 export function AdEmpty() {
   return (
     <div className="ad-none">
       <IcAdMusic aria-hidden="true" />
-      <p>Todavía no hay audio acá.<small>Un adulto puede agregarlo desde el panel.</small></p>
+      <p>Todavía no hay nada acá.<small>Un adulto puede agregar contenido desde el panel.</small></p>
     </div>
   );
 }
@@ -25,7 +26,7 @@ export function AdSkeleton() {
 export function AdFail({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="ad-fail" role="alert">
-      <p>No pude cargar el audio ahora.</p>
+      <p>No pude cargar el contenido ahora.</p>
       <button type="button" className="ad-retry" onClick={onRetry}>Reintentar</button>
     </div>
   );

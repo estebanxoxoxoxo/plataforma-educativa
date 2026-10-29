@@ -30,9 +30,21 @@
 .ad-play{position:absolute;left:50%;top:50%;z-index:1;width:44px;height:44px;margin:-22px 0 0 -22px;display:grid;place-items:center;border-radius:50%;
   background:rgba(255,255,255,.92);color:#5B36B8;box-shadow:0 2px 10px rgba(14,18,32,.28)}
 .ad-play svg{width:20px;height:20px}
-.ad-card.is-on .ad-play{background:#fff}
-.ad-card.is-on .ad-play svg{animation:ad-pulse 1.4s ease-in-out infinite}
-@keyframes ad-pulse{0%,100%{opacity:1}50%{opacity:.4}}
+/* ---- play/pausa (29-oct, pedido de Esteban: «no lo puedo frenar» + «la nota musical en color, y blanco y negro en
+   pausa»). El disco lleva SIEMPRE la nota musical — es la marca de la modalidad solo-audio — y el ESTADO lo dice el color:
+   quieta en violeta sobre blanco si no suena (la base de .ad-play), disco violeta lleno con la nota blanca (7.4:1) y un
+   aro que late si SUENA, y EN PAUSA (.is-paused) todo a BLANCO Y NEGRO: nota y filete grises, sin latido, con el borde y
+   el anillo de la tarjeta atenuados en gris — se nota que es la que estaba sonando, pero quieta—. Qué hace tocarla lo
+   dice el aria-label (trackLabel). ---- */
+.ad-card.is-on .ad-play{background:#5B36B8;color:#fff;animation:ad-ring 1.6s ease-out infinite}
+@keyframes ad-ring{
+  0%{box-shadow:0 2px 10px rgba(14,18,32,.28),0 0 0 0 rgba(138,92,245,.6)}
+  100%{box-shadow:0 2px 10px rgba(14,18,32,.28),0 0 0 12px rgba(138,92,245,0)}
+}
+.ad-card.is-on.is-paused{border-color:#D9DEEA;box-shadow:0 0 0 3px #EFF2F7}
+.ad-card.is-on.is-paused .ad-play{background:rgba(255,255,255,.92);color:#6A7390;animation:none;
+  box-shadow:0 2px 10px rgba(14,18,32,.28),inset 0 0 0 2px #8A93AD}
+.ad-card.is-on.is-paused .ad-t{color:#2E3650}
 /* El título: 2 líneas como mucho. El aire va en MARGEN, no en padding: el line-clamp recorta en el borde del padding, así
    que con padding abajo asomaba el pedazo de arriba de una 3ª línea (herencia W6). align-self:start + max-height = la caja
    nunca pasa de 2 líneas aunque la fila de la grilla venga más alta (la card del lado con título más largo). */
@@ -96,7 +108,11 @@ i.ad-sk{display:block;height:12px;margin:12px 12px 14px;width:70%;border-radius:
 
 @media (prefers-reduced-motion: reduce){
   .ad-card,.ad-th img,.ad-th::after{transition:none}
-  .ad-card.is-on .ad-play svg,.ad-sk{animation:none}
+  .ad-sk{animation:none}
+  /* sonando, sin el latido: el aro de afuera queda quieto (sigue distinto de la pausa: disco blanco con el filete de adentro) */
+  .ad-card.is-on .ad-play{animation:none;box-shadow:0 2px 10px rgba(14,18,32,.28),0 0 0 4px rgba(138,92,245,.4)}
+  /* la pausa queda en grises también con movimiento reducido (QA-INTEGRAL: este filete la dejaba violeta) */
+  .ad-card.is-on.is-paused .ad-play{box-shadow:0 2px 10px rgba(14,18,32,.28),inset 0 0 0 2px #8A93AD}
 }
 
 /* ---- una acción más en la esquina de la tarjeta (Familia → After Day: «Quitar», tanda F2). El After Day del chico no la

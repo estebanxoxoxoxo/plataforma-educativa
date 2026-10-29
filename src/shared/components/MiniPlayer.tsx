@@ -46,9 +46,11 @@ export function MiniPlayer() {
 
   return (
     <div className="mp" ref={panel}>
-      <button className={`mp-toggle${activo ? ' on' : ''}${bg.video || anyAmbient ? '' : ' idle'}`} aria-label="Sonido de fondo" onClick={() => setOpen((o) => !o)}>
+      <button className={`mp-toggle${activo ? ' on' : ''}${bg.video || anyAmbient ? '' : ' idle'}`} aria-label={bg.video ? `Sonido de fondo: ${bg.playing ? 'sonando' : 'en pausa'}` : 'Sonido de fondo'} onClick={() => setOpen((o) => !o)}>
         <IcNavHeadphones />
-        <span className="mp-lbl">{bg.video ? 'Sonando' : 'Sonido de fondo'}</span>
+        {/* Con el play/pausa en la tarjeta de After Day (29-oct) el fondo puede quedar EN PAUSA un rato largo: decir
+            «Sonando» ahí mentía. */}
+        <span className="mp-lbl">{bg.video ? (bg.playing ? 'Sonando' : 'En pausa') : 'Sonido de fondo'}</span>
         {activo && <i className="mp-dot" />}
       </button>
 

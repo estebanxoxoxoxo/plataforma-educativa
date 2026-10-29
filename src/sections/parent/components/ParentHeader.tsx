@@ -35,21 +35,23 @@ function revealInline(el: HTMLElement, tab: HTMLElement) {
 const TABS = [
   { to: '/familia', label: 'Funcionalidades', end: true },
   { to: '/familia/temas', label: 'Temas y palabras', end: false },
+  // Protecciones justo después de Temas y palabras (pedido de Esteban, 29-oct; antes iba última): lo que protege, junto.
+  { to: '/familia/protecciones', label: 'Protecciones', end: false },
   // MyTube (F2, 28-oct; ex «YouTube», /familia/youtube redirige): la MISMA grilla de canales que ve el chico + el agregar por
   // URL (porte W5: videos, playlists y canales de YouTube que se suman al catálogo). De toda la familia.
   { to: '/familia/mytube', label: 'MyTube', end: false },
+  // Ciclo del día (F2, docs/USUARIOS.md §11): rangos horarios y qué secciones hay en cada uno, por integrante.
+  // Orden MyTube · Ciclo · After Day · Límites: pedido de Esteban, 29-oct.
+  { to: '/familia/ciclo', label: 'Ciclo del día', end: false },
   // After Day con solapa propia (F2; antes vivía al pie de YouTube): la misma grilla del chico + agregar/quitar.
   { to: '/familia/afterday', label: 'After Day', end: false },
   // Límites = topes de volumen + la zona horaria de la familia.
   { to: '/familia/limites', label: 'Límites', end: false },
-  // Ciclo del día (F2, docs/USUARIOS.md §11): rangos horarios y qué secciones hay en cada uno, por integrante.
-  { to: '/familia/ciclo', label: 'Ciclo del día', end: false },
   { to: '/familia/avisos', label: 'Avisos', end: false },
   { to: '/familia/premios', label: 'Premios', end: false },
   // Mentorías (tanda U2): lo contratado en Buscar → Mentores, para el adulto y sus dependientes (antes, "Profesores").
   { to: '/familia/mentorias', label: 'Mentorías', end: false },
   { to: '/familia/actividad', label: 'Actividad', end: false },
-  { to: '/familia/protecciones', label: 'Protecciones', end: false },
 ];
 
 /** Cabecera de Familia (U3 · M2): a quién se configura —"Cuenta de {integrante}", o "Toda la familia" en las solapas que son

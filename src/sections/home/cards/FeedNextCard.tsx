@@ -6,7 +6,8 @@ import { IcRouteLine } from '../components/feedIcons';
 type It = Extract<FeedItem, { kind: 'next' }>;
 
 /** "Fijado · tu siguiente paso" (estilo B del mock v6): el PRIMER lugar del hilo, SIEMPRE la siguiente mejor acción de
- *  aprendizaje (jamás comercio). Raya del acento a la izquierda, título en serif, UNA acción sólida + su "por qué". Pura. */
+ *  aprendizaje (jamás comercio). Un lavado suave del azul de aprender (tanda V2: reemplaza la raya del acento), ícono en
+ *  su azulejo, título en serif, UNA acción sólida en píldora + su "por qué". Pura. */
 export const FeedNextCard = ({ it, onGo }: { it: It; onGo: (to: string) => void }) => (
   <section className="hf-next" aria-labelledby="hf-next-t">
     <span className="hf-next-ic" aria-hidden="true"><IcRouteLine /></span>

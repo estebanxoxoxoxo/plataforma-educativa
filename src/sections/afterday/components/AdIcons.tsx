@@ -3,18 +3,12 @@ import type { SVGProps } from 'react';
 
 type P = SVGProps<SVGSVGElement>;
 
-/** Nota musical (la "Music" del POC): la tarjeta que suena y el vacío. */
+/** Nota musical (la "Music" del POC): el vacío y el disco de la tarjeta — pedido de Esteban 29-oct: la nota ES el play de
+ *  la modalidad solo-audio (en color; en blanco y negro cuando está en pausa). El ▶ y el ⏸ de un rato antes se fueron. */
 export const IcAdMusic = (p: P) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" {...p}>
     <path d="M9 18V5l12-2v13" />
     <circle cx="6" cy="18" r="3" />
     <circle cx="18" cy="16" r="3" />
-  </svg>
-);
-
-/** Play relleno, un poco corrido a la derecha para que se vea centrado en el círculo. */
-export const IcAdPlay = (p: P) => (
-  <svg viewBox="0 0 24 24" {...p}>
-    <path d="M8.5 5.2l11 6.8-11 6.8z" fill="currentColor" />
   </svg>
 );

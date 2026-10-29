@@ -61,7 +61,7 @@ export function CycleRangeCard({ draft, index, kid, now, demo, disabled, onChang
             );
           })}
         </div>
-        {draft.sections.length === 0 && <p className="pz-cy-none">Sin secciones: en este rango {kid} solo tiene lo que no está en ningún rango (y el Feed).</p>}
+        {draft.sections.length === 0 && <p className="pz-cy-none">Sin secciones: mientras dure este rango, {kid} solo tiene el Feed (más lo de otro rango que se le superponga).</p>}
       </fieldset>
     </li>
   );

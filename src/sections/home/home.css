@@ -2,8 +2,8 @@
 /* "Un hilo, muchos estilos" (mock smarty-poc/docs/feed-mocks/v6-hilo-unico.html): se copian la estructura, los tipos de
    bloque, los radios, las medidas y el comportamiento; los COLORES son los de Innerith (pedido de Esteban, 12-oct).
    Prefijo hf- (grepeado en todos los .css de src: libre). La zona pinneada (fpin-, tanda F2), el chip de demo (fdemo-) y
-   las reacciones (rbar/rchip) conservan los suyos. Sin sombras ruidosas: bordes finos y radios generosos; la SERIF solo
-   en los momentos editoriales (hero, noticia, resumen y el "Estás al día"). */
+   las reacciones (rbar/rchip) conservan los suyos. Sin sombras ruidosas: bordes finos, radios generosos y una sombra
+   apenas (V2); la SERIF solo en los momentos editoriales (hero, noticia, resumen y el "Estás al día"). */
 #v-feed{
   background:linear-gradient(180deg,#FFFFFF 0,#F6F7FB 200px);
   /* tinta y neutros de la app */
@@ -16,6 +16,20 @@
   /* la moneda ⚡: el oro de la Tienda */
   --hf-ec:#8A5A00;
   --hf-serif:ui-serif,Georgia,"Times New Roman",serif;
+  /* RADIOS (tanda "Cards del feed", 29-oct; subidos en la V2 "la media manda"): una escala corta en vez de diez valores
+     sueltos. Lo que se lee como una página propia (hero, noticia, estante, resumen, Destacados) va más redondo que la card
+     estándar; lo de adentro (media, tarjetas internas) acompaña sin volverse globo. Los CTA y los chips son píldoras (999)
+     y el disco de medalla 50%: no son de la escala. --hf-r-btn queda para lo único con forma de botón que no es píldora
+     (el festejo de la solicitud aceptada). */
+  --hf-r-xl:24px; --hf-r-card:20px; --hf-r-media:14px; --hf-r-btn:12px; --hf-r-sm:8px; --hf-r-badge:6px;
+  /* la elevación (V2): las cards se despegan del fondo apenas — una sombra corta y difusa, no una sombra "de tarjeta" */
+  --hf-shadow:0 2px 10px -6px rgba(27,34,56,.16);
+  /* LA MEDIA MANDA (V2, criterio de Esteban 30-oct: «las miniaturas … son chicas en función a la card; tiene que ser
+     armónico»): video, ruta y lectura comparten EXACTAMENTE la misma columna de media en escritorio y tablet — 220 de
+     ancho en 16:9 (124 de alto) — y esa columna define el alto de la card. En el teléfono la de video y ruta va a todo el
+     ancho arriba del texto y la lectura queda en un azulejo (--hf-tile; la spec V2 §1 lo listaba en 64, §3.3 lo pide en
+     72 y manda la sección de la card). */
+  --hf-th-w:220px; --hf-tile:72px;
   /* MOTION: el dial del padre (FeedResponse.motion → data-motion en esta raíz). Normal por defecto. */
   --m-dur:220ms; --m-ease:cubic-bezier(.2,.7,.25,1); --m-travel:7px; --m-press:.99;
 }
@@ -47,27 +61,33 @@
 .fpin{display:grid;grid-template-rows:1fr;margin-bottom:16px;animation:fpin-in .4s cubic-bezier(.2,.8,.3,1) backwards;transition:grid-template-rows .38s ease,opacity .3s ease,margin-bottom .38s ease}
 .fpin.out{grid-template-rows:0fr;opacity:0;margin-bottom:0}
 .fpin-clip{min-height:0;overflow:hidden}
-.fpin-box{display:grid;gap:8px;padding:10px 12px 12px;border-radius:14px;border:1px solid #DCCFFC;background:linear-gradient(135deg,#F9F6FF 0%,#EFE8FE 100%)}
+.fpin-box{display:grid;gap:8px;padding:10px 12px 12px;border-radius:var(--hf-r-xl);border:1px solid #DCCFFC;background:linear-gradient(135deg,#F9F6FF 0%,#EFE8FE 100%);box-shadow:var(--hf-shadow)}
 .fpin-head{display:flex;align-items:center;gap:6px;margin:0 2px;font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#5431B3}
 .fpin-head span{font-size:13px;letter-spacing:0}
 .fpin-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
 .fpin-item{display:grid;grid-template-rows:1fr;transition:grid-template-rows .38s ease,opacity .3s ease}
 .fpin-item.out{grid-template-rows:0fr;opacity:0}
 .fpin-iclip{min-height:0;overflow:hidden}
-.fpin-card{display:flex;flex-wrap:wrap;align-items:center;gap:12px 14px;padding:12px 14px;border-radius:10px;background:#fff;box-shadow:0 10px 22px -20px rgba(84,49,179,.75)}
+.fpin-card{display:flex;flex-wrap:wrap;align-items:center;gap:12px 14px;padding:12px 14px;border-radius:var(--hf-r-media);background:#fff;box-shadow:0 10px 22px -20px rgba(84,49,179,.75)}
 .fpin-card .av3{width:48px;height:48px;font-size:21px}
 .fpin-body{flex:1 1 240px;min-width:0}
 .fpin-line{margin:0;font-size:15.5px;font-weight:700;line-height:1.35;color:#2E3650}
 .fpin-line b{color:#1B2238}
 .fpin-note{margin:3px 0 0;font-size:14px;font-weight:600;line-height:1.45;color:#47506B}
 .fpin-acts{flex:none;display:flex;gap:8px;margin-left:auto}
-.fpin-ok,.fpin-no{height:38px;padding:0 18px;border-radius:8px;font-weight:800;font-size:14px;transition:background .2s,border-color .2s,color .2s}
+/* píldoras (V2), como todos los CTA del feed: 40 de alto (44 en el teléfono, al final) */
+.fpin-ok,.fpin-no{height:40px;padding:0 20px;border-radius:999px;font-weight:800;font-size:14px;transition:background .2s,border-color .2s,color .2s}
 .fpin-ok{background:#8A5CF5;color:#fff}
 .fpin-ok:hover:not(:disabled){background:#7748EE}
 .fpin-no{background:#fff;border:1.5px solid #D9DEEA;color:#47506B}
 .fpin-no:hover:not(:disabled){border-color:#A88AF7;color:#5431B3}
 .fpin-ok:disabled,.fpin-no:disabled{opacity:.55;cursor:default}
-.fpin-done{flex:none;margin:0 0 0 auto;padding:8px 12px;border-radius:8px;background:#E2F5F3;color:#0B6B66;font-weight:800;font-size:14px;animation:popin .3s ease both}
+.fpin-done{flex:none;margin:0 0 0 auto;padding:8px 12px;border-radius:var(--hf-r-btn);background:#E2F5F3;color:#0B6B66;font-weight:800;font-size:14px;animation:popin .3s ease both}
+/* El globito del «por qué» del hero, dentro de Destacados: anclado al chip lo recortaba el overflow de .fpin-clip en el
+   teléfono; anclado a la fila (y con su mismo ancho de tope) entra entero en cualquier ancho. */
+.fpin .hf-row{position:relative}
+.fpin .hf-row > .hf-why{position:static}
+.fpin .hf-row > .hf-why:focus::after{max-width:100%}
 @keyframes fpin-in{from{opacity:0;transform:translateY(-8px)}}
 @media (prefers-reduced-motion: reduce){
   .fpin,.fpin-item{transition:none}
@@ -102,55 +122,97 @@
 /* ---- piezas comunes ---- */
 .hf-k{display:flex;align-items:center;flex-wrap:wrap;gap:4px 6px;margin:0;font-size:10.5px;font-weight:800;line-height:1.3;letter-spacing:.06em;text-transform:uppercase}
 .hf-k svg{flex:none;width:12px;height:12px}
-.hf-cta{position:relative;display:inline-flex;align-items:center;gap:7px;padding:9px 17px;border-radius:11px;background:var(--hf-learn);color:#fff;font-size:13.5px;font-weight:800;line-height:1.2;white-space:nowrap;transition:filter .15s,background-color .15s,border-color .15s,transform .12s}
+/* CTA en PÍLDORA (V2: lo táctil de Duolingo/Khan Kids). El sólido mide 40 (10 + 20 + 10) y el quiet 36 (8 + 18 + 8 + el
+   borde): el alto sale del line-height en px, no de la fuente, así es el mismo en todos los motores. */
+.hf-cta{position:relative;display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border-radius:999px;background:var(--hf-learn);color:#fff;font-size:14px;font-weight:800;line-height:20px;white-space:nowrap;transition:filter .15s,background-color .15s,border-color .15s,transform .12s}
 .hf-cta svg{width:14px;height:14px}
 .hf-cta:hover:not(:disabled){filter:brightness(1.1)}
 .hf-cta:active:not(:disabled){transform:scale(var(--m-press))}
 .hf-cta:disabled{opacity:.55;cursor:default}
-.hf-cta.is-quiet{padding:7px 14px;background:var(--hf-surface);color:var(--hf-ink);border:1px solid var(--hf-line);font-weight:700}
+.hf-cta.is-quiet{padding:8px 16px;line-height:18px;background:var(--hf-surface);color:var(--hf-ink);border:1px solid var(--hf-line);font-weight:700}
 .hf-cta.is-quiet:hover:not(:disabled){filter:none;background:#F6F7FB;border-color:#C9D2E4}
 /* "por qué": el algoritmo se muestra. title = el motivo; al tocarlo o enfocarlo, la frase en un globito */
-.hf-why{position:relative;z-index:2;display:inline-flex;align-items:center;gap:5px;margin:-3px -7px;padding:3px 7px;border-radius:8px;font-size:12px;font-weight:700;color:var(--hf-faint);cursor:help;transition:color .15s,background-color .15s}
+.hf-why{position:relative;z-index:2;display:inline-flex;align-items:center;gap:5px;margin:-3px -7px;padding:3px 7px;border-radius:var(--hf-r-sm);font-size:12px;font-weight:700;color:var(--hf-faint);cursor:help;transition:color .15s,background-color .15s}
 .hf-why svg{width:12px;height:12px}
 .hf-why:hover,.hf-why:focus-visible{color:var(--hf-muted);background:var(--hf-sunk)}
+/* en un pie con una acción más alta (las píldoras de 36/40, las reacciones), el «por qué» va al FONDO de la fila, no
+   centrado (criterio de Esteban, 29-oct: «el por qué alinealo al final, o sea abajo»): la card estándar (.hf-ft), la
+   noticia (.hf-act) y el hero (.hf-row). Con su margen negativo, el que termina en el fondo es el renglón del texto, no el
+   área táctil agrandada. El globito no cambia: se mide contra el chip (o contra la fila, en Destacados). La cabecera del
+   estante no entra: ahí el «por qué» convive con «Ver todos», que es de su mismo alto. */
+.hf-ft > .hf-why,.hf-act > .hf-why,.hf-row > .hf-why{align-self:flex-end}
 .hf-why.is-end:focus::after{left:auto;right:0}
-.hf-why:focus::after{content:attr(data-why);position:absolute;left:0;bottom:calc(100% + 6px);z-index:8;width:max-content;max-width:min(280px,70vw);padding:7px 10px;border-radius:9px;background:var(--hf-ink);color:#fff;font-size:12.5px;font-weight:700;line-height:1.35;letter-spacing:0;text-transform:none;white-space:normal;box-shadow:0 10px 24px -14px rgba(27,34,56,.6);pointer-events:none}
+.hf-why:focus::after{content:attr(data-why);position:absolute;left:0;bottom:calc(100% + 6px);z-index:8;width:max-content;max-width:min(280px,70vw);padding:7px 10px;border-radius:var(--hf-r-sm);background:var(--hf-ink);color:#fff;font-size:12.5px;font-weight:700;line-height:1.35;letter-spacing:0;text-transform:none;white-space:normal;box-shadow:0 10px 24px -14px rgba(27,34,56,.6);pointer-events:none}
 /* ✕ "ver menos" */
-.hf-less{position:relative;z-index:2;flex:none;width:24px;height:24px;display:grid;place-items:center;border-radius:7px;color:var(--hf-faint);transition:background-color .15s,color .15s}
+.hf-less{position:relative;z-index:2;flex:none;width:24px;height:24px;display:grid;place-items:center;border-radius:var(--hf-r-sm);color:var(--hf-faint);transition:background-color .15s,color .15s}
 .hf-less svg{width:14px;height:14px}
 .hf-less:hover{background:var(--hf-sunk);color:var(--hf-muted)}
 .hf-ec{color:var(--hf-ec);font-weight:800;white-space:nowrap}
-.hf-dur{position:absolute;right:5px;bottom:5px;padding:1px 5px;border-radius:5px;background:rgba(27,34,56,.82);color:#fff;font-size:10.5px;font-weight:700;font-variant-numeric:tabular-nums}
+.hf-dur{position:absolute;right:5px;bottom:5px;padding:1px 5px;border-radius:var(--hf-r-badge);background:rgba(27,34,56,.82);color:#fff;font-size:10.5px;font-weight:700;font-variant-numeric:tabular-nums}
 
 /* ===== A · CARD ESTÁNDAR (video, lectura, ruta, amigos): eyebrow → cuerpo → pie ===== */
-.hf-card{position:relative;display:flex;flex-direction:column;gap:9px;padding:14px 16px;border-radius:16px;background:var(--hf-surface);border:1px solid var(--hf-hair);transition:border-color .2s,transform .12s}
+.hf-card{position:relative;display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:var(--hf-r-card);background:var(--hf-surface);border:1px solid var(--hf-hair);box-shadow:var(--hf-shadow);transition:border-color .2s,transform .12s}
 .hf-card[data-fam="video"]{--hf-fam:#2843A8}
 .hf-card[data-fam="lectura"]{--hf-fam:#0B6B66}
 .hf-card[data-fam="ruta"]{--hf-fam:#B8431C}
 .hf-card[data-fam="amigos"]{--hf-fam:#5431B3}
 .hf-card.is-link:hover{border-color:#C9D2E4}
 /* la acción estirada cubre toda la card (se toca en cualquier lado); la que se "aprieta" es la card, no el botón (si el
-   botón escalara, su capa estirada se achicaría en pleno click) */
-.hf-stretch::after{content:'';position:absolute;inset:0;border-radius:16px}
+   botón escalara, su capa estirada se achicaría en pleno click). El botón va SIN position propia dentro de la card: con el
+   position:relative de .hf-cta, la capa quedaba del tamaño del botón y la card no se tocaba (bug de siempre, tanda "Cards
+   del feed"); así ::after se mide contra la card, que es la positioned más cercana. */
+.hf-card .hf-stretch{position:static}
+.hf-stretch::after{content:'';position:absolute;inset:0;border-radius:var(--hf-r-card)}
 .hf-card .hf-stretch:active{transform:none}
 .hf-card:has(.hf-stretch:active){transform:scale(var(--m-press))}
 .hf-card .rbar{position:relative;z-index:2}
+/* el eyebrow: la familia en un CHIP con su color (V2) — cada tipo se reconoce de un vistazo, como las píldoras de
+   Duolingo —; el tiempo gris al lado (sin "·": el chip ya separa) y el ✕ al fondo */
 .hf-eb{display:flex;align-items:center;gap:8px;min-width:0;font-size:11px;line-height:1.2}
-.hf-eb-ic{flex:none;display:grid;place-items:center;width:13px;height:13px;color:var(--hf-fam,var(--hf-muted))}
-.hf-eb-ic svg{width:13px;height:13px}
-.hf-eb-fam{font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--hf-muted)}
+.hf-eb-chip{flex:none;display:inline-flex;align-items:center;gap:5px;padding:3px 9px 3px 7px;border-radius:999px;background:color-mix(in srgb,var(--hf-fam,var(--hf-muted)) 10%,#fff);color:var(--hf-fam,var(--hf-muted));font-size:10.5px;font-weight:800;line-height:1.3;letter-spacing:.06em;text-transform:uppercase}
+.hf-eb-ic{flex:none;display:grid;place-items:center;width:12px;height:12px}
+.hf-eb-ic svg{width:12px;height:12px}
 .hf-eb-time{font-weight:700;color:var(--hf-faint);white-space:nowrap}
-.hf-bd{display:flex;align-items:center;gap:13px;min-width:0}
-.hf-th{position:relative;flex:none;width:78px;height:58px;border-radius:11px;overflow:hidden;display:grid;place-items:center;background:var(--hf-sunk);border:1px solid var(--hf-hair);color:var(--hf-fam,var(--hf-faint))}
+.hf-bd{display:flex;align-items:center;gap:14px;min-width:0}
+/* LA MEDIA (V2): 16:9 con el ancho del token; el alto lo pone la proporción (o la grilla de abajo, que la estira si el
+   texto llegara a pedir más). Video, ruta y lectura comparten esta misma caja: cambia solo lo de adentro. */
+.hf-th{position:relative;flex:none;width:var(--hf-th-w);aspect-ratio:16/9;border-radius:var(--hf-r-media);overflow:hidden;display:grid;place-items:center;background:var(--hf-sunk);color:var(--hf-fam,var(--hf-faint))}
+/* el filo fino de la media va como un trazo INTERIOR encima de todo (también de la foto), no como borde: con un borde de
+   1 px, WebKit pintaba el fondo (el degradé de la ruta, el azul noche) por debajo y la media quedaba con un filo de color
+   en los bordes y una línea abajo en posiciones fraccionarias; Chrome no. Sin borde, fondo e imagen terminan en el mismo
+   lugar. No toma clicks: la capa estirada de la card sigue arriba. */
+.hf-th::after{content:'';position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 1px rgba(27,34,56,.08);pointer-events:none}
+/* la imagen SIN fondo propio: si no carga (o mientras llega) se ve el fondo del contenedor — el degradé de la ruta, el
+   azul noche del video — que es el fallback de verdad; un fondo en la <img> lo taparía con gris liso */
 .hf-th img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
-/* la miniatura de YouTube es 4:3 con bandas: en 16:9 (y 58 de alto) no se ven */
-.hf-th.is-video{width:104px;background:#0E1220}
-.hf-th.is-icon svg{width:22px;height:22px}
+/* video: la miniatura de YouTube es 4:3 con bandas y recortada a 16:9 no se ven. Encima, el MISMO disco de play del
+   estante (un toque más grande en la media del hilo), que crece con el hover de la card entera */
+.hf-th.is-video{background-color:#0E1220}
+.hf-th .hf-vpl{width:38px;height:38px}
+.hf-th .hf-vpl svg{width:15px;height:15px}
+.hf-card.is-link:hover .hf-vpl{transform:scale(1.07)}
+/* ruta (mini-hero): el degradé de la ruta lo pinta la card (y es el fallback de la portada); sin portada, su emoji grande */
+.hf-th-em{font-size:40px;line-height:1}
+/* lectura: sin foto (robarla del sitio sería mentir) la media es un tratamiento EDITORIAL — degradé suave de la familia,
+   el libro grande y la fuente en chiquito abajo a la izquierda: lo que la media cuenta es verdad */
+.hf-th.is-read{background-image:linear-gradient(135deg,color-mix(in srgb,var(--hf-fam) 14%,#fff) 0%,color-mix(in srgb,var(--hf-fam) 6%,#fff) 100%)}
+.hf-th.is-read::after{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--hf-fam) 14%,transparent)}
+.hf-th.is-read > svg{width:34px;height:34px}
+.hf-th-src{position:absolute;left:12px;right:12px;bottom:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10.5px;font-weight:800;line-height:1.3;letter-spacing:.06em;text-transform:uppercase;color:var(--hf-fam)}
 .hf-av{flex:none;display:grid}
 .hf-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
-.hf-ti{margin:0;font-size:14.5px;font-weight:700;line-height:1.32;letter-spacing:-.005em;color:var(--hf-ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.hf-ti{margin:0;font-size:15.5px;font-weight:700;line-height:1.3;letter-spacing:-.005em;color:var(--hf-ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .hf-ti b{font-weight:800}
 .hf-mt{margin:0;font-size:12.5px;font-weight:600;line-height:1.4;color:var(--hf-muted)}
+/* el copete de una lectura: cuenta de qué trata antes de abrirla (el título solo no alcanza para que el chico elija);
+   dos renglones como mucho, que la card no se vuelva el artículo. Sin copete no se dibuja nada (no queda hueco). */
+.hf-sn{margin:2px 0 0;font-size:12.5px;font-weight:500;line-height:1.45;color:var(--hf-muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+/* el avance de una ruta empezada: una barra fina con los colores de su portada (el relleno lo pinta la card). Es
+   decorativa: el meta ya lo dice en texto («2 de 5 postas») */
+.hf-prog{display:block;height:5px;max-width:320px;margin-top:3px;border-radius:999px;background:var(--hf-sunk);overflow:hidden}
+.hf-prog i{display:block;height:100%;border-radius:inherit}
+/* el ✓ de una ruta completa, en el color de la familia */
+.hf-ok{color:var(--hf-fam);font-weight:800}
 .hf-evt{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:800;color:var(--hf-evt,var(--hf-muted))}
 .hf-evt svg{width:12px;height:12px}
 .hf-evt[data-icon="streak"]{--hf-evt:#C24B1F}
@@ -159,40 +221,69 @@
 .hf-evt[data-icon="route"]{--hf-evt:#2843A8}
 .hf-ft{display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;min-width:0}
 .hf-ft .rbar,.hf-act .rbar{margin-top:0}
+
+/* LA MEDIA MANDA — escritorio y tablet (≥ 640; el teléfono la apila, al final). La card con media es una grilla de dos
+   columnas: el eyebrow arriba a todo el ancho y, debajo, la media en su columna y al lado el texto ARRIBA y el pie ABAJO.
+   El título arranca en el borde superior de la media y el pie termina en el inferior: la media define el alto de la card
+   y no queda ninguna franja de aire entre ella y el borde (con el pie a todo el ancho debajo, quedaba una con el «por qué»
+   solo). Video, ruta y lectura, la MISMA geometría: cards de alto parejo, el ritmo del hilo.
+   El DOM es el de siempre: .hf-bd se disuelve (display:contents) para que media, texto y pie sean celdas de la grilla.
+   El presupuesto del texto entra en el alto de la media (124 − 36 del pie = 88): título en 2 renglones (41.6) + canal en
+   1 (17.5) · o + el avance de la ruta (8) · o + el copete en 2 (36.25, sin el meta: la fuente está en la media). Si algo
+   pidiera más (un zoom de fuente), la media se estira con la fila — nunca queda aire debajo de ella. */
+.hf-card:is([data-fam="video"],[data-fam="ruta"],[data-fam="lectura"]){display:grid;grid-template-columns:var(--hf-th-w) minmax(0,1fr);grid-template-rows:auto 1fr auto;gap:0 18px}
+.hf-card:is([data-fam="video"],[data-fam="ruta"],[data-fam="lectura"]) > .hf-eb{grid-column:1 / -1;margin-bottom:12px}
+.hf-card:is([data-fam="video"],[data-fam="ruta"],[data-fam="lectura"]) > .hf-bd{display:contents}
+.hf-card:is([data-fam="video"],[data-fam="ruta"],[data-fam="lectura"]) .hf-th{grid-column:1;grid-row:2 / 4;align-self:stretch;aspect-ratio:auto;min-height:calc(var(--hf-th-w) * 9 / 16)}
+.hf-card:is([data-fam="video"],[data-fam="ruta"],[data-fam="lectura"]) .hf-txt{grid-column:2;grid-row:2;align-self:start;padding-bottom:6px}
+.hf-card:is([data-fam="video"],[data-fam="ruta"],[data-fam="lectura"]) > .hf-ft{grid-column:2;grid-row:3}
+.hf-card:is([data-fam="video"],[data-fam="ruta"],[data-fam="lectura"]) .hf-ti{font-size:16px}
+/* el canal en un renglón (con el título en dos, el texto entra justo en el alto de la media) */
+.hf-card[data-fam="video"] .hf-mt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* la lectura: la fuente ya está en la media → el meta no la repite (vuelve en el teléfono) y el copete sube pegado al
+   título (el gap de .hf-txt alcanza) */
+.hf-card[data-fam="lectura"] .hf-mt{display:none}
+.hf-card[data-fam="lectura"] .hf-sn{margin-top:0}
+
 /* lo que queda en el lugar de una card después de "ver menos" */
 .hf-lesscard{flex-direction:row;align-items:center;gap:12px;padding:12px 16px;background:var(--hf-surface-2)}
 .hf-lesscard .hf-mt{font-weight:700;color:var(--hf-ink-2)}
 
-/* ===== B · "FIJADO · TU SIGUIENTE PASO" (el hero): raya del acento, ícono en caja suave, título en serif ===== */
-.hf-next{display:flex;gap:14px;padding:16px 18px 16px 20px;border-radius:18px;background:var(--hf-surface);border:1px solid var(--hf-hair);box-shadow:inset 3px 0 0 var(--hf-learn-2)}
-/* Dentro de la zona Destacados el hero va LIMPIO (pedido 14-oct): sin la raya/sombra azul — la caja lavanda ya destaca. */
-.fpin .hf-next{box-shadow:none}
-.hf-next-ic{flex:none;width:46px;height:46px;border-radius:13px;display:grid;place-items:center;background:var(--hf-learn-soft);color:var(--hf-learn)}
-.hf-next-ic svg{width:22px;height:22px}
+/* ===== B · "FIJADO · TU SIGUIENTE PASO" (el hero): lavado suave del azul, ícono en su azulejo, título en serif ===== */
+/* V2: la raya del acento (inset) se va; el hero se distingue por un lavado del azul de aprender que se apaga hacia el
+   blanco. El ícono, en un azulejo BLANCO con borde azulado: sobre el lavado, uno celeste se perdía. */
+.hf-next{display:flex;gap:16px;padding:18px 20px;border-radius:var(--hf-r-xl);background:linear-gradient(135deg,var(--hf-learn-soft) 0%,var(--hf-surface) 55%);border:1px solid var(--hf-hair);box-shadow:var(--hf-shadow)}
+/* Dentro de la zona Destacados el hero va LIMPIO (pedido 14-oct): sin sombra — la caja lavanda ya destaca — y con el
+   radio de adentro de la caja (el de la solicitud). El lavado sí queda: es el fondo del hero, no un adorno (y el hero
+   vive siempre acá adentro: sin él, la V2 no se vería). */
+.fpin .hf-next{box-shadow:none;border-radius:var(--hf-r-media)}
+.hf-next-ic{flex:none;width:52px;height:52px;border-radius:16px;display:grid;place-items:center;background:var(--hf-surface);border:1px solid color-mix(in srgb,var(--hf-learn-2) 22%,#fff);color:var(--hf-learn)}
+.hf-next-ic svg{width:24px;height:24px}
 .hf-next-tx{flex:1;min-width:0}
 .hf-next .hf-k{color:var(--hf-learn)}
-.hf-next-t{margin:5px 0 3px;font-family:var(--hf-serif);font-size:19px;font-weight:600;line-height:1.25;letter-spacing:-.01em;color:var(--hf-ink)}
+.hf-next-t{margin:5px 0 3px;font-family:var(--hf-serif);font-size:21px;font-weight:600;line-height:1.25;letter-spacing:-.01em;color:var(--hf-ink)}
 .hf-next-mt{margin:0 0 13px;font-size:13px;font-weight:600;line-height:1.45;color:var(--hf-muted)}
 .hf-row{display:flex;align-items:center;flex-wrap:wrap;gap:13px}
 
 /* ===== C · NOTICIA que atraviesa (ligas): degradado MUY suave del tinte al blanco, emoji grande, título en serif.
    Desvío decidido: con el avatar de quien la protagoniza y las reacciones de emoji. ===== */
 .hf-news{--hf-tint:#7F5300;--hf-tint-soft:#FFF3D9;--hf-tint-line:#F6E2B5;--hf-tint-ring:#F4B740;
-  position:relative;display:flex;align-items:center;gap:16px;padding:18px 20px;border-radius:18px;border:1px solid var(--hf-tint-line);background:linear-gradient(120deg,var(--hf-tint-soft) 0%,var(--hf-surface) 68%)}
+  position:relative;display:flex;align-items:center;gap:16px;padding:20px 22px;border-radius:var(--hf-r-xl);border:1px solid var(--hf-tint-line);background:linear-gradient(120deg,var(--hf-tint-soft) 0%,var(--hf-surface) 68%);box-shadow:var(--hf-shadow)}
 /* los colores de cada medalla: los mismos de la tabla de Ligas */
 .hf-news[data-tint="oro"]{--hf-tint:#7F5300;--hf-tint-soft:#FFF1D6;--hf-tint-line:#F2D9A8;--hf-tint-ring:#E8A317}
 .hf-news[data-tint="plata"]{--hf-tint:#4F5A73;--hf-tint-soft:#ECEFF5;--hf-tint-line:#D7DDE8;--hf-tint-ring:#9AA3B5}
 .hf-news[data-tint="bronce"]{--hf-tint:#8A4B1B;--hf-tint-soft:#FBE8D7;--hf-tint-line:#EFD3BC;--hf-tint-ring:#C07A43}
-/* recién entrada por la píldora */
-.hf-news.is-fresh{box-shadow:0 0 0 3px color-mix(in srgb,var(--hf-tint-ring) 26%,transparent)}
-.hf-news-x{position:absolute;top:12px;right:12px}
-.hf-big{position:relative;flex:none;width:60px;height:60px;border-radius:16px;display:grid;place-items:center;background:var(--hf-surface);border:1px solid var(--hf-tint-line)}
-.hf-big-em{font-size:32px;line-height:1}
+/* recién entrada por la píldora: el anillo SE SUMA a la sombra de todas */
+.hf-news.is-fresh{box-shadow:var(--hf-shadow),0 0 0 3px color-mix(in srgb,var(--hf-tint-ring) 26%,transparent)}
+.hf-news-x{position:absolute;top:14px;right:14px}
+/* el emoji grande va en 18, fuera de la escala: con 24 en una caja de 64 ya casi es un círculo */
+.hf-big{position:relative;flex:none;width:64px;height:64px;border-radius:18px;display:grid;place-items:center;background:var(--hf-surface);border:1px solid var(--hf-tint-line)}
+.hf-big-em{font-size:34px;line-height:1}
 .hf-big .av3{position:absolute;right:-9px;bottom:-9px;box-shadow:0 0 0 2.5px var(--hf-surface)}
 .hf-nx{flex:1;min-width:0;padding-right:22px}
 .hf-news .hf-k{color:var(--hf-tint)}
 .hf-k-time{font-weight:700;opacity:.85}
-.hf-nt{margin:5px 0 3px;font-family:var(--hf-serif);font-size:20px;font-weight:600;line-height:1.25;letter-spacing:-.01em;color:var(--hf-ink);text-wrap:balance}
+.hf-nt{margin:5px 0 3px;font-family:var(--hf-serif);font-size:21px;font-weight:600;line-height:1.25;letter-spacing:-.01em;color:var(--hf-ink);text-wrap:balance}
 .hf-nt b{font-weight:700}
 .hf-you{display:inline-block;margin-left:7px;padding:2px 7px;border-radius:999px;background:var(--hf-learn-2);color:#fff;font-family:var(--body);font-size:11px;font-weight:800;line-height:1.3;letter-spacing:0;vertical-align:3px}
 .hf-np{margin:0;font-size:13px;font-weight:600;line-height:1.45;color:var(--hf-muted)}
@@ -206,22 +297,24 @@
 /* ===== D · BLOQUE DE VIDEOS (grilla inline) ===== */
 /* Contenedor CON NOMBRE: desde que #root es el contenedor app (docs/RESPONSIVE.md §2.1), una consulta sin nombre podría
    ir a parar a otro contenedor. */
-.hf-shelf{container:hf-shelf / inline-size;padding:15px 16px 16px;border-radius:18px;background:var(--hf-surface);border:1px solid var(--hf-hair)}
-/* con 2 columnas (angosto: la grilla mide menos de 3×200 + 2×14) van 2 videos: el tercero quedaría solo en su fila
-   (el resto del tema está en "Ver todos") */
-@container hf-shelf (max-width:627.98px){ .hf-vgrid > li:nth-child(n+3){display:none} }
+.hf-shelf{container:hf-shelf / inline-size;padding:15px 16px 16px;border-radius:var(--hf-r-xl);background:var(--hf-surface);border:1px solid var(--hf-hair);box-shadow:var(--hf-shadow)}
+/* con 2 columnas (angosto: la grilla mide menos de 3×210 + 2×12 = 654) van 2 videos: el tercero quedaría solo en su fila
+   (el resto del tema está en "Ver todos"). Este corte sale del minmax y del gap de .hf-vgrid: si cambia uno, cambia este
+   (V2: el mínimo pasó de 200 a 210 → el corte de 623.98 a 653.98). */
+@container hf-shelf (max-width:653.98px){ .hf-vgrid > li:nth-child(n+3){display:none} }
 .hf-shelf-h{display:flex;align-items:center;flex-wrap:wrap;gap:8px 9px;margin-bottom:12px}
 .hf-shelf-h > svg{flex:none;width:16px;height:16px;color:var(--hf-muted)}
 .hf-shelf-h h3{margin:0;font-size:14px;font-weight:800;color:var(--hf-ink)}
 .hf-co{font-size:12px;font-weight:700;color:var(--hf-faint);font-variant-numeric:tabular-nums}
 .hf-shelf-h .hf-why{margin-right:2px}
-.hf-tl{display:inline-flex;align-items:center;gap:4px;padding:2px 4px;margin:-2px -4px;border-radius:6px;font-size:12.5px;font-weight:800;color:var(--hf-learn)}
+.hf-tl{display:inline-flex;align-items:center;gap:4px;padding:2px 4px;margin:-2px -4px;border-radius:var(--hf-r-sm);font-size:12.5px;font-weight:800;color:var(--hf-learn)}
 .hf-tl svg{width:12px;height:12px;transition:transform .15s}
 .hf-tl:hover svg{transform:translateX(2px)}
-.hf-vgrid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+/* gap 12: el mismo aire que hay entre los bloques del hilo */
+.hf-vgrid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
 .hf-vgrid > li{min-width:0}
-.hf-vid{display:block;width:100%;border-radius:11px;text-align:left}
-.hf-vthumb{position:relative;display:grid;place-items:center;aspect-ratio:16/9;border-radius:11px;overflow:hidden;background:#0E1220;border:1px solid var(--hf-hair)}
+.hf-vid{display:block;width:100%;border-radius:var(--hf-r-media);text-align:left}
+.hf-vthumb{position:relative;display:grid;place-items:center;aspect-ratio:16/9;border-radius:var(--hf-r-media);overflow:hidden;background:#0E1220;background-clip:padding-box;border:1px solid var(--hf-hair)}
 .hf-vthumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .hf-vpl{position:relative;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.94);color:var(--hf-learn);border:1px solid var(--hf-hair);transition:transform .15s}
 .hf-vpl svg{width:14px;height:14px;margin-left:2px}
@@ -230,9 +323,9 @@
 .hf-vm{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;font-weight:600;color:var(--hf-muted)}
 
 /* ===== E · RESUMEN DE LA EDICIÓN: panel apenas hundido, display en serif ===== */
-.hf-sum{padding:16px 18px;border-radius:18px;background:var(--hf-surface-2);border:1px solid var(--hf-hair)}
+.hf-sum{padding:16px 18px;border-radius:var(--hf-r-xl);background:var(--hf-surface-2);border:1px solid var(--hf-hair);box-shadow:var(--hf-shadow)}
 .hf-sum .hf-k{margin-bottom:4px;color:var(--hf-home-ink)}
-.hf-sum-t{margin:0;font-family:var(--hf-serif);font-size:18px;font-weight:600;letter-spacing:-.01em;color:var(--hf-ink)}
+.hf-sum-t{margin:0;font-family:var(--hf-serif);font-size:19px;font-weight:600;letter-spacing:-.01em;color:var(--hf-ink)}
 .hf-sum-d{margin:3px 0 12px;font-size:12.5px;font-weight:600;line-height:1.45;color:var(--hf-muted)}
 .hf-mix{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
 .hf-mx{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;background:var(--hf-surface);border:1px solid var(--hf-hair);font-size:12.5px;font-weight:700;color:var(--hf-muted)}
@@ -242,7 +335,7 @@
 
 /* ---- pie del hilo: "Ver más de antes" (lo pide el chico) → "Estás al día" ---- */
 .hf-endcap{display:grid;justify-items:center;padding:20px 16px 4px;text-align:center}
-.hf-more{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;border-radius:12px;border:1px solid var(--hf-line);background:var(--hf-surface);color:var(--hf-ink);font-size:13.5px;font-weight:800;transition:border-color .15s,background-color .15s}
+.hf-more{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;border-radius:999px;border:1px solid var(--hf-line);background:var(--hf-surface);color:var(--hf-ink);font-size:13.5px;font-weight:800;transition:border-color .15s,background-color .15s}
 .hf-more svg{width:15px;height:15px;color:var(--hf-muted)}
 .hf-more:hover:not(:disabled){border-color:#C9D2E4;background:#FAFBFD}
 .hf-more:disabled{opacity:.7;cursor:progress}
@@ -251,20 +344,38 @@
 .hf-end-s{margin:3px 0 0;font-size:12.5px;font-weight:600;color:var(--hf-faint)}
 
 /* ---- sin datos / esqueletos ---- */
-.hf-empty{display:grid;justify-items:start;gap:10px;padding:18px;border-radius:16px;background:var(--hf-surface);border:1px solid var(--hf-hair)}
+.hf-empty{display:grid;justify-items:start;gap:10px;padding:18px;border-radius:var(--hf-r-card);background:var(--hf-surface);border:1px solid var(--hf-hair)}
 .hf-empty p{margin:0;font-weight:700;color:var(--hf-muted)}
 .hf-sk{display:flex;flex-direction:column;gap:12px}
-.hf-sk-card{flex-direction:row;align-items:center;gap:13px}
-.hf-sk-card .ph-a{flex:none;width:78px;height:58px;border-radius:11px}
-.hf-sk-card .ph-b{flex:1;display:grid;gap:9px}
-.hf-sk-card .ph-b i:nth-child(1){width:30%;height:9px}
-.hf-sk-card .ph-b i:nth-child(2){width:80%;height:13px}
-.hf-sk-card .ph-b i:nth-child(3){width:50%;height:9px}
+/* V2: los esqueletos anticipan el ritmo REAL del hilo — se alternan la card con media (data-sk="media": la MISMA grilla
+   y la misma columna de 220×124 que la de verdad; apilada a todo el ancho en el teléfono) y la horizontal (data-sk="row":
+   el avatar de un amigo). Mismos tokens: al llegar el feed no salta nada. El brillo es el global .sk de base.css. */
+.hf-sk-card{display:grid;grid-template-columns:48px minmax(0,1fr);gap:0 14px;align-items:center}
+/* la fila del eyebrow mide 24 como la de verdad (la pone el ✕), aunque el chip mida 19 */
+.hf-sk-card .hf-sk-eb{grid-column:1 / -1;display:flex;align-items:center;min-height:24px;margin-bottom:10px}
+.hf-sk-card .hf-sk-eb i{width:84px;height:19px;border-radius:999px}
+.hf-sk-card .ph-a{grid-column:1;width:48px;height:48px;border-radius:50%}
+.hf-sk-card .hf-sk-tx{grid-column:2;display:grid;gap:9px}
+.hf-sk-card .hf-sk-tx i:nth-child(1){width:72%;height:13px}
+.hf-sk-card .hf-sk-tx i:nth-child(2){width:34%;height:10px}
+.hf-sk-card .hf-sk-tx i:nth-child(3){display:none}
+.hf-sk-card .hf-sk-ft{grid-column:1 / -1;display:flex;justify-content:flex-end;margin-top:10px}
+.hf-sk-card .hf-sk-ft i{width:132px;height:32px;border-radius:999px}
+.hf-sk-card[data-sk="media"]{grid-template-columns:var(--hf-th-w) minmax(0,1fr);grid-template-rows:auto 1fr auto;gap:0 18px;align-items:start}
+.hf-sk-card[data-sk="media"] .hf-sk-eb{margin-bottom:12px}
+.hf-sk-card[data-sk="media"] .ph-a{grid-row:2 / 4;width:var(--hf-th-w);height:auto;aspect-ratio:16/9;border-radius:var(--hf-r-media)}
+.hf-sk-card[data-sk="media"] .hf-sk-tx{grid-row:2;gap:10px;padding-top:3px}
+.hf-sk-card[data-sk="media"] .hf-sk-tx i:nth-child(1){width:88%;height:14px}
+.hf-sk-card[data-sk="media"] .hf-sk-tx i:nth-child(2){width:56%;height:14px}
+.hf-sk-card[data-sk="media"] .hf-sk-tx i:nth-child(3){display:block;width:32%;height:10px}
+.hf-sk-card[data-sk="media"] .hf-sk-ft{grid-column:2;grid-row:3;margin-top:0;align-self:end}
+.hf-sk-card[data-sk="media"] .hf-sk-ft i{width:76px;height:36px}
 
 /* ---- reacciones de emoji (noticias de amigos y de ligas) ---- */
 .rbar{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.rchip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;border:1px solid #E1E5EE;background:#FAFBFD;font-size:14px;transition:border-color .15s,background .15s,transform .1s}
-.rchip i{font-style:normal;font-size:12px;font-weight:800;color:#6A7390}
+/* V2: más táctiles (≈32 de alto) — el dedo de un chico no es un puntero */
+.rchip{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;border:1px solid #E1E5EE;background:#FAFBFD;font-size:15px;line-height:20px;transition:border-color .15s,background .15s,transform .1s}
+.rchip i{font-style:normal;font-size:12.5px;font-weight:800;color:#6A7390}
 .rchip:hover{border-color:#C9D2E4}
 .rchip:active{transform:scale(.94)}
 .rchip.on{border-color:#13A39A;background:#E2F5F3}
@@ -301,15 +412,43 @@
   .hf-news{flex-direction:column;align-items:flex-start;padding:16px}
   .hf-nx{padding-right:0}
   .hf-vgrid{grid-template-columns:1fr 1fr;gap:10px}
-  .hf-th.is-video{width:88px;height:50px}
+  /* el título serif de la noticia y del hero, un escalón abajo (21 → 19) */
+  .hf-nt,.hf-next-t{font-size:19px}
+  /* LA MEDIA MANDA en el teléfono: la card vuelve a ser una columna (eyebrow → cuerpo → pie). Video y ruta APILAN la
+     media a todo el ancho arriba del texto (16:9, como YouTube); la lectura queda horizontal con un azulejo: una banda a
+     todo el ancho sin una imagen de verdad sería relleno. El título baja a 15.5 en todas. */
+  .hf-card:is([data-fam="video"],[data-fam="ruta"],[data-fam="lectura"]){display:flex}
+  .hf-card:is([data-fam="video"],[data-fam="ruta"],[data-fam="lectura"]) > .hf-eb{margin-bottom:0}
+  .hf-card:is([data-fam="video"],[data-fam="ruta"],[data-fam="lectura"]) > .hf-bd{display:flex}
+  .hf-card:is([data-fam="video"],[data-fam="ruta"],[data-fam="lectura"]) .hf-th{align-self:auto;min-height:0;aspect-ratio:16/9}
+  .hf-card:is([data-fam="video"],[data-fam="ruta"],[data-fam="lectura"]) .hf-txt{align-self:auto;padding-bottom:0}
+  .hf-card:is([data-fam="video"],[data-fam="ruta"],[data-fam="lectura"]) .hf-ti{font-size:15.5px}
+  .hf-card:is([data-fam="video"],[data-fam="ruta"]) > .hf-bd{flex-direction:column;align-items:stretch;gap:10px}
+  .hf-card:is([data-fam="video"],[data-fam="ruta"]) .hf-th{width:100%}
+  /* la lectura: azulejo cuadrado con el mismo degradé y el libro más chico; la fuente sale de la media y vuelve al meta */
+  .hf-card[data-fam="lectura"] > .hf-bd{align-items:flex-start}
+  .hf-card[data-fam="lectura"] .hf-th{width:var(--hf-tile);aspect-ratio:1}
+  .hf-card[data-fam="lectura"] .hf-th > svg{width:28px;height:28px}
+  .hf-card[data-fam="lectura"] .hf-th-src{display:none}
+  .hf-card[data-fam="lectura"] .hf-mt{display:block}
+  .hf-card[data-fam="lectura"] .hf-sn{margin-top:2px}
+  /* el avance de la ruta acompaña el ancho de la media de arriba */
+  .hf-prog{max-width:none}
+  /* la card de amigo, angosta (≤ ~390): el pie no entra en un renglón y el «por qué» subía ARRIBA de las reacciones.
+     wrap-reverse deja la primera línea (el «por qué») al FONDO (criterio de Esteban: «el por qué alinealo al final, o sea
+     abajo»); con el cross-axis invertido, flex-start es ese fondo (el flex-end global lo mandaría arriba). */
+  .hf-card[data-fam="amigos"] > .hf-ft{flex-wrap:wrap-reverse}
+  .hf-card[data-fam="amigos"] > .hf-ft > .hf-why{align-self:flex-start}
   /* acciones principales a 44 de alto: el paso siguiente del hero, «Reintentar», la píldora y «Ver más de antes» */
   .hf-cta:not(.is-quiet),.hf-more,.hf-pill{min-height:44px}
   /* la píldora pegada a 12 px del borde, como en escritorio: el shell del teléfono baja el padding-top de .view a 20
      (con el top de -20 quedaba pegada a la barra de arriba) */
   .hf-pillbar{top:-8px}
-  /* el hero: menos aire y el ícono de 38 (a 320 el texto quedaba en una tira de 166 px) */
-  .hf-next{gap:12px;padding:14px 14px 14px 16px}
-  .hf-next-ic{width:38px;height:38px;border-radius:11px}
+  /* el hero: menos aire y el ícono de 38 (a 320 el texto quedaba en una tira de 166 px); sin la raya, el padding parejo.
+     Con 38 de lado, el radio de 16 lo volvía casi un círculo: 12 */
+  .hf-next{gap:12px;padding:14px}
+  .hf-next-ic{width:38px;height:38px;border-radius:12px}
+  .hf-next-ic svg{width:20px;height:20px}
   /* su rótulo (✦ + una sola frase) no envuelve el ícono aparte: a 320 el ✦ quedaba solo en su renglón */
   .hf-next .hf-k{flex-wrap:nowrap}
   /* la solicitud: el texto al lado del avatar (con base 240 bajaba y el avatar quedaba solo en su renglón), arriba */
@@ -318,4 +457,10 @@
   /* Aceptar / Ahora no: en el teléfono siempre bajan a su fila; ahí van parejos, a todo el ancho y con 44 de alto */
   .fpin-acts{flex:1 1 100%;margin-left:0}
   .fpin-ok,.fpin-no{flex:1 1 0;height:44px;text-align:center}
+  /* el esqueleto de la card con media, apilado como la de verdad (media a todo el ancho, texto, píldora) */
+  .hf-sk-card[data-sk="media"]{grid-template-columns:minmax(0,1fr);grid-template-rows:none}
+  .hf-sk-card[data-sk="media"] .hf-sk-eb{margin-bottom:10px}
+  .hf-sk-card[data-sk="media"] .ph-a{grid-row:auto;width:100%}
+  .hf-sk-card[data-sk="media"] .hf-sk-tx{grid-column:1;grid-row:auto;margin-top:10px}
+  .hf-sk-card[data-sk="media"] .hf-sk-ft{grid-column:1;grid-row:auto;margin-top:10px}
 }

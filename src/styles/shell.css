@@ -73,7 +73,9 @@
 .mp-panel{position:absolute;bottom:calc(100% + 10px);left:0;width:286px;background:#fff;border:1px solid #E4E8F1;border-radius:9px;box-shadow:0 18px 44px -14px rgba(27,34,56,.35);padding:14px;z-index:60;display:grid;gap:12px}
 .mp-title{margin:0;font-size:13px;font-weight:800;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .mp-queue{margin:-8px 0 0;font-size:11px;font-weight:700;color:#6A7390}
-.mp-row{display:flex;align-items:center;justify-content:space-between;gap:4px}
+/* Centrada con aire parejo (29-oct, pedido de Esteban: estaba desalineada): la cantidad de botones VARÍA — sin «Siguiente»
+   con cola de 1, sin «Abrir el video» en audioOnly — y el space-between de antes los desparramaba distinto en cada caso. */
+.mp-row{display:flex;align-items:center;justify-content:center;gap:10px}
 .mp-b{position:relative;width:38px;height:38px;display:grid;place-items:center;border-radius:7px;color:#47506B;cursor:pointer}
 .mp-b svg{width:19px;height:19px}
 .mp-b:hover{background:#F1F3F8}

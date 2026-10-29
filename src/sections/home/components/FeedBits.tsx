@@ -6,7 +6,7 @@ import { IcClock, IcClose } from '../../../shared/components/icons';
  *  hacia la izquierda (si no, se saldría del borde). No navega a ningún lado. Puro. */
 export const WhyChip = ({ reason, icon, end }: { reason: string; icon?: ReactNode; end?: boolean }) => (
   <button type="button" className={`hf-why${end ? ' is-end' : ''}`} title={reason} data-why={reason} aria-label={`Por qué te lo muestro: ${reason}`}
-    onClick={(e) => e.currentTarget.focus()}>
+    onClick={(e) => e.currentTarget.focus()} onKeyDown={(e) => { if (e.key === 'Escape') e.currentTarget.blur(); }}>
     {icon ?? <IcClock aria-hidden="true" />}por qué
   </button>
 );

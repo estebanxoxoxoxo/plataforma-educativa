@@ -1,18 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../../../api';
 import type { AfterDayTrack } from '../../../api/types';
-import { playTrack, useBgAudio } from '../../../shared/audio/bgAudio';
+import { useBgAudio } from '../../../shared/audio/bgAudio';
 import { TrackCard } from '../../afterday/cards/TrackCard';
 import { AdSkeleton } from '../../afterday/components/AdStates';
 import { AdWatch } from '../../afterday/components/AdWatch';
-import { trackToBg } from '../../afterday/lib/track';
+import { tapTrack } from '../../afterday/lib/track';
+import { trackAudio } from '../../afterday/lib/trackAudio';
 import { PanelState } from '../components/PanelState';
 import { parentCall, rejectedReason } from '../lib/adultGate';
 
 /** «After Day» de Familia (tanda F2, 28-oct: solapa PROPIA; antes era la "Música de After Day" al pie de YouTube — porte
  *  Smarty W6, la AfterDayTab del POC). Arriba, el agregar: un link de YouTube y, si quiere, un nombre (sin repetidos, solo
  *  videos sueltos, de a uno, como el POC). Abajo, la MISMA grilla que ve el chico en /afterday (sections/afterday: la
- *  TrackCard con miniatura y título, del más nuevo al más viejo; tocarla la escucha de fondo y «Ver» abre el video
+ *  TrackCard con miniatura y título, del más nuevo al más viejo; tocarla la escucha de fondo —y desde el 29-oct, tocarla de
+ *  nuevo la pausa: el mismo play/pausa de tapTrack— y «Ver» abre el video
  *  contenido, también para el adulto) con «Quitar» en cada tarjeta. Nada optimista: lo que se ve es lo que guardó el server
  *  (server/src/afterday.ts → music.json). Va con la sesión del adulto activo (parentCall).
  *  Es de TODA LA FAMILIA (la misma lista suena en el After Day de cada integrante): no recibe integrante y lo dice. */
@@ -101,8 +103,8 @@ export function FamilyAfterDayPanel() {
             : (
               <div className="ad-grid">
                 {tracks.map((t) => (
-                  <TrackCard key={t.videoId} track={t} sounding={bg.video?.id === t.videoId}
-                    onPlay={() => playTrack(trackToBg(t), 0, true)} onWatch={() => setWatch(t)}
+                  <TrackCard key={t.videoId} track={t} audio={trackAudio(bg, t.videoId)}
+                    onPlay={() => tapTrack(t)} onWatch={() => setWatch(t)}
                     corner={(
                       <button type="button" className="pz-ad-x" disabled={removing !== null} onClick={() => void remove(t)}
                         aria-label={`Quitar ${t.title || 'este audio'} de After Day`}>{removing === t.videoId ? 'Quitando…' : 'Quitar'}</button>

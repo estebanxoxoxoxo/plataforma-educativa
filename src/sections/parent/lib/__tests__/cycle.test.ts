@@ -39,17 +39,26 @@ describe('evaluación con la hora del server', () => {
   it('serverDate aplica el delta', () => {
     expect(serverDate(snapAt('09:30')).toISOString()).toBe('2026-10-28T09:30:00.000Z');
   });
-  it('dentro y fuera de un rango; lo que no figura en ningún rango, siempre', () => {
+  it('dentro y fuera de un rango; lo que no figura en ningún rango, fuera de todo rango', () => {
     expect(isSectionOpen('aprender', snapAt('09:30'))).toBe(true);
     expect(isSectionOpen('mytube', snapAt('09:30'))).toBe(false);
     expect(isSectionOpen('mytube', snapAt('15:00'))).toBe(true);
     expect(isSectionOpen('chat', snapAt('03:00'))).toBe(true);
+    expect(isSectionOpen('chat', snapAt('09:30'))).toBe(false); // 29-oct: la Mañana en curso es exclusiva
   });
   it('el override de demo manda sobre el reloj (como el server): "estás en la Tarde" a las 09:30', () => {
     const s = snapAt('09:30', { demoRange: 'tarde' });
     expect(isSectionOpen('mytube', s)).toBe(true);
     expect(isSectionOpen('aprender', s)).toBe(false);
-    expect(isSectionOpen('calendario', s)).toBe(true);
+    // 29-oct (rangos exclusivos, cycleRules.ts): antes Calendario —que no está en ningún rango— seguía abierto con el override;
+    // ahora "estás en la Tarde" es EXACTAMENTE lo de la Tarde.
+    expect(isSectionOpen('calendario', s)).toBe(false);
+  });
+  it('29-oct · el menú de Ian con su ciclo real (r1 21:00–22:00, solo After Day): a las 21:30 solo After Day y el Feed', () => {
+    const ian: CycleRange[] = [{ id: 'r1', name: 'Rango 1', from: '21:00', to: '22:00', sections: ['afterday'] }];
+    const menu = ['/', '/buscar', '/chat', '/mytube', '/aprender', '/afterday', '/tienda', '/calendario', '/espacio/carpetas'];
+    expect(menu.filter((p) => cycleAllows(snapAt('21:30', { ranges: ian }), p))).toEqual(['/', '/afterday']);
+    expect(menu.filter((p) => cycleAllows(snapAt('15:00', { ranges: ian }), p))).toEqual(menu.filter((p) => p !== '/afterday'));
   });
   it('fail-open: sin dato todavía, todo disponible', () => {
     expect(isSectionOpen('mytube', snapAt('09:30', { ranges: null }))).toBe(true);

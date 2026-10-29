@@ -69,8 +69,3 @@ export function rangeOptionLabel(r: Pick<CycleRange, 'name' | 'from' | 'to'>): s
 export function coversNow(r: Pick<CycleRange, 'from' | 'to'>, cur: number): boolean {
   return parseHHMM(r.from) != null && parseHHMM(r.to) != null && rangeCovers(r, cur);
 }
-
-/** Las secciones que no figuran en NINGÚN rango del borrador: siempre disponibles (la regla del ciclo). */
-export function freeSections(drafts: readonly Pick<RangeDraft, 'sections'>[]): SectionKey[] {
-  return SECTION_KEYS.filter((k) => !drafts.some((d) => d.sections.includes(k)));
-}
