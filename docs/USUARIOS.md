@@ -555,20 +555,28 @@ cambio a propósito; los intereses reales por usuario llegan con el algoritmo de
 semana (los rangos rigen todos los días); `sections` ⊆ las mismas 8 de antes (`chat`, `buscar`, `mytube`, `aprender`,
 `tienda`, `calendario`, `espacio`, `afterday`), sin repetir y en el orden del menú (puede ser vacía). El Feed nunca se gatea.
 
-**Regla de disponibilidad** (solo con un CHICO activo — al adulto no lo gatea nada, como antes; `src/shared/lib/cycleRules.ts`
-—mudado de `server/src/` en F2: el mismo código en server y cliente—, puro y con tests en `server/src/__tests__/cycleRules.test.ts`):
-- una sección que NO figura en ningún rango → siempre disponible;
-- una que figura en ≥ 1 rango → disponible SOLO cuando el reloj del server, leído en la ZONA HORARIA DE LA FAMILIA
-  (`parent.json` `tz`; null = la del server), cae dentro de alguno de SUS rangos (los solapados suman);
-- datos inválidos → disponible (fail-open, la regla de la casa): un rango con horas que no son HH:MM abre sus secciones
-  las 24 h; cualquier excepción al evaluar → disponible;
-- `opensAt` (el "se abre de nuevo a las…" del 403) = el próximo minuto de HOY en que abre, "HH:MM", o null (hoy ya no abre;
-  no se promete mañana, mismo espíritu que W7).
+**Regla de disponibilidad — los rangos son MOMENTOS EXCLUSIVOS** (desde el 29-oct; detalle y verificación en «Rangos
+exclusivos (29-oct)» al final de esta sección). Solo con un CHICO activo — al adulto no lo gatea nada, como antes;
+`src/shared/lib/cycleRules.ts` —mudado de `server/src/` en F2: el mismo código en server y cliente—, puro y con tests en
+`server/src/__tests__/cycleRules.test.ts` y, por el 403 real, `server/src/__tests__/cycleGate.test.ts`. El reloj es el del
+server leído en la ZONA HORARIA DE LA FAMILIA (`parent.json` `tz`; null = la del server):
+- **¿algún rango vivo está EN CURSO** (el reloj cae en su [from, to))? → disponible = la sección figura en la UNIÓN de las
+  `sections` de los rangos en curso (los solapados suman). Nada más: lo que no lista ninguno de ellos, cerrado — también
+  lo que no figura en ningún rango. Una lista VACÍA en curso cierra todo (es explícita);
+- **¿ninguno en curso?** → una sección que figura en ≥ 1 rango, cerrada (solo abre en sus rangos); la que no figura en
+  ninguno, disponible. Sin rangos, todo disponible siempre;
+- **fail-open intacto** (la regla de la casa): un rango VIVO es un objeto con horas HH:MM válidas y `sections` lista; uno
+  roto no cierra nada (nunca está en curso ni hace "figurar" a una sección) y, como antes, si sus horas son inválidas ABRE
+  las 24 h las secciones que lista; una lista de rangos que no es lista o cualquier excepción al evaluar → disponible;
+- el Feed nunca se cierra;
+- `opensAt` (el "se abre de nuevo a las…" del 403) = el próximo minuto de HOY en que pasa a disponible, "HH:MM" (p. ej.
+  Chat, cerrado por un After Day de 21 a 22, abre a las 22:00), o null (disponible, hoy ya no abre —no se promete mañana,
+  mismo espíritu que W7— o con override). Se calcula genérico: barriendo los cortes from/to de los rangos vivos del día.
 
 **Override de DEMO** ("estás en este rango"). `POST /api/demo/cycle {rangeId}`: el integrante se evalúa COMO SI el reloj
-estuviera dentro de ese rango — sus secciones disponibles, las que figuran en OTROS rangos y no en ése cerradas, las que no
-figuran en ninguno disponibles. Los rangos se toman como momentos exclusivos: un solapamiento con otro rango NO abre nada.
-Con override no hay `opensAt` (no sigue al reloj). `null` = reloj real. RAM y POR USUARIO (`perUser`): lo limpia `POST
+estuviera dentro de ese rango, en serio exclusivo — disponible = EXACTAMENTE sus secciones (desde el 29-oct también se cierran
+las que no figuran en ningún rango; antes quedaban abiertas); un solapamiento con otro rango NO abre nada. Un rango roto no
+sirve de override (rige el reloj real). Con override no hay `opensAt` (no sigue al reloj). `null` = reloj real. RAM y POR USUARIO (`perUser`): lo limpia `POST
 /api/demo/reset` de ESE usuario (`{scope:'all'}`: todos) y también guardar un ciclo que ya no trae ese rango; un id que ya no
 existe = reloj real. Chico activo → SU override (`member` se ignora: nunca toca a un hermano). **Aditivo de F1** (decisión del
 implementador, para que F2 pueda poner el selector también en Familia): con un ADULTO activo, `?member=<id>` elige el del
@@ -582,8 +590,10 @@ secciones", y adivinar podría encerrar al chico —; el original queda en `sche
 `.pre-v3-<ms>` si ya había otro; sin respaldo escrito no se reescribe nada; una `version` desconocida va entera a
 `.roto-<ms>`) y cada integrante
 arranca con `ranges: []` (en este repo: el v2 era `{ian: {}, luna: {}}`, sin horarios cargados; no se perdió nada). Al leer,
-lo raro de un archivo editado a mano se sanea hacia ABIERTO (`sanitizeStoredRanges`: horas inválidas → 24 h, secciones
-desconocidas afuera, ids/nombres nuevos) con aviso en el log; ilegible → `.roto-<ms>` y todo disponible. ⚠ Un checkout
+lo raro de un archivo editado a mano se sanea SIN cambiar la disponibilidad (`sanitizeStoredRanges`, 29-oct: horas
+inválidas → vacías —el rango sigue roto: no cierra nada, abre lo suyo las 24 h y el editor lo marca «Revisá las horas»—, un
+rango cuyas secciones no son lista sale, secciones desconocidas afuera, ids/nombres nuevos) con aviso en el log; ilegible →
+`.roto-<ms>` y todo disponible. ⚠ Un checkout
 pre-F1 con el server corriendo leería el v3 como un v1 y lo reescribiría como v2 (los rangos quedarían adentro de
 `members.ian`, recuperables a mano): no hacerlo.
 
@@ -656,8 +666,8 @@ elegir el override, Aprender vuelve y MyTube sale sin recargar. Estado restaurad
 
 **Bordes (F1).** Sin día de la semana (un fin de semana distinto no se puede expresar: pedido explícito del diseño v1).
 `opensAt` no mira mañana. El override toma los rangos como exclusivos aunque se solapen. El cliente puede quedar hasta 30 s
-atrasado DESPUÉS de un borde (su tick; el server no: enforcea al minuto). Un rango sin secciones es válido (sirve
-de "momento" en el selector de la demo: con él elegido, todo lo que figura en otros rangos se cierra).
+atrasado DESPUÉS de un borde (su tick; el server no: enforcea al minuto). Un rango sin secciones es válido (desde el 29-oct:
+en curso —o elegido en el selector de la demo— cierra TODO salvo el Feed).
 
 **F2 — cliente (HECHA, 28-oct; sin commitear).** Pedido del dueño (28-oct): After Day en una pestaña propia; la pestaña YouTube
 se llama MyTube; "el listado está súper mal: tiene que ser el MISMO tipo de grilla que ve el chico, con una forma de agregar";
@@ -688,15 +698,17 @@ una pestaña nueva "Ciclo del día"; y, para la demo, un selector en la barra de
   `YouTubePanel.tsx`, `YtChannelRow.tsx` (y su tabla/lista de 151 textareas) y sus estilos.
 - **After Day del padre** (`containers/FamilyAfterDayPanel.tsx`): el agregar (link + nombre opcional) y la MISMA grilla del
   chico (`.ad-grid` + `sections/afterday/cards/TrackCard.tsx`, que suma el prop opcional `corner` → «Quitar» arriba a la derecha;
-  tocar = escuchar de fondo y «Ver» = el video contenido, también para el adulto). Retirado `AfterDayMusicPanel.tsx`.
+  tocar = play/pausa del audio de fondo (29-oct: el disco lleva la nota musical, en color sonando y en blanco y negro en
+  pausa) y «Ver» = el video contenido, también para el adulto). Retirado `AfterDayMusicPanel.tsx`.
 - **Ciclo del día** (`containers/CyclePanel.tsx` + `components/CycleRangeCard.tsx`; lo puro en `lib/cycleDraft.ts` con tests):
   `GET /api/parent/cycle?member` → borrador; por rango: nombre, desde/hasta (`<input type="time">`), "Rige de 14:00 a 18:00,
   todos los días" (o "cruza la medianoche" / "todo el día" / "Revisá las horas"), las 8 secciones como fichas (`aria-pressed`) y
   «Borrar»; «+ Agregar rango» (máx. 8; arranca donde termina el último, 3 h); «Guardar ciclo» (solo con cambios) manda la lista
   ENTERA (`api.parentCycleSave`, los nuevos sin id) y un 400 se muestra con el `error` del server tal cual (`rejectedReason`;
-  el cliente NO pre-valida: una hora vacía viaja vacía); «Descartar cambios». Arriba, la regla ("Una sección que no está en
-  ningún rango queda siempre disponible. El Feed nunca se cierra.") y la hora de la familia con el link a Límites; abajo, qué
-  queda siempre disponible para ese integrante. Badges "Ahora" (el reloj de la familia cae en el rango) y "En la demo, {kid}
+  el cliente NO pre-valida: una hora vacía viaja vacía); «Descartar cambios». Arriba, la regla (desde el 29-oct: "Durante un
+  rango, {kid} solo tiene lo que marcaste en ese rango (si dos rangos se pisan, suma lo de los dos); fuera de todo rango,
+  tiene lo que no está en ninguno. El Feed nunca se cierra.") y la hora de la familia con el link a Límites (la leyenda de
+  abajo, "siempre disponibles para {kid}…", se SACÓ el 29-oct: pedido de Esteban). Badges "Ahora" (el reloj de la familia cae en el rango) y "En la demo, {kid}
   está acá" (el override vigente). Lo guardado se adopta (`adoptCycle`): rige ya donde ese chico es el usuario activo (esta
   pestaña y las otras) y el selector de demo toma los rangos nuevos.
 - **Store del chico** (`lib/cycle.ts`, reemplaza a `lib/schedules.ts`): `GET /api/schedules` → `cycle` + `demoRange` +
@@ -756,6 +768,45 @@ curada sigue on-demand al abrir el canal), cacheada en `mytube.json`; espera com
 canales, 3 unidades, 151/151 con avatar. Los cambios sin
 guardar del Ciclo se pierden al cambiar de integrante o de solapa (el panel remonta; dice "Hay cambios sin guardar."). El
 multi-pestaña con usuarios distintos sigue sin soportarse (el BroadcastChannel solo evita cruzar ciclos de integrantes).
+
+**Rangos exclusivos (29-oct, pedido de Esteban; sin commitear).** Pedido: «Chat, Buscar, MyTube, Aprender, Tienda,
+Calendario y Mi espacio no tienen que estar en los rangos after day. Todos tienen que por default no tienen que aparecer, solo
+los que específicamente se indiquen tiene que aparecer.» Con la regla de F1 («lo que no figura en ningún rango, siempre
+disponible»), durante el After Day de Ian (21–22, `sections: [afterday]`) el menú le seguía mostrando TODO. Ahora un rango es
+un momento exclusivo: mientras está en curso, solo lo que lista (la regla completa, arriba en «Regla de disponibilidad»).
+- **Código.** `src/shared/lib/cycleRules.ts` (cabecera reescrita con la regla punto por punto): el evaluador junta los rangos
+  VIVOS en curso y responde con su unión; sin ninguno en curso, lo de antes. `rangeCovers` con horas inválidas pasó a `false`
+  (un rango roto nunca está "en curso": estar en curso ahora CIERRA); `findRange` solo devuelve rangos vivos (un override
+  sobre un rango roto = reloj real); `opensAtToday` barre los cortes from/to del día en vez de minuto a minuto (mismo
+  resultado: test contra fuerza bruta). `sanitizeStoredRanges` cambió para no encerrar con la regla nueva (horas inválidas →
+  vacías en vez de 24 h; secciones que no son lista → el rango sale en vez de quedar vacío). Server (`schedule.ts`, el 403) y
+  cliente (`lib/cycle.ts`: menú, "descansando", selector de demo) usan ese mismo código: no se tocaron. Contratos: sin cambios.
+- **Editor.** Un rango nuevo ya arrancaba sin secciones (`cycleDraft.newRange`, test existente). Cambiaron los textos de
+  la regla del panel («Durante un rango, {kid} solo tiene lo que marcaste en ese rango…; fuera de todo rango, tiene lo que no
+  está en ninguno») y del aviso de un rango sin secciones («mientras dure este rango, {kid} solo tiene el Feed…»). La leyenda
+  del pie («Fuera de los rangos, Ian tiene Chat, Buscar… y el Feed»; antes «Siempre disponibles para…») se ELIMINÓ por pedido
+  de Esteban («No es necesario toda esta aclaración»): sin párrafo, sin `freeSections` (cycleDraft.ts y su test) y sin el CSS
+  `.pz-cy-free`.
+- **Tests.** `cycleRules.test.ts` 22 → 42 (los que fijaban «no figura → disponible DURANTE un rango ajeno», el override
+  que dejaba abierto lo de ningún rango y el saneo a 24 h se ajustaron con el porqué en la línea; casos nuevos: el ciclo real
+  de Ian a las 21:30/15:00 y sus bordes, Luna sin rangos, solapados, lista vacía en curso, rango roto, override exclusivo,
+  medianoche, opensAt = fuerza bruta en 40 ciclos, saneo = crudo minuto a minuto); `cycleGate.test.ts` nuevo (6: el 403 real
+  por `index.ts` con un schedules.json PROPIO en una carpeta temporal —Ian 21:30/15:00, override, Luna, y un adulto con un
+  ciclo que lo cerraría todo y no lo alcanza—); `cycle.test.ts` del cliente +1 (el menú de Ian) y el override ajustado.
+  Mutaciones en un espejo (13 a `cycleRules.ts` + quitar el "solo chico" de `index.ts`): todas mueren.
+- **Verificado (29-oct).** `npx tsc -b` y `tsc -p tsconfig.server.json` en 0; `npm test` verde (69 archivos, 738 tests en
+  ese momento, con trabajo en paralelo de otras tandas). E2E con Chrome headless contra un ESPEJO (copia de server/ y
+  server/data en el scratchpad, API 8796 + web 5198; los puertos del usuario y su `schedules.json` intactos), con la zona de la
+  familia del espejo corrida para estar a las 21:xx y a las 15:xx: Ian a las 21:37 ve Feed + After Day (nada más), `/calendario`
+  descansa con «Se abre de nuevo a las 22:00.» y la API de las otras 7 secciones da 403 `opensAt: "22:00"`; a las 15:37 ve todo
+  menos After Day, `/afterday` descansa con «…a las 21:00.» (403 `opensAt: "21:00"`); el selector de demo en «Rango 1» deja
+  solo After Day sin recargar (Calendario 403 sin `opensAt`) y «Reloj real» lo vuelve; Luna y el adulto ven todo; en Familia →
+  Ciclo del día la regla nueva y un rango nuevo con las 8 fichas apagadas (no se guardó). 32/32, consola limpia.
+- **Bordes.** Una lista vacía en curso cierra todo (explícita). Los solapados suman, también con un rango de 24 h (es un
+  momento permanente: "fuera de todo rango" no pasa nunca). Medianoche: `opensAt` sigue sin mirar mañana (a las 23:00 dentro
+  de un 21–07, null). Una entrada desconocida DENTRO de una lista (`"feed"`, la sección de un checkout futuro) no abre nada:
+  la lista sigue siendo explícita. Un rango con horas vacías (saneado) aparece en el selector de la demo pero no se puede
+  elegir (`POST /api/demo/cycle` → 400 «Ese rango no está en el ciclo…»): un rango roto no sirve de override.
 
 ## 12. U5 — La liga de la familia completa y las medallas (28-oct)
 

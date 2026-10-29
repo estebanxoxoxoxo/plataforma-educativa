@@ -54,8 +54,8 @@ quedó dormido y NUNCA se imprime).
    · **Familia (`/familia/*`) AL FONDO, SOLO PARA EL ADULTO** (línea 14-oct: la ex Zona de padres,
    sin portón de PIN; con un chico activo la ruta navega al Feed y el link discreto del Sidebar ya
    no existe; `/padres/*` redirige conservando subruta; la tab "Profesores" es ahora "Mentorías"; F2, 28-oct: la solapa "YouTube" es
-   "MyTube" —`/familia/youtube` redirige— y After Day y Ciclo del día tienen solapa propia; orden: Funcionalidades · Temas y
-   palabras · MyTube · After Day · Límites · Ciclo del día · Avisos · Premios · Mentorías · Actividad · Protecciones).
+   "MyTube" —`/familia/youtube` redirige— y After Day y Ciclo del día tienen solapa propia; orden desde el 29-oct, pedido de Esteban: Funcionalidades · Temas y
+   palabras · Protecciones · MyTube · Ciclo del día · After Day · Límites · Avisos · Premios · Mentorías · Actividad).
    LIGAS TAMPOCO ES PUNTO DE MENÚ (12-oct): la posición vive SIEMPRE en la BARRA SUPERIOR estilo
    GT7 (src/shared/components/TopBar.tsx: liga → link a /ligas · ⚡ Energy Coins · fecha/hora
    compacta · CHIP DEL USUARIO ACTIVO con el switch de demo (14-oct) · campana de notificaciones con las solicitudes y los no-leídos del dock; respeta los
