@@ -13,6 +13,7 @@ import './sections/learn/learn.css';
 import './sections/calendar/calendar.css';
 import './sections/create/create.css';
 import './shared/components/avatar.css';
+import './shared/components/medals.css';
 import './sections/friends/friends.css';
 import './sections/leagues/leagues.css';
 import './sections/store/store.css';

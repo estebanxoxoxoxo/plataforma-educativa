@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ComponentProps } from 'react';
+import { useReturnFocus, useVeil } from '../../store/lib/sheet';
 import { MtEntryList } from './MtEntryList';
 
 /** El menú ⋮ de una tarjeta de Familia → MyTube (patrón global .shov/.shcard, como el ⋮ de una lista del MyTube del chico):
@@ -10,6 +11,7 @@ export function MtEntriesSheet({ title, note, onClose, ...list }: ComponentProps
   onClose: () => void;
 }) {
   const card = useRef<HTMLDivElement>(null);
+  useReturnFocus(); // al cerrar, el foco vuelve al ⋮ que la abrió (antes quedaba en <body>)
   const live = useRef(onClose);
   useEffect(() => { live.current = onClose; });
   useEffect(() => {
@@ -18,8 +20,9 @@ export function MtEntriesSheet({ title, note, onClose, ...list }: ComponentProps
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, []);
+  const veil = useVeil(onClose);
   return (
-    <div className="shov pz-mt-ov" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="shov pz-mt-ov" onMouseDown={veil}>
       <div className="shcard pz-mt-sheet" ref={card} role="dialog" aria-modal="true" aria-labelledby="pz-mt-sheet-t">
         <div className="pz-mt-sheet-head">
           <h3 className="pz-mt-sheet-t" id="pz-mt-sheet-t">{title}</h3>

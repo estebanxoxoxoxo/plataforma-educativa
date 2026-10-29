@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { actingUserId, api } from '../../api';
 import type { FolderNode } from '../../api/types';
+import { useReturnFocus, useVeil } from '../../sections/store/lib/sheet';
 import { IcFolderWin } from './icons';
 
 const LAST_KEY = 'innerith.lastFolder';
@@ -59,6 +60,8 @@ export function FolderSheet({ open, title, cta, excludeId, allowRoot = false, on
     }
     return out;
   }, [all, excludeId]);
+  const veil = useVeil(onClose, false, open);
+  useReturnFocus(undefined, open); // al cerrar, el foco vuelve a quien la abrió (antes quedaba en <body>)
 
   if (!open) return null;
 
@@ -97,7 +100,7 @@ export function FolderSheet({ open, title, cta, excludeId, allowRoot = false, on
   };
 
   return (
-    <div className="shov show" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="shov show" role="dialog" aria-modal="true" onMouseDown={veil}>
       <div className="shcard">
         {done ? <p className="shdone">✓ {done}</p> : <>
           <h3 className="shtitle">{title}</h3>

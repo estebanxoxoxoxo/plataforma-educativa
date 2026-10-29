@@ -75,7 +75,8 @@ export function SearchPage() {
       if (hit[t]) return;
       api.search(q, t).then(
         (res) => {
-          (hit as Record<Tab, unknown>)[t] = res;
+          // block 'falla' (no se pudo revisar: fail-closed del server) NO se cachea: la próxima búsqueda vuelve a probar.
+          if (res.block?.kind !== 'falla') (hit as Record<Tab, unknown>)[t] = res;
           if (alive) setResults((r) => r && { ...r, [t]: { res, animate: t === active } });
         },
         // backend caído: se muestra el aviso (sin cachear, para reintentar en la próxima búsqueda)
@@ -103,6 +104,9 @@ export function SearchPage() {
   const agendarUsed = () => setParams((p) => { const n = new URLSearchParams(p); n.delete('agendar'); return n; }, { replace: true });
 
   const cur = noContent ? undefined : results?.[tab as Tab];
+  /** Con un chico activo el server puede no haber buscado (SearchResponse.block: crisis = el guion de contención, tema =
+   *  palabra o tema bloqueado, falla = no se pudo revisar): ese texto se muestra TAL CUAL en lugar de resultados o del vacío. */
+  const block = cur?.res?.block;
   const empty = cur?.res && cur.res.items.length === 0;
 
   return (
@@ -116,8 +120,10 @@ export function SearchPage() {
       {isPeople && peopleOn && <PeopleResults q={q} />}
       {isMentors && adult && <MentorsNote />}
       {isMentors && adult && <MentorResults q={q} agendar={agendar} onAgendarUsed={agendarUsed} />}
-      {tab === 'images' && results?.images.res?.related && <RelatedChips chips={results.images.res.related} onPick={(l) => { setInput(l); submit(l); }} />}
-      {!noContent && q && results && (empty
+      {tab === 'images' && !results?.images.res?.block && results?.images.res?.related && <RelatedChips chips={results.images.res.related} onPick={(l) => { setInput(l); submit(l); }} />}
+      {!noContent && q && results && (block
+        ? <p className="sblock">{block.text}</p>
+        : empty
         ? <p className="sempty">{cur?.res?.error
           ? 'No pude buscar ahora mismo. Probemos de nuevo en un ratito.'
           : tab === 'pages'

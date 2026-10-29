@@ -18,14 +18,19 @@
 .ink{position:absolute;bottom:-1px;height:3px;border-radius:1.5px 1.5px 0 0;background:#1F1F1F;transition:left .35s,width .35s}
 
 .wl{display:flex;align-items:center;gap:8px;margin-top:14px;font:13px Arial,sans-serif;color:#0B6B66;background:#E2F5F3;border-radius:4px;padding:8px 12px}
-.wl svg{width:16px;height:16px}
+/* el escudo no se encoge cuando el texto ocupa varios renglones (a 1024 quedaba aplastado a 13,5×16) */
+.wl svg{width:16px;height:16px;flex:none}
 .ichips{display:flex;gap:8px;margin-top:14px;overflow:hidden}
 .ichip{flex:none;display:flex;align-items:center;gap:10px;height:40px;border:1px solid #DADCE0;border-radius:4px;overflow:hidden;padding-right:14px;font:14px Arial,sans-serif;color:#1F1F1F}
+/* el anillo de foco va por dentro: afuera lo recortaba el overflow de .ichips (en todos los anchos) */
+.ichip:focus-visible{outline-offset:-3px}
 .ichip img{width:40px;height:40px;object-fit:cover}
 .ichip:hover{background:#F8F9FA}
 
 .results{margin-top:18px}
 .sempty{margin-top:28px;font:15px Arial,sans-serif;color:#4D5156}
+/* la búsqueda que el server NO hizo (SearchResponse.block): el texto va tal cual, con sus saltos de línea */
+.sblock{margin-top:28px;max-width:600px;padding:14px 16px;border-radius:8px;background:#F1F6FD;border:1px solid #D7E3F4;font:15px/1.55 Arial,sans-serif;color:#202124;white-space:pre-line;overflow-wrap:anywhere}
 
 /* ---- Personas (tanda F2): chicos de Innerith por su nombre de usuario (containers/PeopleResults, cards/PersonCard).
    La tipografía Google del resto de Buscar; el violeta es lo social (el del dock de Mensajes y la zona pinneada del
@@ -113,6 +118,11 @@
   .smn-emo{width:52px;height:52px;border-radius:12px;font-size:28px}
   .smn-side{grid-column:2;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:8px;min-width:0}
   .smn-full{text-align:left}
+  /* el estado de cada contrato: el ícono pegado a su texto (con el texto largo, el ✓ quedaba solo en su renglón) y
+     «Elegir los días» abajo, alineado con el texto */
+  .smn-state{display:grid;grid-template-columns:16px minmax(0,1fr);align-items:start;gap:6px 8px}
+  .smn-state svg{margin-top:2px}
+  .smn-state .smn-btn{grid-column:2;justify-self:start;margin-left:0}
 }
 
 /* ---- la hoja de contratación (sobre el patrón global .shov/.shcard de space.css): plan → agenda (post-compra) → listo.
@@ -187,7 +197,8 @@
 .smn-done-t{margin:4px 0 0;max-width:440px;font-size:17px;font-weight:800;line-height:1.35;color:#1B2238;text-wrap:balance}
 .smn-done-p{margin:0;max-width:440px;font-size:14px;font-weight:600;line-height:1.5;color:#47506B;text-wrap:balance}
 .smn-done .smn-btns{justify-content:center;margin-top:8px}
-@media (max-width:560px){
+/* teléfono: los planes, uno abajo del otro (antes: @media max-width 560; ahora el corte común de base.css) */
+@container app (max-width:639.98px){
   .smn-plans{grid-template-columns:minmax(0,1fr)}
 }
 @media (prefers-reduced-motion: reduce){
@@ -366,6 +377,8 @@
 .yt-actions{display:flex;align-items:center;gap:8px}
 .yt-seg{display:flex;align-items:center;height:36px;border-radius:18px;background:rgba(0,0,0,.05);overflow:hidden}
 .yt-seg .yt-btn{background:none;border-radius:0}
+/* en la píldora de Me gusta / No me gusta (overflow:hidden) el anillo de foco va por dentro: afuera quedaba recortado */
+.yt-seg .yt-btn:focus-visible{outline-offset:-3px}
 .yt-div{width:1px;height:24px;background:rgba(0,0,0,.1)}
 .yt-btn{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 16px 0 12px;border-radius:18px;background:rgba(0,0,0,.05);font:500 14px/36px "Roboto","Arial",sans-serif;color:#0F0F0F;white-space:nowrap}
 .yt-btn:hover,.yt-seg .yt-btn:hover{background:rgba(0,0,0,.1)}
@@ -464,3 +477,89 @@
 .pcover::before{content:"";position:absolute;inset:0;background:rgba(14,18,32,.45)}
 .pcover .big{position:relative;width:68px;height:68px;border-radius:50%;background:rgba(255,255,255,.95);display:grid;place-items:center}
 .pcover .big svg{width:26px;height:26px;margin-left:4px}
+
+/* ════ TABLET Y TELÉFONO (docs/RESPONSIVE.md §2.4, tanda T2): Buscar, lector, reproductor y chat ════
+   Con @container app y los dos cortes de base.css (640 / 1024), no con @media: en escritorio (≥ 1024) no cambia nada.
+   Las áreas táctiles crecen con padding o tamaño mínimo y un margen negativo igual las devuelve: tipografía, dibujo y
+   lugar de cada cosa quedan como estaban (WCAG 2.5.8: nada por debajo de 24 px; 44 en las acciones principales).
+   OJO: .send y «.fin input» también los usa la ventana del dock (friends/ChatWindow): acá van siempre bajo .cin. */
+@container app (max-width:1023.98px){
+  /* Buscar: el campo ocupa todo el alto de la barra (lo tocable medía 18 px); la × y la lupa crecen a 40 y 44 */
+  .sbar input{align-self:stretch}
+  .sbar button[type="button"]{min-width:40px;min-height:40px;margin:0 -9px}
+  .sbar button[type="submit"]{min-width:44px;min-height:44px;margin:0 -10px}
+  /* (el escudo de las notas que no se encoge y el anillo por dentro de .ichip viven arriba, para todos los anchos) */
+  /* las sugerencias de Imágenes se deslizan con el dedo (con overflow:hidden las de la derecha eran inalcanzables) */
+  .ichips{overflow-x:auto;overflow-y:hidden;scrollbar-width:none;overscroll-behavior-x:contain}
+  .ichips::-webkit-scrollbar{display:none}
+  /* lector: «‹ Resultados» con 44 de alto (la barra no crece) */
+  .abar .back{min-height:44px;margin-block:-12px}
+  /* reproductor: «‹ volver» del ancho de su texto y 44 de alto; los controles a 36×36 (el ícono sigue de 22) y la barra
+     de progreso con 24 px para tocarla (antes 4). .prow posicionada: sus botones quedan por encima del área extra. */
+  #v-player .back{justify-self:start;min-height:44px;margin-block:-12.5px}
+  .prow{position:relative}
+  .prow button{min-width:36px;min-height:36px;margin:-7px}
+  /* con 36 de alto su anillo (offset 2 + 3) llegaba al borde del .player (overflow:hidden) y lo recortaba: va por dentro */
+  .prow button:focus-visible{outline-offset:-3px}
+  .vbar::before{content:"";position:absolute;inset:-10px 0}
+  /* la fila de acciones envuelve cuando no entra (a 768 entraba justo; más angosto desbordaba). (El anillo por dentro de
+     Me gusta / No me gusta vive arriba, para todos los anchos.) */
+  .yt-actions{flex-wrap:wrap}
+  /* chat: el campo ocupa el alto de la píldora; la burbuja y sus tarjetas se achican a la columna */
+  .cin input{align-self:stretch}
+  .bub{min-width:0;grid-template-columns:minmax(0,1fr)}
+  .share.it{width:auto;max-width:400px}
+  /* con el dock de Mensajes (chicos con Amigos) el pie del chat le deja lugar, como cualquier vista (.view: 76) */
+  .app:has(.fdk:not([hidden])) #v-chat{padding-bottom:76px}
+}
+@container app (max-width:639.98px){
+  /* Buscar: las solapas en UNA fila que se desliza, sin barra visible. El hueco se achica con el ancho (16 px a 320,
+     ~19 a 375, 26 desde 520): a 320 entran las 4. La raya de abajo pasa a sombra interior y la tinta a bottom:0 (un
+     scroller recorta lo que asoma por debajo de su borde). */
+  .tabs{gap:clamp(16px,5cqi,26px);overflow-x:auto;overflow-y:hidden;scrollbar-width:none;border-bottom:0;padding-bottom:1px;box-shadow:inset 0 -1px 0 #EBEBEB}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{flex:none}
+  .tab:focus-visible{outline-offset:-3px}
+  .ink{bottom:0}
+  /* resultados de páginas y videos: el título hasta en 2 renglones (en uno se cortaba a la mitad) */
+  .g-title{font-size:20px;line-height:26px;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  /* Imágenes: de a 3 (de a 5 quedaban miniaturas de ~58 px con el texto ilegible) */
+  .imgs{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 10px}
+  /* Personas: el botón baja debajo del texto, alineado con él (el nick y el estado se leen enteros) */
+  .ppl-row{flex-wrap:wrap;row-gap:10px}
+  .ppl-txt{flex:1 1 calc(100% - 68px)}
+  .ppl-btn{margin-left:68px}
+  /* Mentores: la acción de cada ficha y las de la hoja, 44 de alto */
+  .smn-card .smn-btn:not(.smn-btn--sm){min-height:44px;border-radius:22px}
+  .smn-sheet .smn-btn{min-height:44px}
+  /* el pie de la hoja: los botones parejos (comparten la fila o, si no entran, van a todo el ancho) */
+  .smn-sheet .smn-btns > .smn-btn{flex:1 1 auto}
+  /* «¿Para quién?»: de a dos, parejos (sueltos quedaban uno por renglón y cada uno de su ancho) */
+  .smn-whos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .smn-who-box{flex:1;min-width:0}
+  /* lector: la ficha de moderación (440) entra en la pantalla; la imagen principal deja de flotar (300 px de 343 dejaban
+     una tira de texto de ~40) y va arriba, a lo ancho */
+  .mcard{width:min(440px,calc(100% - 2 * var(--view-px,16px)))}
+  .wk-thumb{float:none;width:auto;max-width:360px;margin:4px auto 14px}
+  /* reproductor: el canal y Suscribirse pueden bajar de renglón; las acciones, en filas parejas a todo el ancho */
+  .yt-owner{flex-wrap:wrap;row-gap:8px}
+  .yt-name{white-space:normal}
+  .yt-actions{flex:1 1 100%}
+  .yt-actions > .yt-btn{flex:1 1 0;justify-content:center}
+  /* chat: la respuesta usa todo el ancho, la tarjeta de video apila la miniatura arriba y la galería va de a 3 */
+  .m.kid{max-width:85%}
+  .m.ai{max-width:100%}
+  .share.it{flex-direction:column;align-items:stretch;gap:4px;height:auto}
+  .share .vthumb{width:auto}
+  .chat-gallery{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .cin .send{width:44px;height:44px}
+}
+/* tablet (640-1023, también el teléfono acostado): el dock es una BARRA de 49, no el botón redondo de 56+12 del teléfono;
+   con 76 el chat de Ian acostado quedaba con 45-60 px de mensajes. 56 deja la nota libre (7 px de aire). */
+@container app (min-width:640px) and (max-width:1023.98px){
+  .app:has(.fdk:not([hidden])) #v-chat{padding-bottom:56px}
+}
+/* «Guardar» en los resultados de Imágenes aparecía solo con el mouse encima: con el dedo no hay hover */
+@media (hover:none){
+  .gsave{opacity:1}
+}

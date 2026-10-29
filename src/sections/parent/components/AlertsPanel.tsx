@@ -71,7 +71,7 @@ export function AlertsPanel({ member, members, alerts, failed, busy, onSeen, onS
           {shown.map((a) => <AlertRow key={a.id} a={a} who={filter === 'all' ? nameOf(a) : null} busy={busy.includes(a.id)} onSeen={() => onSeen(a.id)} />)}
         </ul>
       )}
-      <p className="pz-foot">En un aviso de crisis ves lo que escribió, textual, para que puedas actuar enseguida. En esta demo los avisos viven en la memoria del servidor: un reinicio los borra.</p>
+      <p className="pz-foot">En un aviso de crisis ves lo que escribió, textual, para que puedas actuar enseguida. Los avisos quedan guardados: un reinicio del servidor no los borra.</p>
     </section>
   );
 }

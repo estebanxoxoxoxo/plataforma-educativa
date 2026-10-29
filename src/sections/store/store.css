@@ -88,7 +88,9 @@
 .st-wv-empty-ic .st-heart-ic{width:32px;height:32px}
 .st-wv-empty-t{margin:0;max-width:420px;font-weight:800;font-size:16px;line-height:1.45;color:#47506B}
 /* aviso flotante (no se pudo guardar un deseo): se ve en las dos vistas */
-.st-toast{position:fixed;left:50%;bottom:24px;z-index:70;transform:translateX(-50%);max-width:min(92vw,460px);padding:11px 16px;border-radius:10px;background:#1B2238;color:#fff;font-weight:800;font-size:14px;box-shadow:0 16px 36px -14px rgba(27,34,56,.55);animation:popin .25s ease both}
+/* El aviso flotante se centra SIN transform (en TODOS los anchos): la animación popin (translateY → none) pisaba el
+   translateX(-50%) y el aviso quedaba corrido a la derecha del centro (a 1280: izq 640 / der 243; en el teléfono, cortado). */
+.st-toast{position:fixed;left:0;right:0;bottom:24px;z-index:70;width:fit-content;max-width:min(calc(100% - 32px),460px);margin-inline:auto;padding:11px 16px;border-radius:10px;background:#1B2238;color:#fff;font-weight:800;font-size:14px;box-shadow:0 16px 36px -14px rgba(27,34,56,.55);animation:popin .25s ease both}
 
 /* ---- botones de la sección ---- */
 .st-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:10px 18px;border-radius:9px;background:var(--st-green);color:#fff;font-weight:800;font-size:15px;line-height:1.2;text-align:center;box-shadow:0 3px 0 var(--st-green-d);cursor:pointer;transition:background .2s,box-shadow .12s,transform .12s}
@@ -224,11 +226,12 @@
 .st-sk-l2{height:16px;width:82%}
 .st-sk-btn{height:42px;border-radius:9px;margin-top:14px}
 
-/* el hero se apila (billetera arriba, lista de deseos abajo): la lista ocupa todo el ancho */
-@media (max-width:980px){
+/* el hero se apila (billetera arriba, lista de deseos abajo): la lista ocupa todo el ancho. (Eran @media: con @container
+   app miran el ancho de la app, como el resto —con ?stage, el escenario—; fuera del escenario es el mismo ancho.) */
+@container app (max-width:980px){
   .st-hero-side{max-width:none;justify-items:start}
 }
-@media (max-width:820px){
+@container app (max-width:820px){
   .st-hero{padding:18px 18px 20px}
   .st-bal-num{font-size:50px}
   .st-bal-bolt{font-size:36px}
@@ -239,4 +242,75 @@
   .st-card,.st-emoji,.st-prog-bar i,.st-heart,.st-pill,.st-wart .av3{transition:none}
   .st-card:hover,.st-card:hover .st-emoji,.st-card:hover .st-wart .av3,.st-heart:hover,.st-heart:active{transform:none}
   .st-heart.is-pop .st-heart-ic{animation:none}
+}
+
+/* ---- U5 (docs/USUARIOS.md §12): el premio de la semana de la FAMILIA, arriba de la grilla de premios (no adentro: no se
+   compra con Energy Coins). Dorado de Ligas, sin precio ni Canjear ni corazón; lleva a la solapa Familia de Ligas. Y la marca
+   del canje que llegó por la liga ("Lo ganaste en la liga de la familia", en lugar del precio). ---- */
+.stfp{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:center;min-width:0;padding:14px 16px;border-radius:12px;border:1px solid #F2D9A8;background:linear-gradient(135deg,#FFF6DE 0%,#fff 78%)}
+.stfp-emo{width:52px;height:52px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:28px;line-height:1;box-shadow:0 0 0 2px #F2D9A8}
+.stfp-main{min-width:0;display:grid;gap:2px}
+.stfp-main p{margin:0}
+.stfp-k{font-size:12px;font-weight:800;color:var(--st-gold-ink);text-transform:uppercase;letter-spacing:.05em}
+.stfp-t{font-family:var(--display);font-weight:800;font-size:19px;line-height:1.2;color:#1B2238;overflow-wrap:anywhere}
+.stfp-c{font-size:13px;font-weight:700;line-height:1.4;color:#47506B}
+.stfp-go{display:inline-flex;align-items:center;gap:6px;width:max-content;max-width:100%;margin-top:4px;font-size:13.5px;font-weight:800;color:#2843A8}
+.stfp-go svg{flex:none;width:15px;height:15px;transition:transform .2s}
+.stfp-go:hover{text-decoration:underline}
+.stfp-go:hover svg{transform:translateX(3px)}
+.stfp-orig{font-size:12.5px;font-weight:800;line-height:1.35;color:var(--st-gold-ink)}
+@media (prefers-reduced-motion: reduce){
+  .stfp-go svg{transition:none}
+  .stfp-go:hover svg{transform:none}
+}
+
+/* ════ Tablet y teléfono (docs/RESPONSIVE.md §2.4, tanda T4) ════
+   Todo con @container app y los cortes de base.css (640 / 1024): en el escritorio (≥ 1024) no cambia nada. */
+@container app (max-width:1023.98px){
+  /* (el aviso flotante centrado sin transform vive arriba, para todos los anchos) */
+  /* El premio de la familia: la columna de texto era una pista auto que crecía con el link (width:max-content) y sacaba
+     la tarjeta de la columna (+56 px a 375: la vista scrolleaba de costado). Con minmax(0,1fr) el link se parte. Y el link,
+     de 19 px de alto, pasa a 32 (target táctil). */
+  .stfp-main{grid-template-columns:minmax(0,1fr)}
+  .stfp-go{min-height:32px}
+}
+
+/* tablet (640-1023): con el dock de un chico, el aviso va por encima de la barra «Mensajes» (49 px abajo a la derecha; el
+   final del texto quedaba debajo, QA-T4 H3: el dock va en z 55 a nivel raíz y el aviso vive en el contexto de .view) */
+@container app (min-width:640px) and (max-width:1023.98px){
+  .app:has(.fdk:not([hidden])) .st-toast{bottom:65px}
+}
+
+@container app (max-width:639.98px){
+  /* el aviso, por encima de la barra inferior (a 24 px del borde caía encima de ella)… */
+  .st-toast{bottom:calc(var(--bnav-h, 0px) + 16px)}
+  /* …y, si está el botón redondo del dock (tanda T1: 56 px, 12 arriba de la barra), por encima de él: el dock va en z 55
+     a nivel raíz y el aviso vive en el contexto de apilamiento de .view, así que el botón le tapaba el final del texto */
+  .app:has(.fdk:not([hidden]) .fdk-list:not(.open)) .st-toast{bottom:calc(var(--bnav-h, 0px) + 80px)}
+
+  /* Billetera: los tres accesos (deseos, canjes, movimientos) como botones de 44 a todo el ancho; los que no tienen color
+     propio (canjes sin pendientes, movimientos) ganan fondo y borde: antes se leían como texto suelto. */
+  .st-hero{padding:18px 16px 20px;gap:16px}
+  .st-bal{flex-wrap:wrap}
+  .st-hero-side{gap:8px;justify-items:stretch}
+  .st-pill{min-height:44px;padding:10px 14px;border-radius:12px;font-size:14px}
+  .st-pill:not(.st-pill--wish,.st-pill--pend){background:rgba(255,255,255,.8);border:1px solid #EFD9AE}
+  .st-sec-hint{margin-left:0}
+  /* Tus canjes / Tus movimientos: el nombre hasta en dos renglones (en uno, "1 hora de bici con papá…" quedaba cortado) */
+  .st-row-main b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+
+  /* Premios, deseos y ropa: tarjeta HORIZONTAL (arte de 96 a la izquierda; de quién, nombre, detalle y precio a la derecha;
+     el botón abajo, a todo el ancho y de 44). La misma información en ~190 px de alto en lugar de ~300: la Tienda de Ian
+     medía 5.700 px de scroll a 375. El corazón sigue sobre el arte; "Agotado" baja al pie del arte para no pisarlo. */
+  .st-card{grid-template-columns:96px minmax(0,1fr);grid-template-rows:auto 1fr;column-gap:12px;row-gap:10px}
+  .st-art{grid-column:1;grid-row:1 / span 2;height:auto;min-height:96px}
+  .st-emoji{font-size:46px}
+  .st-badge-out{top:auto;bottom:6px;left:6px;padding:2px 7px;font-size:10px}
+  .st-info{grid-column:2;grid-row:1;padding:2px 0 0}
+  .st-meta{grid-column:2;grid-row:2;align-self:end;flex-wrap:wrap;justify-content:flex-start;gap:4px 10px;padding:0}
+  .st-card > .st-btn,.st-card > .st-prog,.st-wbtns{grid-column:1 / -1}
+  .st-card .st-btn{min-height:44px}
+  .st-card--sk .st-sk-art{grid-column:1;grid-row:1 / span 2;height:96px}
+  .st-card--sk .st-sk-l1,.st-card--sk .st-sk-l2{grid-column:2}
+  .st-card--sk .st-sk-btn{grid-column:1 / -1;margin-top:0}
 }

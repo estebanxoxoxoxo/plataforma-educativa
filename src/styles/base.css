@@ -7,9 +7,17 @@
   /* Columna de contenido de TODAS las secciones (la aplica .view en shell.css): ancho máximo y aire lateral mínimo.
      Medida en el Feed (/), que es la referencia. */
   --content-w:1040px; --view-px:40px;
+  /* MODOS DEL SHELL (docs/RESPONSIVE.md §2.1): se deciden con @container app, NO con @media (el contenedor es #root; en
+     ?stage es .stage, que mide 1280 y sigue siendo escritorio). SOLO DOS CORTES, 640 y 1024:
+       · teléfono  < 640  → @container app (max-width:639.98px)  barra inferior + cajón
+       · tablet  640–1023 → @container app (min-width:640px) and (max-width:1023.98px)  rail de íconos de 80
+       · escritorio ≥ 1024 → sin regla: la barra de 240 de siempre
+     Por modo, .app (shell.css) sobrescribe --view-px (40 / 24 / 16) y define --side-w (240 / 80 / 0) y --bnav-h (alto de la
+     barra inferior: 0 / 0 / 64 + área segura). Las secciones responden con esos mismos dos cortes y no suman otros. */
 }
 *{box-sizing:border-box}
 html,body,#root{height:100%;margin:0}
+#root{container:app / inline-size}
 body{background:var(--bg);color:var(--ink);font-family:var(--body)}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;text-align:inherit}
 button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--blue);outline-offset:2px}

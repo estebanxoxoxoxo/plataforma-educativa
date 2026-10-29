@@ -4,12 +4,15 @@
 // beneficiario no tenga esa hora ocupada); acá solo se arman las hojas y se escriben las cosas. Sin UI.
 // weekday del contrato: 0 = lunes … 6 = domingo. Fechas en hora DE PARED de la ZONA HORARIA DE LA FAMILIA (tanda B2, la
 // misma cuenta que el Calendario —sections/calendar/lib/calendar.ts, tanda B1— y que el server, que ancla las clases en esa
-// zona): "miércoles 17:00" es el reloj de la familia aunque el navegador esté en otra parte del mundo. Sin zona (null =
-// Automática, el default) o con una que este navegador no conoce, la hora LOCAL del navegador, como antes.
+// zona): "miércoles 17:00" es el reloj de la familia aunque el navegador esté en otra parte del mundo. FS-BASE-B (hallazgo
+// mentors.ts:49): en "Automática" (tz null de la familia) los llamadores ya pasan la zona del SERVER (useCycle().tz = `tz ??
+// serverTz`, sections/parent/lib/cycle.ts), que es donde el server ancla las clases; null llega solo si el server no mandó su
+// zona, y entonces (o con una zona que este navegador no conoce) rige la hora LOCAL del navegador, como antes.
 import type { MentorPlan, TakenSlot, Teacher, TeacherSlot } from '../../api/types';
 import { isValidTimeZone, wallClock, wallDate } from './zonedClock';
 
-/** Zona IANA de la familia (`tz` de GET /api/schedules: la que eligió el adulto en Familia → Límites); null = la del navegador. */
+/** Zona IANA con la que se lee la pared: la de la familia o, en Automática, la del server (useCycle().tz); null = la del
+ *  navegador (solo si el server no mandó la suya). */
 export type Tz = string | null;
 
 export const DAYS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'] as const;

@@ -8,7 +8,7 @@ import { CalendarPage } from './sections/calendar/containers/CalendarPage';
 import { CreatePage } from './sections/create/containers/CreatePage';
 import { MyTubePage } from './sections/mytube/containers/MyTubePage';
 import { AfterDayPage } from './sections/afterday/containers/AfterDayPage';
-import { ChatDock } from './sections/friends/containers/ChatDock';
+import { ChatDock, useDockFullScreen } from './sections/friends/containers/ChatDock';
 import { LeaguesPage } from './sections/leagues/containers/LeaguesPage';
 import { FeedPage } from './sections/home/containers/FeedPage';
 import { ChannelView } from './sections/mytube/containers/ChannelView';
@@ -19,6 +19,7 @@ import { StorePage } from './sections/store/containers/StorePage';
 import { FeatureGate } from './sections/parent/containers/FeatureGate';
 import { ParentPage } from './sections/parent/containers/ParentPage';
 import { BgAudioHost } from './shared/audio/BgAudioHost';
+import { BottomNav, NavScrim, useNavDrawer } from './shared/components/BottomNav';
 import { Sidebar } from './shared/components/Sidebar';
 import { TopBar } from './shared/components/TopBar';
 import { UserProvider, useUser } from './hooks/user';
@@ -39,16 +40,26 @@ function OldParent() {
 
 function Layout() {
   const user = useUser();
+  // Teléfono (<640 de contenedor, RESPONSIVE.md §2.2): la barra lateral es un cajón que abre «Menú» de la barra inferior.
+  // Abierto: .app lleva is-nav-open y .main y la barra inferior quedan inert (la barra lo pone BottomNav). Desde 640 la
+  // barra inferior y el velo no se dibujan.
+  const drawer = useNavDrawer();
+  // Teléfono, con el dock de Mensajes a PANTALLA COMPLETA (la lista o una conversación): lo de atrás queda tapado, así que
+  // .main, la barra inferior y la lateral van inert y aria-hidden mientras dure (QA-T1 H3: el foco y los lectores de
+  // pantalla caían detrás). El dock lo publica (ChatDock.tsx, useDockFullScreen) y no pasa con el cajón abierto.
+  const dockFull = useDockFullScreen() && !drawer.open;
   return (
-    <div className="app">
-      <Sidebar user={user} />
+    <div className={`app${drawer.open ? ' is-nav-open' : ''}`}>
+      <Sidebar user={user} covered={dockFull} />
+      <NavScrim drawer={drawer} />
       {/* FeatureGate: las secciones que el padre apagó (Tienda, Ligas, Amigos, Chat) no se abren ni por URL — al chico:
           los candados son del dependiente; con un adulto activo pasa todo (docs/USUARIOS.md §4) */}
-      <main className="main">
+      <main className="main" inert={drawer.open || dockFull} aria-hidden={dockFull || undefined}>
         {/* Barra superior GT7 (pedido 12-oct): liga (link a /ligas) · ⚡ · reloj · campana */}
         <TopBar />
         <div className="main-body"><FeatureGate><Outlet /></FeatureGate></div>
       </main>
+      <BottomNav user={user} drawer={drawer} covered={dockFull} />
       {/* iframe oculto del audio de fondo: vive acá para sobrevivir el cambio de sección */}
       <BgAudioHost />
       <ChatDock />

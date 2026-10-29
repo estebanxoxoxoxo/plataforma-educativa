@@ -3,7 +3,7 @@ import type { MarketItem } from '../../../api/types';
 import { accessoryArticle, accessoryById, putOnLabel, yoursLabel } from '../../../shared/components/Avatar';
 import { MyAvatar } from '../../../shared/components/ProfileCard';
 import { fmtEc, tintFor } from '../lib/format';
-import { useSheetKeys } from '../lib/sheet';
+import { useSheetKeys, useVeil } from '../lib/sheet';
 
 export type BuyState =
   | { item: MarketItem; phase: 'confirm' | 'busy' }
@@ -27,6 +27,7 @@ export function BuySheet({ s, ec, me, canWear, onConfirm, onWear, onClose }: {
   const card = useRef<HTMLDivElement>(null);
   const busy = s.phase === 'busy';
   useSheetKeys(card, s.phase, busy, onClose);
+  const veil = useVeil(onClose, busy);
   const { item } = s;
   const acc = accessoryById(item.accessoryId);
   const name = acc ? accessoryArticle(acc) : item.title.toLowerCase();
@@ -43,7 +44,7 @@ export function BuySheet({ s, ec, me, canWear, onConfirm, onWear, onClose }: {
   const yours = `¡${acc ? yoursLabel(acc) : 'Es tuya'}!`;
 
   return (
-    <div className="shov st-ov" onClick={(e) => { if (e.target === e.currentTarget && !busy) onClose(); }}>
+    <div className="shov st-ov" onMouseDown={veil}>
       <div className="shcard st-sheet" ref={card} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="st-buy-t" aria-describedby="st-buy-d" data-sheet="ropa">
         {s.phase === 'done' ? (
           <div className="st-done" role="status">

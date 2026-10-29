@@ -7,7 +7,7 @@ import type { RowStatus } from '../cards/FeatureRow';
 import { CycleRangeCard } from '../components/CycleRangeCard';
 import { PanelState } from '../components/PanelState';
 import { parentCall, rejectedReason } from '../lib/adultGate';
-import { adoptCycle, onMemberCycle } from '../lib/cycle';
+import { adoptCycle, effectiveTz, onMemberCycle } from '../lib/cycle';
 import { MAX_RANGES, type RangeDraft, coversNow, freeSections, isDirty, newRange, toDrafts, toRequest, toggleSection } from '../lib/cycleDraft';
 import { CYCLE_SECTIONS } from '../lib/cycleSections';
 import { listEs } from '../lib/format';
@@ -37,11 +37,11 @@ export function CyclePanel({ kid, member }: { kid: string; member: string }) {
   const live = useRef({ saved, drafts });
   live.current = { saved, drafts };
 
-  const take = useCallback((r: Pick<CycleResponse, 'cycle' | 'demoRange' | 'serverNow' | 'tz'>, sentAt: number, gotAt: number) => {
+  const take = useCallback((r: Pick<CycleResponse, 'cycle' | 'demoRange' | 'serverNow' | 'tz' | 'serverTz'>, sentAt: number, gotAt: number) => {
     setSaved(r.cycle.ranges);
     setDrafts(toDrafts(r.cycle.ranges));
     setDemoRange(r.demoRange);
-    setClock({ offset: r.serverNow - (sentAt + gotAt) / 2, tz: r.tz });
+    setClock({ offset: r.serverNow - (sentAt + gotAt) / 2, tz: effectiveTz(r.tz, r.serverTz) }); // FS-BASE-B: Automática = la del server
   }, []);
 
   const load = useCallback(async () => {
@@ -145,7 +145,7 @@ export function CyclePanel({ kid, member }: { kid: string; member: string }) {
           <p className={`pz-cy-msg${status?.kind === 'error' ? ' is-err' : ''}`} role={status?.kind === 'error' ? 'alert' : 'status'}>
             {status?.text ?? (dirty ? 'Hay cambios sin guardar.' : '')}
           </p>
-          <p className="pz-foot">Para la demo: con al menos un rango, el selector «Ciclo (demo)» de la barra lateral elige en qué rango está {kid} (cada vez que {kid} recarga la página vuelve el reloj real).</p>
+          <p className="pz-foot">Para la demo: con al menos un rango, el selector «Ciclo (demo)» del menú de la app elige en qué rango está {kid} (cada vez que {kid} recarga la página vuelve el reloj real).</p>
         </>
       )}
     </section>

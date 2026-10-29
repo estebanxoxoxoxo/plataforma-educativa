@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { IcListMusic, IcTrash } from '../../../shared/components/icons';
+import { useReturnFocus, useVeil } from '../../store/lib/sheet';
 import { IcMtPencil } from './MtIcons';
 
 /** Esc cierra la hoja (los overlays del POC se cerraban tocando afuera). */
@@ -19,10 +20,12 @@ export function NameSheet({ title = 'Lista nueva', cta = 'Crear', initial = '', 
   title?: string; cta?: string; initial?: string; busy?: boolean; onSubmit: (name: string) => void; onClose: () => void;
 }) {
   const [name, setName] = useState(initial);
+  useReturnFocus(); // al cerrar, el foco vuelve a quien la abrió (antes quedaba en <body>)
   useEsc(onClose);
+  const veil = useVeil(onClose);
   const ok = !!name.trim() && !busy;
   return (
-    <div className="shov mt-ov" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="shov mt-ov" onMouseDown={veil}>
       <div className="shcard mt-sheet" role="dialog" aria-modal="true" aria-labelledby="mt-name-t">
         <h3 className="shtitle" id="mt-name-t">{title}</h3>
         <input className="mt-input" autoFocus value={name} maxLength={60} placeholder="Nombre (ej. Para la tarde)"
@@ -38,9 +41,11 @@ export function NameSheet({ title = 'Lista nueva', cta = 'Crear', initial = '', 
 
 /** El menú ⋮ de una lista (ListActionSheet del POC): Renombrar o Borrar lista. */
 export function ListActionSheet({ name, onRename, onDelete, onClose }: { name: string; onRename: () => void; onDelete: () => void; onClose: () => void }) {
+  useReturnFocus();
   useEsc(onClose);
+  const veil = useVeil(onClose);
   return (
-    <div className="shov mt-ov" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="shov mt-ov" onMouseDown={veil}>
       <div className="shcard mt-sheet" role="dialog" aria-modal="true" aria-labelledby="mt-acts-t">
         <h3 className="mt-sheet-h" id="mt-acts-t"><IcListMusic /><span>{name}</span></h3>
         <div className="mt-sheet-list">

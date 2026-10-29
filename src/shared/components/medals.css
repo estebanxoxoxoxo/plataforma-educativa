@@ -1,0 +1,91 @@
+/* Medallas de la plataforma (U5-D; spec docs/U5-LIGA-FAMILIAR-Y-MEDALLAS.md §5.5) — prefijo: mdl- (grepeado: libre).
+   Dos piezas: el chip "🏅 N" de la tarjeta del perfil (ProfileCard, pie de la barra) y la hoja "Tus medallas" (MedalsSheet,
+   sobre el patrón global .shov/.shcard de space.css). Se importa en main.tsx DESPUÉS de avatar.css. Nada de tocar shell.css:
+   lo que la tarjeta necesita por haber dejado de ser UN botón vive acá. */
+
+/* ---- la tarjeta del perfil: el div .profile de shell.css (borde, padding y densidad: siguen siendo de allá) con dos
+   botones hermanos adentro: el del avatar (idav-prof, el de siempre) y el chip de medallas. El botón del avatar se estira a
+   TODA la tarjeta con un ::after (se toca en cualquier lado, como cuando la tarjeta era el botón) y el chip y el avatar
+   quedan por encima (el title de la medallita de liga se sigue viendo). El hover y el anillo de foco pintan la tarjeta
+   entera, como antes; con el puntero sobre el chip, solo el chip. ---- */
+.mdl-prof{position:relative;gap:8px;transition:background-color .2s ease,border-color .2s ease}
+.mdl-prof:has(.mdl-me:hover){background:#F6F7FB;border-color:#D3D9E6}
+.mdl-prof:has(.mdl-me:focus-visible){outline:3px solid var(--blue);outline-offset:2px}
+.mdl-me{flex:1 1 0%;min-width:0;display:flex;align-items:center;gap:12px;border-radius:12px}
+.mdl-me:hover{background:transparent}
+.mdl-me:focus-visible{outline:none}
+.mdl-me::after{content:"";position:absolute;inset:-2px;border-radius:14px}
+.mdl-me .idav-pav{z-index:1}
+/* lo que shell.css le daba al hijo directo de la tarjeta (.profile > div): ahora el nombre vive dentro del botón */
+.mdl-me > div{min-width:0}
+
+/* el chip: la cantidad de medallas ganadas (nunca un total ni un "0": sin medallas el chip no existe) + un puntito si hay
+   alguna sin ver. Ojo: nada de <b>/<small> adentro (shell.css estiliza .profile b y .profile small). */
+.mdl-chip{position:relative;z-index:1;flex:none;display:inline-flex;align-items:center;gap:4px;height:30px;padding:0 9px 0 7px;border-radius:999px;
+  border:1.5px solid #F2D9A8;background:#FFF8E6;color:#6B4600;font-family:var(--display);font-weight:800;font-size:14px;line-height:1;
+  font-variant-numeric:tabular-nums;white-space:nowrap;cursor:pointer;transition:background-color .2s ease,border-color .2s ease}
+.mdl-chip:hover{background:#FFEFC7;border-color:#E8B94A}
+.mdl-chip-em{font-size:15px;line-height:1}
+.mdl-chip-n{transform:translateY(1px)}
+.mdl-dot{position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#E5487A;box-shadow:0 0 0 2px #fff}
+/* misma densidad que la barra (shell.css: @container side) */
+@container side (max-height:783px){ .mdl-chip{height:28px;font-size:13.5px} }
+@container side (max-height:677px){ .mdl-chip{height:26px;padding:0 8px 0 6px} }
+/* tablet (rail de 80 px, mismos cortes que shell.css): el nombre queda oculto visualmente (como el .profile > div de allá)
+   y el chip va DEBAJO del avatar, que en 56 px no entran juntos */
+@container app (min-width:640px) and (max-width:1023.98px){
+  .mdl-prof{flex-direction:column;gap:5px}
+  .mdl-me{flex:none;justify-content:center}
+  .mdl-me > div{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
+  .mdl-chip{height:24px;gap:2px;padding:0 6px 0 5px;font-size:12.5px}
+  .mdl-chip-em{font-size:13px}
+}
+
+/* ---- la hoja "Tus medallas": la pila "como un diploma" (audio 1016) ---- */
+.mdl-ov{animation:fadein .2s both}
+.shcard.mdl-sheet{width:min(660px,94vw);gap:16px;padding:22px 22px 20px;animation:mdl-in .24s ease both}
+.mdl-sheet:focus{outline:none}
+.mdl-top{display:flex;align-items:flex-start;gap:16px}
+.mdl-head{flex:1;min-width:0}
+.mdl-title{margin:0;font-family:var(--display);font-weight:800;font-size:24px;line-height:1.1;color:#1B2238}
+.mdl-sub{margin:2px 0 0;font-size:14px;font-weight:700;color:#6A7390}
+.mdl-x{flex:none;width:34px;height:34px;border-radius:7px;display:grid;place-items:center;color:#6A7390;transition:background .2s,color .2s}
+.mdl-x:hover{background:#F1F3F8;color:#47506B}
+.mdl-x svg{width:18px;height:18px}
+.mdl-note{margin:0;font-size:14px;font-weight:700;color:#6A7390}
+.mdl-link{padding:0;color:#2843A8;font-weight:800;text-decoration:underline;cursor:pointer}
+.mdl-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+
+.mdl-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:12px}
+/* cada medalla: una tarjetita crema con el disco dorado y su cinta, el título y lo que hiciste */
+.mdl-card{position:relative;min-width:0;display:grid;justify-items:center;align-content:start;gap:4px;padding:16px 12px 14px;border-radius:14px;
+  border:1.5px solid #F0E3C2;background:linear-gradient(180deg,#FFFBF0 0,#FFFFFF 72%);text-align:center}
+.mdl-card.is-new{border-color:#F4B740;box-shadow:0 0 0 3px rgba(244,183,64,.22)}
+/* «Nueva»: arriba del disco (z 1; a 375/414 lo pisaba) y con el rosa más hondo de la familia (#E5487A daba 3,79:1 con el
+   blanco; #C93063 da 5,1:1, AA para letra chica) */
+.mdl-new{position:absolute;z-index:2;top:8px;left:8px;padding:2px 8px;border-radius:999px;background:#C93063;color:#fff;font-size:10.5px;font-weight:800;line-height:1.4;letter-spacing:.06em;text-transform:uppercase}
+.mdl-medal{position:relative;display:grid;justify-items:center;width:72px;height:80px;margin-bottom:2px}
+/* la cinta: dos tiras con la punta en V que asoman por debajo del disco */
+.mdl-medal::before,.mdl-medal::after{content:"";position:absolute;bottom:0;width:17px;height:34px;transform-origin:50% 0;clip-path:polygon(0 0,100% 0,100% 100%,50% 78%,0 100%)}
+.mdl-medal::before{left:19px;background:#3A5BD9;transform:rotate(16deg)}
+.mdl-medal::after{right:19px;background:#2843A8;transform:rotate(-16deg)}
+.mdl-disc{position:relative;z-index:1;width:62px;height:62px;border-radius:50%;display:grid;place-items:center;font-size:29px;line-height:1;
+  background:radial-gradient(circle at 34% 28%,#FFF8E0 0,#FCE6A6 52%,#F0C25A 100%);
+  box-shadow:0 0 0 3px #fff,0 0 0 5px #E8B94A,0 7px 14px -6px rgba(127,83,0,.5)}
+.mdl-t{margin:4px 0 0;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px 6px;font-family:var(--display);font-weight:800;font-size:16.5px;line-height:1.15;color:#1B2238}
+.mdl-times{display:inline-block;padding:1px 7px;border-radius:999px;background:#FFF1D6;border:1px solid #F2D9A8;color:#7F5300;font-size:12.5px;line-height:1.35;font-variant-numeric:tabular-nums}
+.mdl-tx{margin:0;font-size:13px;font-weight:600;line-height:1.4;color:#5A6380}
+/* «Desde el…»: un gris azulado más claro que el texto (#5A6380) pero AA (#8A93AD daba 2,96:1 sobre la crema; #646D8A, 5:1) */
+.mdl-since{margin:4px 0 0;font-size:11.5px;font-weight:800;letter-spacing:.03em;color:#646D8A}
+
+@keyframes mdl-in{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){
+  .mdl-ov,.shcard.mdl-sheet{animation:none}
+}
+/* angosto (hoja a 94vw): dos columnas y menos aire */
+@container app (max-width:639.98px){
+  .shcard.mdl-sheet{padding:18px 14px 16px;gap:14px}
+  .mdl-grid{grid-template-columns:repeat(auto-fill,minmax(138px,1fr));gap:10px}
+  .mdl-card{padding:14px 8px 12px}
+  .mdl-title{font-size:22px}
+}

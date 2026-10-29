@@ -41,6 +41,14 @@
 .lpanels{display:grid;grid-template-columns:minmax(0,1fr);margin-top:14px}
 .lpanel{grid-area:1/1;min-width:0;visibility:hidden;opacity:0}
 .lpanel.on{visibility:visible;opacity:1;transition:opacity .22s ease}
+/* U5 + T4: la de la FAMILIA (con "La semana pasada", el premio y su tabla) es la más alta —en el teléfono, ~200 px más que
+   Mi liga—, así que inactiva sale de la pila: si no, Mi liga, Tu zona y País quedaban con un hueco vacío abajo. Las otras
+   tres siguen apiladas (miden casi lo mismo: cambiar entre ellas no mueve el scroll). SOLO < 1024 (QA-T4 H2: global
+   cambiaba el escritorio —con premio e historial, −35 px a 1280— y la regla de la línea responsive es "escritorio ni un
+   píxel"; en el escritorio el hueco de U5 sigue como estaba: mejorarlo ahí es decisión aparte). */
+@container app (max-width:1023.98px){
+  .lpanel:not(.on):has(.lgf){display:none}
+}
 .lcap{margin:0 0 10px 2px;font-size:13px;font-weight:800;color:#8A93AD;text-transform:uppercase;letter-spacing:.05em}
 @media (prefers-reduced-motion: reduce){
   .lpanel.on,.ltink{transition:none}
@@ -65,15 +73,162 @@
 .rank.full{margin-bottom:4px}
 
 /* ---- U4 · D2: la tabla de la semana de la FAMILIA (solapa Familia). El patrón de .rank.full (puesto, avatar, nombre,
-   Vos, XP) + la racha al lado de la XP con la chispa de la racha sin presión del Feed (el mismo dorado de .hf-streak).
+   Vos, XP). U5: la racha de U4 salió de la fila (sigue en el Feed); en su lugar, el reto de constancia (abajo).
    Sin ancho propio: la columna es la de .view. ---- */
-.lgf-rk .lgf-streak{flex:none;display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:800;color:#6A7390;font-variant-numeric:tabular-nums;white-space:nowrap}
-.lgf-rk .lgf-streak svg{width:12px;height:12px;color:#E39710}
 .lgf-rk .xp{flex:none;min-width:76px;text-align:right}
 .lgf-foot{margin:10px 0 0 2px;font-size:13px;font-weight:700;line-height:1.45;color:#6A7390}
-@media (max-width:480px){
+.lgf-foot--xp{margin-top:4px}
+/* (T4: era @media max-width:480; pasa al corte de teléfono del shell, @container app, como pide RESPONSIVE.md §2.4) */
+@container app (max-width:639.98px){
   .lgf-rk{gap:8px;padding:0 8px}
   .lgf-rk .xp{min-width:0}
+}
+
+/* ---- U5 (docs/USUARIOS.md §12): la fila de la familia en DOS líneas — nombre (+ copa chiquita de la semana pasada + Vos)
+   arriba y, abajo, el reto "N de 7 días" con sus puntitos y el flechita de "superó su semana" (solo cuando se logró).
+   La racha de U4 ya no se pinta acá. Título chico arriba de la tabla. ---- */
+.lgf-t{margin:18px 0 8px 2px;font-family:var(--display);font-weight:800;font-size:17px;line-height:1.2;color:#1B2238}
+.lgf .lgf-rk{height:auto;min-height:52px;padding-top:6px;padding-bottom:6px}
+.lgf .lgf-rk.me{height:auto;min-height:56px}
+.lgf-who{flex:1;min-width:0;display:grid;gap:3px}
+.lgf-who .nm{flex:none;display:flex;align-items:center;min-width:0}
+.lgf-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lgf-cup{flex:none;margin-left:6px;font-size:14px;line-height:1}
+.lgf-meta{display:flex;align-items:center;flex-wrap:wrap;gap:4px 12px;min-width:0;font-size:12.5px;font-weight:800;color:#6A7390}
+.lgf-up{display:inline-flex;align-items:center;gap:4px;padding:1px 8px 1px 6px;border-radius:999px;background:#E3F6EA;color:#0F7F40;white-space:nowrap}
+.lgf-up-prize{margin-left:2px;font-size:13px;line-height:1}
+
+/* los puntitos del reto: llenos de izquierda a derecha, sin letras de día (no se ve qué día faltó) */
+.lgd{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.lgd-dots{display:inline-flex;gap:3px}
+.lgd-dots i{width:8px;height:8px;border-radius:50%;background:#E3E7F0}
+.lgd-dots i.on{background:#F2A81D;box-shadow:inset 0 0 0 1px rgba(127,83,0,.18)}
+
+/* arriba de la tabla: la semana pasada + el premio, de a dos si entran (si no, uno abajo del otro) */
+.lgw-top{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:12px;align-items:start}
+
+/* ---- la semana pasada (y las anteriores, plegadas): copa, marcas alcanzables, total y premio. Sin puestos. ---- */
+.lgw{min-width:0;background:#fff;border:1px solid #E6E9F1;border-radius:12px;padding:14px 16px}
+.lgw-k{margin:0 0 4px;font-size:12px;font-weight:800;color:#8A93AD;text-transform:uppercase;letter-spacing:.05em}
+.lgw-cup{margin:0;font-family:var(--display);font-weight:800;font-size:19px;line-height:1.2;color:#1B2238;overflow-wrap:anywhere}
+.lgw-marks{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.lgw-marks li{padding:3px 10px;border-radius:999px;background:#F3F5FA;font-size:12.5px;font-weight:700;line-height:1.35;color:#47506B}
+.lgw-marks b{color:#1B2238;font-weight:800}
+.lgw-total{margin:8px 0 0;font-size:13px;font-weight:700;color:#47506B}
+.lgw-prize{margin:4px 0 0;font-size:13px;font-weight:800;line-height:1.4;color:#7F5300;overflow-wrap:anywhere}
+.lgw-more{margin-top:10px;padding-top:8px;border-top:1px solid #F0F2F7}
+.lgw-more summary{cursor:pointer;width:max-content;max-width:100%;font-size:13px;font-weight:800;color:#2843A8}
+.lgw-more summary:hover{text-decoration:underline}
+.lgw-older{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}
+.lgw-older li{padding:8px 10px;border-radius:9px;background:#F8F9FC}
+.lgw-older .lgw-cup{font-size:15px}
+.lgw-older .lgw-marks li{background:#fff}
+.lgw-when{margin:0 0 2px;font-size:11.5px;font-weight:800;color:#8A93AD;text-transform:uppercase;letter-spacing:.05em}
+
+/* ---- el premio de la semana (lo pone el adulto; lo ven todos). Dorado de Ligas: no es un ítem de la Tienda. ---- */
+.lgp{min-width:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:start;padding:14px 16px;border-radius:12px;border:1px solid #F2D9A8;background:linear-gradient(135deg,#FFF6DE 0%,#fff 78%)}
+.lgp.is-empty{border:1.5px dashed #E5C987;background:#FFFCF4}
+.lgp-disc{width:48px;height:48px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:26px;line-height:1;box-shadow:0 0 0 2px #F2D9A8}
+.lgp-body{min-width:0}
+.lgp-kick{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;margin:0 0 2px;font-size:12px;font-weight:800;color:#7F5300;text-transform:uppercase;letter-spacing:.05em}
+.lgp-tag{text-transform:none;letter-spacing:0;padding:1px 8px;border-radius:999px;background:#fff;box-shadow:inset 0 0 0 1.5px #F2D9A8;font-size:11.5px}
+.lgp-k,.lgp-title{margin:0;font-family:var(--display);font-weight:800;font-size:19px;line-height:1.2;color:#1B2238;overflow-wrap:anywhere}
+.lgp-k:focus,.lgp-title:focus{outline:none}
+.lgp-title .lgp-cond{color:#7F5300}
+p.lgp-cond{margin:2px 0 0;font-size:13.5px;font-weight:800;color:#7F5300}
+.lgp-desc,.lgp-sub{margin:4px 0 0;font-size:13px;font-weight:700;line-height:1.4;color:#47506B;overflow-wrap:anywhere}
+.lgp-by{margin:6px 0 0;font-size:12.5px;font-weight:700;color:#6A7390}
+.lgp-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.lgp-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:7px 14px;border-radius:8px;background:#2843A8;color:#fff;font-weight:800;font-size:13.5px;line-height:1.2;text-align:left;cursor:pointer;transition:background-color .15s,border-color .15s}
+.lgp-btn:hover:not(:disabled){background:#1F3487}
+.lgp-btn:disabled{opacity:.55;cursor:not-allowed}
+.lgp-btn[aria-busy]:disabled{cursor:progress;opacity:.8}
+.lgp-btn--ghost{background:#fff;color:#1B2238;border:1.5px solid #D3D9E6}
+.lgp-btn--ghost:hover:not(:disabled){background:#F1F3F8;border-color:#C3CADA}
+.lgp-btn--warn{background:#B32D33}
+.lgp-btn--warn:hover:not(:disabled){background:#952328}
+.lgp-btn--rep{flex-direction:column;align-items:flex-start;gap:1px;max-width:100%}
+.lgp-rep{font-size:12.5px;font-weight:700;color:#6A7390;overflow-wrap:anywhere}
+.lgp-confirm{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:13.5px;font-weight:800;color:#1B2238}
+.lgp-confirm > span{flex-basis:100%}
+.lgp-err{margin:10px 0 0;padding:8px 10px;border-radius:8px;background:#FDECEC;color:#B32D33;font-size:13px;font-weight:800;line-height:1.4}
+.lgp-err:focus{outline:none;box-shadow:inset 0 0 0 2px #E8A3A6}
+
+/* la hoja del premio (chasis global .shov/.shcard de space.css) */
+.lgp-sheet{width:min(520px,94vw);padding:22px 22px 20px;gap:0}
+.lgp-form{display:grid;gap:14px;min-width:0}
+.lgp-sheet-t{margin:0;font-family:var(--display);font-weight:800;font-size:22px;line-height:1.2;color:#1B2238}
+.lgp-sheet-d{margin:4px 0 0;font-size:13.5px;font-weight:700;line-height:1.4;color:#6A7390}
+.lgp-form fieldset{margin:0;padding:0;border:0;min-width:0}
+.lgp-legend{padding:0;margin:0 0 6px;font-size:13px;font-weight:800;color:#47506B}
+.lgp-modes{display:flex;flex-wrap:wrap;gap:8px}
+.lgp-modes .lgp-legend{width:100%}
+.lgp-mode{display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:6px 14px 6px 10px;border-radius:999px;border:1.5px solid #D3D9E6;background:#fff;font-size:13.5px;font-weight:800;color:#47506B;cursor:pointer}
+.lgp-mode.is-on{border-color:#2843A8;background:#EEF2FD;color:#1F3487}
+.lgp-pane{display:grid;gap:12px;min-width:0}
+/* con muchos premios en la Tienda, la lista scrollea sola: la condición y el botón quedan a la vista */
+.lgp-pane[data-pane="tienda"]{max-height:min(330px,42vh);overflow:auto;overscroll-behavior:contain;padding:2px 4px 2px 0;margin-right:-4px}
+.lgp-note{margin:0;font-size:13px;font-weight:700;line-height:1.45;color:#6A7390}
+.lgp-link{font-weight:800;color:#2843A8;text-decoration:underline}
+.lgp-group{display:grid;gap:6px}
+.lgp-opt,.lgp-cnd{display:flex;align-items:center;gap:10px;min-width:0;padding:8px 10px;border-radius:10px;border:1.5px solid #E6E9F1;background:#fff;cursor:pointer}
+.lgp-opt.is-on,.lgp-cnd.is-on{border-color:#2843A8;background:#F4F6FE}
+.lgp-opt input,.lgp-cnd input,.lgp-mode input{flex:none;width:16px;height:16px;margin:0;accent-color:#2843A8}
+.lgp-opt-emo{flex:none;width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:#FFF4D6;font-size:19px;line-height:1}
+.lgp-opt-main,.lgp-cnd-main{min-width:0;display:grid;gap:1px}
+.lgp-opt-main b,.lgp-cnd-main b{font-size:14px;line-height:1.3;color:#1B2238;overflow-wrap:anywhere}
+.lgp-opt-main span,.lgp-cnd-main span{font-size:12.5px;font-weight:700;line-height:1.35;color:#6A7390;overflow-wrap:anywhere}
+.lgp-conds{display:grid;gap:6px}
+.lgp-field{display:grid;gap:5px;min-width:0}
+.lgp-field label{font-size:13px;font-weight:800;color:#47506B}
+.lgp-opt-t{font-weight:700;color:#8A93AD}
+.lgp-input{width:100%;min-height:40px;padding:8px 12px;border:1.5px solid #D3D9E6;border-radius:8px;background:#fff;font-size:14.5px;font-weight:600;color:#1B2238}
+.lgp-input:focus{outline:none;border-color:#2843A8;box-shadow:0 0 0 3px rgba(40,67,168,.18)}
+.lgp-input:disabled{background:#F6F7FB}
+.lgp-emoji-row{display:flex;align-items:flex-start;gap:10px;min-width:0}
+.lgp-input--emoji{flex:none;width:64px;text-align:center;font-size:20px}
+.lgp-emoji-sugs{display:flex;flex-wrap:wrap;gap:2px;min-width:0}
+.lgp-emoji-sug{width:34px;height:34px;border-radius:8px;display:grid;place-items:center;font-size:18px;line-height:1;transition:background .15s}
+.lgp-emoji-sug:hover:not(:disabled){background:#F1F3F8}
+.lgp-emoji-sug.is-on{background:#EEF2FD;box-shadow:inset 0 0 0 1.5px #2843A8}
+.lgp-sheet-btns{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:10px}
+.lgp-sheet-btns .lgp-btn{min-width:120px;min-height:40px}
+/* (T4: era @media max-width:480 y pasó al corte de teléfono del shell; sus 3 reglas las pisaba el bloque de tablet y
+   teléfono de más abajo —el pie pegado—: quedan solo allá, sin duplicar) */
+
+/* ---- el aviso del cierre de la FAMILIA (lo ve el adulto que apretó): el patrón de .lwk con el dorado de la copa ---- */
+.lgx{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;align-items:center;margin:20px 0 2px;padding:18px 52px 18px 20px;border-radius:14px;border:1px solid #D5DDF7;background:linear-gradient(115deg,#EEF2FD 0%,#fff 78%);animation:lwk-in .45s cubic-bezier(.2,.8,.3,1) both}
+.lgx[data-cup]{border-color:#F2D9A8;background:linear-gradient(115deg,#FFF1CC 0%,#fff 78%)}
+.lgx-art{position:relative;width:64px;height:64px;display:grid;place-items:center}
+.lgx-cup{width:64px;height:64px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:34px;line-height:1;box-shadow:0 0 0 3px #3A5BD9,0 10px 22px -10px rgba(27,34,56,.5);animation:lwk-pop .55s cubic-bezier(.2,1.5,.4,1) .12s both}
+.lgx[data-cup] .lgx-cup{box-shadow:0 0 0 3px #E8A317,0 10px 22px -10px rgba(27,34,56,.5)}
+.lgx-burst{position:absolute;inset:0;pointer-events:none}
+.lgx-burst i{position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:2px;background:var(--c);opacity:0;animation:lwk-burst .9s ease-out .3s both}
+.lgx-body{min-width:0}
+.lgx-t{margin:0;font-family:var(--display);font-weight:800;font-size:22px;line-height:1.15;color:#1B2238;text-wrap:balance}
+.lgx-t:focus{outline:none}
+.lgx-p{margin:4px 0 0;font-family:var(--display);font-weight:800;font-size:17px;line-height:1.3;color:#47506B}
+.lgx-marks{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.lgx-marks li{padding:3px 10px;border-radius:999px;background:#fff;box-shadow:inset 0 0 0 1.5px #E1E5EE;font-size:12.5px;font-weight:700;color:#47506B}
+.lgx-marks b{color:#1B2238;font-weight:800}
+.lgx-total{margin:8px 0 0;font-size:13.5px;font-weight:800;color:#47506B}
+.lgx-prize{margin:4px 0 0;font-size:13.5px;font-weight:800;line-height:1.4;color:#7F5300;overflow-wrap:anywhere}
+.lgx-prize-n{font-weight:700;color:#6A7390}
+.lgx-note{margin:10px 0 0;font-weight:700;font-size:13px;line-height:1.45;color:#6A7390}
+.lgx-go{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:2px 0;font-weight:800;font-size:13.5px;color:#2843A8}
+.lgx-go svg{width:15px;height:15px;transition:transform .2s}
+.lgx-go:hover{text-decoration:underline}
+.lgx-go:hover svg{transform:translateX(3px)}
+.lgx-x{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:8px;display:grid;place-items:center;color:#6A7390;transition:background .15s,color .15s}
+.lgx-x:hover{background:rgba(27,34,56,.06);color:#1B2238}
+.lgx-x svg{width:16px;height:16px}
+/* (T4: era @media max-width:640; pasa al corte de teléfono del shell, @container app) */
+@container app (max-width:639.98px){
+  .lgx{grid-template-columns:minmax(0,1fr);padding:16px 48px 16px 16px}
+}
+@media (prefers-reduced-motion: reduce){
+  .lgx,.lgx-cup{animation:none}
+  .lgx-burst{display:none}
 }
 
 .lempty{color:#A5ACBD;font-weight:800;margin-top:14px}
@@ -114,7 +269,8 @@
 @keyframes lwk-in{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
 @keyframes lwk-pop{from{opacity:0;transform:scale(.5) rotate(-14deg)}to{opacity:1;transform:none}}
 @keyframes lwk-burst{from{opacity:1;transform:rotate(var(--a)) translateY(-30px) scale(.6)}to{opacity:0;transform:rotate(var(--a)) translateY(-64px) scale(1)}}
-@media (max-width:640px){
+/* (T4: era @media max-width:640; pasa al corte de teléfono del shell, @container app) */
+@container app (max-width:639.98px){
   .lwk{grid-template-columns:minmax(0,1fr);padding:16px 48px 16px 16px}
 }
 
@@ -131,4 +287,71 @@
 @media (prefers-reduced-motion: reduce){
   .lwk,.lwk-medal,.lmedal.is-new .lchip-ic,.ldemo[aria-busy] .ldemo-ic{animation:none}
   .lwk-burst{display:none}
+}
+
+/* ════ Tablet y teléfono (docs/RESPONSIVE.md §2.4, tanda T4) ════
+   Todo con @container app y los cortes de base.css (640 / 1024): en el escritorio (≥ 1024) no cambia nada. Sin @media de
+   layout: las cuatro que había arriba (480 y 640, de U4 y U5) pasaron al corte de teléfono del shell. */
+
+/* < 1024 (táctil): lo que medía menos de 24 px de alto llega a 24 o más (WCAG 2.5.8), sin tocar la tipografía */
+@container app (max-width:1023.98px){
+  .lgw-more summary{padding:4px 0}
+  .lgx-go,.lwk-go{min-height:32px}
+  .lgp-link{display:inline-flex;align-items:center;min-height:24px}
+
+  /* La hoja del premio en la tablet y el teléfono (táctiles): modos y botones de 44 y el pie con Cancelar / Poner el premio
+     PEGADO abajo de la tarjeta (con la tarjeta scrolleando, los botones quedan siempre a la vista; QA-T4 H6: con el teléfono
+     ACOSTADO —844×390, modo tablet— la tarjeta mide 327 px y había que bajar para encontrarlos, de 36-40 px). El
+     scroll-padding deja lo enfocado —y el motivo de un 400, que recibe el foco— por encima del pie (QA-T4 H1: lo tapaba). */
+  .lgp-sheet{padding-bottom:0;scroll-padding-bottom:84px}
+  .lgp-mode{min-height:44px}
+  .lgp-sheet-btns{position:sticky;bottom:0;z-index:1;margin:0 -22px;padding:12px 22px 20px;background:#fff;box-shadow:0 -1px 0 #EEF0F5}
+  .lgp-sheet-btns .lgp-btn{min-height:44px}
+}
+
+@container app (max-width:639.98px){
+  /* Solapas: fila deslizable sin barra visible (robusta a 320 y a una fuente más ancha) y de 44 de alto. La línea de abajo
+     pasa a sombra interior y la tinta a bottom:0: en un scroller, lo que asomaba 1 px por debajo (bottom:-1px) queda
+     recortado y deja 1 px de scroll vertical. El contorno de foco va hacia adentro (el scroller recorta lo que sale). */
+  .ltabs{gap:20px;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-width:none;border-bottom:0;box-shadow:inset 0 -1px 0 var(--line);
+    scroll-padding-inline:16px}
+  .ltabs::-webkit-scrollbar{display:none}
+  .ltab{flex:none;min-height:44px;white-space:nowrap}
+  .ltab:focus-visible{outline-offset:-3px}
+  .ltink{bottom:0}
+
+  /* Tablas (Mi liga · Tu zona · País · Familia): el puesto de 48 a 28 (entran la medallita de 24 y "12"; el puesto propio
+     de zona y país, con más cifras, crece solo) y el aire de 12 a 8: el nombre gana 36 px (a 375 se cortaban
+     "KiaraAndromeda" y "HoracioBandoneon"; a 320, casi todos). */
+  .rk{gap:8px;padding:0 8px}
+  .rk .pos{width:auto;min-width:28px}
+  .rk .you{margin-left:6px}
+
+  /* La fila de la FAMILIA en dos renglones de grilla: nombre (+ 🏆 + Vos) y XP arriba; el reto (puntitos) y el ↑ abajo,
+     usando también el ancho del XP (a 320, "4 de 7 días" se montaba sobre "1.290 XP"). Puesto y avatar quedan centrados en
+     los dos renglones; .lgf-who se disuelve (display:contents) para que nombre y reto sean celdas de la grilla. */
+  .lgf .lgf-rk{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;grid-template-areas:"pos av nm xp" "pos av meta meta";
+    column-gap:8px;row-gap:4px;align-items:center;padding:8px}
+  .lgf-rk .pos{grid-area:pos}
+  .lgf-rk > .av3{grid-area:av}
+  .lgf-who{display:contents}
+  .lgf-who .nm{grid-area:nm}
+  .lgf-meta{grid-area:meta;gap:4px 10px}
+  .lgf-rk .xp{grid-area:xp;min-width:0}
+
+  /* El premio de la semana: botones de 44 que llenan su fila (Elegir · Repetir · Cambiar / Quitar · Sí, quitarlo / No) */
+  .lgp-btn{min-height:44px}
+  .lgp-btns .lgp-btn,.lgp-confirm .lgp-btn{flex:1 1 auto}
+
+  /* La hoja del premio (además de lo de < 1024: modos y botones de 44, pie pegado, scroll-padding): menos aire a los
+     costados, la lista de la Tienda un poco más baja (la tarjeta entera ya scrollea) y los botones del pie llenan la fila. */
+  .lgp-sheet{padding:18px 16px 0}
+  .lgp-pane[data-pane="tienda"]{max-height:min(280px,36vh);max-height:min(280px,36dvh)}
+  .lgp-sheet-btns{margin:0 -16px;padding:12px 16px 16px;justify-content:stretch}
+  /* cada botón a su ancho natural (con el mismo ancho para los dos, "Poner el premio" se partía en dos renglones a 320) */
+  .lgp-sheet-btns .lgp-btn{flex:1 1 auto;min-width:0}
+
+  /* Chip de demo: el texto de la familia ("Simular cierre de la semana de la familia") parte en dos renglones y el alto fijo
+     de 30 lo dejaba salirse del borde punteado */
+  .ldemo{height:auto;min-height:32px;padding-block:5px;text-align:left}
 }

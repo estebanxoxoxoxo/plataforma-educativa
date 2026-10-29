@@ -1,6 +1,7 @@
 // Helpers sin UI de la Tienda: formato de Energy Coin (es-AR), fechas legibles, orden de la grilla y
 // las filas de la lista de deseos.
 import type { MarketItem } from '../../../api/types';
+import { wallDate, type WallDate } from '../../../shared/lib/zonedClock';
 
 /** Saldo y precios en formato es-AR: 1.240 */
 export const fmtEc = (n: number) => Math.round(n).toLocaleString('es-AR');
@@ -30,19 +31,34 @@ export function wishedItems(items: MarketItem[], order: number[]) {
 /** Cuánto del precio ya cubre el saldo (0–100). */
 export const pctOf = (ec: number, price: number) => Math.max(0, Math.min(100, Math.floor((ec / price) * 100)));
 
-/* Fechas legibles para un chico: "Hoy · 15:42", "Ayer · 10:05", "5 oct · 18:20" (otro año: con el año). */
-const hhmm = new Intl.DateTimeFormat('es-AR', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
-const dayMonth = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short' });
-const dayMonthYear = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short', year: 'numeric' });
-const full = new Intl.DateTimeFormat('es-AR', { dateStyle: 'full', timeStyle: 'short', hourCycle: 'h23' });
-const sameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-
-export function fmtWhen(ts: number, now = new Date()): string {
-  const d = new Date(ts);
-  const ayer = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-  const day = sameDay(d, now) ? 'Hoy' : sameDay(d, ayer) ? 'Ayer' : (d.getFullYear() === now.getFullYear() ? dayMonth : dayMonthYear).format(d);
-  return `${day} · ${hhmm.format(d)}`;
+/* Fechas legibles para un chico: "Hoy · 15:42", "Ayer · 10:05", "5 oct · 18:20" (otro año: con el año). EN LA ZONA DE LA
+   FAMILIA (QA-U5-E): `tz` = useCycle().tz (la de la familia o, en Automática, la del server), la misma pared que la barra
+   superior; sin zona —o una que este navegador no conoce— la local, como wallClock (shared/lib/zonedClock). Antes era
+   siempre la del navegador: con la familia en otra zona, un canje de las 00:30 de la familia decía «Hoy · 11:30». */
+const HHMM = { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' } as const;
+const DAY_MONTH = { day: 'numeric', month: 'short' } as const;
+const DAY_MONTH_YEAR = { day: 'numeric', month: 'short', year: 'numeric' } as const;
+const FULL = { dateStyle: 'full', timeStyle: 'short', hourCycle: 'h23' } as const;
+const fmts = new Map<string, Intl.DateTimeFormat>();
+function inTz(kind: string, opts: Intl.DateTimeFormatOptions, tz?: string | null): Intl.DateTimeFormat {
+  const key = `${kind}|${tz ?? ''}`;
+  let f = fmts.get(key);
+  if (!f) {
+    try { f = new Intl.DateTimeFormat('es-AR', tz ? { ...opts, timeZone: tz } : opts); } catch { f = new Intl.DateTimeFormat('es-AR', opts); }
+    fmts.set(key, f);
+  }
+  return f;
 }
-/** Para el title/tooltip: "jueves, 8 de octubre de 2026, 15:42" */
-export const fmtFull = (ts: number) => full.format(new Date(ts));
+const isDay = (w: WallDate, y: number, m: number, d: number) => w.y === y && w.m === m && w.d === d;
+
+export function fmtWhen(ts: number, now = new Date(), tz?: string | null): string {
+  const d = wallDate(ts, tz), n = wallDate(now.getTime(), tz);
+  const ayer = new Date(Date.UTC(n.y, n.m, n.d - 1));
+  const day = isDay(d, n.y, n.m, n.d) ? 'Hoy'
+    : isDay(d, ayer.getUTCFullYear(), ayer.getUTCMonth(), ayer.getUTCDate()) ? 'Ayer'
+    : d.y === n.y ? inTz('dm', DAY_MONTH, tz).format(ts) : inTz('dmy', DAY_MONTH_YEAR, tz).format(ts);
+  return `${day} · ${inTz('hm', HHMM, tz).format(ts)}`;
+}
+/** Para el title/tooltip: "jueves, 8 de octubre de 2026, 15:42" (en la pared de `tz`). */
+export const fmtFull = (ts: number, tz?: string | null) => inTz('full', FULL, tz).format(ts);
 export const isoOf = (ts: number) => new Date(ts).toISOString();

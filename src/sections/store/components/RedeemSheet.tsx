@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, type CSSProperties } from 'react';
 import type { MarketItem } from '../../../api/types';
 import { fmtEc, tintFor } from '../lib/format';
+import { useVeil } from '../lib/sheet';
 
 export type SheetState =
   | { item: MarketItem; phase: 'confirm' | 'busy' }
@@ -46,12 +47,13 @@ export function RedeemSheet({ s, ec, onConfirm, onClose }: {
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
+  const veil = useVeil(onClose, busy);
   const { item } = s;
   const tint = { '--tint': tintFor(item.id) } as CSSProperties;
   const after = ec - item.price;
 
   return (
-    <div className="shov st-ov" onClick={(e) => { if (e.target === e.currentTarget && !busy) onClose(); }}>
+    <div className="shov st-ov" onMouseDown={veil}>
       <div className="shcard st-sheet" ref={card} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="st-sheet-t" aria-describedby="st-sheet-d">
         {s.phase === 'done' ? (
           <div className="st-done" role="status">

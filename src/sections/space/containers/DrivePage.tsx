@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../../api';
 import type { DriveFolder, DriveItem } from '../../../api/types';
@@ -19,6 +19,13 @@ export function DrivePage() {
   const [form, setForm] = useState<'none' | 'create' | { edit: DriveFolder }>('none');
   const [moving, setMoving] = useState<{ kind: 'folder' | 'item'; id: number; name: string } | null>(null);
   const [zoom, setZoom] = useState<DriveItem | null>(null);
+  // La imagen ampliada se cierra también con Esc (como las otras hojas), no solo tocando afuera.
+  useEffect(() => {
+    if (!zoom) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); setZoom(null); } };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [zoom]);
 
   const here = at === 0 ? '/espacio/carpetas' : `/espacio/carpetas/${at}`;
   const openItem = (it: DriveItem) => {

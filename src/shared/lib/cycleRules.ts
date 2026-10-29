@@ -141,8 +141,13 @@ function freshId(used: Set<string>): string {
 
 /** Valida la lista COMPLETA de rangos de un integrante (`kid` = su nombre, para los textos). Ids únicos (los que faltan los
  *  pone el server: r1, r2…), nombre 1-30 con letras, horas HH:MM (se guardan canónicas: "8:00" → "08:00"), secciones
- *  conocidas (sin repetir, en el orden del menú; puede ser vacía), máx. 8 rangos. Campos de más se ignoran. */
-export function checkCycle(raw: unknown, kid: string): Check<CycleRange[]> {
+ *  conocidas (sin repetir, en el orden del menú; puede ser vacía), máx. 8 rangos. Campos de más se ignoran.
+ *  FS-BASE-B (hallazgos schedule.ts:125 / cycleRules.ts:172): `reserved` = los ids que el integrante YA TENÍA guardados. Un
+ *  rango nuevo (sin id) nunca recibe uno de ésos: antes freshId miraba solo los ids del pedido, y si en un mismo guardado el
+ *  padre borraba el rango del override de demo y agregaba otro, el nuevo HEREDABA su id —y con él el override: el chico
+ *  quedaba "en" un rango que nadie eligió—. Los ids reservados que vienen explícitos en el pedido se aceptan (es el mismo
+ *  rango que se conserva). */
+export function checkCycle(raw: unknown, kid: string, reserved: Iterable<string> = []): Check<CycleRange[]> {
   if (!Array.isArray(raw)) return fail('Los rangos tienen que venir en una lista (ranges).')
   if (raw.length > CYCLE_LIMITS.ranges) return fail(`El ciclo de ${kid} admite hasta ${CYCLE_LIMITS.ranges} rangos (vinieron ${raw.length}).`)
   const used = new Set<string>()
@@ -169,7 +174,8 @@ export function checkCycle(raw: unknown, kid: string): Check<CycleRange[]> {
     const sections = SECTION_KEYS.filter(k => (r.sections as unknown[]).includes(k))
     drafts.push({ id, name: name.value, from: hhmm(from), to: hhmm(to), sections })
   }
-  return { ok: true, value: drafts.map(d => ({ ...d, id: d.id ?? freshId(used) })) }
+  const taken = new Set([...used, ...reserved]) // para los ids NUEVOS: ni los del pedido ni los que ya existían
+  return { ok: true, value: drafts.map(d => ({ ...d, id: d.id ?? freshId(taken) })) }
 }
 
 /* ---------- saneo al LEER el archivo (nunca tira; lo raro se arregla hacia ABIERTO y se avisa) ---------- */

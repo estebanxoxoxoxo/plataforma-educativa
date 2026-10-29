@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { ParentAlert } from '../../../api/types';
+import { useCycle } from '../lib/cycle';
 import { ALERT_TITLE, capFirst, fmtFull, fmtWhen, isoOf } from '../lib/format';
 
 const ICON: Record<ParentAlert['kind'], ReactNode> = {
@@ -10,8 +11,9 @@ const ICON: Record<ParentAlert['kind'], ReactNode> = {
 
 /** Un aviso para el padre: qué pasó (el texto ya viene armado por el server; en una crisis trae lo que escribió el chico,
  *  textual —decisión 11-oct—), dónde y cuándo, y "Marcar como visto". `who` (U3: la vista "Toda la familia") = sobre qué
- *  integrante es. Pura. */
+ *  integrante es. La fecha, en la ZONA DE LA FAMILIA (useCycle().tz: la pared de la barra superior; QA-U5-E). */
 export function AlertRow({ a, who, busy, onSeen }: { a: ParentAlert; who: string | null; busy: boolean; onSeen: () => void }) {
+  const tz = useCycle().tz;
   return (
     <li className={`pz-alert pz-alert--${a.kind}${a.seen ? ' is-seen' : ''}`} data-alert={a.id} data-kind={a.kind} data-child={a.childId}>
       <span className="pz-alert-ic" aria-hidden="true">{ICON[a.kind]}</span>
@@ -22,7 +24,7 @@ export function AlertRow({ a, who, busy, onSeen }: { a: ParentAlert; who: string
           {!a.seen && <span className="pz-alert-new">Nuevo</span>}
         </p>
         <p className="pz-alert-text">{a.text}</p>
-        <p className="pz-alert-meta">{capFirst(a.source)} · <time dateTime={isoOf(a.ts)} title={fmtFull(a.ts)}>{fmtWhen(a.ts)}</time></p>
+        <p className="pz-alert-meta">{capFirst(a.source)} · <time dateTime={isoOf(a.ts)} title={fmtFull(a.ts, tz)}>{fmtWhen(a.ts, undefined, tz)}</time></p>
       </div>
       <div className="pz-alert-act">
         {a.seen ? <span className="pz-alert-seen">Visto</span> : (

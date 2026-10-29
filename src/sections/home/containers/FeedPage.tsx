@@ -7,7 +7,10 @@ import { chatFriendsChanged, openChat, useChatDock } from '../../friends/lib/cha
 import { useSocial } from '../../friends/lib/social';
 import { LEAGUE_WEEK_CLOSED } from '../../leagues/lib/cycle';
 import { useFeatures } from '../../parent/lib/features';
+import { openMedalsSheet } from '../../../shared/components/ProfileCard';
+import { hasMedalNews, medalsChanged } from '../../../shared/lib/medals';
 import { FeedArticleCard } from '../cards/FeedArticleCard';
+import { FeedMedalCard } from '../cards/FeedMedalCard';
 import { FeedNewsCard } from '../cards/FeedNewsCard';
 import { FeedNextCard } from '../cards/FeedNextCard';
 import { FeedRouteCard } from '../cards/FeedRouteCard';
@@ -185,6 +188,9 @@ export function FeedPage() {
       page1Ids.current = new Set(r.items.map((it) => it.id));
       setItems(r.items); setNext(r.next); setMotion(r.motion ?? 'normal');
       setFreshNews(new Set()); setLess(new Map()); setMore('idle');
+      // U5-D: si el hilo trae la noticia de una medalla (p. ej. la ganó en Mi espacio y volvió al Feed), el chip del perfil
+      // vuelve a pedir sus medallas sin F5.
+      if (hasMedalNews(r.items)) medalsChanged();
     }, () => setError(true));
   };
   useEffect(load, []);
@@ -244,6 +250,8 @@ export function FeedPage() {
       setItems(merged);
       if (pagesRef.current <= 1) setNext(r.next);
       setMotion(r.motion ?? 'normal');
+      // U5-D: entró una noticia de medalla por la píldora → el chip del perfil se pone al día (cantidad + puntito)
+      if (hasMedalNews(added)) medalsChanged();
     } catch { setPill(was); } // queda para reintentar
     setPillBusy(false);
   };
@@ -314,8 +322,8 @@ export function FeedPage() {
   /** La noticia es del propio chico (su medalla del cierre de liga). */
   const isMine = (nick: string) => !!user?.nick && nick === user.nick;
 
-  /** Cada kind con su estilo de bloque (mock v6): next → B · videos → D · summary → E · lo de ligas → C (noticia) ·
-   *  el resto → A (card estándar). */
+  /** Cada kind con su estilo de bloque (mock v6): next → B · videos → D · summary → E · lo de ligas y la medalla propia
+   *  (U5) → C (noticia) · el resto → A (card estándar). */
   const block = (it: FeedItem): ReactNode => {
     const off = () => hide(it.id);
     switch (it.kind) {
@@ -331,6 +339,8 @@ export function FeedPage() {
         return isNews(it)
           ? <FeedNewsCard it={it} mine={isMine(it.friend.nick)} fresh={freshNews.has(it.id)} onReact={react} onLeague={h.league} onLess={off} />
           : <FriendEventCard it={it} onReact={react} onLess={off} />;
+      // U5-D: la noticia de una medalla propia (sin reacciones ni "recién entrada"); "Ver tus medallas" abre la pila
+      case 'medal': return <FeedMedalCard it={it} name={user?.name ?? ''} onOpen={() => openMedalsSheet()} />;
     }
   };
 

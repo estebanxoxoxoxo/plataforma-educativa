@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CycleRange, SchedulesResponse } from '../../../../api/types';
-import { cycleAllows, isSectionOpen, serverDate, toMemberCycle } from '../cycle';
+import { adoptCycle, cycleAllows, effectiveTz, isSectionOpen, serverDate, toMemberCycle } from '../cycle';
 
 /* El store del Ciclo del día del chico (tanda F2): cómo normaliza lo que manda el server y cómo evalúa el menú con la
    hora del SERVER (delta) en la zona de la familia, con el override de demo y FAIL-OPEN. Las reglas en sí son las
@@ -15,7 +15,7 @@ const NOW = Date.UTC(2026, 9, 28, 12, 0); // el reloj del navegador: 12:00 UTC
 /** Un snap cuyo reloj del server marca `hhmm` UTC (el navegador está corrido: el delta lo arregla). */
 const snapAt = (hhmm: string, over: Partial<Snap> = {}): Snap => {
   const [h, m] = hhmm.split(':').map(Number);
-  return { ranges: RANGES, demoRange: null, member: 'ian', tz: 'UTC', offset: Date.UTC(2026, 9, 28, h, m) - NOW, failed: false, syncedAt: NOW, sig: '', ...over };
+  return { ranges: RANGES, demoRange: null, member: 'ian', tz: 'UTC', serverTz: null, offset: Date.UTC(2026, 9, 28, h, m) - NOW, failed: false, syncedAt: NOW, sig: '', ...over };
 };
 
 beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(NOW); });
@@ -24,7 +24,7 @@ afterEach(() => { vi.useRealTimers(); });
 describe('toMemberCycle (lo que manda el server → lo que usa el store)', () => {
   const base: SchedulesResponse = { serverNow: 1, tz: 'America/New_York', member: 'luna', cycle: { ranges: RANGES }, demoRange: 'tarde' };
   it('toma ciclo, override, zona e integrante', () => {
-    expect(toMemberCycle(base)).toEqual({ member: 'luna', ranges: RANGES, demoRange: 'tarde', serverNow: 1, tz: 'America/New_York' });
+    expect(toMemberCycle(base)).toEqual({ member: 'luna', ranges: RANGES, demoRange: 'tarde', serverNow: 1, tz: 'America/New_York', serverTz: null });
   });
   it('vacíos y nulos se normalizan a null; una CycleResponse también sirve', () => {
     expect(toMemberCycle({ ...base, demoRange: '', tz: '', member: '' })).toMatchObject({ demoRange: null, tz: null, member: null });
@@ -62,3 +62,23 @@ describe('evaluación con la hora del server', () => {
     expect(cycleAllows(s, '/familia')).toBe(true);
   });
 });
+
+/* FS-BASE-B (hallazgos cycleRules.ts:62 / mentors.ts:49): con la tz de la familia en null ("Automática") el server evalúa en
+   SU zona; el cliente ahora recibe esa zona (serverTz, aditivo) y evalúa en la misma pared, esté donde esté el navegador. */
+describe('tz Automática = la del SERVER', () => {
+  it('toMemberCycle trae serverTz; effectiveTz = la de la familia o, en Automática, la del server (null solo sin ninguna)', () => {
+    expect(toMemberCycle({ serverNow: 1, tz: null, serverTz: 'America/Chicago', member: 'ian', cycle: { ranges: [] }, demoRange: null }))
+      .toMatchObject({ tz: null, serverTz: 'America/Chicago' });
+    expect(effectiveTz(null, 'America/Chicago')).toBe('America/Chicago');
+    expect(effectiveTz('Europe/Madrid', 'America/Chicago')).toBe('Europe/Madrid');
+    expect(effectiveTz(null, null)).toBeNull();
+  });
+  it('server en Chicago y tz null: a las 15:00 UTC el store ve las 10:00 de Chicago (Mañana abierta), como el 403 del server', () => {
+    const t = Date.UTC(2026, 9, 28, 15, 0);
+    vi.setSystemTime(t);
+    adoptCycle({ serverNow: t, tz: null, serverTz: 'America/Chicago', member: 'ian', cycle: { ranges: RANGES }, demoRange: null });
+    expect(isSectionOpen('aprender')).toBe(true); // 10:00 en Chicago: dentro de Mañana (08-12); en UTC o en Madrid, no
+    expect(isSectionOpen('mytube')).toBe(false); // Tarde (14-18) todavía no
+  });
+});
+

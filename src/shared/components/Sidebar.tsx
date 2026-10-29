@@ -12,10 +12,13 @@ import {
   IcNavSearch, IcNavSpace, IcNavStore,
 } from './icons';
 
-type Sec = 'home' | 'search' | 'chat' | 'space' | 'store' | 'learn' | 'mytube' | 'afterday' | 'calendar' | 'family';
+export type Sec = 'home' | 'search' | 'chat' | 'space' | 'store' | 'learn' | 'mytube' | 'afterday' | 'calendar' | 'family';
+export type NavItem = { sec: Sec; label: string; to: string; Icon: ComponentType; adultOnly?: true };
+/** id de la barra lateral: en el teléfono es el CAJÓN que abre «Menú» de la barra inferior (aria-controls, foco). */
+export const NAV_ID = 'app-nav';
 // Orden definido por Esteban (9-oct-2026): Home primero, Mi espacio al final.
 // El submenú de Mi espacio se engancha por sec, no por posición.
-const NAV: { sec: Sec; label: string; to: string; Icon: ComponentType; adultOnly?: true }[] = [
+export const NAV: readonly NavItem[] = [
   // Feed (pedido 12-oct: el nuevo nombre de Home) = el feed de recomendaciones; sec 'home', ruta /.
   { sec: 'home', label: 'Feed', to: '/', Icon: IcNavDiscover },
   { sec: 'search', label: 'Buscar', to: '/buscar', Icon: IcNavSearch },
@@ -39,7 +42,8 @@ const NAV: { sec: Sec; label: string; to: string; Icon: ComponentType; adultOnly
   { sec: 'family', label: 'Familia', to: '/familia', Icon: IcNavFamily, adultOnly: true },
 ];
 
-function activeFrom(path: string): { sec?: Sec; sub?: string } {
+/** La sección del menú que marca la ruta (la usan la barra lateral y la inferior). */
+export function activeFrom(path: string): { sec?: Sec; sub?: string } {
   if (path === '/') return { sec: 'home' };
   if (path.startsWith('/buscar')) return { sec: 'search' }; // incluye artículo y video
   if (path.startsWith('/chat')) return { sec: 'chat' };
@@ -59,33 +63,44 @@ function activeFrom(path: string): { sec?: Sec; sub?: string } {
   return {};
 }
 
+/** Los puntos del menú que ESTE usuario ve, en el orden del menú: UNA sola fuente para la barra lateral y la inferior del
+ *  teléfono (BottomNav), así los candados no se duplican. Con un ADULTO suma Familia y no lo alcanza ningún candado. */
+export function useNavItems(user?: User): NavItem[] {
+  const features = useFeatures();
+  const cycle = useCycle();
+  const adult = user?.kind === 'adult';
+  return NAV.filter((n) => {
+    if (n.adultOnly && !adult) return false;
+    // Los candados son del CHICO: al adulto no se le esconde nada.
+    if (adult) return true;
+    // Tienda, Ligas, Amigos y Chat los puede apagar el padre: apagados (o sin saber todavía) no existen.
+    // Ciclo del día (F2, docs/USUARIOS.md §11): una sección que no está disponible en el rango en curso (o en el que eligió
+    // el selector de demo) sale del menú; el tick de 30 s, el selector y Familia la sacan y la vuelven a poner sin
+    // recargar. El Feed nunca se gatea.
+    return featureAllows(features, n.to) && cycleAllows(cycle, n.to);
+  });
+}
+
 /** Barra lateral estilo Duolingo (estilos en shell.css): píldora activa con borde por sección, etiquetas en
  *  mayúsculas e íconos rellenos que no cambian con el estado. Sin submenús (pedido 12-oct): Mi espacio
  *  va directo a sus carpetas. Con un ADULTO como usuario activo suma Familia al fondo y no la alcanzan los candados
  *  del chico (apagados ni ciclo del día: docs/USUARIOS.md §4). Abajo, arriba del MiniPlayer, el selector de DEMO del ciclo
- *  ("Ciclo (demo)": en qué rango del día está el chico; CycleDemoControl decide cuándo aparece). */
-export function Sidebar({ user }: { user?: User }) {
+ *  ("Ciclo (demo)": en qué rango del día está el chico; CycleDemoControl decide cuándo aparece).
+ *  Los tres modos del shell (RESPONSIVE.md §2.1) son CSS sobre esta misma barra: escritorio (≥1024) tal cual; tablet
+ *  (640–1023) rail de íconos de 80 px con las etiquetas ocultas visualmente (por eso cada botón lleva title/aria-label);
+ *  teléfono (<640) cajón que abre «Menú» de la barra inferior (BottomNav). */
+export function Sidebar({ user, covered = false }: { user?: User; /** tapada por el dock a pantalla completa: inert */ covered?: boolean }) {
   const { pathname } = useLocation();
   const go = useNavigate();
   const { sec } = activeFrom(pathname);
-  const features = useFeatures();
-  const cycle = useCycle();
-  const adult = user?.kind === 'adult';
+  const items = useNavItems(user);
 
-  const item = (n: (typeof NAV)[number]) => {
-    if (n.adultOnly && !adult) return null;
-    // Los candados son del CHICO: al adulto no se le esconde nada.
-    if (!adult) {
-      // Tienda, Ligas, Amigos y Chat los puede apagar el padre: apagados (o sin saber todavía) no existen.
-      if (!featureAllows(features, n.to)) return null;
-      // Ciclo del día (F2, docs/USUARIOS.md §11): una sección que no está disponible en el rango en curso (o en el que eligió
-      // el selector de demo) sale del menú; el tick de 30 s, el selector y Familia la sacan y la vuelven a poner sin
-      // recargar. El Feed nunca se gatea.
-      if (!cycleAllows(cycle, n.to)) return null;
-    }
+  const item = (n: NavItem) => {
+    if (!items.includes(n)) return null;
     const on = sec === n.sec;
     return (
-      <button key={n.sec} className={`nav-item${on ? ' on' : ''}`} data-sec={n.sec} aria-current={on ? 'page' : undefined} onClick={() => go(n.to)}>
+      <button key={n.sec} className={`nav-item${on ? ' on' : ''}`} data-sec={n.sec} aria-current={on ? 'page' : undefined}
+        title={n.label} aria-label={n.label} onClick={() => go(n.to)}>
         {/* El span permite el ajuste óptico vertical de Baloo 2 (ver .nav-item span en shell.css) */}
         <n.Icon /><span>{n.label}</span>
       </button>
@@ -93,7 +108,7 @@ export function Sidebar({ user }: { user?: User }) {
   };
 
   return (
-    <aside className="side">
+    <aside className="side" id={NAV_ID} inert={covered} aria-hidden={covered || undefined}>
       <button className="brand" onClick={() => go('/')}><BrandMark />Innerith</button>
       <nav aria-label="Secciones">
         {NAV.map((n) => (

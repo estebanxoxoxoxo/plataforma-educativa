@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ApiError, api } from '../../../api';
 import type { Friend } from '../../../api/types';
@@ -25,6 +25,27 @@ function onApiError(e: unknown) {
   if (e instanceof ApiError && e.status === 403 && Date.now() - lastAsk > 3000) { lastAsk = Date.now(); void refreshFeatures(); }
 }
 
+/** Teléfono (docs/RESPONSIVE.md §2.5): con la lista o una conversación abiertas el dock va a PANTALLA COMPLETA. Lo decide el
+ *  CSS (friends.css, @container app < 640 px) y lo avisa con --fdk-full:1 en la caja: el JS no repite cortes de ancho. */
+const isFullScreen = (el: HTMLElement | null | undefined) => !!el && getComputedStyle(el).getPropertyValue('--fdk-full').trim() === '1';
+
+/* ---------- "el dock está a pantalla completa", para el Layout (QA-T1 H3) ----------
+   A pantalla completa lo de atrás queda TAPADO: el Layout (App.tsx) deja inert y aria-hidden .main, la barra inferior y la
+   lateral mientras dure (como con el cajón), así ni el foco ni un lector de pantalla caen detrás. Lo decide el CSS
+   (--fdk-full) y el dock lo publica acá después de cada render (y al irse, false). */
+let fullNow = false;
+const fullListeners = new Set<() => void>();
+function publishFull(v: boolean) {
+  if (v === fullNow) return;
+  fullNow = v;
+  fullListeners.forEach((l) => l());
+}
+const subscribeFull = (l: () => void) => { fullListeners.add(l); return () => { fullListeners.delete(l); }; };
+/** ¿El dock de Mensajes está a pantalla completa (teléfono, con la lista o una conversación abiertas)? */
+export function useDockFullScreen(): boolean {
+  return useSyncExternalStore(subscribeFull, () => fullNow, () => false);
+}
+
 /** Dock de mensajería estilo LinkedIn (VISION §8; pedido de Esteban): vive en el Layout, así que está en TODA la app y
  *  sobrevive al cambio de sección. Abajo a la derecha: la barra «Mensajes» (minimizada por defecto) y, a su izquierda,
  *  las ventanas de conversación —cada apertura nueva entra pegada a la barra, la fila crece hacia la izquierda—.
@@ -34,7 +55,10 @@ function onApiError(e: unknown) {
  *  Con Amigos apagado por la familia (o mientras no se sabe: patrón hide-until-known de useFeatures) NO existe; al
  *  apagarse se cierra todo. U4 · D4: es de los CHICOS — con un ADULTO activo no se monta (no tiene amigos chicos; su grafo
  *  está vacío): la regla vive en lib/social.ts. En Familia (/familia/*, la ex Zona de padres) no se muestra (las
- *  ventanas siguen vivas, ocultas). */
+ *  ventanas siguen vivas, ocultas).
+ *  En el TELÉFONO solo cambia la presentación (friends.css): la barra cerrada es un botón redondo con el total de no
+ *  leídos, la lista y la conversación van a pantalla completa y las minimizadas no se dibujan (se reabren desde la lista o
+ *  la campana). Lo de acá es lo que eso pide del foco y el teclado. El store y el reparto (fitDock) no cambian. */
 export function ChatDock() {
   const social = useSocial();
   const off = social === false;
@@ -117,8 +141,90 @@ function Dock() {
     return () => ro.disconnect();
   }, []);
 
+  /** El foco que quedó en la nada vuelve a la barra «Mensajes» (la lista, si quedó abierta, o el botón redondo). Pasa en
+   *  el teléfono al plegar o cerrar una conversación: la ventana minimizada no se dibuja y la lista de abajo recién vuelve
+   *  a verse después de pintar. Si el foco ya está en algún lado (siempre, en el escritorio), no hace nada. */
+  const rescueFocus = useCallback(() => {
+    requestAnimationFrame(() => {
+      const at = document.activeElement;
+      if (!at || at === document.body) bar.current?.focus({ preventScroll: true });
+    });
+  }, []);
   /** Cerrar una ventana que tenía el foco lo deja en la barra «Mensajes» (no se pierde en la página). */
-  const close = (id: string, hadFocus: boolean) => { closeChat(id); if (hadFocus) bar.current?.focus(); };
+  const close = (id: string, hadFocus: boolean) => { closeChat(id); if (hadFocus) { bar.current?.focus(); rescueFocus(); } };
+  /** Minimizar: la ventana le pasa el foco a su propia barra; a pantalla completa esa barra no se dibuja (teléfono) y el
+   *  foco va a la barra «Mensajes». */
+  const minimize = useCallback((id: string) => {
+    const full = isFullScreen(root.current);
+    minimizeChat(id);
+    if (full) rescueFocus();
+  }, [rescueFocus]);
+
+  // ¿A pantalla completa? Lo pinta el CSS: se lee después de cada render (abrir/plegar, y el ResizeObserver de arriba
+  // re-renderiza al cambiar el ancho) y se publica para el Layout. En Familia el dock está oculto: no cuenta.
+  useLayoutEffect(() => { publishFull(!parentZone && isFullScreen(root.current)); });
+  useEffect(() => () => publishFull(false), []);
+  const full = useDockFullScreen();
+  /** La pieza de ARRIBA a pantalla completa (la conversación, que tapa a la lista, o la lista): esa es el diálogo modal. En
+   *  el teléfono fitDock deja una sola conversación expandida. */
+  const topWin = full ? dock.wins.find((w) => !w.min && !dock.hidden.includes(w.id))?.id ?? null : null;
+  const listModal = full && !topWin && dock.listOpen;
+
+  // A pantalla completa lo demás queda tapado: Tab da la vuelta adentro de lo que está arriba (la conversación, que tapa a
+  // la lista, o la lista) y Esc pliega aunque el foco haya quedado en la nada (un toque en el hilo lo saca del campo). Con
+  // el foco adentro, Esc ya lo resuelven la ventana y la lista (y no llega acá). Con una hoja abierta (la del perfil, que
+  // maneja su teclado, o cualquier otra, que aparta al dock) o con el dock oculto, esto no hace nada.
+  // TODO Tab lo mueve el dock (QA-T1 H1/H2): preventDefault SIEMPRE y al siguiente/anterior de la lista por su posición en
+  // el documento, con vuelta. Antes solo se corregían los extremos y el resto quedaba al orden nativo: en Safari (Tab
+  // simple = solo campos) se escapaba al campo TAPADO de la página, y desde el avatar o el nombre (tabIndex -1, no están en
+  // la lista) Shift+Tab salía a la barra inferior.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = root.current;
+      if (e.defaultPrevented || (e.key !== 'Tab' && e.key !== 'Escape') || !el || !isFullScreen(el)
+        || document.querySelector('.shov') || getComputedStyle(el).visibility === 'hidden') return;
+      const top = el.querySelector<HTMLElement>('.fdk-win:not(.min):not([hidden])') ?? el.querySelector<HTMLElement>('.fdk-list.open');
+      if (!top) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        const id = top.dataset.friend;
+        if (id) minimize(id); else { setChatListOpen(false); rescueFocus(); }
+        return;
+      }
+      const els = [...top.querySelectorAll<HTMLElement>('button, input, select, textarea, a[href], [tabindex]')]
+        .filter((x) => x.tabIndex >= 0 && !x.matches(':disabled') && x.getClientRects().length > 0);
+      if (!els.length) return;
+      e.preventDefault();
+      const first = els[0], last = els[els.length - 1], at = document.activeElement;
+      let next: HTMLElement;
+      if (!(at instanceof HTMLElement) || !top.contains(at)) next = e.shiftKey ? last : first;
+      else {
+        const i = els.indexOf(at);
+        if (i >= 0) next = els[(i + (e.shiftKey ? els.length - 1 : 1)) % els.length];
+        else if (e.shiftKey) {
+          // el foco está adentro pero no en una parada de Tab: el último de la lista que va ANTES de él
+          const before = els.filter((x) => at.compareDocumentPosition(x) & Node.DOCUMENT_POSITION_PRECEDING);
+          next = before.length ? before[before.length - 1] : last;
+        } else {
+          next = els.find((x) => at.compareDocumentPosition(x) & Node.DOCUMENT_POSITION_FOLLOWING) ?? first;
+        }
+      }
+      next.focus();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [minimize, rescueFocus]);
+
+  // A pantalla completa, si la sección cambia por debajo ("Regalale ropa" → la Tienda, el atrás del teléfono), la lista y
+  // la conversación se pliegan para que se vea a dónde se fue; la conversación sigue viva, minimizada.
+  const lastPath = useRef(pathname);
+  useEffect(() => {
+    if (lastPath.current === pathname) return;
+    lastPath.current = pathname;
+    if (!isFullScreen(root.current)) return;
+    for (const w of dock.wins) if (!w.min) minimizeChat(w.id);
+    setChatListOpen(false);
+  }, [pathname, dock.wins]);
 
   // Las medidas salen de DOCK (lib/chatDock.ts): el reparto y el dibujo usan los mismos números. La ventana solo se
   // angosta si ni una sola entra al lado de la barra (pantallas muy chicas).
@@ -139,12 +245,12 @@ function Dock() {
       {dock.wins.map((w) => {
         const f = byId.get(w.id);
         return f ? (
-          <Conversation key={w.id} f={f} win={w} hidden={dock.hidden.includes(w.id)}
-            focusKey={dock.focus?.id === w.id ? dock.focus.n : 0} onClose={close} onProfile={() => openProfile(w.id)} />
+          <Conversation key={w.id} f={f} win={w} hidden={dock.hidden.includes(w.id)} modal={topWin === w.id}
+            focusKey={dock.focus?.id === w.id ? dock.focus.n : 0} onClose={close} onMinimize={minimize} onProfile={() => openProfile(w.id)} />
         ) : null;
       })}
       <ChatListBar me={user?.name ?? ''} friends={friends} failed={failed} open={dock.listOpen} wins={dock.wins} hidden={dock.hidden}
-        barRef={bar} onToggle={toggleChatList} onPick={openChat} onRetry={load} onFind={findPeople} />
+        modal={listModal} barRef={bar} onToggle={toggleChatList} onPick={openChat} onRetry={load} onFind={findPeople} />
       {profile && (
         <FriendProfileSheet key={profile.id} f={profile} onClose={closeProfile}
           onMessage={() => { closeProfile(); openChat(profile.id); }}
@@ -157,8 +263,9 @@ function Dock() {
 /** Una conversación del dock: trae el hilo y, mientras la ventana exista (abierta O minimizada), sondea lo nuevo; lo que
  *  llega con la ventana minimizada suma a su badge. Mandar pasa por la moderación en tiempo real del server (audio 24):
  *  si no sale, el mensaje NUNCA entra al hilo, el Moderador explica por qué y el texto queda en el campo. */
-function Conversation({ f, win, hidden, focusKey, onClose, onProfile }: {
-  f: Friend; win: DockWin; hidden: boolean; focusKey: number; onClose: (id: string, hadFocus: boolean) => void; onProfile: () => void;
+function Conversation({ f, win, hidden, modal, focusKey, onClose, onMinimize, onProfile }: {
+  f: Friend; win: DockWin; hidden: boolean; modal: boolean; focusKey: number; onClose: (id: string, hadFocus: boolean) => void;
+  onMinimize: (id: string) => void; onProfile: () => void;
 }) {
   const id = f.id;
   const [entries, setEntries] = useState<ChatEntry[]>([]);
@@ -215,7 +322,7 @@ function Conversation({ f, win, hidden, focusKey, onClose, onProfile }: {
 
   return (
     <ChatWindow f={f} entries={entries} typing={typing} sending={sending} minimized={win.min} unread={win.unread} hidden={hidden}
-      focusKey={focusKey} onSend={send} onMinimize={() => minimizeChat(id)} onRestore={() => openChat(id)}
+      modal={modal} focusKey={focusKey} onSend={send} onMinimize={() => onMinimize(id)} onRestore={() => openChat(id)}
       onClose={(had) => onClose(id, had)} onProfile={onProfile} />
   );
 }

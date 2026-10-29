@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../api';
 import type { Playlist } from '../../api/types';
+import { useReturnFocus, useVeil } from '../../sections/store/lib/sheet';
 import { IcListMusic } from './icons';
 
 /** Hoja "Agregar a una lista": listas del chico + crear una nueva (molde del ListPicker de LISTAS.md).
@@ -20,6 +21,8 @@ export function ListSheet({ open, videoId, onClose }: { open: boolean; videoId: 
     setDone(''); setAdded({}); setCreating(false); setName('');
     api.playlists(videoId).then(({ playlists }) => setLists(playlists)).catch(() => setLists([]));
   }, [open, videoId]);
+  const veil = useVeil(onClose, false, open);
+  useReturnFocus(undefined, open); // al cerrar, el foco vuelve a quien la abrió (antes quedaba en <body>)
 
   if (!open) return null;
 
@@ -44,7 +47,7 @@ export function ListSheet({ open, videoId, onClose }: { open: boolean; videoId: 
   };
 
   return (
-    <div className="shov show" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="shov show" role="dialog" aria-modal="true" onMouseDown={veil}>
       <div className="shcard">
         {done ? <p className="shdone">✓ {done}</p> : <>
           <h3 className="shtitle">Agregar a una lista</h3>

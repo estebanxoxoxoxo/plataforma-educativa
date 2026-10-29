@@ -44,7 +44,7 @@
 .ssub{padding:0 12px;color:#6A7390;font-weight:700;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .spcard .dmenu{position:absolute;right:6px;top:6px}
 .szoom{margin:0;max-width:min(860px,92vw);display:grid;gap:10px;justify-items:center}
-.szoom img{max-width:100%;max-height:72vh;border-radius:9px;box-shadow:0 24px 60px -20px rgba(0,0,0,.5)}
+.szoom img{max-width:100%;max-height:72vh;max-height:72dvh;border-radius:9px;box-shadow:0 24px 60px -20px rgba(0,0,0,.5)}
 .szoom figcaption{color:#fff;font-weight:700}
 
 /* ---- papelera ---- */
@@ -69,7 +69,9 @@
 
 /* ---- hojas (Guardar en… / Agregar a lista / formularios) ---- */
 .shov{position:fixed;inset:0;z-index:80;background:rgba(27,34,56,.45);display:grid;place-items:center;padding:20px}
-.shcard{width:min(440px,94vw);max-height:84vh;overflow:auto;background:#fff;border-radius:11px;padding:20px 22px;display:grid;gap:14px;box-shadow:0 24px 50px -16px rgba(27,34,56,.45)}
+/* 84dvh (con 84vh antes, de respaldo): en el teléfono 100vh es el viewport "grande" y la barra del navegador tapaba el pie
+   de la hoja; en el escritorio dvh = vh (no cambia nada). */
+.shcard{width:min(440px,94vw);max-height:84vh;max-height:84dvh;overflow:auto;background:#fff;border-radius:11px;padding:20px 22px;display:grid;gap:14px;box-shadow:0 24px 50px -16px rgba(27,34,56,.45)}
 .shtitle{margin:0;font-family:var(--display);font-weight:800;font-size:21px}
 .shdone{margin:10px 0;text-align:center;font-family:var(--display);font-weight:800;font-size:19px;color:#0B6B66}
 .sherr{margin:-6px 0 0;color:#D63B41;font-weight:700;font-size:13px}
@@ -100,3 +102,36 @@
 .shnew input{border:1px solid #D3D9E6;border-radius:7px;padding:9px 11px;font:700 14.5px var(--body);color:#1B2238}
 .shbtns{display:flex;align-items:center;gap:8px}
 .shbtns.end{justify-content:flex-end}
+
+/* ════ Teléfono (docs/RESPONSIVE.md §2.4, tanda T4) ════
+   Con @container app y el corte de base.css (640): en tablet y escritorio no cambia nada. Ojo: .shov/.shcard es el patrón
+   GLOBAL de las hojas (Buscar, MyTube, Tienda, Ligas, Familia, "Tu avatar"). */
+@container app (max-width:639.98px){
+  /* Hojas: el velo deja 16 px (el mismo aire de la columna) y la tarjeta nunca es más ancha que eso. Cada hoja pide
+     min(N px, 94vw) y, con el padding de 20, a 375 quedaba corrida (20 px a la izquierda, 2 a la derecha) y a 320 se
+     salía 1 px de la pantalla. La columna del velo va con minmax(0,1fr): con la pista implícita (auto) la pista crecía con
+     la tarjeta y el max-width:100% no tenía contra qué medirse. */
+  .shov{padding:16px;grid-template-columns:minmax(0,1fr)}
+  .shcard{max-width:100%}
+
+  /* Encabezado: Papelera / Carpeta nueva llenan la fila (y envuelven si no entran); los botones de la sección, a 44 */
+  .sphead{gap:12px}
+  .sphead-acts{flex:1 1 100%;flex-wrap:wrap}
+  .sphead-acts .sbtn{flex:1 1 auto;justify-content:center}
+  #v-space .sbtn{min-height:44px}
+
+  /* Carpetas de a dos (el ícono baja solo con su clamp); el menú ⋯ de la columna izquierda se abre hacia la derecha
+     (colgado del borde derecho de la tarjeta, sus 190 px se salían por la izquierda de la pantalla) */
+  .fgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .fgrid > :nth-child(odd) .dm-pop{right:auto;left:0}
+  /* la tarjeta con su menú abierto va arriba de las vecinas: el :hover (que en el teléfono queda pegado tras el toque) le
+     pone transform, eso la vuelve contexto de apilamiento y la tarjeta de al lado tapaba el menú */
+  .fcard-folder:has(.dm-pop),.spcard:has(.dm-pop){z-index:3}
+
+  /* Papelera: ícono y nombre arriba (hasta dos renglones), Restaurar / Borrar definitivo abajo llenando la fila: en una
+     sola línea los botones se salían de la tarjeta y el nombre quedaba a una palabra por renglón */
+  .trow{flex-wrap:wrap;gap:10px 12px;padding:12px 14px}
+  .tmeta{flex:1 1 calc(100% - 50px)}
+  .tmeta b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .trow .sbtn{flex:1 1 auto;justify-content:center}
+}

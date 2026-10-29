@@ -5,6 +5,7 @@ import {
   CLASSES, DAYS, DAYS_SHORT, HOURS, PLANS, calendarOf, dateLong, everyDay, familyIds, firstName, forWho, hourLabel, listEs,
   pickWho, planClasses, planLabel, slotsEvery, takenBy, usd, weeklyPrice, whoName, type People, type Tz,
 } from '../../../shared/lib/mentors';
+import { useVeil } from '../../store/lib/sheet';
 
 /** Estado de la hoja que maneja el contenedor (MentorResults):
  *  · plan   — cuántas clases por semana y para quién → "Contratar" (el pago del demo: instantáneo, sin cobrar nada).
@@ -65,6 +66,7 @@ export function MentorSheet({ mentor, me, people, taken, state, tz, onContract, 
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
+  const veil = useVeil(onClose, busy);
   const short = firstName(mentor.name);
   const head = state.phase === 'plan'
     ? { t: `Contratar a ${mentor.name}`, sub: `${mentor.subject} · ${usd(mentor.pricePerHour)} la hora` }
@@ -74,7 +76,7 @@ export function MentorSheet({ mentor, me, people, taken, state, tz, onContract, 
       : { t: `Clases con ${mentor.name}`, sub: `${mentor.subject} · ${planLabel(state.contract.daysPerWeek)}` };
 
   return (
-    <div className="shov smn-ov" onClick={(e) => { if (e.target === e.currentTarget && !busy) onClose(); }}>
+    <div className="shov smn-ov" onMouseDown={veil}>
       <div className="shcard smn-sheet" ref={card} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="smn-sh-t"
         aria-describedby="smn-sh-d" data-mentor-sheet={mentor.id} data-phase={state.phase}>
         <div className="smn-sh-head">

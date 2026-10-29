@@ -1,12 +1,18 @@
+import { hiddenNote, sinceText, timesText } from '../../../shared/lib/medals';
+import { useCycle } from '../lib/cycle';
 import { TYPE_LABEL, fmtFull, fmtNum, fmtWhen, isoOf } from '../lib/format';
 import type { ParentDashboard } from '../lib/types';
 import { PanelState } from './PanelState';
 
-/** "Actividad de {integrante}" (solo lectura): XP de la semana, Energy Coins, racha, qué está practicando y todo
- *  lo que guardó en Mi espacio con su carpeta. U4 (docs/USUARIOS.md §10): TODO es DEL INTEGRANTE elegido (antes, en U3,
+/** "Actividad de {integrante}" (solo lectura): XP de la semana, Energy Coins, racha, qué está practicando, sus MEDALLAS y
+ *  todo lo que guardó en Mi espacio con su carpeta. U4 (docs/USUARIOS.md §10): TODO es DEL INTEGRANTE elegido (antes, en U3,
  *  estos números eran compartidos y la nota lo avisaba); la nota ahora dice qué sigue siendo de la familia —el catálogo:
- *  las rutas de Aprender y el YouTube aprobado—. Pura: los datos llegan del contenedor. */
+ *  las rutas de Aprender y el YouTube aprobado—. U5-D (spec §5.5d): las medallas de la plataforma del integrante
+ *  (`dash.medals`, de U5-B): emoji + título + "Desde el…" (+ "×N"), SIN "Nueva" y sin filtrar por los candados: el adulto
+ *  ve todas, y las que el integrante no ve llevan la nota "(Ligas apagadas: Luna no la ve)". Los datos llegan del
+ *  contenedor; las fechas se escriben en la ZONA DE LA FAMILIA (useCycle().tz, la pared de la barra superior; QA-U5-E). */
 export function ActivityPanel({ kid, dash, failed, onRetry }: { kid: string; dash: ParentDashboard | null; failed: boolean; onRetry: () => void }) {
+  const tz = useCycle().tz;
   const c = dash?.continue ?? null;
   const pct = c ? Math.max(0, Math.min(100, Math.round((c.done / Math.max(1, c.total)) * 100))) : 0;
   return (
@@ -52,22 +58,59 @@ export function ActivityPanel({ kid, dash, failed, onRetry }: { kid: string; das
             )}
           </div>
 
+          {dash.medals && (
+            <div className="pz-block" data-block="medals">
+              <h4 className="pz-block-h">Medallas de {kid} <span className="pz-block-n">{dash.medals.length}</span></h4>
+              {dash.medals.length === 0 ? (
+                <p className="pz-muted">Todavía no ganó medallas.</p>
+              ) : (
+                <ul className="pz-dls pz-mds">
+                  {dash.medals.map((m) => {
+                    const since = sinceText(m.at, undefined, tz);
+                    const times = timesText(m.times);
+                    return (
+                      <li key={m.id} className="pz-dl" data-medal={m.id} data-hidden={m.hidden}>
+                        <span className="pz-emo" aria-hidden="true">{m.emoji}</span>
+                        <span className="pz-dl-main">
+                          <span className="pz-dl-title">
+                            {m.title}
+                            {times && <> <span className="pz-md-times"><span aria-hidden="true">{times}</span><span className="pz-sr">, {m.times} veces</span></span></>}
+                          </span>
+                          {(since || m.hidden) && (
+                            <span className="pz-dl-meta">
+                              {since}
+                              {since && m.hidden && ' '}
+                              {m.hidden && <span className="pz-md-hid">{hiddenNote(m.hidden, kid)}</span>}
+                            </span>
+                          )}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          )}
+
           <div className="pz-block">
             <h4 className="pz-block-h">Lo que guardó en Mi espacio <span className="pz-block-n">{dash.saved.length}</span></h4>
             {dash.saved.length === 0 ? (
               <p className="pz-muted">Todavía no guardó nada.</p>
             ) : (
               <div className="pz-table-wrap">
-                <table className="pz-table pz-table--saved">
+                {/* Teléfono (tanda T5): la tabla se apila (parent.css) y la carpeta muestra su data-label («Carpeta: …»). Los
+                    roles explícitos mantienen la tabla como tabla para el lector de pantalla aunque el CSS le cambie el display
+                    (Safari la deja de exponer si no). */}
+                <table role="table" className="pz-table pz-table--saved">
                   <colgroup><col /><col className="pz-c-type" /><col className="pz-c-folder" /><col className="pz-c-date" /></colgroup>
-                  <thead><tr><th scope="col">Título</th><th scope="col">Tipo</th><th scope="col">Carpeta</th><th scope="col">Fecha</th></tr></thead>
-                  <tbody>
+                  <thead role="rowgroup"><tr role="row"><th role="columnheader" scope="col">Título</th><th role="columnheader" scope="col">Tipo</th><th role="columnheader" scope="col">Carpeta</th><th role="columnheader" scope="col">Fecha</th></tr></thead>
+                  <tbody role="rowgroup">
                     {dash.saved.map((s, i) => (
-                      <tr key={`${s.createdAt}-${i}`} className="pz-tr">
-                        <td className="pz-td-main"><span className="pz-cell-title">{s.title}</span></td>
-                        <td>{TYPE_LABEL[s.type] ?? s.type}</td>
-                        <td className="pz-td-folder">{s.folder}</td>
-                        <td className="pz-td-date"><time dateTime={isoOf(s.createdAt)} title={fmtFull(s.createdAt)}>{fmtWhen(s.createdAt)}</time></td>
+                      <tr role="row" key={`${s.createdAt}-${i}`} className="pz-tr">
+                        <td role="cell" className="pz-td-main"><span className="pz-cell-title">{s.title}</span></td>
+                        <td role="cell" data-label="Tipo">{TYPE_LABEL[s.type] ?? s.type}</td>
+                        <td role="cell" className="pz-td-folder" data-label="Carpeta">{s.folder}</td>
+                        <td role="cell" className="pz-td-date" data-label="Fecha"><time dateTime={isoOf(s.createdAt)} title={fmtFull(s.createdAt, tz)}>{fmtWhen(s.createdAt, undefined, tz)}</time></td>
                       </tr>
                     ))}
                   </tbody>

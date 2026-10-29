@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useVeil } from '../../store/lib/sheet';
 
 /** Confirmación de /crear (patrón global .shov/.shcard): el confirm() del POC con el sistema visual de Innerith. Muestra el
  *  MISMO texto y devuelve sí/no; la acción sigue solo con "sí". Teclado: Esc = no, Tab queda adentro. En lo destructivo
@@ -32,9 +33,10 @@ export function ConfirmSheet({ text, confirmLabel = 'Aceptar', danger = false, o
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, []);
+  const veil = useVeil(() => onAnswer(false));
 
   return (
-    <div className="shov cr-ov" onClick={(e) => { if (e.target === e.currentTarget) onAnswer(false); }}>
+    <div className="shov cr-ov" onMouseDown={veil}>
       <div className={`shcard cr-cf${danger ? ' is-danger' : ''}`} ref={card} tabIndex={-1} role="alertdialog" aria-modal="true" aria-describedby="cr-cf-t">
         <p className="cr-cf-t" id="cr-cf-t">{text}</p>
         <div className="cr-cf-btns">

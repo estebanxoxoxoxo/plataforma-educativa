@@ -8,6 +8,10 @@ import { ChatBubble, type ChatMediaHandlers, type ChatMsg } from '../components/
 // Persisten mientras la app está abierta: lo que se ve y el contexto que se manda al backend.
 let chatHistory: ChatMsg[] = [];
 let context: ChatTurn[] = [];
+/** FS-BASE-B (hallazgo web.ts:6): el contexto que viaja se recorta a los últimos CONTEXT_MAX mensajes. El server usa solo los
+ *  últimos const.principalTurnos (12 de fábrica) y el juez, menos; antes crecía sin fin y, pasados los 200 KB del cuerpo,
+ *  CADA mensaje siguiente del chico rebotaba (500, ahora 413) hasta recargar. 40 deja margen de sobra sobre esos knobs. */
+const CONTEXT_MAX = 40;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export function ChatPage() {
@@ -37,7 +41,7 @@ export function ChatPage() {
       return;
     }
     // Contexto en cuarentena (Smarty RF-5.7): lo que entra a los próximos turnos lo decide el backend.
-    context = [...context, { role: 'user', content: reply.childContextText ?? q }, { role: 'assistant', content: reply.contextText }];
+    context = [...context, { role: 'user' as const, content: reply.childContextText ?? q }, { role: 'assistant' as const, content: reply.contextText }].slice(-CONTEXT_MAX);
     console.debug('[chat] decisión:', reply.kind, '·', reply.trace);
 
     // La respuesta ya pasó el juez completa; se revela de a poco solo por estética.

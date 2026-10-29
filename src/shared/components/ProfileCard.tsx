@@ -1,12 +1,16 @@
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type MouseEvent } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type MouseEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ApiError, api } from '../../api';
-import type { AvatarLook, Identity, User } from '../../api/types';
+import type { AvatarLook, EarnedMedal, Identity, MedalsResponse, User } from '../../api/types';
 import { useUser } from '../../hooks/user';
-import { MEDAL_INFO, lastWeekLabel, type Medal } from '../../sections/leagues/lib/cycle';
-import { useFeatures } from '../../sections/parent/lib/features';
+import { LEAGUE_WEEK_CLOSED, MEDAL_INFO, lastWeekLabel, type Medal } from '../../sections/leagues/lib/cycle';
+import { refreshFeatures, useFeatures } from '../../sections/parent/lib/features';
 import { isSectionOpen, refreshCycle, useCycle } from '../../sections/parent/lib/cycle';
+import { sheetOpener, useReturnFocus, useVeil } from '../../sections/store/lib/sheet';
+import { MEDALS_CHANGED, chipLabel } from '../lib/medals';
 import { ACCESSORIES, AVATAR_COLORS, AVATAR_VARIANT_COUNT, Avatar, accessoryById, avatarVariantName } from './Avatar';
+import { MedalsSheet } from './MedalsSheet';
 import { IcClose } from './icons';
 
 /* Identidad de Ian (visión §9: el avatar es un activo del chico). Su look lo ELIGE él y vive en el server
@@ -60,6 +64,31 @@ export function openAvatarPicker(accessory: string | null = null) {
   pickerListeners.forEach((l) => l());
 }
 
+/* ---------- abrir "Tus medallas" desde otra pantalla (U5-D: el "Ver tus medallas" de la noticia de una medalla nueva en el
+   Feed). Mismo patrón que openAvatarPicker: cada pedido sube el contador; la tarjeta lo atiende una vez. ---------- */
+let medalsAsk = 0;
+const medalsAskListeners = new Set<() => void>();
+const subscribeMedalsAsk = (l: () => void) => { medalsAskListeners.add(l); return () => { medalsAskListeners.delete(l); }; };
+/** Abre la hoja "Tus medallas" (la pila del usuario activo; al abrirla se marcan vistas). */
+export function openMedalsSheet() {
+  medalsAsk += 1;
+  medalsAskListeners.forEach((l) => l());
+}
+
+/** ¿Se le puede devolver el foco? (sigue en la página, se ve —en el teléfono el cajón cerrado está oculto— y no es el body) */
+const focusable = (el: HTMLElement | null): el is HTMLElement =>
+  !!el && el !== document.body && el.isConnected && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden';
+
+/** Dónde se montan las dos hojas del perfil ("Tu avatar" y "Tus medallas"): con un portal en la capa del shell (.app), FUERA
+ *  de la barra lateral (tanda SHELL-FIX; docs/RESPONSIVE.md §5, R-shell, opción A). En Safari/WebKit el container-type de
+ *  .side (la densidad por alto, shell.css) es bloque contenedor y contexto de apilamiento de los position:fixed de adentro
+ *  (en Chrome no): ahí las hojas quedaban presas del cajón cerrado del teléfono (x = −300, invisibles: la Tienda y el Feed
+ *  las abren con el cajón cerrado), de los 80 px del rail y, en escritorio, detrás del contenido. En .app y no en <body>
+ *  (los overlays de Learn sí van a <body>): así siguen dentro del contenedor app —valen las @container app de space.css y
+ *  medals.css para el teléfono— y, con ?stage, dentro del escenario escalado, como antes. Con el cajón abierto, shell.css
+ *  las sube arriba del cajón y de su velo. */
+const sheetLayer = (from: HTMLElement | null): HTMLElement => from?.closest<HTMLElement>('.app') ?? document.body;
+
 /** Las iniciales de Ian son las de siempre: amarillo con letra marrón (barra y fila "Vos" de Ligas). */
 const ME_COLOR = '#FFC23D';
 const ME_INK = '#5A3D00';
@@ -90,9 +119,13 @@ function useLastMedal(): Medal | null {
   const [medal, setMedal] = useState<Medal | null>(null);
   const [wake, setWake] = useState(0);
   useEffect(() => {
-    const onFocus = () => setWake((n) => n + 1);
+    // Al volver el foco, PRIMERO los candados (el padre pudo haber apagado Ligas mientras tanto) y recién después la liga:
+    // si no, salía un GET /api/leagues/mine con el candado viejo y volvía 403 (ruido en la consola). refreshFeatures está
+    // deduplicado (la lectura del foco de features.ts es la misma) y su render llega antes que este bump.
+    let alive = true;
+    const onFocus = () => { void refreshFeatures().finally(() => { if (alive) setWake((n) => n + 1); }); };
     window.addEventListener('focus', onFocus);
-    return () => window.removeEventListener('focus', onFocus);
+    return () => { alive = false; window.removeEventListener('focus', onFocus); };
   }, []);
   useEffect(() => {
     if (!ligas) { setMedal(null); return; }
@@ -103,14 +136,56 @@ function useLastMedal(): Medal | null {
   return medal;
 }
 
-/** Tarjeta de perfil del pie de la barra (la .profile de shell.css, ahora botón): avatar de Ian + nombre y edad.
- *  Tocarla abre "Tu avatar"; al guardar, el avatar nuevo aparece al instante (con un saltito). Sobre el avatar: la
- *  medallita de la semana pasada (abajo a la izquierda; la lapicera de editar vive abajo a la derecha). */
+/** Las medallas de la plataforma del usuario ACTIVO (U5-D; GET /api/medals de U5-B: solo las GANADAS que él ve —sin las de
+ *  un candado apagado— y `unseen`, las que todavía no vio en la hoja). Patrón de useLastMedal, un poco más ancho: se vuelve
+ *  a pedir al montar, en CADA cambio de pantalla (entrar y salir de Ligas incluidos, y volver de donde se ganó una: Mi
+ *  espacio, Aprender, Buscar), al volver el foco, cuando cambian los candados que esconden medallas (Ligas, Amigos), tras
+ *  cada cierre de liga (LEAGUE_WEEK_CLOSED, que Ligas dispara también con el cierre de la familia) y cuando el Feed avisa
+ *  que le llegó una noticia de medalla (MEDALS_CHANGED). Una respuesta vieja no pisa una más nueva (`seq`); si una lectura
+ *  falla, queda lo último que se supo (si nunca llegó nada, no hay chip). `apply` = una respuesta que llegó por la hoja. */
+function useMedals(): { data: MedalsResponse | null; apply: (r: MedalsResponse) => void } {
+  const path = useLocation().pathname;
+  const f = useFeatures();
+  const locks = f ? `${f.ligas}:${f.amigos}` : '';
+  const [data, setData] = useState<MedalsResponse | null>(null);
+  const [wake, setWake] = useState(0);
+  const seq = useRef(0);
+  useEffect(() => {
+    const bump = () => setWake((n) => n + 1);
+    window.addEventListener('focus', bump);
+    window.addEventListener(LEAGUE_WEEK_CLOSED, bump);
+    window.addEventListener(MEDALS_CHANGED, bump);
+    return () => {
+      window.removeEventListener('focus', bump);
+      window.removeEventListener(LEAGUE_WEEK_CLOSED, bump);
+      window.removeEventListener(MEDALS_CHANGED, bump);
+    };
+  }, []);
+  useEffect(() => {
+    const my = ++seq.current;
+    api.medals().then((r) => { if (my === seq.current) setData(r); }, () => { /* queda lo último que se supo */ });
+  }, [path, locks, wake]);
+  const apply = useCallback((r: MedalsResponse) => { seq.current++; setData(r); }, []);
+  return { data, apply };
+}
+
+/** Tarjeta de perfil del pie de la barra: la .profile de shell.css, que desde U5 es un DIV con dos botones hermanos (un
+ *  botón no puede llevar otro adentro). (1) El de siempre: avatar de Ian + nombre y edad → abre "Tu avatar"; al guardar, el
+ *  avatar nuevo aparece al instante (con un saltito). Sobre el avatar: la medallita de la semana pasada (abajo a la
+ *  izquierda; la lapicera de editar vive abajo a la derecha). (2) A la derecha, el chip de MEDALLAS "🏅 N" (U5-D, spec §5.5a)
+ *  con un puntito si hay alguna sin ver → abre la pila "Tus medallas" (MedalsSheet; también la abre openMedalsSheet desde el
+ *  Feed). Sin medallas el chip NO existe (ni un "0"). Estilos: avatar.css (idav-) y medals.css (mdl-).
+ *  Las dos hojas no se dibujan dentro de la barra: van con un portal a la capa del shell (sheetLayer). */
 export function ProfileCard({ user }: { user?: User }) {
   const { id } = useIdentity();
   const [open, setOpen] = useState<{ accessory?: string | null } | null>(null);
   const [saves, setSaves] = useState(0);
   const btn = useRef<HTMLButtonElement>(null);
+  const chip = useRef<HTMLButtonElement>(null);
+  const prof = useRef<HTMLDivElement>(null);
+  /** La capa de las hojas (sheetLayer): se resuelve al montar la tarjeta, antes de que nada pueda abrirlas. */
+  const [layer, setLayer] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => { setLayer(sheetLayer(prof.current)); }, []);
   const name = user?.name ?? id?.nick ?? '';
   const medal = useLastMedal();
   const info = medal ? MEDAL_INFO[medal] : null;
@@ -123,24 +198,85 @@ export function ProfileCard({ user }: { user?: User }) {
     handled.current = ask.n;
     setOpen({ accessory: ask.accessory });
   }, [ask]);
+  /** Al cerrar, el foco vuelve a quien la abrió (el avatar, o el "Ponérsela" de la Tienda) y si ese ya no se ve, al avatar
+   *  (si se ve): lo hace la hoja al irse (useReturnFocus). Antes iba siempre al avatar, que con el cajón del teléfono
+   *  CERRADO está oculto → el foco caía en <body>. */
   const close = (saved: boolean) => {
     setOpen(null);
     if (saved) setSaves((n) => n + 1);
-    btn.current?.focus();
   };
   const label = user ? `${user.name}, ${user.age} años${info ? `, ${info.name}: ${medalText}` : ''}. Cambiar tu avatar` : 'Cambiar tu avatar';
+
+  /* ---- las medallas: el chip y la hoja "Tus medallas" ---- */
+  const medals = useMedals();
+  const count = medals.data?.medals.length ?? 0;
+  const unseen = medals.data?.unseen ?? 0;
+  /** La pila que muestra ESTA apertura (con sus "Nueva": el "ya las vio" del server las borra recién para la próxima). */
+  const [sheet, setSheet] = useState<{ list: EarnedMedal[] | null; failed: boolean } | null>(null);
+  /** A quién devolverle el foco al cerrar: el que la abrió (el chip, o el botón de la noticia del Feed). */
+  const opener = useRef<HTMLElement | null>(null);
+  const sheetRun = useRef(0);
+  // Al abrir: la pila fresca (GET, con `fresh`) y DESPUÉS el "ya las vio" (POST /api/medals/seen: el puntito se va).
+  const loadSheet = async () => {
+    const run = ++sheetRun.current;
+    setSheet((s) => s && { list: s.list, failed: false });
+    try {
+      const r = await api.medals();
+      if (run !== sheetRun.current) return; // la cerraron mientras tanto: no se marca nada como visto
+      medals.apply(r);
+      setSheet((s) => s && { list: r.medals, failed: false });
+      medals.apply(await api.medalsSeen());
+    } catch {
+      if (run === sheetRun.current) setSheet((s) => s && (s.list ? s : { list: null, failed: true }));
+    }
+  };
+  const openSheet = () => {
+    // sheetOpener y no document.activeElement (QA-U5-E): Safari no enfoca el botón al clickearlo o tocarlo, así que el
+    // foco seguía en <body> y al cerrar iba al chip, o —en el teléfono, con el chip en el cajón cerrado— a la nada.
+    opener.current = sheetOpener();
+    setSheet({ list: medals.data?.medals ?? null, failed: false }); // lo último que se sabía, mientras llega lo fresco
+    void loadSheet();
+  };
+  const closeSheet = () => {
+    sheetRun.current++;
+    setSheet(null);
+    const back = opener.current;
+    opener.current = null;
+    (focusable(back) ? back : chip.current)?.focus();
+  };
+  // Pedidos de abrir la pila desde otra pantalla (openMedalsSheet): cada uno se atiende una sola vez.
+  const askMedals = useSyncExternalStore(subscribeMedalsAsk, () => medalsAsk);
+  const handledMedals = useRef(medalsAsk);
+  useEffect(() => {
+    if (askMedals === handledMedals.current) return;
+    handledMedals.current = askMedals;
+    openSheet();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [askMedals]);
+
   return (
     <>
-      <button ref={btn} type="button" className="profile idav-prof" onClick={() => setOpen({})} aria-haspopup="dialog"
-        title="Cambiar tu avatar" aria-label={label}>
-        <span className="idav-pav" key={saves} data-pop={saves > 0 || undefined}>
-          <MyAvatar name={name} />
-          {info && <span className="idav-medal" data-medal={medal} role="img" aria-label={`${info.name}: ${medalText}`} title={`${info.emoji} ${medalText}`}>{info.emoji}</span>}
-          <span className="idav-pen"><IcPencil /></span>
-        </span>
-        <div><b>{user?.name ?? '…'}</b><small>{user ? `${user.age} años` : ''}</small></div>
-      </button>
-      {open && <AvatarPicker name={name} current={id?.look ?? null} preset={open.accessory} onClose={close} />}
+      <div ref={prof} className="profile mdl-prof">
+        <button ref={btn} type="button" className="idav-prof mdl-me" onClick={() => setOpen({})} aria-haspopup="dialog"
+          title="Cambiar tu avatar" aria-label={label}>
+          <span className="idav-pav" key={saves} data-pop={saves > 0 || undefined}>
+            <MyAvatar name={name} />
+            {info && <span className="idav-medal" data-medal={medal} role="img" aria-label={`${info.name}: ${medalText}`} title={`${info.emoji} ${medalText}`}>{info.emoji}</span>}
+            <span className="idav-pen"><IcPencil /></span>
+          </span>
+          <div><b>{user?.name ?? '…'}</b><small>{user ? `${user.age} años` : ''}</small></div>
+        </button>
+        {count > 0 && (
+          <button ref={chip} type="button" className="mdl-chip" onClick={openSheet} aria-haspopup="dialog"
+            aria-label={chipLabel(count, unseen)} title="Tus medallas" data-unseen={unseen > 0 ? unseen : undefined}>
+            <span className="mdl-chip-em" aria-hidden="true">🏅</span>
+            <span className="mdl-chip-n" aria-hidden="true">{count}</span>
+            {unseen > 0 && <span className="mdl-dot" aria-hidden="true" />}
+          </button>
+        )}
+      </div>
+      {open && createPortal(<AvatarPicker name={name} current={id?.look ?? null} preset={open.accessory} onClose={close} backTo={() => btn.current} />, layer ?? document.body)}
+      {sheet && createPortal(<MedalsSheet medals={sheet.list} failed={sheet.failed} onRetry={() => void loadSheet()} onClose={closeSheet} />, layer ?? document.body)}
     </>
   );
 }
@@ -183,8 +319,12 @@ const SHORT: Record<string, string> = { vincha: 'Vincha', anteojos: 'Anteojos' }
 /** Hoja "Tu avatar" (patrón global .shov/.shcard): personaje (16 dibujados + Iniciales), color y ROPA, con vista previa.
  *  Radios nativos: flechas para moverse dentro de cada grupo, Tab entre grupos, Esc cierra, Tab queda adentro.
  *  Ropa: las prendas compradas (y la que ya tiene puesta) se eligen; las que no, llevan candado y llevan a la Tienda.
- *  `preset` = prenda ya elegida al abrir (cuando la abre la Tienda). */
-function AvatarPicker({ name, current, preset, onClose }: { name: string; current: AvatarLook; preset?: string | null; onClose: (saved: boolean) => void }) {
+ *  `preset` = prenda ya elegida al abrir (cuando la abre la Tienda). Al irse, el foco vuelve a quien la abrió o, si ya no
+ *  se ve, a `backTo` (el avatar de la tarjeta). */
+function AvatarPicker({ name, current, preset, onClose, backTo }: {
+  name: string; current: AvatarLook; preset?: string | null; onClose: (saved: boolean) => void; backTo: () => HTMLElement | null;
+}) {
+  useReturnFocus(backTo);
   const go = useNavigate();
   const [variant, setVariant] = useState<number | null>(current ? current.variant : null); // null = iniciales
   const [color, setColor] = useState<string>(current?.color ?? AVATAR_COLORS[0]);
@@ -241,9 +381,10 @@ function AvatarPicker({ name, current, preset, onClose }: { name: string; curren
   const wearing = draft?.accessory ? accessoryById(draft.accessory) : undefined;
   const caption = variant === null ? 'Iniciales' : `${avatarVariantName(variant)} · ${COLOR_NAMES[color] ?? ''}${wearing ? ` · ${wearing.name}` : ''}`;
   const pv = variant ?? lastV;
+  const veil = useVeil(() => onClose(false), busy);
 
   return (
-    <div className="shov idav-ov" onMouseDown={(e) => { if (e.target === e.currentTarget && !busy) onClose(false); }}>
+    <div className="shov idav-ov" onMouseDown={veil}>
       <div className="shcard idav-sheet" ref={card} role="dialog" aria-modal="true" aria-labelledby="idav-t" aria-describedby="idav-d">
         <div className="idav-top">
           <span className="idav-prev" key={`${variant}-${color}-${acc}`}>

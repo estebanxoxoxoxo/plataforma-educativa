@@ -21,6 +21,8 @@ type Props = {
   unread: number;
   /** No entra en la fila (minimizada y sin lugar): sigue viva pero no se dibuja. */
   hidden: boolean;
+  /** Es la pieza de arriba con el dock a PANTALLA COMPLETA (teléfono): se anuncia como diálogo modal (lo de atrás queda inert). */
+  modal?: boolean;
   /** Cambia cada vez que hay que llevar el foco al campo (abrir, reabrir o restaurar esta conversación). 0 = nada. */
   focusKey: number;
   /** true = el mensaje salió (se limpia el campo); false = no salió y el texto queda para reescribirlo. */
@@ -40,7 +42,7 @@ type Props = {
  *  sección, 12-oct, el perfil del amigo vive acá).
  *  Teclado: Esc adentro de la ventana la minimiza y el foco queda en su barra; abrirla o restaurarla lleva el foco
  *  al campo. El borrador sobrevive a minimizar (el componente sigue montado). */
-export function ChatWindow({ f, entries, typing, sending, minimized, unread, hidden, focusKey, onSend, onMinimize, onRestore, onClose, onProfile }: Props) {
+export function ChatWindow({ f, entries, typing, sending, minimized, unread, hidden, modal, focusKey, onSend, onMinimize, onRestore, onClose, onProfile }: Props) {
   const [text, setText] = useState('');
   const root = useRef<HTMLElement>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -76,7 +78,7 @@ export function ChatWindow({ f, entries, typing, sending, minimized, unread, hid
 
   return (
     <section ref={root} className={`fdk-win${minimized ? ' min' : ''}`} hidden={hidden} data-friend={f.id}
-      aria-label={`Conversación con ${f.nick}`} onKeyDown={onKey}>
+      role={modal ? 'dialog' : undefined} aria-modal={modal || undefined} aria-label={`Conversación con ${f.nick}`} onKeyDown={onKey}>
       <header className="fdk-head" onClick={minimized ? onRestore : minimize}>
         {minimized ? (
           <button ref={bar} className="fdk-who" type="button" aria-expanded={false} title={`Abrir la conversación con ${f.nick}`}

@@ -91,7 +91,9 @@
 .pz-switch[aria-busy="true"]{opacity:.75}
 
 /* ---- tablas (premios y guardados) ---- */
-.pz-table-wrap{overflow-x:auto;border:1px solid #E4E8F1;border-radius:10px}
+/* position:relative (T0, RESPONSIVE.md §1.3): el .pz-sr (absoluto) de adentro tiene que tomar este scroller como
+   referencia; si no, se escapaba y la VISTA entera scrolleaba de costado (Premios: 112 px a 768, 505 a 375). */
+.pz-table-wrap{position:relative;overflow-x:auto;border:1px solid #E4E8F1;border-radius:10px}
 .pz-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:14px}
 /* columnas fijas (colgroup): las tablas hermanas alinean; si no entra, scrollea .pz-table-wrap */
 .pz-table--items{min-width:720px}
@@ -192,7 +194,8 @@
 .pz-seg-opt.is-on{background:#fff;color:#1B2238;box-shadow:0 0 0 1.5px #2843A8}
 .pz-seg-opt:has(input:focus-visible){outline:3px solid var(--blue);outline-offset:2px}
 .pz-seg:disabled .pz-seg-opt{cursor:default;opacity:.6}
-@media (max-width:620px){ .pz-seg{grid-template-columns:minmax(0,1fr)} }
+/* (T5: era @media max-width:620; pasa al corte de teléfono del shell, @container app — RESPONSIVE.md §2.1) */
+@container app (max-width:639.98px){ .pz-seg{grid-template-columns:minmax(0,1fr)} }
 
 /* =================== Zona del padre v2: la configuración viva =================== */
 /* Mismo lenguaje: neutros + UN acento (#2843A8). Colores con significado solo donde lo hay (crisis = rojo apagado,
@@ -304,7 +307,9 @@
 .pz-alert-seen{font-size:12.5px;font-weight:800;color:#8A93AD}
 .pz-alerts-empty{padding:16px;border:1px dashed #D9DFEA;border-radius:10px;background:#FAFBFD}
 
-@media (max-width: 760px){
+/* (T5: era @media max-width:760; pasa al corte de tablet del shell, @container app: con el rail, entre 640 y 760 la acción
+   a la derecha dejaba poco texto; en escritorio, como siempre) */
+@container app (max-width:1023.98px){
   .pz-alert{grid-template-columns:auto minmax(0,1fr)}
   .pz-alert-act{grid-column:2}
 }
@@ -341,7 +346,9 @@
 .pz-ms-confirm{grid-column:2 / -1;display:grid;gap:8px;padding:12px;border-radius:8px;background:#F8F9FC;border:1px solid #E4E8F1}
 .pz-ms-confirm p{margin:0;font-size:13.5px;font-weight:700;line-height:1.45;color:#1B2238}
 .pz-ms-err{grid-column:2 / -1;margin:0;font-size:13px;font-weight:700;line-height:1.4;color:#B32D33}
-@media (max-width:760px){
+/* (T5: era @media max-width:760; pasa al corte de tablet del shell, @container app: con el rail, a 640 las dos acciones a
+   la derecha le dejaban ~126 px al texto) */
+@container app (max-width:1023.98px){
   .pz-ms{grid-template-columns:48px minmax(0,1fr)}
   .pz-ms-acts{grid-column:2;justify-content:flex-start}
 }
@@ -430,7 +437,8 @@
 .pz-panel-head h3 .pz-mem-fam{margin-left:8px}
 /* Avisos: "Solo {integrante}" / "Toda la familia" (el control segmentado del dial del Feed, de a dos) */
 .pz-mem-filter{grid-template-columns:repeat(2,minmax(0,1fr));max-width:420px}
-@media (max-width:620px){ .pz-mem-filter{grid-template-columns:repeat(2,minmax(0,1fr))} }
+/* (T5: era @media max-width:620; el corte de teléfono del shell: le gana a la columna única de .pz-seg) */
+@container app (max-width:639.98px){ .pz-mem-filter{grid-template-columns:repeat(2,minmax(0,1fr))} }
 .pz-mem-hint{flex-wrap:wrap}
 .pz-mem-hint .pz-link{padding:2px 6px}
 .pz-alert-who{padding:1px 8px;border-radius:6px;background:#EEF2FD;color:#1F3487;font-size:12px;font-weight:800;white-space:nowrap}
@@ -517,8 +525,223 @@
 .pz-cy-gap{flex:1}
 .pz-cy-msg{margin:-4px 0 0;min-height:20px;font-size:13.5px;font-weight:700;line-height:1.45;color:#25734A;overflow-wrap:anywhere}
 .pz-cy-msg.is-err{color:#B32D33}
-@media (max-width:620px){ .pz-cy-time{width:118px} .pz-cy-del{margin-left:0} }
+/* (T5: el viejo @media max-width:620 de las horas se fue: en el teléfono el tarjetón del rango es una grilla, abajo) */
 @media (prefers-reduced-motion: reduce){
   .pz-mt-dots,.pz-ad-x,.pz-cy-range,.pz-cy-sec{transition:none}
   .pz-mt-ov{animation:none}
+}
+
+/* ---- U5-D: medallas del integrante (Actividad) y el premio de la semana de la familia (Premios) ----
+   Las medallas usan la misma lista que los canjes (.pz-dls/.pz-dl); acá solo lo suyo. Prefijos grepeados: libres. */
+.pz-md-times{display:inline-block;padding:0 7px;border-radius:999px;background:#FFF1D6;border:1px solid #F2D9A8;color:#7F5300;font-size:12px;font-weight:800;line-height:1.5;vertical-align:1px;font-variant-numeric:tabular-nums}
+.pz-md-hid{font-weight:700;color:#8A5A00}
+/* la línea de solo lectura del premio de la semana de la familia (arriba de Premios; se elige en Ligas → Familia) */
+.pz-fprize{margin:0;display:flex;align-items:flex-start;gap:8px;padding:9px 12px;border-radius:10px;background:#FFF8E6;border:1px solid #F2D9A8;
+  font-size:13.5px;font-weight:700;line-height:1.45;color:#5A4300}
+.pz-fprize b{font-weight:800;color:#3D2E00}
+.pz-fprize-ic{flex:none;font-size:15px;line-height:1.3}
+
+/* =================== Teléfono y tablet (tanda T5, 29-oct; docs/RESPONSIVE.md §4.6) ===================
+   Familia operable con el dedo. Cortes del shell (base.css) con @container app: teléfono < 640 y tablet 640–1023; en
+   escritorio (≥ 1024) no cambia ni un píxel con la página quieta. Lo único que vale en todos los anchos no se ve en reposo:
+   la 1.ª columna fija de las tablas cuando se corren (con su sombra) y el anillo de foco del slider en Firefox.
+   Decisiones con la licencia de Esteban (el porqué, en el informe de la tanda):
+   · solapas: en el teléfono, UNA fila deslizable de fichas de 44 (envueltas eran 4 filas y el panel arrancaba en y≈378);
+     ParentHeader.tsx centra la activa y marca data-fade para esfumar el borde del lado donde quedan más solapas;
+   · tablas: en el teléfono se APILAN (cada fila, una tarjetita con todo a la vista y las acciones a mano; data-label y
+     roles ARIA en el TSX); desde 640 siguen siendo tablas con sus colgroup (las hermanas alineadas) y la 1.ª columna fija. */
+
+/* Un scroller horizontal con algo absoluto adentro lleva position:relative (RESPONSIVE.md §1.3; .pz-table-wrap ya lo tiene
+   desde T0). La fila de solapas además es la referencia del offsetLeft con el que ParentHeader centra la activa. */
+.pz-tabs{position:relative}
+
+/* ---- tablas: la 1.ª columna queda fija al correrlas (Premios: emoji + premio; Actividad: el título) ----
+   Sin scroll no se nota (escritorio igual); con la tabla corrida, lo demás pasa por debajo y no se pierde qué fila es. */
+.pz-table--items .pz-td-emo,.pz-table--items .pz-td-main,.pz-table--items thead th:first-child,
+.pz-table--saved .pz-td-main,.pz-table--saved thead th:first-child{position:sticky;left:0;z-index:1}
+.pz-table--items .pz-td-main{left:52px} /* = el ancho de la columna del emoji (.pz-c-emo) */
+.pz-table td.pz-td-emo,.pz-table td.pz-td-main{background:#fff}
+.pz-tr.is-fresh :is(.pz-td-emo,.pz-td-main){animation-name:pz-fresh-stick} /* el resaltado termina en blanco, no transparente */
+@keyframes pz-fresh-stick{0%,45%{background:#EAF0FE}100%{background:#fff}}
+/* el borde de la columna fija (una línea y una sombra corta hacia la derecha) va en un ::after: con border-collapse, el
+   box-shadow de una celda no se pinta. Aparece SOLO con la tabla corrida (animación ligada al scroll del wrap: sin scroll
+   —el escritorio— la línea de tiempo está inactiva y queda en opacity 0) */
+.pz-table--items .pz-td-main::after,.pz-table--items thead th:first-child::after,
+.pz-table--saved .pz-td-main::after,.pz-table--saved thead th:first-child::after{content:'';position:absolute;top:0;bottom:0;left:100%;
+  width:10px;pointer-events:none;background:linear-gradient(to right,rgba(27,34,56,.14),rgba(27,34,56,0));box-shadow:inset 1px 0 0 #E4E8F1;opacity:0}
+@supports (animation-timeline: scroll()){
+  .pz-table-wrap{scroll-timeline:--pz-tx x}
+  .pz-table--items .pz-td-main::after,.pz-table--items thead th:first-child::after,
+  .pz-table--saved .pz-td-main::after,.pz-table--saved thead th:first-child::after{animation:pz-stick-edge linear both;animation-timeline:--pz-tx;animation-range:0 24px}
+}
+@keyframes pz-stick-edge{to{opacity:1}}
+/* sin esas animaciones (Firefox, Safari viejo), en la tablet —donde Premios siempre se corre— queda la línea, fija */
+@supports not (animation-timeline: scroll()){
+  @container app (min-width:640px) and (max-width:1023.98px){
+    .pz-table--items .pz-td-main::after,.pz-table--items thead th:first-child::after,
+    .pz-table--saved .pz-td-main::after,.pz-table--saved thead th:first-child::after{opacity:1;background:none}
+  }
+}
+
+/* el slider con foco de teclado en Firefox (el anillo de WebKit ya estaba): solo con foco, en reposo nada cambia */
+.pz-range:focus-visible::-moz-range-thumb{box-shadow:0 0 0 4px rgba(40,67,168,.22)}
+
+/* ---- tablet y teléfono (< 1024): áreas de toque ≥ 24 (WCAG 2.5.8) en lo que medía menos ---- */
+@container app (max-width:1023.98px){
+  .pz-mt-ch > .back{min-height:44px} /* «‹ MyTube» de un canal: medía 17 de alto */
+  .pz-crisis-bar .pz-inline{display:inline-flex;align-items:center;min-height:32px} /* «Ver avisos»: 20 */
+  .pz-mem-hint .pz-link{min-height:32px} /* «Ver toda la familia»: 20 */
+  .pz-mt-maint-s{padding-block:10px} /* «Mantenimiento» (el summary): 18 */
+  .pz-mt-maint:not([open]){padding-top:6px;padding-bottom:6px}
+  .pz-ad-x{display:inline-flex;align-items:center;min-height:32px;padding:0 12px} /* «Quitar» de After Day: 23 */
+  /* la zona horaria de Límites: en WebKit (Safari, iPhone, iPad) el select nativo ignora padding y min-height (medía 23 de
+     alto). Sin la apariencia nativa los respeta; la flecha es propia. Tocarlo abre el selector nativo igual. */
+  .pz-tz-sel,.pz-tz-sel:disabled{-webkit-appearance:none;appearance:none;padding-right:36px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%2347506B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 12px center;background-size:14px 14px}
+  /* el switch de Funcionalidades es la acción principal de la vista: su área de toque llega a 44 de alto con un ::before
+     transparente (como .vbar::before en discover.css). El dibujo del switch —su borde y su fondo— no cambia (con padding
+     cambiaría: el borde ES el switch). */
+  .pz-switch::before{content:"";position:absolute;inset:-12px -4px -10px}
+}
+
+/* ---- escritorio (≥ 1024): los mismos controles que medían menos de 24 de alto llegan a 24 SIN mover el dibujo (padding
+   con margen negativo igual; «Quitar» de After Day, que es una píldora con fondo, con un borde transparente y el fondo
+   recortado al padding: la píldora se ve igual). Antes: Ver avisos 19,6 · Ver toda la familia 20 · Quitar 22,5 · ‹ MyTube 17 ·
+   Mantenimiento 18. ---- */
+@container app (min-width:1024px){
+  .pz-crisis-bar .pz-inline{padding-block:3px;margin-block:-3px}
+  .pz-mem-hint .pz-link{padding-block:4px;margin-block:-2px}
+  .pz-ad-x{border:1px solid transparent;background-clip:padding-box;margin:-1px;box-shadow:0 1px 6px -1px rgba(14,18,32,.22)}
+  .pz-mt-ch > .back{padding-block:4px;margin-block:-4px}
+  .pz-mt-maint-s{padding-block:3px;margin-block:-3px}
+}
+
+/* ---- teléfono (< 640) ---- */
+@container app (max-width:639.98px){
+  /* página y cabecera compactas: título, selector e integrante y las 11 solapas en una fila; el panel arranca arriba */
+  .pz-page{gap:12px}
+  /* la barra de crisis, más compacta (QA-T5: a 320 y con la nota de la familia el primer panel arrancaba en 413, más abajo
+     del primer pantallazo útil de 394): un párrafo con el ícono en la línea y «Ver avisos» al final del texto. Como fila
+     flexible, a 320 el ícono quedaba SOLO en su renglón, el texto en dos y el link en otro (108 px de barra). */
+  .pz-crisis-bar{display:block;padding:7px 12px;line-height:1.35}
+  .pz-crisis-bar svg{display:inline-block;vertical-align:-3px;margin-right:6px}
+  .pz-crisis-bar .pz-inline{margin-left:6px;vertical-align:middle}
+  .pz-head{gap:10px;padding-bottom:10px;box-shadow:inset 0 -1px 0 #E1E5EE}
+  .pz-head-top{gap:10px}
+  .pz-title{margin-top:2px;font-size:25px}
+  .pz-mem-note{margin-top:4px;font-size:12.5px;line-height:1.4}
+  /* el selector de integrante ocupa la fila: un chip por integrante, parejos (siguen de 44 de alto) */
+  .pz-mem{width:100%}
+  .pz-mem-opt{flex:1 1 140px;justify-content:center}
+  /* las solapas: UNA fila deslizable (receta de §2.4, como .ltabs/.mt-tabs/.tabs): sin barra, fichas de 44, la línea de abajo
+     pasa a la cabecera (no se esfuma con la fila), el contorno de foco hacia adentro (el scroller recorta lo que sale) y aire
+     de scroll para que una solapa enfocada con el teclado no quede debajo del borde esfumado */
+  .pz-tabs{flex-wrap:nowrap;gap:6px;padding:0;border-bottom:0;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;
+    scrollbar-width:none;scroll-padding-inline:40px}
+  .pz-tabs::-webkit-scrollbar{display:none}
+  .pz-tab{flex:none;min-height:44px;padding:0 14px}
+  .pz-tab:focus-visible{outline-offset:-3px}
+  .pz-tabs[data-fade="end"]{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 40px),transparent)}
+  .pz-tabs[data-fade="start"]{-webkit-mask-image:linear-gradient(to left,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(to left,#000 calc(100% - 40px),transparent)}
+  .pz-tabs[data-fade="both"]{-webkit-mask-image:linear-gradient(to right,transparent,#000 40px,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(to right,transparent,#000 40px,#000 calc(100% - 40px),transparent)}
+
+  /* panel, botones y campos: principales de 44, secundarios de 38, links-botón de 36; campos de 44 con letra de 16 (con
+     menos, iOS Safari agranda la página al enfocar el campo y no vuelve) */
+  .pz-panel{padding:18px 16px}
+  .pz-panel-head h3{font-size:18px}
+  .pz-panel-head--act > .pz-btn:not(.pz-btn--sm){flex:1 1 100%} /* «Publicar premio», «Buscar mentores»: a todo el ancho */
+  .pz-btn{min-height:44px}
+  .pz-btn--sm{min-height:38px}
+  .pz-link{display:inline-flex;align-items:center;justify-content:center;min-height:36px}
+  .pz-input:not(.pz-input--emoji),.pz-terms-add .pz-input{min-height:44px;font-size:16px}
+  .pz-form-btns > .pz-btn{flex:1 1 0}
+
+  /* Funcionalidades: nombre · estado · switch arriba, la descripción a todo el ancho y el "Guardado…" (o el error) en su
+     renglón. Antes ese mensaje vivía junto al switch sin poder partirse: al tocar un switch el texto quedaba en 0 px y el
+     switch salía de la lista (recortado). */
+  .pz-feat{display:grid;grid-template-columns:minmax(0,1fr) auto auto;grid-template-areas:"name state sw" "desc desc desc" "msg msg msg";
+    align-items:center;gap:0 10px;padding:14px}
+  .pz-feat-txt,.pz-feat-ctl{display:contents}
+  .pz-feat-name{grid-area:name}
+  .pz-feat-desc{grid-area:desc;margin-top:4px}
+  .pz-feat-state{grid-area:state;width:auto}
+  .pz-feat .pz-switch{grid-area:sw}
+  .pz-feat-msg{grid-area:msg;text-align:left}
+  .pz-feat-msg:not(:empty){margin-top:6px}
+  /* presets: «Aplicar» es la acción de la tarjeta, a todo el ancho */
+  .pz-preset{padding:14px}
+  .pz-preset-go{justify-self:stretch;min-height:44px}
+
+  /* Temas y palabras */
+  .pz-terms{padding:14px 14px 10px}
+  .pz-terms-add{max-width:none}
+  .pz-terms-add .pz-btn{min-height:44px}
+  .pz-chip{min-height:36px}
+  .pz-chip-x{width:30px;height:30px}
+
+  /* MyTube, un canal y After Day: el agregar apilado, sus botones a todo el ancho */
+  .pz-yt-ta + .pz-yt-row > .pz-btn,.pz-yt-desc + .pz-yt-row > .pz-btn,.pz-mus-add > .pz-btn{flex:1 1 100%}
+  .pz-mt-q{width:100%}
+  .pz-mus-url,.pz-mus-name{flex:1 1 100%}
+  /* las entradas de la familia (hoja ⋮ y vista de un canal): tipo + nombre/URL arriba, Reingestar · Eliminar abajo. Antes el
+     nombre y la URL quedaban en ~20 px ("C…") */
+  .pz-mt-entry{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 10px}
+  .pz-mt-entry-act{grid-column:1 / -1;justify-content:flex-end;gap:6px}
+
+  /* Límites: más alto el slider para el dedo; la zona horaria a todo el ancho */
+  .pz-lim{padding:14px 14px 8px}
+  .pz-range{height:32px}
+  .pz-tz-sel{width:100%;min-width:0}
+
+  /* Ciclo del día: el tarjetón del rango en grilla (el nombre arriba; Desde | Hasta parejos; Borrar a la derecha), fichas de
+     secciones de 40 y el pie apilado a todo el ancho con «Guardar ciclo» al final (al alcance del pulgar) */
+  .pz-cy-range{padding:14px}
+  .pz-cy-top{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .pz-cy-name{grid-column:1 / -1}
+  .pz-cy-time{width:100%}
+  .pz-cy-del{grid-column:1 / -1;justify-self:end;margin:0}
+  .pz-cy-sec{min-height:40px;padding:6px 12px}
+  .pz-cy-foot{display:grid;grid-template-columns:minmax(0,1fr)}
+  .pz-cy-gap{display:none}
+  .pz-cy-foot > .pz-yt-hint{text-align:center}
+
+  /* Avisos y Mentorías (las grillas de 2 columnas ya vienen del corte de tablet, más arriba) */
+  .pz-alert{padding:12px 14px;gap:10px 12px}
+  .pz-ms{padding:12px;column-gap:12px}
+  .pz-ms-confirm,.pz-ms-err{grid-column:1 / -1} /* la confirmación de «Cancelar», a lo ancho de la fila (en la columna del texto quedaba en ~210 px) */
+
+  /* Premios · canjes (y las medallas de Actividad, la misma lista): el texto a todo el ancho y la acción debajo, alineada
+     con el texto (al lado, el título y "🏆 De la liga de la familia · cerró el …" quedaban en ~120 px) */
+  .pz-dl{flex-wrap:wrap;column-gap:12px;row-gap:8px;padding:12px 14px}
+  .pz-dl-main{flex:1 1 calc(100% - 46px)}
+  .pz-dl > .pz-btn,.pz-dl > .pz-state{margin-left:46px}
+
+  /* Las tablas se APILAN: cada fila, una tarjetita (el emoji a la izquierda; título y descripción; precio · stock · estado;
+     las acciones abajo a la derecha). Sin scroll lateral ni columna fija. Los encabezados quedan para el lector de pantalla
+     (thead oculto a la vista; los roles del TSX mantienen la tabla como tabla). */
+  .pz-table--items,.pz-table--saved{min-width:0}
+  .pz-table,.pz-table tbody{display:block;width:100%}
+  .pz-table colgroup{display:none}
+  .pz-table thead{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
+  .pz-table tbody tr{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:12px 14px 12px 62px}
+  .pz-table tbody tr + tr{border-top:1px solid #EDF0F5}
+  .pz-table td{display:block;min-width:0;padding:0;border:0}
+  .pz-table td.pz-td-emo,.pz-table td.pz-td-main{position:static;background:none;animation:none}
+  .pz-table td.pz-td-main::after,.pz-table thead th::after{display:none} /* el borde de la columna fija: acá no hay columna fija */
+  .pz-table td.pz-td-emo{position:absolute;left:14px;top:12px}
+  .pz-table td.pz-td-main{flex:1 1 100%}
+  .pz-table td.pz-td-num{text-align:left}
+  .pz-table .pz-tr.is-fresh{animation:pz-fresh 2.6s ease}
+  .pz-table .pz-tr.is-fresh td{animation:none}
+  .pz-table td.pz-td-stock::before,.pz-table td.pz-td-folder::before{content:attr(data-label) ": ";content:attr(data-label) ": " / "";
+    font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#6A7390}
+  .pz-table td.pz-td-act{flex:1 1 100%;display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;white-space:normal}
+  .pz-td-act .pz-link{min-height:40px;padding:0 14px;border:1.5px solid #D3D9E6;border-radius:8px;background:#fff}
+  .pz-table--saved tbody tr{gap:2px 12px;padding:10px 14px}
+  .pz-table--saved td{font-size:13px}
+  .pz-table--saved td.pz-td-main{font-size:14px}
+
+  /* Actividad: los tres números, más juntos */
+  .pz-stat{padding:12px 14px}
+  .pz-stat dd{font-size:24px}
 }

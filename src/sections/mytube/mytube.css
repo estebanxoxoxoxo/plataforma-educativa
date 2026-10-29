@@ -148,10 +148,40 @@ i.mt-sk{height:12px;border-radius:4px}
 .mt-input:focus{outline:none;border-color:#F26B3A;box-shadow:0 0 0 3px rgba(242,107,58,.18)}
 .mt-sheet-btns{display:flex;justify-content:flex-end;align-items:center;gap:8px}
 
-@media (max-width: 760px){
-  .mt-vth{width:136px}
-  .mt-lth{width:96px}
-  .mt-chmeta h2,.mt-lhead h2{font-size:24px}
+/* ---- tablet y teléfono (contenedor app < 1024: RESPONSIVE.md §2.1). «‹ Volver» (canal y lista) medía 19 px de alto: área
+   táctil de 40 con margen negativo, así el texto y lo que sigue no se mueven. ---- */
+@container app (max-width:1023.98px){
+  .mt-view > .back{min-height:40px;padding:0 12px 0 8px;margin:-10px 0 -11px -8px}
+  /* foco hacia adentro: .mt-pl{overflow:hidden} recortaba el anillo del encabezado de la playlist */
+  .mt-pl-head:focus-visible{outline-offset:-3px}
+}
+/* ---- teléfono (contenedor app < 640; reemplaza al viejo @media de 760 px, que contaba con la barra de 240) ---- */
+@container app (max-width:639.98px){
+  /* solapas en fila deslizable (robusta a 320). El filete pasa a sombra interior y la tinta a bottom:0: con overflow, lo
+     que asoma 1 px abajo haría scroll vertical. El foco se dibuja hacia adentro para que el scroller no lo recorte. */
+  .mt-tabs{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;border-bottom:0;box-shadow:inset 0 -1px 0 var(--line)}
+  .mt-tabs::-webkit-scrollbar{display:none}
+  .mt-tab{flex:none;white-space:nowrap}
+  .mt-tab:focus-visible{outline-offset:-3px}
+  .mt-ink{bottom:0}
+  /* Canales y Mis listas: 2 columnas (más si entra). Antes, a 375 la grilla de 172 px mínimo daba UNA tarjeta por fila de
+     165 px de alto. Nombre a 14.5 px: el más largo sin espacios («KhanAcademyEspañol», 147 px) entra en un renglón. */
+  .mt-chgrid,.mt-lgrid{grid-template-columns:repeat(auto-fill,minmax(136px,1fr));gap:12px}
+  .mt-chcard{gap:6px;padding:14px 6px 12px}
+  .mt-chcard b{font-size:14.5px}
+  .mt-chav{width:56px;height:56px}
+  .mt-lnew{min-height:132px}
+  .mt-lcard b{padding:8px 10px 0;font-size:15px}
+  .mt-lcard small{padding:0 10px}
+  /* cabecera del canal: el nombre puede ir en dos renglones en vez de cortarse */
+  .mt-chmeta h2{font-size:24px;white-space:normal;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .mt-lhead h2{font-size:24px}
+  .mt-follow{min-height:40px}
+  /* filas de video y de lista: la miniatura sigue al ancho de la fila (a 320 el título conserva su lugar) */
+  .mt-vrow{gap:12px}
+  .mt-vth{width:clamp(112px,42%,172px)}
+  .mt-lth{width:clamp(72px,36%,124px)}
+  .mt-acts .mt-btn{flex:1 1 auto}
 }
 @media (prefers-reduced-motion: reduce){
   .mt-chcard,.mt-lcard,.mt-vth img,.mt-ink,.mt-ov{transition:none;animation:none}

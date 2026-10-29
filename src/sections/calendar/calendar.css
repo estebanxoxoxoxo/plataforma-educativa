@@ -96,12 +96,15 @@
 @keyframes cal-pulse{0%{box-shadow:0 0 0 0 rgba(184,55,43,.55)}100%{box-shadow:0 0 0 9px rgba(184,55,43,0)}}
 @keyframes cal-glow{0%,100%{filter:none}50%{filter:brightness(1.12)}}
 
-/* ---- ventanas angostas ---- */
+/* ---- ventanas angostas ----
+   La de 1100 sigue siendo @media A PROPÓSITO: actúa también en el escritorio (1024-1100: sin la hoja decorativa y con menos
+   aire) y pasarla a @container cambiaría cómo se ve en ?stage; queda anotada para decidir aparte. La de 900 ya es
+   @container app (mira el ancho de la app, como el resto; fuera del escenario es el mismo ancho). */
 @media (max-width:1100px){
   .cal-leaf{display:none}
   .cal-hero{padding:22px 24px 24px}
 }
-@media (max-width:900px){
+@container app (max-width:900px){
   .cal-hero-emo{width:84px;height:84px;border-radius:22px;font-size:46px}
   .cal-hero-title{font-size:26px}
   .cal-row{grid-template-columns:56px 40px minmax(0,1fr);row-gap:6px}
@@ -111,4 +114,24 @@
 @media (prefers-reduced-motion: reduce){
   .cal-hero-emo,.cal-live,.cal-hero.is-live .cal-chip,.cal-row,.cal-empty-spark,.cal-sk i{animation:none}
   .cal-more{transition:none}
+}
+
+/* ════ Teléfono (docs/RESPONSIVE.md §2.4, tanda T4) ════
+   Con @container app y el corte de base.css (640): en tablet y escritorio no cambia nada (las @media de arriba son de antes). */
+@container app (max-width:639.98px){
+  /* La próxima clase: el emoji baja de 84 a 60 y el texto gana ~40 px (a 375 el título iba en 3 renglones; a 320, en 4).
+     Si igual no entra (texto < 200 px), el texto pasa abajo del emoji (wrap) y usa todo el ancho. */
+  .cal-hero{flex-wrap:wrap;align-items:flex-start;gap:14px 16px;padding:20px 18px 22px;border-radius:14px}
+  .cal-hero-emo{width:60px;height:60px;border-radius:17px;font-size:34px}
+  .cal-hero-main{flex:1 1 200px}
+  .cal-hero-title{margin-top:6px;font-size:24px}
+  .cal-hero-when{margin-top:6px;font-size:16px}
+  .cal-chip{margin-top:14px;font-size:16px}
+  /* "Buscar mentores" (vacío del adulto) y "Reintentar": botones de 44 a todo el ancho */
+  .cal-empty{padding:30px 18px 28px}
+  .cal-more{min-height:44px;justify-content:center}
+  .cal-empty .cal-more{justify-self:stretch}
+  .cal-fail .cal-more{flex:1 1 100%}
+  /* filas: un poco menos de aire a los costados para que el título tenga más lugar */
+  .cal-row{grid-template-columns:52px 40px minmax(0,1fr);column-gap:12px;padding:10px 12px}
 }

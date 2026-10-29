@@ -1,11 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../../../api';
-import type { EcTx, Friend, MarketItem, Redemption } from '../../../api/types';
+import type { EcTx, FamilyWeekPrize, Friend, MarketItem, Redemption } from '../../../api/types';
 import { useUser } from '../../../hooks/user';
 import { openAvatarPicker, saveMyLook, useMyIdentity } from '../../../shared/components/ProfileCard';
 import { chatFriendsChanged, openChat } from '../../friends/lib/chatDock';
 import { useSocial } from '../../friends/lib/social';
+import { storePrizeFor } from '../../leagues/lib/familyWeek';
+import { useFeatures } from '../../parent/lib/features';
+import { FamilyPrizeBanner } from '../cards/FamilyPrizeBanner';
 import { RewardCard } from '../cards/RewardCard';
 import type { WearState } from '../cards/WardrobeCard';
 import { BuySheet, type BuyState } from '../components/BuySheet';
@@ -80,11 +83,34 @@ export function StorePage() {
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrolledTo = useRef<string | null>(null);
 
+  /* ---------- U5 (§3.3): el premio de la semana de la familia, para un CHICO que juega la liga de la familia ----------
+     Lectura aparte de la de la Tienda (no la tumba): GET /api/leagues/family; si el chico no está en la tabla o no hay
+     premio, no hay tarjeta. Con Ligas apagadas para él ni se pide (el server respondería 403: la tarjeta tampoco existiría).
+     Se pide en CADA carga de la Tienda (la primera, «Reintentar» y las recargas tras un canje, una compra o un regalo: antes
+     era una vez por montaje y un fallo la dejaba sin tarjeta toda la visita) y cuando cambia el candado. Si una lectura
+     falla queda lo último que se supo; una respuesta vieja no pisa una más nueva. */
+  const features = useFeatures();
+  const ligasOn = features?.ligas === true;
+  const isChild = user?.kind === 'child';
+  const [famPrize, setFamPrize] = useState<FamilyWeekPrize | null>(null);
+  const famOn = useRef(false);
+  useLayoutEffect(() => { famOn.current = ligasOn && isChild; });
+  const famSeq = useRef(0);
+  const loadPrize = useCallback(() => {
+    const n = ++famSeq.current;
+    if (!famOn.current) { setFamPrize(null); return; }
+    api.familyLeague().then(
+      (f) => { if (alive.current && n === famSeq.current) setFamPrize(storePrizeFor(f)); },
+      () => { /* queda lo último que se supo */ },
+    );
+  }, []);
+
   /** Trae todo del server. `first` muestra error si falla; las recargas silenciosas no tapan lo que ya hay. */
   const load = useCallback(async (first: boolean) => {
     const seq = ++loadSeq.current;
     const wishAtStart = wishSeq.current;
     if (first) setFailed(false);
+    loadPrize();
     const [m, r, t] = await Promise.allSettled([api.market(), api.redemptions(), api.ecTx()]);
     if (!alive.current || seq !== loadSeq.current) return; // una recarga más nueva (o un canje) manda
     if (m.status === 'rejected') { if (first) setFailed(true); return; }
@@ -96,7 +122,7 @@ export function StorePage() {
       // Si el chico tocó un corazón mientras esto viajaba, manda su toggle (más nuevo que esta lectura).
       wishOrder: prev && wishSeq.current !== wishAtStart ? prev.wishOrder : wishedOf(m.value.items),
     }));
-  }, []);
+  }, [loadPrize]);
 
   useEffect(() => {
     alive.current = true;
@@ -107,6 +133,13 @@ export function StorePage() {
       if (toastTimer.current) clearTimeout(toastTimer.current);
     };
   }, [load]);
+
+  // El candado (o quién es) cambió: el premio se vuelve a pedir. La primera corrida es la del montaje: ahí ya lo pidió load.
+  const lockSeen = useRef(false);
+  useEffect(() => {
+    if (!lockSeen.current) { lockSeen.current = true; return; }
+    loadPrize();
+  }, [ligasOn, isChild, loadPrize]);
 
   // Cada vista arranca arriba (la vista scrollea por dentro de .view).
   useEffect(() => { if (viewEl.current) viewEl.current.scrollTop = 0; }, [view]);
@@ -354,6 +387,7 @@ export function StorePage() {
                   </>
                 )}
               </div>
+              {famPrize && <FamilyPrizeBanner prize={famPrize} onGo={() => go('/ligas?tab=familia')} />}
               {premios.length > 0 ? (
                 <div className="st-grid">
                   {byPrice(premios).map((it) => (
@@ -364,6 +398,9 @@ export function StorePage() {
               ) : user?.kind === 'adult' ? (
                 /* U3-D1: el adulto no ve premios de los chicos; los suyos no existen. */
                 <p className="st-empty">Los premios viven en la cuenta de cada integrante: publicalos en Familia → Premios.</p>
+              ) : famPrize ? (
+                /* con el premio de la liga de la familia arriba, "todavía no publicaron premios" se contradecía */
+                <p className="st-empty">Todavía no hay premios para canjear con ⚡. El de arriba se gana en la liga de tu familia.</p>
               ) : (
                 <p className="st-empty">Papá y mamá todavía no publicaron premios. ¡Seguí juntando ⚡ mientras tanto!</p>
               )}

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, ApiError } from '../../../api';
-import type { NewMarketItem, Redemption } from '../../../api/types';
+import type { FamilyLeague, FamilyPrizeCondition, NewMarketItem, Redemption } from '../../../api/types';
 import { DeliveryRow } from '../cards/DeliveryRow';
 import { RewardRow } from '../cards/RewardRow';
 import { PanelState } from '../components/PanelState';
@@ -14,6 +14,37 @@ import type { ParentDashboard, ParentItemPatch, ParentItemView } from '../lib/ty
 
 type FormState = { mode: 'new' } | { mode: 'edit'; item: ParentItemView } | null;
 type Notice = { text: string; err?: boolean; undo?: () => void } | null;
+
+/** La condición del premio de la semana de la familia, como la dice la línea de solo lectura (spec §3.2). */
+const PRIZE_FOR: Record<FamilyPrizeCondition, string> = {
+  'supera-su-semana': 'para todos los que superen su semana',
+  'gana-la-semana': 'para el que gane la semana',
+};
+
+/** U5 (spec §3.2): arriba del panel, una línea de SOLO LECTURA con el premio de la semana de la liga de la familia (es de la
+ *  familia, no de un integrante: el mismo en el panel de cada chico) y el link a donde se elige, Ligas → Familia. Lee
+ *  `api.familyLeague()` al entrar; si falla, no hay línea. Sin premio, la misma línea dice que no hay y dónde se pone (salvo
+ *  que la liga de la familia no exista: con menos de dos integrantes jugando no hay solapa Familia). */
+function FamilyPrizeLine() {
+  const [fam, setFam] = useState<FamilyLeague | null>(null);
+  useEffect(() => {
+    let alive = true;
+    api.familyLeague().then((f) => { if (alive) setFam(f); }, () => { if (alive) setFam(null); });
+    return () => { alive = false; };
+  }, []);
+  const prize = fam?.prize ?? null;
+  if (!fam || (!prize && fam.rows.length < 2)) return null;
+  return (
+    <p className="pz-fprize" data-family-prize={prize ? 'on' : 'off'}>
+      <span className="pz-fprize-ic" aria-hidden="true">🏆</span>
+      <span>
+        Premio de la semana de la familia:{' '}
+        {prize ? <><b>{prize.emoji} {prize.title}</b> · {PRIZE_FOR[prize.condition]}</> : 'ninguno por ahora'}
+        {' · '}Se elige en <Link to="/ligas?tab=familia" className="pz-inline pz-inline--tight">Ligas → Familia</Link>
+      </span>
+    </p>
+  );
+}
 
 /** Panel "Premios de la Tienda": los canjes del integrante para entregar ("Ya se lo di"), los premios publicados
  *  (publicar, editar, archivar) y los archivados (reactivar). Archivar ≠ borrar: sale de la Tienda del
@@ -135,6 +166,8 @@ export function RewardsPanel({ kid, member, dash, failed, reload }: { kid: strin
         {form?.mode !== 'new' && <button type="button" className="pz-btn" onClick={openNew}>Publicar premio</button>}
       </header>
 
+      <FamilyPrizeLine />
+
       {tiendaOff && (
         <p className="pz-warn">
           La Tienda está apagada: {kid} no ve estos premios ni puede canjear. Podés prepararlos igual. <Link to={famTo('/familia', member)} className="pz-inline">Prenderla</Link>
@@ -196,13 +229,15 @@ function RewardTable({ rows, busy, fresh, onEdit, onArchive, onRestore }: {
 }) {
   return (
     <div className="pz-table-wrap">
-      <table className="pz-table pz-table--items">
+      {/* roles explícitos (tanda T5): en el teléfono la tabla se apila con CSS y Safari, al cambiarle el display, deja de
+          exponerla como tabla; con los roles el lector la sigue leyendo como tabla, con sus encabezados (RewardRow igual) */}
+      <table role="table" className="pz-table pz-table--items">
         {/* anchos fijos: "Publicados" y "Archivados" quedan con las columnas alineadas */}
         <colgroup><col className="pz-c-emo" /><col /><col className="pz-c-price" /><col className="pz-c-stock" /><col className="pz-c-state" /><col className="pz-c-act" /></colgroup>
-        <thead>
-          <tr><th scope="col" colSpan={2}>Premio</th><th scope="col" className="pz-th-num">Precio</th><th scope="col">Stock</th><th scope="col">Estado</th><th scope="col"><span className="pz-sr">Acciones</span></th></tr>
+        <thead role="rowgroup">
+          <tr role="row"><th role="columnheader" scope="col" colSpan={2}>Premio</th><th role="columnheader" scope="col" className="pz-th-num">Precio</th><th role="columnheader" scope="col">Stock</th><th role="columnheader" scope="col">Estado</th><th role="columnheader" scope="col"><span className="pz-sr">Acciones</span></th></tr>
         </thead>
-        <tbody>
+        <tbody role="rowgroup">
           {rows.map((it) => (
             <RewardRow key={it.id} it={it} busy={busy.includes(`item:${it.id}`)} fresh={fresh === it.id}
               onEdit={() => onEdit(it)} onArchive={() => onArchive(it)} onRestore={() => onRestore(it)} />

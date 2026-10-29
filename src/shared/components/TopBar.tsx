@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { Link } from 'react-router-dom';
-import { EC_CHANGED_EVT, api, setActingUser } from '../../api';
+import { ApiError, EC_CHANGED_EVT, api, setActingUser } from '../../api';
 import type { AssignedLeague, Friend, FriendRequest, UserInfo } from '../../api/types';
 import { useUser } from '../../hooks/user';
 import { chatFriendsChanged, openChat, useChatDock } from '../../sections/friends/lib/chatDock';
 import { useSocial } from '../../sections/friends/lib/social';
-import { useFeatures } from '../../sections/parent/lib/features';
+import { refreshFeatures, useFeatures } from '../../sections/parent/lib/features';
 import { useCycle } from '../../sections/parent/lib/cycle';
 import { wallClock } from '../lib/zonedClock';
 import { Avatar, lookFor } from './Avatar';
@@ -45,15 +45,23 @@ function clockParts(d: Date, tz?: string | null): { hm: string; date: string; fu
   return { hm: `${two(w.hour)}:${two(w.minute)}`, date, full };
 }
 
-/** Los popovers de la barra (campana y usuarios) se cierran con Esc o con un click afuera de su envoltorio. */
+/** Los popovers de la barra (campana y usuarios) se cierran con Esc, con un click afuera de su envoltorio y con «atrás» /
+ *  «adelante» del navegador (popstate; QA-T6 H-T6-6: la barra no se desmonta al cambiar de sección, así que la lista
+ *  quedaba abierta encima de la sección a la que se volvía —el «atrás» de Android—). */
 function useDismiss(open: boolean, ref: RefObject<HTMLElement | null>, setOpen: (v: boolean) => void) {
   useEffect(() => {
     if (!open) return;
     const down = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
     const key = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    const nav = () => setOpen(false);
     document.addEventListener('mousedown', down);
     document.addEventListener('keydown', key);
-    return () => { document.removeEventListener('mousedown', down); document.removeEventListener('keydown', key); };
+    window.addEventListener('popstate', nav);
+    return () => {
+      document.removeEventListener('mousedown', down);
+      document.removeEventListener('keydown', key);
+      window.removeEventListener('popstate', nav);
+    };
   }, [open, ref, setOpen]);
 }
 
@@ -92,17 +100,28 @@ export function TopBar() {
     ]);
     if (!alive.current) return;
     if (lg.status === 'fulfilled') setLeague(lg.value);
+    // 403 = el padre apagó Ligas desde otro lado y esta pestaña no se enteró: se re-leen los candados (una vez) y la liga
+    // se esconde con el candado nuevo (sin seguir pidiendo).
+    else if (lg.reason instanceof ApiError && lg.reason.status === 403) void refreshFeatures();
     if (pr.status === 'fulfilled') setEc(pr.value.ec);
     setRequests(rq.status === 'fulfilled' ? rq.value.requests : []);
     setFriends(fr.status === 'fulfilled' ? fr.value.friends : []);
   }, [ligasOn, amigosOn]);
+  /** El `load` de ESTE render (con los candados de ahora), para los que esperan a refreshFeatures antes de pedir. */
+  const loadRef = useRef(load);
+  useLayoutEffect(() => { loadRef.current = load; });
 
   useEffect(() => {
     alive.current = true;
     void load();
     const clock = setInterval(() => setNow(new Date()), CLOCK_MS);
     const poll = setInterval(() => void load(), POLL_MS);
-    const wake = () => { if (document.visibilityState === 'visible') void load(); };
+    // Al volver el foco, PRIMERO los candados y después lo demás: si no, salía un GET /api/leagues/mine con el candado
+    // viejo y volvía 403. El render con los candados nuevos llega antes que este .finally (loadRef ya es el nuevo).
+    const wake = () => {
+      if (document.visibilityState !== 'visible') return;
+      void refreshFeatures().finally(() => { if (alive.current) void loadRef.current(); });
+    };
     const closed = () => void load();
     window.addEventListener('focus', wake);
     document.addEventListener('visibilitychange', wake);

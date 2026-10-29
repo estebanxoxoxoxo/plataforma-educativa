@@ -7,8 +7,9 @@
 // Lee `cycle` + `demoRange` + `serverNow` + `tz` de GET /api/schedules (el campo viejo `schedules`, compat de F1, se retiró).
 // Singleton de módulo + useSyncExternalStore (el patrón de features.ts / limits.ts).
 // SE EVALÚA CON LA HORA DEL SERVER: cada lectura guarda el delta serverNow − Date.now() (al medio del viaje) y se evalúa con
-// Date.now() + delta, en la ZONA HORARIA DE LA FAMILIA (`tz` de la respuesta; sin zona, la del navegador —en el demo, la
-// misma máquina que el server—). Con OVERRIDE DE DEMO (`demoRange`, el selector "Ciclo (demo)" del Sidebar) se evalúa "como si
+// Date.now() + delta, en la ZONA HORARIA DE LA FAMILIA (`tz` de la respuesta) o, en "Automática" (tz null), en la del SERVER
+// (`serverTz`, FS-BASE-B: antes caía en la del navegador, que solo coincide si comparten máquina; ahora el menú y el 403
+// leen la misma pared). Solo un server sin `serverTz` deja la del navegador. Con OVERRIDE DE DEMO (`demoRange`, el selector "Ciclo (demo)" del Sidebar) se evalúa "como si
 // el reloj estuviera en ese rango" (la misma regla del server) y no hay "se abre a las…".
 // CÓMO SE ENTERA EL CHICO DE UN CAMBIO:
 //   1. Misma pestaña: Familia → Ciclo del día o el selector de demo publican la respuesta del server (adoptCycle) → menú y
@@ -30,14 +31,18 @@ import type { CycleRange, CycleResponse, SchedulesResponse, SectionKey } from '.
 import { SECTION_KEYS, minuteOfDay, opensAtToday, sectionAvailableAt } from '../../../shared/lib/cycleRules';
 import { sectionForPath } from './cycleSections';
 
-/** Lo que dice el server del ciclo de UN integrante (una SchedulesResponse o una CycleResponse, normalizadas). */
-export type MemberCycle = { member: string | null; ranges: CycleRange[]; demoRange: string | null; serverNow: number; tz: string | null };
+/** Lo que dice el server del ciclo de UN integrante (una SchedulesResponse o una CycleResponse, normalizadas). `tz` = la zona
+ *  de la familia TAL CUAL (null = Automática) · `serverTz` = la del server (null si no vino). */
+export type MemberCycle = { member: string | null; ranges: CycleRange[]; demoRange: string | null; serverNow: number; tz: string | null; serverTz: string | null };
 
 /** `ranges` null = todavía sin dato (todo disponible: fail-open) · `offset` = serverNow − Date.now() · `syncedAt` = cuándo se
  *  confirmó con el server · `sig` = qué secciones están disponibles (si cambia con el tick, re-render). */
 type Snap = {
   ranges: CycleRange[] | null; demoRange: string | null; member: string | null;
-  /** zona IANA de la familia (null = la local) */ tz: string | null;
+  /** La zona IANA EFECTIVA para leer la pared (FS-BASE-B): la de la familia o, en Automática, la del server (`serverTz`);
+   *  null = la del navegador (solo si el server no la mandó). La usan el menú, el reloj, el Feed, el Calendario y Mentores. */
+  tz: string | null;
+  /** La zona del server (de la última respuesta que la trajo): lo que rige cuando la familia vuelve a Automática. */ serverTz: string | null;
   offset: number; failed: boolean; syncedAt: number; sig: string;
 };
 
@@ -45,7 +50,7 @@ const TICK_MS = 30_000;
 /** Un dato más viejo que esto no alcanza para ENTRAR a una sección del ciclo: se confirma con el server. */
 const FRESH_MS = 15_000;
 
-let snap: Snap = { ranges: null, demoRange: null, member: null, tz: null, offset: 0, failed: false, syncedAt: 0, sig: '' };
+let snap: Snap = { ranges: null, demoRange: null, member: null, tz: null, serverTz: null, offset: 0, failed: false, syncedAt: 0, sig: '' };
 const listeners = new Set<() => void>();
 const emit = (next: Snap) => { snap = next; listeners.forEach((l) => l()); };
 const getSnap = () => snap;
@@ -68,13 +73,17 @@ export function toMemberCycle(x: unknown): MemberCycle | null {
     demoRange: typeof r.demoRange === 'string' && r.demoRange ? r.demoRange : null,
     serverNow: r.serverNow,
     tz: typeof r.tz === 'string' && r.tz ? r.tz : null,
+    serverTz: typeof r.serverTz === 'string' && r.serverTz ? r.serverTz : null,
   };
 }
+/** La zona con la que se lee la pared: la de la familia o, en Automática, la del server (FS-BASE-B). */
+export const effectiveTz = (tz: string | null | undefined, serverTz: string | null | undefined): string | null => tz || serverTz || null;
 
 /** Aplica el ciclo del usuario activo. `sentAt`/`gotAt` = el viaje: el delta se toma al medio (mitad de la latencia). */
 function adopt(c: MemberCycle, sentAt: number, gotAt: number) {
   const offset = c.serverNow - (sentAt + gotAt) / 2;
-  const next: Snap = { ranges: c.ranges, demoRange: c.demoRange, member: c.member, tz: c.tz, offset, failed: false, syncedAt: Date.now(), sig: '' };
+  const serverTz = c.serverTz ?? snap.serverTz;
+  const next: Snap = { ranges: c.ranges, demoRange: c.demoRange, member: c.member, tz: effectiveTz(c.tz, serverTz), serverTz, offset, failed: false, syncedAt: Date.now(), sig: '' };
   emit({ ...next, sig: sigOf(next.ranges, next.demoRange, minuteNow(next)) });
 }
 /** Re-evalúa con lo que hay (el tick): solo avisa si cambió qué está disponible. */
@@ -121,7 +130,7 @@ function openChannel() {
     const d = e.data as Msg | null;
     if (d?.kind === 'tz') { applyTz(d.tz); return; }
     const w = d?.kind === 'cycle' ? d.cycle : null;
-    const c = w && typeof w === 'object' ? toMemberCycle({ cycle: { ranges: w.ranges }, member: w.member, demoRange: w.demoRange, serverNow: w.serverNow, tz: w.tz }) : null;
+    const c = w && typeof w === 'object' ? toMemberCycle({ cycle: { ranges: w.ranges }, member: w.member, demoRange: w.demoRange, serverNow: w.serverNow, tz: w.tz, serverTz: w.serverTz ?? undefined }) : null;
     if (!c) return;
     if (c.member && c.member === actingUserId()) { version++; const now = Date.now(); adopt(c, now, now); }
     tellMembers(c);
@@ -144,9 +153,10 @@ export function adoptCycle(r: SchedulesResponse | CycleResponse) {
   try { bc?.postMessage({ kind: 'cycle', cycle: c } satisfies Msg); } catch { /* las otras pestañas se enteran con el tick */ }
 }
 
-/** La zona de la familia cambió: re-evalúa con ella (una lectura que salió antes ya no la pisa). */
+/** La zona de la familia cambió: re-evalúa con ella (una lectura que salió antes ya no la pisa). null = Automática: la del
+ *  server (FS-BASE-B). */
 function applyTz(raw: unknown) {
-  const tz = typeof raw === 'string' && raw ? raw : null;
+  const tz = effectiveTz(typeof raw === 'string' && raw ? raw : null, snap.serverTz);
   version++;
   const next = { ...snap, tz };
   emit({ ...next, sig: sigOf(next.ranges, next.demoRange, minuteNow(next)) });

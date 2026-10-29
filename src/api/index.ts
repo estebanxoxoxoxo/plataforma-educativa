@@ -4,7 +4,7 @@
 import type {
   ActivityResultInput, ActivityResultRow,
   AfterDayTrack, ArticleResponse, AuditFact, AuditResult, AvatarLook, CalendarEvent, ChatReply, ChatTurn, CloseWeekResult, ConnectResult, ContractResult, DriveFolder, DriveItem, DriveView,
-  CycleResponse, CycleSaveRequest, DefinitionRecipeData, DemoCycleRequest, EcTx, FamilyLeague, FeedMotion, FeedReaction, FeedResponse, FolderNode, FriendThread, Friend, FriendRequest, GiftResult, Identity, ImportBundleResult, LearnRouteData, LearnRouteListItem,
+  CycleResponse, CycleSaveRequest, DefinitionRecipeData, DemoCycleRequest, EcTx, FamilyCloseResult, FamilyLeague, FamilyPrizeOptions, FamilyPrizeRequest, MedalsResponse, FeedMotion, FeedReaction, FeedResponse, FolderNode, FriendThread, Friend, FriendRequest, GiftResult, Identity, ImportBundleResult, LearnRouteData, LearnRouteListItem,
   MentorPlan, MentorsResponse, MtAdminChannel, MtAdminState, MtChannelCard, MtChannelDetail, MtIngestResult, MtVideo, NewMarketItem, PeopleSearchResponse, RouteBundle, SendMessageResult,
   ParentActivity, ParentAlert, ParentConfig, ParentFeatures, ParentItemPatch, ParentPreset, ParentTopics, ParentVolume, ParentWords,
   AssignedLeague, GeoRanking, GeoScope, ImageResult, LeagueStanding, MarketItem, PageResult, Playlist, PlaylistDetail,
@@ -48,7 +48,8 @@ function ecBump<T>(p: Promise<T>): Promise<T> {
 
 /* ---------- Usuario ACTIVO (línea 14-oct, docs/USUARIOS.md §2) ----------
    DEMO: el switch de la barra superior guarda el id en localStorage['innerith.user'] (ÚNICO dueño de la clave: este
-   archivo) y TODA llamada a la API lo manda como cabecera X-Innerith-User; el server lo valida contra su seed
+   archivo) y TODA llamada a la API manda como cabecera X-Innerith-User el que se leyó AL CARGAR la página (fijo por
+   pestaña: el switch de otra pestaña no cambia el de esta hasta su próxima recarga); el server lo valida contra su seed
    (server/src/users.ts; desconocido o ausente → ian). Sin dato, o sin localStorage (modo privado, tests): 'ian', la app de
    siempre. Cambiar de usuario recarga la app SIN resetear la demo (U4, docs/USUARIOS.md §10: el reset de cada carga es del
    usuario activo y la carga que sigue al switch no lo hace; la marca de un solo uso vive en
@@ -59,9 +60,16 @@ const DEFAULT_USER = 'ian';
 /** sessionStorage: sobrevive al location.assign de la MISMA pestaña y muere con ella (una pestaña nueva o un F5 sin
  *  switch no la tienen: resetean al activo, como siempre). */
 const KEEP_KEY = 'innerith.keepDemo';
-/** El id del usuario activo (el que viaja en X-Innerith-User). */
-export function actingUserId(): string {
+/** El usuario activo de ESTA PESTAÑA, leído UNA vez al cargar la página. Antes se releía localStorage en cada pedido: el
+ *  switch hecho en OTRA pestaña (localStorage es compartido) cambiaba en silencio el usuario de esta, sin recargar (un chico
+ *  quedaba pidiendo como Andrés con la UI del chico). El switch propio igual recarga la página (setActingUser), así que la
+ *  carga siguiente lee el nuevo. */
+const PAGE_USER: string = (() => {
   try { return localStorage.getItem(USER_KEY) || DEFAULT_USER; } catch { return DEFAULT_USER; }
+})();
+/** El id del usuario activo de esta pestaña (el que viaja en X-Innerith-User): fijo durante toda la carga de la página. */
+export function actingUserId(): string {
+  return PAGE_USER;
 }
 /** Cambia el usuario activo y recarga la app desde el Feed (el switch de demo de la barra superior). U4: marca que la carga
  *  que sigue viene del switch, así NO resetea a nadie (la demo de la familia sigue donde estaba). */
@@ -256,10 +264,26 @@ export const api = {
   /** U4 · D2: la tabla de la SEMANA de la familia (grandes y chicos, por su XP de la semana, con su racha y su avatar
    *  elegido; `me` = quien mira). No es una liga de la escalera. Un chico con Ligas apagadas recibe 403. */
   familyLeague: () => http<FamilyLeague>('/api/leagues/family'),
+  /* U5 (docs/USUARIOS.md §12): la liga de la familia completa. Solo el ADULTO (D4) pone el premio y simula el cierre; un chico
+     recibe 403 con el motivo y los 400 traen el motivo REAL del server en `ApiError.reason` (la UI lo muestra tal cual). */
+  /** Los premios NO archivados de la Tienda de cada chico, para copiar uno como premio de la semana (solo adulto). */
+  familyPrizeOptions: () => http<FamilyPrizeOptions>('/api/leagues/family/prize-options'),
+  /** Pone (o reemplaza) el premio de la semana de la familia: copiado de la Tienda de un chico o "uno nuevo". */
+  setFamilyPrize: (req: FamilyPrizeRequest) => http<FamilyLeague>('/api/leagues/family/prize', req),
+  /** Quita el premio de la semana (rige al instante para todos). */
+  clearFamilyPrize: () => http<FamilyLeague>('/api/leagues/family/prize/clear', {}),
 
   /* ---- Demo vivo (botones "Simular…" — endpoints de demo del server fake) ---- */
   /** Cierra la semana de liga YA: congela tabla, medallas, re-asigna y arranca la semana nueva (XP → 0). */
   closeWeek: () => http<CloseWeekResult>('/api/leagues/close-week', {}),
+  /** U5 · D4: cierra YA la semana de TODA la familia (solo adulto): copa, marcas, premio a los ganadores (canje "de la liga")
+   *  y las ligas públicas de todos. `mine` = el cierre de la liga pública del que apretó. */
+  closeFamilyWeek: () => http<FamilyCloseResult>('/api/leagues/family/close-week', {}),
+
+  /* ---- Medallas (U5-B server, U5-D cliente): solo las GANADAS del activo (el catálogo no viaja nunca) ---- */
+  medals: () => http<MedalsResponse>('/api/medals'),
+  /** Marca todas como vistas (al abrir "Tus medallas"): las etiquetas "Nueva" se van en la próxima apertura. */
+  medalsSeen: () => http<MedalsResponse>('/api/medals/seen', {}),
   /** Los NPCs "viven" un rato: noticias frescas de logros en el feed. */
   simulateNpcs: () => http<SimulateNpcsResult>('/api/feed/simulate-npcs', {}),
 

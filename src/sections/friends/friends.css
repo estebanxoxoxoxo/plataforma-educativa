@@ -56,31 +56,37 @@
 
 /* ---- dock de mensajes (estilo LinkedIn; containers/ChatDock.tsx + lib/chatDock.ts), en TODA la app ----
    Una fila pegada al borde inferior: [ventanas, la más nueva a la derecha][barra «Mensajes»]; la fila crece hacia la
-   izquierda. La caja .fdk va del borde del menú (240 + 16) al borde derecho (16): el dock la mide y el store reparte el
-   lugar (minimiza las expandidas más viejas, encoge las barras con elipsis y, si ni así entran, oculta las minimizadas
+   izquierda. La caja .fdk va del borde del menú (--side-w + 16: 256 en escritorio, 96 con el rail de la tablet) al borde
+   derecho (16), y se apoya sobre la barra inferior del teléfono (--bnav-h; 0 fuera del teléfono). Los dos tokens los
+   define el shell (shell.css, .app); los fallbacks son el escritorio de siempre. El dock mide la caja y el store reparte
+   el lugar (minimiza las expandidas más viejas, encoge las barras con elipsis y, si ni así entran, oculta las minimizadas
    más viejas con un «+N» en la barra), así que nunca desborda ni tapa el menú. La caja no atrapa clics: solo sus piezas.
    Las medidas llegan como variables desde DOCK (lib/chatDock.ts): --fdk-gap, --fdk-bar, --fdk-win, --fdk-minw, --fdk-minmin.
+   En el TELÉFONO (< 640) cambia la presentación, no el reparto: botón redondo y pantalla completa (bloque del final).
    APILAMIENTO (medido en Edge): z 55 en la raíz. Queda por encima de TODO el contenido (.view es un contexto de apilamiento
    propio por su animación fadein con fill both: cuenta como z 0) y por debajo del panel del MiniPlayer (.mp-panel, 60) y
-   de las hojas .shov de la barra lateral (80: "Tu avatar"). Una hoja .shov que vive DENTRO de una vista ("Guardar en",
+   de las hojas .shov portaladas a .app (80: "Tu avatar", "Tus medallas"; 91 con el cajón abierto en el teléfono, desde
+   SHELL-FIX). Una hoja .shov que vive DENTRO de una vista ("Guardar en",
    listas, carpetas, canje de la Tienda) no puede quedar arriba por z-index (su contexto es .view): mientras haya una
-   abierta, el dock se aparta (regla :has de abajo). */
-.fdk{position:fixed;left:256px;right:16px;bottom:0;z-index:55;display:flex;align-items:flex-end;justify-content:flex-end;gap:var(--fdk-gap);pointer-events:none}
+   abierta, el dock se aparta (regla :has de abajo; en tablet y teléfono, con CUALQUIER hoja que no sea la del propio dock). */
+.fdk{position:fixed;left:calc(var(--side-w, 240px) + 16px);right:16px;bottom:var(--bnav-h, 0px);z-index:55;display:flex;align-items:flex-end;justify-content:flex-end;gap:var(--fdk-gap);pointer-events:none}
 .fdk[hidden]{display:none}
 .fdk > *{pointer-events:auto}
 .app:has(.main .shov) .fdk{visibility:hidden}
 
-/* una ventana: barra propia (avatar + nombre + estado o "escribiendo…", minimizar y cerrar) + el hilo + el campo */
-.fdk-win{flex:none;width:var(--fdk-win);height:min(480px,calc(100vh - 96px));min-width:0;display:flex;flex-direction:column;background:#fff;border:1.5px solid #E1E5EE;border-bottom:0;border-radius:12px 12px 0 0;box-shadow:0 -4px 36px -12px rgba(27,34,56,.38);animation:fdk-in .25s ease both}
+/* una ventana: barra propia (avatar + nombre + estado o "escribiendo…", minimizar y cerrar) + el hilo + el campo.
+   100dvh con 100vh de respaldo: en el escritorio valen lo mismo; en una tablet no cuenta las barras del navegador. */
+.fdk-win{flex:none;width:var(--fdk-win);height:min(480px,calc(100vh - 96px));height:min(480px,calc(100dvh - 96px));min-width:0;display:flex;flex-direction:column;background:#fff;border:1.5px solid #E1E5EE;border-bottom:0;border-radius:12px 12px 0 0;box-shadow:0 -4px 36px -12px rgba(27,34,56,.38);animation:fdk-in .25s ease both}
 .fdk-win[hidden]{display:none}
 /* minimizada: queda solo su barra; con poco lugar se encoge con elipsis hasta --fdk-minmin (y bien angosta deja solo
-   avatar + nombre: la línea de estado se va para que el nombre tenga lugar) */
-.fdk-win.min{flex:0 1 var(--fdk-minw);min-width:var(--fdk-minmin);height:auto;container-type:inline-size;transition:border-color .2s}
+   avatar + nombre: la línea de estado se va para que el nombre tenga lugar). Contenedor CON NOMBRE: desde que #root es el
+   contenedor app (RESPONSIVE.md §2.1) una consulta sin nombre podría ir a parar a otro. */
+.fdk-win.min{flex:0 1 var(--fdk-minw);min-width:var(--fdk-minmin);height:auto;container:fdk-min / inline-size;transition:border-color .2s}
 .fdk-win.min:hover{border-color:#D9CCFB}
 .fdk-win.min .fdk-head{gap:2px;padding:0 4px 0 8px}
 .fdk-win.min .fdk-who{gap:8px}
 .fdk-win.min .fdk-b{width:28px;height:28px}
-@container (max-width:170px){
+@container fdk-min (max-width:170px){
   .fdk-win.min .fdk-nm small{display:none}
 }
 .fdk-head{flex:none;height:48px;display:flex;align-items:center;gap:4px;min-width:0;padding:0 6px 0 10px;border-bottom:1px solid #EEF0F5;cursor:pointer;user-select:none}
@@ -106,12 +112,16 @@
 
 /* barra «Mensajes»: minimizada es una tira; desplegada, la lista de conversaciones (crece hacia arriba, mismo ancho) */
 .fdk-list{flex:none;width:var(--fdk-bar);display:flex;flex-direction:column;background:#fff;border:1.5px solid #E1E5EE;border-bottom:0;border-radius:12px 12px 0 0;box-shadow:0 -4px 30px -14px rgba(27,34,56,.34)}
-.fdk-list.open{height:min(480px,calc(100vh - 96px))}
+.fdk-list.open{height:min(480px,calc(100vh - 96px));height:min(480px,calc(100dvh - 96px))}
 .fdk-lhead{flex:none;width:100%;height:48px;display:flex;align-items:center;gap:10px;padding:0 6px 0 10px;border-radius:11px 11px 0 0;text-align:left;transition:background .2s}
 .fdk-lhead:hover{background:#F8F9FC}
 .fdk-list.open .fdk-lhead{border-bottom:1px solid #EEF0F5}
 .fdk-more{flex:none;height:22px;padding:0 8px;border-radius:11px;background:#EFE8FE;color:#5431B3;font-size:12px;font-weight:800;display:grid;place-items:center}
 .fdk-more.new{background:#E5487A;color:#fff}
+/* total de no leídos: SOLO lo dibuja el botón redondo del teléfono (ahí las minimizadas no se ven); en el resto, cada
+   barra minimizada muestra el suyo, así que acá no existe. (El nombre accesible del botón lo arma ChatListBar en su
+   aria-label: «Mensajes, 6 amigos, 5 mensajes nuevos».) */
+.fdk-tot{display:none}
 .fdk-chev{flex:none;width:32px;height:32px;display:grid;place-items:center;color:#47506B}
 .fdk-chev svg{width:18px;height:18px}
 .fdk-lbody{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin;padding:6px}
@@ -141,4 +151,74 @@
 @media (prefers-reduced-motion: reduce){
   .fdk-win.min{transition:none}
   .fdk-pov,.fdk-psheet,.fpbody,.fdk-win,.fm,.fmod,.fdk-sk i,.fdk-sk b{animation:none}
+}
+
+/* ════ El dock en la tablet y el teléfono (docs/RESPONSIVE.md §2.5–§2.6; tanda T1) ════
+   Mismos cortes que el shell (@container app, base.css): en el escritorio (≥ 1024) no cambia nada. El store y el reparto
+   (fitDock) no se tocan: con el ancho del teléfono ya deja UNA sola conversación expandida y todas las minimizadas
+   ocultas; acá solo cambia cómo se dibuja. */
+
+/* ── Tablet y teléfono (< 1024) ── */
+@container app (max-width:1023.98px){
+  /* la caja respeta el área segura lateral (la muesca con el teléfono acostado), igual que el shell (.app) */
+  .fdk{left:calc(var(--side-w, 240px) + 16px + env(safe-area-inset-left,0px));right:calc(16px + env(safe-area-inset-right,0px))}
+  /* con CUALQUIER hoja abierta que no sea la del propio dock (la del perfil de un amigo vive adentro de .fdk), el dock se
+     aparta: también "Tu avatar" y "Tus medallas" (desde SHELL-FIX van por portal a .app) y las que se montan en <body> */
+  body:has(.shov:not(.fdk .shov)) .fdk{visibility:hidden}
+  /* el campo ocupa todo el alto de la píldora (área táctil de 50 px; sin esto era una franja de 22, también en la tablet
+     táctil: tocar el borde de la píldora no enfocaba). El texto del input queda centrado igual. */
+  .fdk-win .fin input{align-self:stretch}
+}
+
+/* ── Teléfono (< 640): botón redondo + lista y conversación a PANTALLA COMPLETA ── */
+@container app (max-width:639.98px){
+  /* las minimizadas no se dibujan: sus no leídos suman a la insignia del botón y a la campana; se reabren desde la lista */
+  .fdk-win.min,.fdk-more{display:none}
+  /* el cajón abierto tapa todo con su velo: el botón no queda debajo, al alcance de Tab */
+  .app.is-nav-open .fdk{visibility:hidden}
+
+  /* la barra «Mensajes» cerrada = botón redondo de 56 px, 12 px arriba de la barra inferior (.view reserva 76 abajo):
+     tu avatar + la insignia con el total de no leídos. El nombre queda solo para lectores de pantalla; el chevron se va. */
+  .fdk-list:not(.open){width:56px;height:56px;margin-bottom:12px;border-bottom:1.5px solid #E1E5EE;border-radius:50%;box-shadow:0 8px 24px -8px rgba(27,34,56,.45)}
+  .fdk-list:not(.open) .fdk-lhead{position:relative;height:100%;padding:0;gap:0;justify-content:center;border-radius:50%}
+  /* MyAvatar trae su tamaño en línea (32): se agranda a ~42 sin pisarlo */
+  .fdk-list:not(.open) .fdk-lhead .av3{scale:1.3}
+  .fdk-list:not(.open) .fdk-nm{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
+  .fdk-list:not(.open) .fdk-chev{display:none}
+  .fdk-list:not(.open) .fdk-tot{position:absolute;top:-6px;right:-6px;display:grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:#E5487A;color:#fff;font-size:12px;font-weight:800;line-height:1;box-shadow:0 0 0 2px #fff}
+
+  /* algo abierto: el .fdk ENTERO sube a 95 (sus piezas no pueden salir de su contexto de apilamiento con un z-index
+     propio): queda arriba de la barra inferior, la TopBar y sus popovers, el velo y el cajón, y debajo de los overlays de
+     Learn (100+). --fdk-full avisa a ChatDock.tsx que está a pantalla completa (Tab no se escapa, Esc pliega, cambiar de
+     sección pliega): así el JS no repite cortes de ancho. */
+  .fdk:has(.fdk-list.open, .fdk-win:not(.min):not([hidden])){z-index:95;--fdk-full:1}
+  .fdk-list.open,.fdk-win:not(.min){position:fixed;inset:0 0 auto;width:auto;height:100vh;height:100dvh;
+    padding-inline:env(safe-area-inset-left,0px) env(safe-area-inset-right,0px);border:0;border-radius:0;box-shadow:none}
+  .fdk-list.open{z-index:1;animation:fdk-in .2s ease both}
+  .fdk-win:not(.min){z-index:2}
+  /* la conversación tapa a la lista: la lista sale del orden de Tab y de los lectores de pantalla (al terminar de entrar
+     la ventana, para que no se vea la página por debajo); al plegar la conversación vuelve al instante */
+  .fdk:has(.fdk-win:not(.min):not([hidden])) .fdk-list.open{visibility:hidden;transition:visibility 0s linear .25s}
+
+  /* cabeceras de 56 px más el área segura de arriba (viewport-fit=cover); botones de 44 */
+  .fdk-list.open .fdk-lhead,.fdk-win:not(.min) .fdk-head{height:calc(56px + env(safe-area-inset-top,0px));padding-top:env(safe-area-inset-top,0px);border-radius:0}
+  .fdk-list.open .fdk-lhead{padding-left:14px;padding-right:6px}
+  .fdk-list.open .fdk-chev{width:44px;height:44px}
+  .fdk-win:not(.min) .fdk-head{gap:2px;padding-left:12px;padding-right:4px}
+  .fdk-win:not(.min) .fdk-who .av3{width:36px;height:36px;font-size:16px}
+  .fdk-win:not(.min) .fdk-pname{line-height:24px}
+  .fdk-win:not(.min) .fdk-b{width:44px;height:44px;border-radius:10px}
+  .fdk-win:not(.min) .fdk-b svg{width:20px;height:20px}
+
+  /* el hilo y la lista no le pasan el arrastre a la página; el campo y su nota quedan sobre el área segura de abajo */
+  .fdk-win .fthread,.fdk-lbody{overscroll-behavior:contain}
+  .fdk-win .fin{height:54px;border-radius:27px}
+  /* (el campo a todo el alto de la píldora vive en el bloque < 1024, de arriba) */
+  .fdk-win .fin .send{width:44px;height:44px}
+  .fdk-win .fnote{padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+  .fdk-find{margin-bottom:calc(8px + env(safe-area-inset-bottom,0px))}
+
+  @media (prefers-reduced-motion: reduce){
+    .fdk-list.open{animation:none}
+  }
 }

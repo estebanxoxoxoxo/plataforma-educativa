@@ -13,5 +13,12 @@ const LEAGUE_ICONS: ReadonlySet<string> = new Set(['league', 'medal']);
 export function feedItemVisible(it: FeedItem, f: ParentFeatures | null): boolean {
   if (it.kind === 'league') return f?.ligas === true;
   if (it.kind === 'friend') return f?.amigos === true && (!LEAGUE_ICONS.has(it.icon) || f.ligas === true);
+  // U5-D: la noticia de una medalla PROPIA. Lo mismo que filtra el server al servir (feedFake.liveAllowed): la copa de la
+  // familia solo con Ligas y el primer amigo solo con Amigos; el resto no es social (es tuyo): siempre.
+  if (it.kind === 'medal') {
+    if (it.medal.id === 'semana-familia') return f?.ligas === true;
+    if (it.medal.id === 'primer-amigo') return f?.amigos === true;
+    return true;
+  }
   return true; // recomendaciones de contenido, el hero, la grilla y el resumen: no dependen de ningún on-off
 }

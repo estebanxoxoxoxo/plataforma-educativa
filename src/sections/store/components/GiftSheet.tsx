@@ -2,7 +2,7 @@ import { useRef, type CSSProperties } from 'react';
 import type { Friend, MarketItem } from '../../../api/types';
 import { Avatar, accessoryArticle, accessoryById, lookFor } from '../../../shared/components/Avatar';
 import { faltan, fmtEc, missingFor, tintFor } from '../lib/format';
-import { useSheetKeys } from '../lib/sheet';
+import { useSheetKeys, useVeil } from '../lib/sheet';
 
 export type GiftState =
   | { item: MarketItem; phase: 'pick' | 'busy'; friendId: string | null }
@@ -30,6 +30,7 @@ export function GiftSheet({ s, ec, friends, failed, onPick, onConfirm, onBack, o
   const card = useRef<HTMLDivElement>(null);
   const busy = s.phase === 'busy';
   useSheetKeys(card, s.phase, busy, onClose);
+  const veil = useVeil(onClose, busy);
   const { item } = s;
   const acc = accessoryById(item.accessoryId);
   const name = acc ? accessoryArticle(acc) : item.title.toLowerCase();
@@ -42,7 +43,7 @@ export function GiftSheet({ s, ec, friends, failed, onPick, onConfirm, onBack, o
   if (s.phase === 'done') {
     const f = s.friend;
     return (
-      <div className="shov st-ov" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="shov st-ov" onMouseDown={veil}>
         <div className="shcard st-sheet st-gsheet" ref={card} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="st-gift-t" aria-describedby="st-gift-d" data-sheet="regalo">
           <div className="st-done" role="status">
             <div className="st-sheet-art st-wsheet-art" style={tint}>
@@ -67,7 +68,7 @@ export function GiftSheet({ s, ec, friends, failed, onPick, onConfirm, onBack, o
 
   if (s.phase === 'error') {
     return (
-      <div className="shov st-ov" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="shov st-ov" onMouseDown={veil}>
         <div className="shcard st-sheet st-gsheet" ref={card} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="st-gift-t" aria-describedby="st-gift-d" data-sheet="regalo">
           <div className="st-sheet-art is-dim" style={tint}><span aria-hidden="true">{item.emoji}</span></div>
           <h3 className="st-sheet-q" id="st-gift-t">No se pudo regalar</h3>
@@ -82,7 +83,7 @@ export function GiftSheet({ s, ec, friends, failed, onPick, onConfirm, onBack, o
   }
 
   return (
-    <div className="shov st-ov" onClick={(e) => { if (e.target === e.currentTarget && !busy) onClose(); }}>
+    <div className="shov st-ov" onMouseDown={veil}>
       <div className="shcard st-sheet st-gsheet" ref={card} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="st-gift-t" aria-describedby="st-gift-d" data-sheet="regalo">
         <div className="st-sheet-art st-wsheet-art" style={tint} key={picked?.id ?? 'nadie'}>
           {picked
