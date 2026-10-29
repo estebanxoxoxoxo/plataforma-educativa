@@ -12,8 +12,8 @@ mentores o candados):** Ian (9, chico), Luna (12, chica; U3) y Andrés (adulto, 
 la config de cada chico es POR INTEGRANTE y Familia la elige con `?member=<id>`: USUARIOS.md §9). **Cada uno tiene lo suyo
 (U4, USUARIOS.md §10)**: XP/⚡/racha, canjes y guardarropas, wishlist, Learn, Mi espacio, liga, amigos y feed en vivo son POR
 USUARIO; de la familia quedan el catálogo aprobado, After Day, la config del padre y las mentorías. El usuario ACTIVO viaja en
-la cabecera `X-Innerith-User` (la pone `src/api/index.ts` desde `localStorage['innerith.user']`;
-server: `actingUser()` de `server/src/users.ts`); se cambia con el chip de la barra superior
+la cabecera `X-Innerith-User` (la pone `src/api/index.ts` desde `localStorage['innerith.user']`, leído UNA vez por carga
+de página: cada pestaña conserva su usuario hasta recargar; server: `actingUser()` de `server/src/users.ts`); se cambia con el chip de la barra superior
 (switch de demo: recarga la app SIN resetear la demo; el F5 resetea solo al activo — U4-C). **Los candados son del chico**: apagados de funcionalidades y
 el CICLO DEL DÍA (rangos horarios con las secciones de cada uno; reemplazó a los horarios por sección: USUARIOS.md §11) NO rigen
 para un adulto (server y cliente; `useFeatures()` ya devuelve todo prendido para él). La sesión de Familia es la del adulto activo (implícita; el PIN del server
@@ -74,20 +74,26 @@ quedó dormido y NUNCA se imprime).
    económico o de demo: hacelo con `perUser(seed)`, exponé `reset(userId?)` y registralo en ese endpoint. SÍ persisten, POR
    USUARIO: `space.json` v2, `wishlist.json` v2, `learn-results.json` v2, `identity.json` v2; y la config de la familia
    (`parent.json` v3 por integrante, `schedules.json` v3 —el Ciclo del día—, `teachers.json` v2, `music.json`, `mytube.json`). Los AVISOS al
-   padre viven en RAM y no entran en el reset.
+   padre PERSISTEN (FS-BASE-A: `alerts.json`, de la familia, 0600, ids que nunca se reusan) y no entran en el reset. La SEMANA DE LA LIGA DE LA FAMILIA (U5-A, `docs/USUARIOS.md` §12: historial,
+   premio del adulto, copas) también es RAM de la FAMILIA: el reset por usuario no la toca; solo `{scope:'all'}`
+   (`resetFamilyWeeks`) y reiniciar el server. Las MEDALLAS (U5-B, `server/src/medals.ts`) son RAM POR USUARIO sin archivo
+   (D3), DERIVADAS de hechos que cada módulo dueño registra (`registerMedalFacts`): si tu módulo mueve un hecho de una
+   medalla, llamá `ensureMedals(uid)` ANTES y `syncMedals(uid)` DESPUÉS (la noticia cae en el feed del dueño); entran en el
+   reset (`resetMedals`, AL FINAL, después de los demás).
    Detalle de lo persistido (tandas anteriores): `parent.json` v3 —members[id]: on-off de funcionalidades, premios de la
    Tienda, temas blancos/negros, palabras de la familia, topes de volumen, preset aplicado y dial del Feed; tz y PIN de la
-   familia; migra solo del v2 con respaldo .pre-v3—; `schedules.json` **v3** (tanda F1, 28-oct; `docs/USUARIOS.md` §11): el CICLO DEL DÍA
+   familia; migra solo del v2 con respaldo .pre-v3 (o .pre-v3-<ms> si ya había otro)—; `schedules.json` **v3** (tanda F1, 28-oct; `docs/USUARIOS.md` §11): el CICLO DEL DÍA
    de cada integrante `{version: 3, members: {[id]: {ranges}}}` —rangos horarios `{id, name, from, to, sections}`; reemplazó a los
-   horarios por sección (v2), que NO se convierten: el v2 queda UNA vez en `.pre-v3` y cada integrante arranca sin rangos; las
+   horarios por sección (v2), que NO se convierten: el v2 queda en `.pre-v3` (o `.pre-v3-<ms>`: nunca se saltea) y cada integrante arranca sin rangos; las
    reglas puras en `src/shared/lib/cycleRules.ts` —el MISMO código en server y cliente desde F2, como `zonedClock.ts`—; el editor es
    Familia → Ciclo del día y el selector «Ciclo (demo)» vive abajo del menú—; su override de demo ("estás en este rango", `POST /api/demo/cycle`) es RAM por
    usuario y SÍ entra en `/api/demo/reset`;
    `teachers.json` v2: CONTRATOS de mentorías —mentor + beneficiario + plan + días, más `seq` (contador de ids que solo
    crece: un id cancelado no se reusa; tanda B1); migra solo del v1— y las clases NO se guardan: se derivan al leer por
    slot, ancladas en la ZONA HORARIA DE LA FAMILIA (tz null = la del server) y la serie corre sola. U4: `space.json`,
-   `learn-results.json` y `wishlist.json` migran solos del v1 (todo a ian) con respaldo UNA vez en `.pre-v2`, y un archivo
-   ilegible queda como `.roto-<ms>` (no se pisa). (El switch que no resetea lo hace el cliente —U4-C—: `setActingUser` marca `sessionStorage['innerith.keepDemo']` y
+   `learn-results.json` y `wishlist.json` migran solos del v1 (todo a ian) con respaldo en `.pre-v2` (o `.pre-v2-<ms>` si ya
+   había otro), y un archivo ilegible —o con una `version` desconocida— queda como `.roto-<ms>` (no se pisa). FS-BASE-B: todo
+   lo de server/data se escribe con `server/src/durable.ts` (tmp + fsync + rename, disco ANTES que la RAM). (El switch que no resetea lo hace el cliente —U4-C—: `setActingUser` marca `sessionStorage['innerith.keepDemo']` y
    `consumeKeepDemo()` la consume en `src/hooks/user.tsx`, una vez por carga.)
    **Botones de demo ("Simular…")**: chip discreto con el prefijo CSS de su sección, que SOLO dispara
    un endpoint de demo del server fake (nada de lógica simulada en el cliente) y refetchea; el efecto

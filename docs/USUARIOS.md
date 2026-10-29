@@ -25,7 +25,8 @@
 
 - El cliente guarda el usuario activo en `localStorage['innerith.user']` (default `'ian'`: la app
   arranca como hoy). **TODA llamada a la API** lleva la cabecera **`X-Innerith-User`**
-  (src/api/index.ts la pone leyendo localStorage en cada llamada). El server la valida contra el
+  (src/api/index.ts lee localStorage UNA vez, al cargar la página —`PAGE_USER`—, y la pone en cada llamada: cada pestaña
+  conserva su usuario hasta su próxima recarga). El server la valida contra el
   seed (`actingUser(req)`; desconocida/ausente → `ian`).
 - **Switch**: chip en la TopBar (avatar + nombre del usuario activo + ícono de cambio), a la
   izquierda de la campana. Click → popover (mismo patrón que la campana) con los usuarios de
@@ -159,7 +160,8 @@ amigos, Drive, MyTube, Learn, lo social del Feed). **Desde U4 cada integrante ti
 - **De la FAMILIA** (lo cura el adulto): el catálogo de rutas de Learn (`/crear`), el YouTube aprobado (`mytube.json`: los
   videos que sumó la familia, sus canales y playlists de canal), After Day (`music.json`), la config de cada integrante y la
   de la familia (U3: `parent.json` v3 —tz y PIN dormido—, `schedules.json` v2), las mentorías (`teachers.json` v2: cada
-  contrato dice para quién es), los avisos al padre (RAM, etiquetados por chico) y la tabla de la semana de la familia
+  contrato dice para quién es), los avisos al padre (etiquetados por chico; PERSISTIDOS desde FS-BASE-A en `alerts.json`,
+  fuera del reset: un reinicio ya no borra una crisis sin ver) y la tabla de la semana de la familia
   (U4-B).
 - **GLOBAL** (el mundo del demo, igual para todos): el catálogo aprobado de videos, la lista blanca de sitios, la caché de
   artículos y sus veredictos (por huella de temas: U3), el mundo NPC (sus personas y noticias) y las anclas de zona y país.
@@ -204,8 +206,10 @@ era "del chico" es POR INTEGRANTE; lo de la familia queda una sola vez:
 **Persistencia (server/data, fuera del reset).**
 - `parent.json` **v3**: `{version: 3, seq, tz, pinHash, members: {[id]: {features, items, topics, extraWords, volume, preset, feedMotion}}}`.
   `seq` (próximo id de premio) es de la FAMILIA: los ids son únicos entre integrantes (canjes, stock y deseos no
-  saben de integrantes). Un v1/v2 migra solo: lo de antes pasa ENTERO a `ian` y el original queda UNA vez en
-  `parent.json.pre-v3` (un checkout viejo leería el v3 como "todo apagado" y lo reescribiría). Un dependiente sin
+  saben de integrantes). Un v1/v2 migra solo: lo de antes pasa ENTERO a `ian` y el original queda en
+  `parent.json.pre-v3` (un checkout viejo leería el v3 como "todo apagado" y lo reescribiría; FS-BASE-B: si ya había un
+  `.pre-v3` con OTRO contenido, el de ahora va a `.pre-v3-<ms>`, nunca se saltea). Una `version` desconocida (un "3" de
+  texto, un 4) es un archivo ilegible: queda entero en `.roto-<ms>` y arranca CERRADO. Un dependiente sin
   entrada nace con la config de FÁBRICA (todo prendido, sin temas ni palabras, topes 100, sin preset, dial normal) +
   una copia de los 8 premios demo con ids nuevos (Luna: 9–16). Ilegible → `.roto-*` y todos cerrados (fail-closed).
 - `schedules.json` **v2**: `{version: 2, members: {[id]: secciones}}` (sin entrada = sin horarios); el v1 migra a
@@ -314,8 +318,10 @@ integrante desde Familia.
   sin cambios. `types.ts` no se tocó.
 - **No tocado (fuera del terreno de M2)**: `StorePage.tsx` (la copy del adulto sin premios de la spec, ítem 8), `FeatureGate`,
   `ScheduleGate`, `Sidebar`, `TopBar` (el switch de demo), el server. Bordes: el link "Familia" del menú no lleva `?m=`
-  (vuelve al primer integrante); el multi-pestaña con usuarios distintos sigue sin soportarse (`innerith.user` es uno por
-  navegador: el BroadcastChannel etiquetado es para no CRUZAR configs, no para habilitarlo).
+  (vuelve al primer integrante); multi-pestaña con usuarios distintos: hoy cada pestaña conserva el usuario con que cargó
+  hasta su próxima recarga (`src/api/index.ts` lee `innerith.user` UNA vez por carga —`PAGE_USER`—; la clave sigue siendo
+  una por navegador, así que al recargar toma el último elegido en cualquier pestaña) y el BroadcastChannel etiquetado no
+  CRUZA configs entre ellas.
 
 ## 10. U4 — Cada uno lo suyo (28-oct)
 
@@ -349,7 +355,8 @@ movimientos, canjes y guardarropas (y, con U4-B, su grafo social, su ciclo de li
 todos (QA). Responde `DemoResetResult {ok, scope: 'user'|'all', user?}`. Cada carga de página lo dispara con la cabecera del
 activo (`src/hooks/user.tsx`), así que **la recarga de Luna no toca a Ian**. Que el SWITCH de usuario no resetee es del
 cliente (U4-C, hecho: `sessionStorage['innerith.keepDemo']`, ver "La UI (U4-C)" abajo). No entra en el reset lo persistido (Mi espacio, wishlist, Learn, identity, config del padre, mentorías,
-catálogos) ni los avisos al padre (RAM de la familia). Reiniciar el server = todos al seed (RAM), como siempre.
+catálogos) ni los avisos al padre (de la familia; persistidos en `alerts.json` desde FS-BASE-A, así que tampoco se van al
+reiniciar). Reiniciar el server = todos al seed (RAM), como siempre.
 
 **Seeds (lo que ve cada uno al arrancar).**
 
@@ -377,9 +384,10 @@ usuario del seed sin entrada en las tablas de seed arranca "nuevo": todo en cero
   está en el seed se conserva en disco y no se sirve.
 - Las tres migraciones v1 → v2 son PURAS (`server/src/userDataMigrate.ts`, tests en
   `server/src/__tests__/userDataMigrate.test.ts`; el mecanismo común en `__tests__/perUser.test.ts`). Al migrar, el texto
-  original queda UNA vez en `<archivo>.pre-v2` (si ya existe, no se pisa: es el de la primera migración); un archivo
-  ilegible queda como `<archivo>.roto-<ms>` y el módulo arranca vacío (antes `space.json` y `learn-results.json` se pisaban
-  en silencio con el próximo guardado).
+  original queda en `<archivo>.pre-v2` (si ya existe, no se pisa: es el de la primera migración; FS-BASE-B: si tenía OTRO
+  contenido, el de ahora va a `<archivo>.pre-v2-<ms>`); un archivo ilegible —o, en `space.json`, con una `version`
+  desconocida— queda como `<archivo>.roto-<ms>` y el módulo arranca vacío (antes `space.json` y `learn-results.json` se
+  pisaban en silencio con el próximo guardado).
 - ⚠ Un checkout viejo (pre-U4) con el server corriendo leería los v2 mal: `space.ts` viejo arrancaría vacío y REESCRIBIRÍA
   (Ian perdería su Drive → recuperarlo del `.pre-v2`), `learnResults.ts` viejo revienta al cargar, `market.ts` viejo vería la
   wishlist vacía. No hacer checkout de un commit pre-U4 con el server corriendo.
@@ -392,16 +400,20 @@ la liga). `parent.ts` se la presta a `progress.ts` con `setProgressTzSource` (co
 
 **Familia.** `GET /api/parent/activity?member=<id>` (misma forma): xp/⚡/racha/"está practicando"/lo guardado son DEL
 INTEGRANTE (antes, compartidos), además de sus premios, canjes y protecciones. `POST /api/parent/deliver?member` busca el
-canje en el slice de ese integrante (los ids de canje son por usuario: un canje de Ian con el mismo número no se toca).
+canje en el slice de ese integrante (un canje de otro integrante no se toca). FS-BASE-B: los ids de canje son un contador
+del PROCESO que solo crece (arranca en los segundos del reloj), así el F5 de un chico ya no los vuelve a 1 y el «Ya se lo
+di» de una lista vieja no entrega OTRO canje (responde «ese canje ya no existe»).
 Familia → YouTube: `followed` de cada canal = lo sigue ALGÚN integrante; borrar una entrada deja de seguir sus canales en
 TODOS los espacios. El chat de un ADULTO le habla por SU nombre y sin la ficha de Smarty de Ian (A7).
 
 **Bordes (U4-A).** "F5 a medias": quien recarga vuelve a su seed y los demás siguen con lo que hicieron (es lo que
-significa "tu F5 es tu demo nueva"). Dos pestañas con usuarios distintos siguen sin soportarse (`innerith.user` es uno).
+significa "tu F5 es tu demo nueva"). Dos pestañas con usuarios distintos: cada una conserva el usuario con que cargó hasta
+su próxima recarga (`PAGE_USER` de `src/api/index.ts`, leído una vez por carga; `innerith.user` sigue siendo uno por navegador).
 Dos QA con el MISMO usuario contra el mismo server se pisan (cada carga resetea a ese usuario). El guardarropas es RAM por
 usuario y el look puesto persiste (identity.json): tras recargar, alguien puede tener la gorra puesta y el guardarropas
-vacío (el borde de U1, ahora por usuario). Los guardados de Mi espacio y la wishlist conservan el debounce de 250 ms: un
-reinicio de `tsx watch` dentro de esa ventana pierde la última escritura (pasaba igual antes de U4).
+vacío (el borde de U1, ahora por usuario). Los guardados de Mi espacio y la wishlist se escriben ANTES de responder
+(FS-BASE-B: antes, con un debounce de 250 ms, un reinicio de `tsx watch` en esa ventana perdía la última escritura); si el
+disco falla, el cambio no rige y la ruta responde 500.
 
 <!-- U4-B (+ U4-B2): ligas por usuario (pools disjuntos), grafo social por usuario sobre un mundo NPC único, nombres de los
      NPCs y la tabla de la semana de la familia van acá abajo. U4-C (la UI) va al final de la sección. -->
@@ -449,7 +461,9 @@ medalla de un cierre no dice "la ven tus amigos" (no tiene).
 La ráfaga cambió A PROPÓSITO (ya no sale idéntica a la de U4): EXACTAMENTE 5 por toque, una de cada tipo —racha, insignia,
 unidad completada, ruta compartida del catálogo de Learn y la carrera de TU liga con XP real—, nunca dos del mismo tipo,
 protagonistas distintos dentro de la ráfaga (y otros que los de la anterior cuando se puede), sin repetir una noticia hasta
-agotar su tipo (Ian: 13 por tipo social) y al reciclar nunca lo de la ráfaga anterior. Sigue siendo POR USUARIO y de quien
+agotar su tipo (Ian: 13 por tipo social) y al reciclar nunca lo de la ráfaga anterior. FS-BASE-B: si esas reglas trababan
+una ráfaga (la 7.ª de Luna repetía a CataEstrella), ganan los protagonistas distintos: un tipo trabado recicla antes de
+agotarse lo mínimo indispensable (nunca lo de la anterior). Sigue siendo POR USUARIO y de quien
 ves (Luna: sus 4 amigas + FedeAjedrez). El pool (`NPC_NEWS`, re-tipado por tipo; sin los "va 2º en su liga", que no son
 ninguno de los 5) y `SHARERS` (cualquier NPC visible) viven en `server/src/feedMix.ts`, puro y con tests. Con Amigos apagado
 del chico, `POST /api/feed/simulate-npcs` → 403 (antes 200 `{added: 0}`); con Ligas apagado salen 4; el adulto (sin amigos
@@ -564,7 +578,9 @@ adulto, lo limpia el F5 del CHICO (no el del adulto).
 **Persistencia.** `server/data/schedules.json` **v3** `{version: 3, members: {[id]: {ranges: CycleRange[]}}}` (config del
 padre: fuera del reset; escritura atómica; sin entrada = sin rangos = todo disponible). Migración (`familyMigrate.ts:
 upgradeCycleRaw`, pura, con tests): un v1/v2 **NO se convierte** — una semana por sección no es "en este rango del día, estas
-secciones", y adivinar podría encerrar al chico —; el original queda UNA vez en `schedules.json.pre-v3` y cada integrante
+secciones", y adivinar podría encerrar al chico —; el original queda en `schedules.json.pre-v3` (FS-BASE-B: o en
+`.pre-v3-<ms>` si ya había otro; sin respaldo escrito no se reescribe nada; una `version` desconocida va entera a
+`.roto-<ms>`) y cada integrante
 arranca con `ranges: []` (en este repo: el v2 era `{ian: {}, luna: {}}`, sin horarios cargados; no se perdió nada). Al leer,
 lo raro de un archivo editado a mano se sanea hacia ABIERTO (`sanitizeStoredRanges`: horas inválidas → 24 h, secciones
 desconocidas afuera, ids/nombres nuevos) con aviso en el log; ilegible → `.roto-<ms>` y todo disponible. ⚠ Un checkout
@@ -576,10 +592,10 @@ pre-F1 con el server corriendo leería el v3 como un v1 y lo reescribiría como 
 ```
 CycleRange       {id, name, from, to, sections: SectionKey[]}
 CycleConfig      {ranges: CycleRange[]}
-CycleResponse    {cycle, member, serverNow, tz, demoRange}
+CycleResponse    {cycle, member, serverNow, tz, serverTz, demoRange}   (serverTz: ADITIVO de FS-BASE-B, ver abajo)
 CycleSaveRequest {ranges: (CycleRange con id opcional)[]}
 DemoCycleRequest {rangeId: string | null}
-SchedulesResponse {serverNow, tz, member, cycle, demoRange}   (sin `schedules`: la compat de F1 se retiró, ver abajo)
+SchedulesResponse {serverNow, tz, serverTz, member, cycle, demoRange}   (sin `schedules`: la compat de F1 se retiró, ver abajo)
 
 GET  /api/parent/cycle?member           (sesión del adulto)  → CycleResponse
 POST /api/parent/cycle?member {ranges}  (sesión)  → CycleResponse · la lista COMPLETA reemplaza a la anterior · 400 con motivo:
@@ -606,7 +622,10 @@ con el ciclo "congelado" en la forma vieja de W7 (`legacySnapshot`), para que el
 tocar `src/`. Desde F2 nadie lo lee y se retiró entero: el campo de la respuesta (`schedule.ts`), `legacySnapshot`/`LegacyDay`/
 `LegacySchedule` de `src/shared/lib/cycleRules.ts`, el bloque «compat» de `server/src/__tests__/cycleRules.test.ts`, lo que
 quedaba de `src/sections/parent/lib/scheduleRules.ts` y `schedules` + `DaySchedule`/`FeatureSchedule` de `src/api/types.ts`.
-Hoy la respuesta es SOLO `{serverNow, tz, member, cycle, demoRange}`. `POST /api/parent/schedules` sigue en 410.
+Hoy la respuesta es SOLO `{serverNow, tz, serverTz, member, cycle, demoRange}`. `serverTz` (FS-BASE-B, aditivo) = la zona
+IANA del server, la que rige con `tz` null ("Automática"): el cliente evalúa el menú, "descansando", el Calendario y Mentores
+con `tz ?? serverTz` (antes, con tz null, usaba la del NAVEGADOR y no coincidía con el 403 si estaban en zonas distintas).
+`POST /api/parent/schedules` sigue en 410.
 
 **Verificado (28-oct, dev del usuario).** tsc ambos + build + `npm test` (27 archivos, 283 tests: +29 de reglas del ciclo, +5
 de migración). Humo por API, 60/60: CRUD por integrante (ian y luna independientes; ajeno 400; chico 401), 400s de
@@ -737,3 +756,420 @@ curada sigue on-demand al abrir el canal), cacheada en `mytube.json`; espera com
 canales, 3 unidades, 151/151 con avatar. Los cambios sin
 guardar del Ciclo se pierden al cambiar de integrante o de solapa (el panel remonta; dice "Hay cambios sin guardar."). El
 multi-pestaña con usuarios distintos sigue sin soportarse (el BroadcastChannel solo evita cruzar ciclos de integrantes).
+
+## 12. U5 — La liga de la familia completa y las medallas (28-oct)
+
+> Spec del arquitecto: `docs/U5-LIGA-FAMILIAR-Y-MEDALLAS.md` (manda sobre esta sección; acá queda lo HECHO). Decisiones del
+> dueño (las 4 recomendaciones de su §10): **D1** el premio arranca preseleccionado "para todos los que superen su semana"
+> ("el que gane la semana" a un toque) · **D2** el reto cuenta "N de 7 días", no días seguidos (el server igual manda
+> `bestRun`) · **D3** medallas en RAM sembradas desde los hechos, sin `medals.json` · **D4** solo el ADULTO cierra la semana de
+> la familia y pone el premio. Tandas: **U5-A server de la liga + TODOS los contratos** (hecha, 28-oct: esta parte) → U5-B
+> server de medallas ∥ U5-C cliente de la liga → U5-D cliente de medallas → U5-E QA.
+
+<!-- U5-A abre la sección (modelo, contratos, seeds). U5-B, U5-C y U5-D suman su subsección AL FINAL, con anclas propias. -->
+
+**Modelo (U5-A).** La tabla de la familia de U4 (`GET /api/leagues/family`: adultos + chicos con Ligas prendidas, XP → racha →
+seed) pasa a tener **semana con estado de la FAMILIA**: una vez por familia, clave `users.familyKeyOf(id)` (el primer adulto
+guardián en el orden del seed; en el seed, `andres` para los tres), en RAM de `leaguesFake.ts` (regla 7: el ciclo semanal tiene
+UNA fuente) con `{weekStart, week, closedAt, prize, history (≤ 8, la más nueva primero), crowns}`. La lógica PURA del cierre
+vive aparte, en `server/src/familyWeek.ts` (con tests). La semana es la MISMA de la XP y del ciclo público: lunes 00:00 →
+domingo 23:59 en la zona de la familia (`parent.json` `tz`).
+- **Cierre** (`familyWeek.closeFamilyWeek`): orden de la tabla en vivo; marcas **solo positivas** — 🏆 `gano` (SOLO el 1.º,
+  con XP > 0 y ≥ 2 filas; empate en la punta: desempata racha → seed), ↑ `supero` (`prevXp !== null && xp > prevXp`, contra SU
+  semana anterior registrada; alcanzable por todos, adulto incluido) y ✨ `siete` (aprendió algo nuevo los 7 días) —; `total`
+  (la línea cooperativa "Entre todos sumaron N XP"); el resumen NO tiene puestos ni "último".
+- **Premio del adulto** (un TEXTO fijo: sin ⚡, sin sorteo, sin magnitud variable): copiado de un premio NO archivado de la
+  Tienda de un chico (lo prometido no cambia si después lo edita o archiva; no toca su stock) o "Uno nuevo" con la MISMA
+  validación de un premio de la Tienda (`parent.checkPrizeFields`, mismos textos). Condición `supera-su-semana` (cada chico con
+  ↑) o `gana-la-semana` (el o los chicos con la mayor XP entre los CHICOS; empate = los dos; 0 = nadie). **Solo los chicos
+  cobran**: si gana la tabla el adulto, el premio va al chico mejor ubicado. Con ganadores el premio se consume; **sin
+  ganadores sigue en juego** la semana siguiente. A cada ganador, un canje PENDIENTE en SU slice de la Tienda
+  (`market.grantFamilyPrize`: `itemId 0`, `price 0`, `origin: 'liga-familia'`, `closedAt`): aparece en `GET
+  /api/market/redemptions` del chico y en Familia (`activity.redemptions`), y lo entrega el MISMO `POST /api/parent/deliver`.
+  Ni al ponerlo, ni al ganarlo, ni al entregarlo se mueve un ⚡.
+- **Reto de constancia** ("¿quién aprende más días esta semana?"): `progress.ts` lleva `weekDays` (los días de la semana
+  abierta con aprendizaje NUEVO — el mismo evento que mueve la racha, `addXp` con monto > 0, marcado FUERA de `touchStreak`
+  para que tras un cierre simulado el mismo día la próxima posta cuente) → `days` (0-7) y `bestRun` en cada fila. Solo sube
+  dentro de la semana, arranca de cero en cada corte, nunca "se rompe" y no tiene premio propio.
+- **Todo corte de semana guarda la semana** (`progress.ts`): el lunes real (`rollWeek`, perezoso) y el cierre simulado
+  (`startNewWeek`) guardan `lastWeek = {weekStart, xp, days, prevXp}` antes de poner la XP en 0, y mueven los hechos de las
+  medallas (`pbWeeks` si superó su semana, `fullWeeks` con los 7 días; además `addXp` lleva `bestStreak` y `comebacks` —volver
+  tras ≥ 3 días de calendario—). Así el cierre de la familia, el de "Mi liga" y el lunes real dicen lo mismo.
+- **Cierre SIMULADO** (`POST /api/leagues/family/close-week`, solo adulto): foto de la tabla → premio → copa (`crowns[id]++`,
+  contador monotónico) → historial (`week++`, `closedAt`) → las ligas PÚBLICAS de TODOS los integrantes (`runAsUser(id,
+  closeWeek)` en el orden del seed, también los chicos con Ligas apagadas: cada uno su medalla de podio, su noticia en SU feed y
+  su `startNewWeek`) → (U5-B: medallas; está el comentario en el punto exacto) → `{closed, mine}`. Después la familia sigue el
+  calendario corrido del demo (`closesInDays` = 7 − días reales desde el cierre) y el cierre real perezoso queda apagado para
+  esa familia hasta `{scope:'all'}`.
+- **Cierre REAL, perezoso** (`leaguesFake.familyCloseIfDue`): lo dispara `index.ts` ANTES de rutear (y antes de los candados)
+  `/api/leagues/*`, `/api/parent/activity`, `/api/market/redemptions` y `/api/medals*` y —revisión de U5— el reset del activo
+  (`POST /api/demo/reset` sin `{scope:'all'}`; `server/src/demoReset.ts`): abrir la app resetea PRIMERO al que abre, así que la
+  foto se saca ANTES de re-sembrarlo (si no, tomaba su «semana pasada» del seed, que cae justo en la semana abierta) y lo que ese
+  cierre le da a él —el canje del premio, la copa (como Nueva)— entra DESPUÉS de su re-siembra; su «Superaste tu semana» de ese
+  corte, no (sale de su progreso en RAM, que su F5 re-siembra). Si no hubo cierre simulado y el lunes de
+  la familia ya pasó, cierra la semana que estaba abierta con el `lastWeek` de cada uno (si su `weekStart` coincide; si no,
+  entra con 0), reparte copa y premio y deja abierta la de hoy; `closedAt` = el lunes 00:00 de la familia que la cerró. Varias
+  semanas sin uso → se cierra UNA. Las ligas PÚBLICAS no cierran solas (backend futuro).
+- **Reset**: la semana de la familia es RAM de la FAMILIA (los avisos, que antes también lo eran, persisten desde FS-BASE-A): el F5 de un integrante (`POST /api/demo/reset` sin
+  cuerpo) NO la toca —solo cierra antes la semana que ya estaba pendiente, ver arriba—; `{scope:'all'}` (`resetFamilyWeeks()`) y
+  reiniciar el server la vuelven al seed.
+
+**Contratos (CONGELADOS por U5-A en `src/api/types.ts`; aditivos, los campos nuevos de tipos existentes van opcionales en el
+tipo y el server de U5 los manda SIEMPRE).** Tipos nuevos: `FamilyPrizeCondition`, `FamilyWeekPrize`, `FamilyWeekMark`,
+`FamilyWeekClosedRow`, `FamilyWeekClosed`, `FamilyCloseResult`, `FamilyPrizeOptions`, `FamilyPrizeRequest`, `MedalId`,
+`EarnedMedal`, `MedalsResponse`. Aditivos: `FamilyLeagueRow += {days, bestRun, prevXp, wonLastWeek?, prizeEligible?}`
+(`streakDays` NO se retira) · `FamilyLeague += {prize, history, canManage, week}` · `Redemption += {origin?, closedAt?}` ·
+`ParentActivity += {medals?}` (lo sirve U5-B). El kind `medal` de `FeedItem` lo sumó U5-B (aditivo; la tarjeta es de U5-D).
+Revisión de U5 (aditivo): `FamilyWeekClosed += {prizeInPlay?}` —el premio de ESA semana sigue en juego HOY (sin ganadores y es el
+vigente: mismo `setAt`); `prize.winners: []` solo dice que nadie lo ganó al cerrar—.
+
+```
+GET  /api/leagues/family                     → FamilyLeague (U4 + U5)          · chico con Ligas apagadas: 403 (U4, igual)
+POST /api/leagues/family/prize {FamilyPrizeRequest} → FamilyLeague (con el premio; reemplaza al anterior)
+       403 chico {error:'El premio de la semana lo pone un adulto de la familia.'}  · 405 con GET
+       400 {error}: 'Elegí para quién es el premio.' · 'Ese integrante no es de tu familia.' · 'Ese premio ya no está en la
+           Tienda de {nombre}.' · los de checkPrizeFields ('El título tiene que tener entre 2 y 60 caracteres.' · 'La
+           descripción admite hasta 140 caracteres.' · 'Elegí un emoji para el premio (por ejemplo 🎮).') · 'Ninguno de tus
+           chicos está jugando la liga de la familia (tienen Ligas apagadas).' · 'Pedido inválido (se esperaba JSON).'
+POST /api/leagues/family/prize/clear         → FamilyLeague (prize null)       · 403 chico (mismo texto) · 405 con GET
+GET  /api/leagues/family/prize-options       → FamilyPrizeOptions              · 403 chico (mismo texto) · 405 con POST
+POST /api/leagues/family/close-week          → FamilyCloseResult {closed, mine} · 405 con GET
+       403 chico {error:'El cierre de la semana de la familia lo hace un adulto.'}
+       400 {error:'La liga de la familia necesita al menos dos integrantes.'}
+GET  /api/market/redemptions                 → igual; incluye los canjes origin 'liga-familia' del activo
+GET  /api/parent/activity?member             → igual; sus redemptions incluyen el canje de la liga de M
+POST /api/parent/deliver?member {id}         → igual; entrega también un canje 'liga-familia' de M
+POST /api/demo/reset                         → igual; además, SOLO con {scope:'all'}, resetFamilyWeeks(); sin él, ANTES cierra la
+                                               semana de la familia si estaba pendiente (revisión de U5)
+```
+Orden de cada pedido a `/api/leagues/*`: 403 de Ligas apagadas del chico (todo `/api/leagues/family*` lo hereda) → las rutas
+de la familia (antes del 405 genérico) → lo de siempre. Un adulto nunca recibe 403 en nada de esto.
+
+**Seeds (tal como quedaron; para U5-C).** La "semana pasada" de la familia sale de `closeFamilyWeek` sobre el `lastWeek`
+SEMBRADO (`progress.seedLastWeekOf`, nunca el progreso vivo). Los días salen de `familyWeek.seedWeekDays(racha, díaDeLaSemana,
+deseado)`: dependen del DÍA de hoy (coherentes con la racha).
+
+| | Ian (9) | Luna (12) | Andrés (adulto) |
+|---|---|---|---|
+| Esta semana: XP · racha (U4, sin cambios) | 1.240 · 5 | 1.290 · 9 | 450 · 2 |
+| Esta semana: días (`days`) | min(5, día+1) — miércoles: 3 | día+1 — miércoles: 3 | min(2, día+1) — miércoles: 2 |
+| Semana pasada del seed (`prevXp`) · días | 1.180 · 6 | 1.350 · 7 lunes/martes, 6 de miércoles a domingo | 300 · 3 |
+| En el historial sembrado | — | 🏆 (+ ✨ un lunes o martes) | — |
+| En vivo, contra su semana pasada | ↑ ya superada (1.240 > 1.180) | le faltan 61 XP (la UI no lo dice) | ↑ ya superada (450 > 300) |
+| Hechos de medallas fijos (`bestStreak · comebacks · pbWeeks · fullWeeks`) | 5 · 0 · 0 · 0 | 9 · 0 · 0 · 1 | 2 · 0 · 0 · 0 |
+| Copas (`crowns`) | 0 | 1 | 0 |
+
+Historial sembrado: `[{week: 0, simulated: false, total: 2830, prize: null, label: 'la semana pasada', rows: Luna 1.350 🏆 ·
+Ian 1.180 · Andrés 300}]` (sin ↑: la semana anterior a ésa no existe). Primer cierre simulado con el seed: 🏆 Luna · ↑ Ian ·
+↑ Andrés · total 2.980; con "supera su semana" cobra Ian (Luna 1.290 < 1.350); con "gana la semana", Luna.
+
+**Bordes (U5-A).** "F5 a medias": el historial y el premio son de la familia y sobreviven al F5 de un integrante; el canje del
+premio vive en el slice del chico y se va con SU F5 (el historial sigue diciendo que lo ganó: correcto como historia). Tras el
+F5 de un integrante después de un cierre, su XP vuelve a la del seed mientras la de los demás sigue en 0, y su `prevXp` también:
+el ↑ de su fila se compara contra la semana pasada SEMBRADA, no contra la que acaba de cerrar (la tarjeta «La semana pasada»
+conserva la semana real). Pasa igual con el F5 que dispara el cierre del lunes (`demoReset.ts`: el reset del que abre corre
+entre la foto y el reparto). El cierre individual de "Mi liga" desincroniza (la foto de la familia toma la XP de ese integrante
+desde SU cierre); el de la familia los realinea.
+Un chico al que le apagan Ligas sale de la tabla y del premio, pero su liga pública cierra igual con la de la familia y sus
+marcas viejas siguen en el historial (el historial sembrado nombra a todos: es historia de la familia). **Premio huérfano**
+(comportamiento actual; decisión de producto pendiente): si con el premio puesto se le apagan Ligas a TODOS los chicos, el
+premio queda puesto y el adulto se queda sin solapa Familia en Ligas para quitarlo (una sola fila); en Familia → Premios lo
+sigue viendo, pero esa línea es de solo lectura y su link cae en Mi liga: para quitarlo hay que volver a prender Ligas a un
+chico. Si en el medio pasa un lunes, el cierre va con una sola fila y sin copa, el premio no se consume (no hay chicos que lo
+ganen) y, al volver a prender Ligas, el chico ve «… sigue en juego» de una semana que no jugó. Tras varias semanas
+sin uso, el cierre real cierra una sola y la rotula por posición. El seed calcula los días con el día de la semana del
+momento en que NACE cada slice: un slice nacido el lunes y leído el miércoles conserva sus días del lunes (quirk heredado
+del seed fijo, como la XP del seed que no escala con el día).
+
+**Verificado (U5-A, 28-oct, dev del usuario 8787; solo `curl`/urllib contra localhost).** `npx tsc -b --force` y `npx tsc -p
+tsconfig.server.json --noEmit` limpios · `npm run build` verde · `npm test`: 36 archivos / 380 tests (antes 32 / 316; U5-A suma
+`familyWeek.test.ts`, `familyLeague.test.ts`, `marketFamilyPrize.test.ts` y 10 casos en `progressWeek.test.ts`; el resto de la
+diferencia es de otra tanda en paralelo). Humo por API, 64 chequeos OK: el seed (🏆 Luna 1.350, total 2.830, sin ↑, `prevXp`
+1.180/1.350/300, `canManage` solo el adulto); 403 con su texto para cada POST/GET de familia de un chico, 405 con el método
+equivocado, 401 de Familia para un chico; cada 400 con su texto literal; premio copiado de la Tienda de Luna y archivar el
+original no lo cambia; cierre simulado (marcas correctas, nada negativo, total 2.980, canje solo para Ian, `mine` = Liga
+Chispa); ⚡ y movimientos de los tres IGUALES antes/después de cerrar y de entregar; las tres ligas públicas cerradas;
+"Ya se lo di" (con otro integrante → `ok:false`); el F5 de Ian no toca el historial y `{scope:'all'}` sí; sin ganadores el
+premio sigue en juego; "gana la semana" → Luna; la zona de la familia rige el corte (Kiritimati/Pago Pago mueven
+`closesInDays` igual en la familia y en la liga pública). **NO verificado en vivo**: el cierre real de un lunes (necesita mover
+el reloj del server): cubierto por `familyLeague.test.ts` con reloj falso (el camino con el reset de quien abre la app, por
+`familyMonday.test.ts` desde la revisión de U5). Estado: `server/data` idéntico byte a byte al
+respaldo (el archivar/reactivar dejó un `updatedAt` en `parent.json`: se restauró y se forzó la recarga del API) y la RAM en
+el seed (`{scope:'all'}`).
+
+**Para U5-B (medallas, server).** Hechos listos: `progress.medalCountersOf(id)` → `{bestStreak, comebacks, pbWeeks, fullWeeks}`
+(o el registro de una línea en `progress.ts`), `leaguesFake.crownsOf(id)`. Puntos de disparo marcados con `// U5-B:` en
+`leaguesFake.ts`: el paso 6 del cierre simulado y el final de `familyCloseIfDue` (allí hay que sincronizar a CADA integrante
+bajo SU `runAsUser`: el contexto es el de quien abrió la app); falta además el `syncMedals` después de `startNewWeek` en
+`closeWeek`. `index.ts` ya llama `familyCloseIfDue` antes de `/api/medals` y `/api/medals/*`. `ParentActivity.medals`,
+`EarnedMedal`, `MedalsResponse` y `MedalId` ya están en `types.ts`.
+
+**Para U5-C (cliente de la liga).** Todo en `types.ts`. ⚠ Los 6 envoltorios de `src/api/index.ts` (`familyPrizeOptions()`,
+`setFamilyPrize(req)`, `clearFamilyPrize()`, `closeFamilyWeek()`, `medals()`, `medalsSeen()`) **NO están**: el brief de esta
+tanda prohibía tocar `src/` fuera de `types.ts` (otra tanda trabajaba en el shell del cliente); los suma U5-C (o el
+coordinador) con el patrón de los de al lado (`familyLeague`, `closeWeek`). El ↑ de la fila es `prevXp != null && xp >
+prevXp`; la 🏆 chiquita, `wonLastWeek`; "Repetir el de la semana pasada" sale de `history[0].prize` (hoy se re-envía como
+texto literal —emoji, título y descripción—, SIN `from` aunque haya sido de la Tienda: ver 12.C); el chip del pie se ofrece
+con `canManage` y ≥ 2 filas.
+
+<!-- U5-B: medallas de la plataforma (server). -->
+### 12.B Las medallas de la plataforma — server (U5-B, 28/29-oct)
+
+**Modelo.** 13 medallas "estilo GitHub" (audio 1016) que se DERIVAN de hechos, nunca se entregan a mano. Reglas PURAS en
+`server/src/medalRules.ts` (catálogo con los textos literales de la spec §5.2, `learnFactsFrom`, `earnedFrom`, `sortMedals`);
+estado y rutas en `server/src/medals.ts`, HOJA del grafo (importa solo `perUser`, `requestContext`, `users`, `web` y
+`medalRules`): cada dueño de un dato REGISTRA su parte al cargar (`registerMedalFacts`) — `learnResults` (sus filas + el
+catálogo), `learnRoutes` (`createdBy`), `space` (`savedFactsOf`: papelera incluida, lo purgado no), `friendsFake`
+(`friendCountOf`), `progress` (`bestStreak`, `comebacks`, `pbWeeks`, `fullWeeks`) y `leaguesFake` (`crownsOf`); `feedFake`
+registra el sumidero de la noticia y `parent` el gate de los candados (un adulto siempre ve lo suyo: `featureOn` de un adulto
+es `false` por fail-closed).
+- **Estado (D3: RAM por usuario, sin archivo).** `{earned: Map<id, {at, times}>, seen}`. Seed = lo que derivan los hechos de
+  ESE momento, todo visto. `syncMedals(uid)` agrega lo que se cumple y no estaba (`at` = la fecha del hecho si la trae, si no
+  ahora), sube `times` de las repetibles (max) y NUNCA saca nada; por cada medalla NUEVA, UNA noticia en el feed DEL DUEÑO
+  (si el pedido es de otro, la emite bajo `runAsUser(uid)`). Idempotente. Un `times` que sube no es noticia.
+- **Cuándo se sincroniza** (con `ensureMedals` ANTES de mover el hecho, así lo nuevo no entra al seed como "visto"):
+  `POST /api/learn/results` (las dos ramas, antes de responder); `saveItem` de Mi espacio; aceptar un amigo y el
+  "auto-aceptar" del NPC (que el código resuelve al LEER en `settleOutgoing`, no con timer); importar una ruta;
+  `closeWeek` (después de `startNewWeek` y de las noticias del cierre); el cierre simulado de la familia (paso 6, cada uno
+  bajo SU `runAsUser`; antes de la copa, los slices de todos existen); el cierre real perezoso (ídem); `GET /api/medals`
+  (red de seguridad) y `GET /api/parent/activity` (bajo el `runAsUser` del integrante).
+- **Feed.** Kind ADITIVO `medal` (`{kind, id: 'fm-<n>', time: 'recién', reason: 'Es tu medalla nueva', medal: EarnedMedal}`,
+  sin `fresh` ni reacciones) en lo vivo del usuario (`pushFresh`: píldora "N novedades ↑"). Al servir: la copa solo con
+  Ligas prendido, el primer amigo solo con Amigos, las palabras/temas de la familia filtran título + texto; el resumen de
+  la edición no la cuenta.
+- **Reset.** `POST /api/demo/reset` llama `resetMedals(id)` AL FINAL (cuando progreso, amigos y la semana de la familia ya
+  volvieron al seed): re-siembra EN EL ACTO; con `{scope:'all'}`, a los tres del seed.
+
+**Catálogo final: 13** (veredicto de `ruta-creada`: SE QUEDA). `createdBy` es un metadato aditivo de la fila de
+`learn-routes.json` que no se sirve en ninguna respuesta (`listItems` y `/one` mapean campos explícitos; verificado por API)
+ni cambia la validación, los mensajes, el reemplazo transaccional ni el orden del importador del porte; nadie más lee ese
+archivo. El autor es quien importó la ruta POR PRIMERA VEZ: una reimportación (editarla en /crear) CONSERVA el autor (o la
+falta de autor: la seed poc-solar y las filas de antes de U5 quedan sin autor para siempre). Revisión de U5: también `createdAt`
+(la fecha de esa PRIMERA importación, la de «Tu primera ruta»; antes salía de `importedAt`, que cada reimportación pisa), con el
+mismo criterio: solo en filas con autor, no se sirve, la reimportación lo conserva (una fila con autor de antes lo toma de su
+último `importedAt` al reimportarse).
+
+| id | Medalla | Hecho | Candado | Repetible |
+|---|---|---|---|---|
+| `primera-posta` | 🎯 Primera posta | ≥ 1 objetivo con fila `completed` no `rollup` (fecha: esa fila) | — | no |
+| `diez-objetivos` | 🧠 Diez objetivos | ≥ 10 objetivos distintos así (fecha: la del 10.º) | — | no |
+| `ruta-completa` | 🗺️ Ruta completa | rutas del catálogo con todas sus postas logradas con partidas COMPLETADAS (`routeRuns` sobre esas filas: rendirse o el tiempo no cuentan, a diferencia del camino; fecha: la fila que completó la primera; revisión de U5) | — | ×N rutas |
+| `posta-perfecta` | 💯 Sin un error | una fila `completed` no `rollup` con pct 1 | — | no |
+| `primer-repaso` | 🔁 Primer repaso | una fila `completed` con source `active-recall` (aunque sea rollup) | — | no |
+| `primer-guardado` | 📁 Tu primer guardado | ≥ 1 ítem en Mi espacio (papelera incluida) | — | no |
+| `ruta-creada` | ✏️ Tu primera ruta | ≥ 1 ruta del catálogo con su `createdBy` | — | no |
+| `primer-amigo` | 🤝 Primer amigo | ≥ 1 amigo en su grafo | Amigos | no |
+| `tres-dias` | 🗓️ Tres días seguidos | `bestStreak ≥ 3` (máximo histórico) | — | no |
+| `de-vuelta` | 🌱 De vuelta | `comebacks ≥ 1` | — | no |
+| `semana-completa` | ✨ Semana completa | `fullWeeks ≥ 1` | — | ×N |
+| `mejor-semana` | 📈 Superaste tu semana | `pbWeeks ≥ 1` | — | ×N |
+| `semana-familia` | 🏆 Copa de la familia | `crowns ≥ 1` (copas de la familia) | Ligas | ×N |
+
+**Contratos (aditivos).** `GET /api/medals` → `MedalsResponse {medals, unseen}` del ACTIVO: solo las ganadas (el catálogo
+no viaja: sin total, sin "faltan"), las más nuevas primero y las sin fecha al final en el orden del catálogo, sin las de un
+dominio apagado para ese chico; `fresh` en las que no vio · `POST /api/medals/seen` → idem con `unseen 0` (marca vistas las
+que VE: una escondida por un candado sigue "Nueva" hasta que se prenda) · ambos 405 con el otro método · sin sección (el
+Ciclo del día no los cierra) · `familyCloseIfDue` corre antes (U5-A). `ParentActivity.medals` = TODAS las del integrante,
+sin `fresh`, con `hidden: 'ligas' | 'amigos'`. `FeedItem` += `{kind: 'medal'}` (en `src/api/types.ts`).
+
+**Pila de arranque con los datos de HOY (29-oct).** Ian **6** (🗺️ 📁 🎯 💯 🤝 🗓️ —desde la revisión de U5 la 🗺️ trae la fecha de la
+fila del 28-oct que completó la ruta y va primera—: la spec decía 5; la 🗺️ "Ruta completa"
+sale de las 3 filas que alguien jugó el 28-oct a la noche en `ruta.kzd4pr9brpdj`, que con la del 23-oct completan sus 2
+postas: es derivada, cambia con los datos) · Luna **4** (🤝 🗓️ ✨ 🏆) · Andrés **0** (sin chip). Primer cierre simulado de la
+familia: "Superaste tu semana" NUEVA para Ian y para Andrés (su primera), Luna suma su 2.ª copa (×2, sin noticia).
+
+**Desvíos y decisiones de implementación (todas internas del server).** (1) El registro de `progress.ts` lee el store SIN
+cortar la semana (no usa `medalCountersOf`, que corta): si leer los hechos cortara un lunes pendiente, `ensureMedals`
+sembraría ese corte como "visto" y el "Superaste tu semana" del lunes no llegaría como nuevo (test en
+`medalsLeague.test.ts`). (2) `MedalFacts` suma las FECHAS de los hechos que la tienen (`tenthTargetAt`, `perfectAt`,
+`recallAt`, `firstRouteCreatedAt` y, desde la revisión de U5, `firstRouteCompletedAt`), para que la pila diga "Desde el…" también
+tras un F5. (3) `registerMedalFacts(fn,
+name?)`: el nombre es opcional, solo para el aviso si una parte tira (una parte que tira vale cero y no tumba el pedido). (4)
+`syncMedals` emite la noticia bajo el `runAsUser` del dueño aunque el llamador se olvide (defensa en profundidad). (5)
+Familia → Actividad SINCRONIZA antes de leer (bajo el `runAsUser` del integrante: su noticia cae en SU feed). (6) El brief
+de la tanda sugería "el primer canje" como ejemplo de medalla en vivo: NO existe en la spec (regla 2 de §5.1: ninguna
+medalla se consigue gastando ⚡); la prueba en vivo es "Superaste tu semana".
+
+**Bordes (U5-B).** Lo de RAM (racha, semanas, copa, amigos) vuelve al seed con el F5 de ese usuario; la copa se RE-DERIVA de
+las copas de la familia (el F5 de uno no las toca), pero SIN fecha: el hecho no la trae, así que una copa ganada en vivo pierde
+su «Desde el…» tras el F5 del ganador (se re-siembra con `at` null). Purgar el único guardado / borrar la única ruta propia:
+la medalla queda en la sesión y se va con el F5 (su hecho ya no existe). La primera posta es UNA por entorno (la fila
+persiste). Un usuario cuyo slice de medallas no existía y cuyo progreso ya cortó un lunes antes de nacer (server prendido a través de un lunes,
+sin que nadie de la familia lo tocara): ese "Superaste tu semana" entra al seed como visto (la medalla está; solo no dice
+"Nueva" ni trae noticia). Entre U5-B y U5-D la píldora del Feed puede contar una noticia `medal` que el cliente todavía no
+pinta (R9 de la spec).
+
+**Verificado (U5-B, 29-oct; solo `curl`/urllib contra localhost, sin cookies ni credenciales).** `npx tsc -b --force` y `npx
+tsc -p tsconfig.server.json --noEmit` limpios · `npm run build` verde · `npm test`: 41 archivos / 464 tests (antes 36 / 380;
+U5-B suma `medalRules.test.ts`, `medals.test.ts`, `medalsLeague.test.ts` y `medalsFeed.test.ts`: 55 casos; el resto de la
+diferencia es de las tandas del cliente en paralelo). Humo en un server ESPEJO propio (puerto 8797, con una COPIA de
+`server/data`: Learn, Mi espacio, import de ruta y candados escriben ahí) — 62 chequeos OK: pila del seed y reset
+determinístico; cierre de la familia → medallas, Actividad, noticia en el feed de cada dueño y de nadie más; re-sync sin
+duplicar; seen; F5 de Ian y de Luna; Ligas apagadas (Luna) y Amigos apagado (Ian): escondidas en la pila y en el feed,
+`hidden` en Actividad, vuelven al prender; primera posta perfecta de Luna; primer guardado de Andrés; «Tu primera ruta» de
+Ian con un bundle de fixture (Luna lo re-importa y el autor sigue siendo Ian; borrado y F5 → se va); Ian le gana la semana a
+Luna → copa nueva. En el dev del usuario (8787) solo lo de RAM — 27 chequeos OK — y `{scope:'all'}` al final. `server/data`
+real idéntico byte a byte al respaldo. **NO verificado en vivo**: el cierre real de un lunes (cubierto por
+`medalsLeague.test.ts` con reloj falso; el camino con el reset de quien abre la app, por `familyMonday.test.ts` desde la revisión
+de U5) y "Primer amigo" ganado en vivo (ningún chico del seed arranca sin amigos: el camino
+de aceptar se ejercitó sin medalla nueva y la regla está en unidad).
+
+**Para U5-D (cliente de medallas).** `api.medals()` / `api.medalsSeen()` ya están (los sumó U5-C). El chip sale de
+`GET /api/medals` (`medals.length`, puntito si `unseen > 0`; sin medallas no hay chip); la hoja ordena tal cual llega; "×N"
+viene en `times` (solo ≥ 2); "Desde el…" con `at` (null = sin fecha). La tarjeta del Feed es `case 'medal'` en
+`FeedPage.block` (el tipo ya está en `types.ts`); Actividad pinta `dash.medals` con la nota de las `hidden`.
+
+<!-- U5-C: la liga de la familia (cliente). -->
+### 12.C La liga de la familia — cliente (U5-C, 29-oct)
+
+**Hecho.** `src/api/index.ts` suma los 6 envoltorios que faltaban (`familyPrizeOptions`, `setFamilyPrize`, `clearFamilyPrize`,
+`closeFamilyWeek`, `medals`, `medalsSeen`; aditivos). Lo puro vive en `src/sections/leagues/lib/familyWeek.ts` (textos y
+borrador de la hoja, con `__tests__/familyWeek.test.ts`).
+- **Ligas → Familia** (todos): arriba de la tabla, "La semana pasada" (`FamilyWeekCard`: copa, marcas ↑/✨ de cada uno,
+  "Entre todos sumaron N XP", el premio "→ para Ian (se lo da Andrés)" o, sin ganadores, según `prizeInPlay`: "sigue en
+  juego" SOLO en la última semana cerrada y si ese premio sigue vigente; si no —y en las anteriores—, "pasó a la semana
+  siguiente"; y un `<details>` "Semanas anteriores") y el premio en juego (`FamilyPrizeCard`). La fila (`FamilyRanking`, §4.5
+  de la spec): puesto · avatar · nombre + 🏆 chiquita (`wonLastWeek`) + Vos y, debajo, siete puntitos `DaysDots` "N de 7
+  días" (D2, sin letras de día) y "↑ superó su semana" SOLO cuando `prevXp != null && xp > prevXp` (con premio "supera su semana", el ↑ de un CHICO lleva el emoji del
+  premio). La racha de U4 ya no se pinta en la fila. Título "Esta semana: ¿quién aprende más días?" y el pie de §4.2.
+- **Premio** (D1, D4): el chico lo ve ("Si superás tu semana anterior: … · Te lo da Andrés"); sin premio, no hay tarjeta.
+  El adulto (`canManage`): "Poné un premio para esta semana" → hoja `FamilyPrizeSheet` (`.shov/.shcard`; "De los premios de
+  tus chicos" agrupado por Tienda —lista con scroll propio— o "Uno nuevo"; condición con radios nativos y "para todos los que
+  superen su semana" PRESELECCIONADA; la validación del cliente es solo de forma y el 400 se muestra TAL CUAL con
+  `ApiError.reason`; Esc, Tab atrapado y foco de vuelta con `store/lib/sheet.useSheetKeys`). Con premio: Cambiar (reabre con
+  lo vigente; sin elegir otra cosa va el texto PROMETIDO, también si vino de la Tienda —si su ítem ya no está o cambió, la hoja
+  pasa a "Uno nuevo" con ese texto—: el único POST con `from` es elegir un ítem de la Tienda que no sea el ya prometido) y Quitar
+  (confirmación chica). Si el de la semana pasada se consumió: "Repetir el de la semana pasada" (re-envía `history[0].prize`
+  como texto literal —emoji, título y descripción—, SIN `from`: con `from` el server re-copiaba el ítem de HOY, con otro texto
+  si se editó o 400 si se archivó). Si quedó sin ganadores y sigue vigente (`prizeInPlay`): etiqueta "Sigue en juego".
+- **Cierre de la familia** (D4): en la solapa Familia, solo para el adulto con ≥ 2 filas, el chip del pie es "Simular cierre de
+  la semana de la familia" (`SimulateCloseChip` con props opcionales; en las otras solapas y para un chico, el de siempre).
+  Aviso `FamilyCloseBanner` (prefijo `lgx-`: copa con festejo de una vez, marcas, total, premio, "Tu liga también cerró:
+  saliste 7º de 12 en la Liga Chispa…" con el `closeCopy` de siempre; foco al título) + `LEAGUE_WEEK_CLOSED` con
+  `detail = mine` (lo que ya escucha la medallita del avatar; sirve igual para el chip de medallas de U5-D).
+- **Tienda** del chico: `FamilyPrizeBanner` (`stfp-`) ARRIBA de la grilla de premios (sin precio, sin Canjear, sin corazón;
+  "No se canjea: se gana en la liga de la familia →" a `/ligas?tab=familia`). Es una lectura aparte (no tumba la Tienda) pero
+  se re-pide en CADA `load()` de la Tienda —la primera carga, «Reintentar» y las recargas tras un canje, una compra o un regalo—
+  y cuando cambia el candado; SOLO con Ligas prendidas para el chico (con Ligas apagadas ni se pide: no hay 403 en la consola y
+  la tarjeta no existe). Si una lectura falla queda lo último que se supo. **Tus canjes**:
+  un canje `origin: 'liga-familia'` muestra "🏆 Lo ganaste en la liga de la familia" en lugar del precio ⚡.
+- CSS nuevo grepeado libre: `lgw-` (semana pasada), `lgp-` (premio y hoja), `lgd-` (puntitos), `lgx-` (aviso) en
+  `leagues.css`; `stfp-` en `store.css`.
+
+**Textos que se apartan un pelo de la spec (a conciencia).** "(se lo da Andrés)" en vez de "(se la da…)": el título del premio
+es libre y "lo" (= el premio) sirve para todos, como el "Te lo da" de §3.3; con quien mira: "para vos" / "se lo das vos". "Nadie
+sumó esa semana." en la tarjeta del historial ("esta semana" queda para el aviso del cierre recién hecho). La tarjeta de la
+Tienda suma la condición y quién lo da ("Si superás tu semana anterior · Te lo da Andrés") para que el chico sepa cómo se gana.
+
+**NO hecho (fuera del terreno de esta tanda: `src/sections/parent/**` lo tenía prohibido).** En Familia → Premios, la fila del
+canje de la liga (`DeliveryRow`) todavía dice "⚡ 0" en lugar de "🏆 De la liga de la familia · cerró el {fecha}" (el "Ya se lo
+di" funciona igual: verificado), y falta la línea de solo lectura "Premio de la semana de la familia: … · Se elige en Ligas →
+Familia" en `RewardsPanel` (§3.2). Los dos son cambios chicos de cliente para quien tenga `parent/**`.
+
+**Verificado (29-oct, dev del usuario 5173/8787, Chrome headless con perfil descartable, solo localhost: Google Fonts e
+i.ytimg bloqueados → capturas con fuente de respaldo).** `tsc` de cliente y server limpios, build verde, `npm test` 37
+archivos / 409 tests. E2E de 92 chequeos sin fallas (dos corridas finales): Ian sin controles de adulto; hoja con D1; los
+tres 400 (título 1 letra, emoji, descripción 141) con el texto literal del server y el foco en el motivo; premio de la Tienda
+de Luna; Ian y Luna lo ven en Ligas y en su Tienda; cierre de la familia (copa Luna 1.290, ↑ Ian y Andrés, 2.980 XP, premio
+a Ian, ⚡ y movimientos de los tres iguales); canje en Tus canjes de Ian → "Ya se lo di" en Familia → Entregado; Repetir,
+Quitar; 403 de un chico por API; Ligas apagadas para Luna (sin tarjeta en su Tienda y sin pedido a `/api/leagues/family`; la
+solapa sigue para Ian y Andrés con 2 filas); 375 px sin scroll horizontal; consola sin errores no esperados.
+**Ojo para el QA (U5-E):** mientras corrían otras tandas, algún OTRO cliente cargaba la app (o reseteaba por API) como Ian o
+como Andrés: sus slices volvían al seed en medio de la prueba (una vez se perdió el canje de Ian; otra, Andrés volvió a 450
+XP sin ningún pedido de la página de este E2E —medido—). Es el "dos QA contra el mismo server se pisan" de §8.0 de la spec:
+correr el E2E de U5 con el server solo para el QA.
+
+<!-- U5-D: medallas de la plataforma (cliente). -->
+### 12.D Las medallas de la plataforma — cliente (U5-D, 29-oct)
+
+**Hecho.** Las medallas de U5-B en pantalla, con las cinco reglas de la spec §5.1 (solo las ganadas: sin total, sin "faltan",
+sin siluetas; nada se pierde; texto informativo; cada uno ve las suyas). Lo puro vive en `src/shared/lib/medals.ts` (textos
+del chip, "Desde el…", "×N", la nota de los candados, el evento; con `__tests__/medals.test.ts`).
+- **Tarjeta del perfil** (`src/shared/components/ProfileCard.tsx`): de UN botón a un `div.profile` con dos botones hermanos:
+  el de siempre (avatar + nombre + edad → "Tu avatar", con la medallita de liga y la lapicera) y el chip **`mdl-chip` "🏅 N"**
+  con un puntito si hay alguna sin ver (`aria-label="Tus medallas: 7, 1 nueva"`). Sin medallas el chip NO existe (Andrés al
+  arrancar). `useMedals` lee `GET /api/medals` al montar, en cada cambio de pantalla, al volver el foco, cuando cambian los
+  candados de Ligas/Amigos, tras `LEAGUE_WEEK_CLOSED` (el cierre de la familia también lo dispara) y con
+  `innerith:medals-changed`; una respuesta vieja no pisa una más nueva. `openMedalsSheet()` (patrón `openAvatarPicker`) abre
+  la pila desde otra pantalla.
+- **La pila "Tus medallas"** (`MedalsSheet.tsx`, pura; `medals.css` con prefijo `mdl-`, importado en `main.tsx` después de
+  `avatar.css`): chasis `.shov/.shcard` y el teclado de `store/lib/sheet.useSheetKeys` (importado, sin tocarlo): Esc, fondo y ✕
+  cierran, Tab queda adentro y el foco vuelve a QUIEN la abrió (el chip o el botón de la noticia del Feed). Grilla "como un
+  diploma": disco dorado con cinta (CSS, sin assets), título, texto, "Desde el 23 de octubre" (solo si el hecho trae fecha),
+  "×3" (solo `times ≥ 2`) y la etiqueta "Nueva"; en el orden en que llega del server; encabezado "Tus medallas" + "Las que
+  fuiste ganando en Innerith.". Al abrir: `GET /api/medals` (la pila con sus `fresh`: las "Nueva" se ven en ESTA apertura) y
+  después `POST /api/medals/seen` (el puntito del chip se va con la hoja abierta; en la próxima apertura, sin "Nueva").
+- **Feed** (`src/sections/home/`): `cards/FeedMedalCard.tsx` (pura, estilo C de noticia con `MyAvatar` y el emoji en un disco
+  dorado: "Tu medalla · recién", "Ganaste la medalla «Superaste tu semana»", el texto de la medalla, "Ver tus medallas" y el
+  "por qué"; SIN reacciones, SIN "ver menos" y SIN el anillo de recién entrada) y su `case 'medal'` en `FeedPage.block`: queda
+  saldado el R9 de U5-B (la píldora ya no cuenta una noticia que no se pinta). `FeedPage` dispara `innerith:medals-changed`
+  cuando la primera página o la píldora traen una noticia de medalla; `lib/visibility.ts` suma la red de seguridad del server
+  (`liveAllowed`): la copa solo con Ligas, el primer amigo solo con Amigos.
+- **Familia → Actividad** (`components/ActivityPanel.tsx`): bloque "Medallas de {integrante}" con la cantidad, de `dash.medals`
+  (todas, sin "Nueva"): emoji, título, "×N" y "Desde el…"; las que el integrante no ve llevan "(Ligas apagadas: Luna no la
+  ve)" / "(Amigos apagado: Ian no la ve)". Sin medallas: "Todavía no ganó medallas.". Va entre "Está practicando" y "Lo que
+  guardó en Mi espacio".
+- **Remates de U5-C en Familia → Premios** (C tenía `parent/**` prohibido): `cards/DeliveryRow.tsx` con `origin:
+  'liga-familia'` dice "🏆 De la liga de la familia · cerró el 29 oct" (de `closedAt`) en lugar de "⚡ 0"; el "Ya se lo di" no
+  se tocó. `containers/RewardsPanel.tsx`, arriba: "Premio de la semana de la familia: 🚲 1 hora de bici · para todos los que
+  superen su semana · Se elige en Ligas → Familia" (link a `/ligas?tab=familia`; lee `api.familyLeague()`; si falla, no hay
+  línea).
+- CSS nuevo, grepeado libre: `mdl-` (`medals.css`), `pz-md-` y `pz-fprize` (al final de `parent.css`), `.hf-medal` (`home.css`).
+
+**Desvíos (a conciencia).**
+1. Clases de la tarjeta: el div lleva `profile mdl-prof` y el botón del avatar CONSERVA `idav-prof` (+ `mdl-me`), en vez del
+   `<div className="profile idav-prof">` literal de la spec: así las reglas de `avatar.css` (tamaño por densidad, la lapicera
+   que se pinta en hover) siguen en el botón y pasar el puntero por el chip no las dispara. El hover y el anillo de foco de la
+   tarjeta ENTERA salen de `:has(...)`, y un `::after` estira el botón a toda la tarjeta (se toca en cualquier lado, como
+   cuando era un botón). Lo que `shell.css` le daba a `.profile > div` (el `min-width:0` del nombre y el sr-only del rail de
+   tablet) ya no le llega al nombre, que ahora vive adentro del botón: lo replica `medals.css`. `shell.css` no se tocó.
+2. En el rail de tablet (80 px) el chip va DEBAJO del avatar: en 56 px no entran juntos.
+3. `useMedals` relee en CADA cambio de pantalla (la spec: al entrar y salir de Ligas): una medalla ganada en Mi espacio,
+   Aprender o Buscar llega al chip sin F5 apenas se navega. Y el Feed dispara el evento también en su primera carga, no solo
+   por la píldora.
+4. Al abrir la hoja: GET y DESPUÉS el seen (el POST devuelve la pila sin `fresh`; sin el GET, una hoja abierta desde el Feed
+   antes de que el chip se enterara perdería sus "Nueva").
+5. La línea de Premios usa el texto literal de la spec ("para todos los que superen su semana" / "para el que gane la
+   semana") y, sin premio, dice "ninguno por ahora · Se elige en Ligas → Familia" (la spec no decía qué mostrar; si la familia
+   no tiene liga —menos de dos jugando— no hay línea). El bloque de Actividad muestra también el "×N".
+6. Terreno: el brief nombraba `src/sections/feed/**`, que no existe: el Feed es `src/sections/home/` y ahí se tocó solo
+   `FeedPage`, la tarjeta nueva, `lib/visibility.ts` y dos reglas de `home.css` (que el agente del shell editaba en paralelo:
+   sus cambios y estos conviven).
+
+**Bordes.** El F5 de verdad (sin el switch) re-siembra la pila de ese usuario: "Superaste tu semana" se va con su progreso y
+"Tu primer guardado" queda porque su hecho persiste (spec §5.4; medido en el espejo: tras guardar, Andrés arranca con 📁 en
+cada reset). El "visto" vive con la pila: tras recargar con el switch, una "Nueva" que ya se vio no vuelve.
+
+**Verificado (29-oct; sin cookies ni credenciales: playwright-core + Chrome headless con perfil descartable propio en el
+scratchpad —borrado—, SOLO localhost: todo lo externo abortado).** `npx tsc -b --force` y `npx tsc -p tsconfig.server.json
+--noEmit` limpios · `npm run build` verde · `npm test`: 42 archivos / 474 tests (antes 41 / 464: + `medals.test.ts`, 10
+casos). E2E en un ESPEJO propio (API 8798 con una COPIA de `server/data`, sin `.env` + vite 5189 sirviendo el `src/` real;
+ya apagados y borrados): **71/71** — Ian: chip "🏅 6", hoja en el orden del server sin total ni "faltan", foco/Tab/Esc/fondo;
+una medalla nacida en el server sin que el cliente lo sepa → "Simular NPCs" → píldora → el chip pasa a 7 con puntito SIN F5
+(`innerith:medals-changed`); "Ver tus medallas" → "Nueva" primero → el puntito se va → reabrir sin "Nueva" → recarga con el
+switch, sin puntito; Andrés sin chip → la línea del premio en Premios → su link → "Simular cierre de la semana de la familia"
+→ "🏅 1" con puntito SIN recargar (`LEAGUE_WEEK_CLOSED`) → su noticia → la hoja → el foco de vuelta; noticias de medalla
+solo en el feed de su dueño (Ian y Andrés sí, Luna no); `DeliveryRow` "🏆 De la liga de la familia · cerró el 29 oct" sin ⚡
+→ "Ya se lo di" → Entregado; la línea pasa a "ninguno por ahora"; Actividad de Luna (copa ×N) y de Ian (su medalla nueva, con
+fecha); **primer guardado de Andrés en Mi espacio** (video → Guardar → carpeta nueva) → "🏅 1" con puntito al volver al
+Feed, sin F5, y su noticia; **candados** (Ligas de Luna, Amigos de Ian) → la nota en Actividad y la medalla fuera de la pila
+del chico; 375 px sin scroll horizontal y la hoja entera; el chip en el cajón; rail 768; densidades 1366×900, 1280×720 y
+1366×640 (chip adentro, nombre entero). Contra el dev del usuario (5173/8787), solo lo de RAM: 49/52, 34/37 y 13/13 en tres
+corridas; TODA falla coincidió con un reset AJENO de Ian o de Andrés (después de un cierre su XP de la semana volvía a la del
+seed —1.240 / 450— mientras la de Luna seguía en 0, y este E2E no los reseteaba en ese tramo: medido con
+`/api/progress/summary`), y cada chequeo que falló en vivo pasó en otra corrida en vivo o en el espejo. Sondas aparte
+(medidas, no a ojo): hover y anillo de la tarjeta partida; el chip tocable en el rail; la hoja ARRIBA de todo en escritorio y
+a 375 (píxeles: la barra inferior, el dock y el cajón quedan oscurecidos por su velo; `elementFromPoint` da el velo): vivía en
+la barra lateral como "Tu avatar", así que el "la barra inferior tapa el pie de las hojas" del shell no la alcanzaba (después,
+SHELL-FIX montó las dos hojas del perfil en `.app` con un portal: `docs/RESPONSIVE.md` §2.6). Consola:
+0 errores de la app (solo recursos externos abortados por el test y un `/favicon.ico` del arranque del script). Estado final:
+resets por usuario y `{scope:'all'}` al final (Ian 6 · Luna 4 · Andrés 0, todo visto; la familia en su semana sembrada);
+`server/data` idéntico byte a byte al respaldo salvo `mytube.json`, que cambió a las 00:55 por OTRO usuario del server (MyTube;
+antes de las corridas en vivo, y con el mismo checksum antes y después de ellas: este trabajo no lo toca).
+
+**NO verificado.** Safari y Firefox (solo Chrome). Un lector de pantalla real (solo los `aria-*` y el foco). En vivo, las
+medallas de Learn (escribirían `learn-results.json`) y "Primer amigo" (ningún chico del seed arranca sin amigos); el cierre
+real de un lunes.
+
+**Para U5-E.** Correr el E2E con el server solo para el QA (las corridas en vivo de esta tanda se cortaron por resets ajenos
+de Ian y de Andrés).
