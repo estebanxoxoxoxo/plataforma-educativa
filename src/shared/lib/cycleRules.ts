@@ -9,21 +9,33 @@
 //
 // MODELO. Cada integrante tiene una lista de RANGOS horarios: {id, name, from, to, sections}. `from`/`to` = "HH:MM"
 // canónicas; el rango cubre [from, to); `to < from` cruza la medianoche; `from == to` = las 24 h. Sin día de la semana: los
-// rangos rigen TODOS los días. `sections` = qué puntos de menú están disponibles en ese rango.
+// rangos rigen TODOS los días. `sections` = los ÚNICOS puntos de menú disponibles mientras el rango está en curso.
 //
-// REGLA DE DISPONIBILIDAD (para el CHICO activo; al adulto nunca lo alcanza: eso lo decide quien llama):
-//   · una sección que NO figura en ningún rango → siempre disponible;
-//   · una que figura en ≥ 1 rango → disponible SOLO cuando el reloj (minuto del día en la ZONA DE LA FAMILIA) cae dentro de
-//     alguno de SUS rangos (los rangos que se solapan suman: alcanza con uno);
-//   · datos inválidos = disponible (fail-open, la regla de la casa desde el POC: "nunca encerramos al chico por un horario
-//     mal cargado; cerrar es siempre EXPLÍCITO"): un rango con horas que no son HH:MM abre sus secciones las 24 h, una lista
-//     que no es lista no cierra nada, y cualquier excepción → disponible.
-//   · OVERRIDE DE DEMO (`demoRangeId`, POST /api/demo/cycle): se evalúa COMO SI el reloj estuviera dentro de ESE rango —sus
-//     secciones, disponibles; las que figuran en otros rangos y no en ése, cerradas; las que no figuran en ninguno,
-//     disponibles—. Los rangos se toman como "momentos" exclusivos: un solapamiento con otro rango NO abre nada. Un id que ya
-//     no existe en la lista (el padre lo borró) = sin override: rige el reloj real.
+// REGLA DE DISPONIBILIDAD — LOS RANGOS SON MOMENTOS EXCLUSIVOS (29-oct, pedido de Esteban: «Todos tienen que por default no
+// tienen que aparecer, solo los que específicamente se indiquen tiene que aparecer»). Antes, una sección que no figuraba en
+// ningún rango quedaba disponible TAMBIÉN durante los rangos ajenos: en el After Day de Ian (21–22, solo After Day) el menú
+// le seguía mostrando todo. Ahora, para el CHICO activo (al adulto nunca lo alcanza: eso lo decide quien llama):
+//   1. ¿Algún rango VIVO está EN CURSO (el reloj —minuto del día en la ZONA DE LA FAMILIA— cae en su [from, to))? →
+//      disponible = la sección figura en la UNIÓN de las `sections` de los rangos en curso (los solapados suman). Nada más:
+//      lo que no lista ninguno de ellos, cerrado. Una lista VACÍA en curso cierra todo (es explícita).
+//   2. ¿Ninguno en curso? → una sección que figura en ≥ 1 rango vivo, cerrada (solo abre en sus rangos); la que no figura en
+//      ninguno, disponible. Sin rangos, todo disponible siempre.
+//   3. FAIL-OPEN INTACTO (la regla de la casa desde el POC: "nunca encerramos al chico por un horario mal cargado; cerrar es
+//      siempre EXPLÍCITO"). Un rango VIVO = un objeto con horas HH:MM válidas y `sections` lista; cualquier otro está ROTO y
+//      no cierra nada: nunca está en curso (no impone su exclusividad) ni hace "figurar" a una sección. Además, como antes,
+//      un rango con horas inválidas ABRE las 24 h las secciones que lista (gana sobre todo lo demás, también sobre el
+//      override). Una lista de rangos que no es lista, entradas basura y cualquier excepción → disponible. (Una entrada
+//      desconocida ADENTRO de una lista —"feed", la sección de un checkout futuro— no abre nada: la lista sigue siendo
+//      explícita.)
+//   4. OVERRIDE DE DEMO (`demoRangeId`, POST /api/demo/cycle): se evalúa COMO SI el reloj estuviera dentro de ESE rango, en
+//      serio exclusivo: disponible = EXACTAMENTE sus secciones (también se cierran las que no figuran en ningún rango, que
+//      antes quedaban abiertas; un solapamiento con otro rango NO abre nada). Un id que ya no existe en la lista (el padre lo
+//      borró) o el de un rango roto = sin override: rige el reloj real.
+//   5. El Feed nunca se cierra (no es una SectionKey).
 //   · `opensAt` (el "se abre de nuevo a las…" del 403): el próximo minuto de HOY (antes de la medianoche) en que la sección
-//     cerrada pasa a estar disponible, como "HH:MM"; null si hoy ya no abre, si está disponible o si rige un override.
+//     cerrada pasa a estar disponible, como "HH:MM" —p. ej. Chat, cerrado por el After Day de 21 a 22, abre a las 22:00—;
+//     null si hoy ya no abre, si está disponible o si rige un override. GENÉRICO: la disponibilidad solo cambia en un borde
+//     (el from o el to de un rango vivo), así que se barren esos cortes del día, sin casos especiales.
 import { wallClock } from './zonedClock'
 
 /* ---------- formas (espejo de src/api/types.ts: CycleRange / SectionKey; estructuralmente idénticas a las del contrato —
@@ -62,22 +74,31 @@ export const hhmm = (min: number): string => `${String(Math.floor(min / 60)).pad
 export const minuteOfDay = (now: Date, tz?: string | null): number => wallClock(now, tz).minutes
 const norm = (cur: number) => ((Math.floor(cur) % DAY) + DAY) % DAY
 
-/** ¿El rango cubre el minuto `cur`? [from, to); to < from cruza la medianoche; from == to = las 24 h. Horas inválidas →
- *  true (fail-open: un rango mal cargado abre sus secciones, nunca las encierra). */
+/** ¿El rango está EN CURSO en el minuto `cur`? [from, to); to < from cruza la medianoche; from == to = las 24 h. Horas
+ *  inválidas → false (29-oct): un rango roto nunca está en curso — con los rangos exclusivos, estar en curso CIERRA lo que
+ *  el rango no lista (antes daba true, cuando "cubrir" solo abría). */
 export function rangeCovers(r: { from?: unknown; to?: unknown }, cur: number): boolean {
   const from = parseHHMM(r.from), to = parseHHMM(r.to)
-  if (from == null || to == null || from === to) return true
+  if (from == null || to == null) return false
+  if (from === to) return true
   const c = norm(cur)
   return to < from ? c >= from || c < to : c >= from && c < to
 }
 
 /* ---------- disponibilidad ---------- */
-const lists = (r: unknown, key: SectionKey): boolean => isObject(r) && Array.isArray(r.sections) && r.sections.includes(key)
+type LiveRange = { from: unknown; to: unknown; sections: unknown[]; [k: string]: unknown }
+const hasHours = (r: Record<string, unknown>): boolean => parseHHMM(r.from) != null && parseHHMM(r.to) != null
+/** Un rango VIVO (el que el ciclo toma en cuenta): objeto, horas HH:MM válidas y `sections` lista. Lo demás está roto. */
+const isLive = (r: unknown): r is LiveRange => isObject(r) && Array.isArray(r.sections) && hasHours(r)
+/** Fail-open intacto: un rango con horas inválidas abre las 24 h las secciones que lista. */
+const opensAllDay = (r: unknown, key: SectionKey): boolean => isObject(r) && Array.isArray(r.sections) && r.sections.includes(key) && !hasHours(r)
 
-/** El rango del override de demo si sigue existiendo en la lista; null si no hay override o el padre lo borró. */
+/** El rango VIVO del override de demo; null si no hay override, si el padre lo borró o si el rango está roto (un rango roto
+ *  no cierra nada, tampoco como override: rige el reloj real). */
 export function findRange(ranges: unknown, id: string | null | undefined): CycleRange | null {
   if (!id || !Array.isArray(ranges)) return null
-  return (ranges.find(r => isObject(r) && r.id === id) as CycleRange | undefined) ?? null
+  const r: unknown = ranges.find(x => isObject(x) && x.id === id)
+  return isLive(r) ? (r as unknown as CycleRange) : null
 }
 
 /** El evaluador de UNA sección: minuto del día → ¿disponible? (lo comparten las tres funciones de abajo, para no recorrer la
@@ -85,12 +106,22 @@ export function findRange(ranges: unknown, id: string | null | undefined): Cycle
 function evaluator(ranges: unknown, key: SectionKey, demoRangeId?: string | null): (cur: number) => boolean {
   try {
     if (!Array.isArray(ranges)) return () => true // no es una lista: no cierra nada
-    const mine = ranges.filter(r => lists(r, key))
-    if (!mine.length) return () => true // no figura en ningún rango: siempre disponible
-    if (mine.some(r => parseHHMM(r.from) == null || parseHHMM(r.to) == null)) return () => true // rango inválido: fail-open
+    if (ranges.some(r => opensAllDay(r, key))) return () => true // rango con horas rotas: abre lo suyo todo el día
     const demo = findRange(ranges, demoRangeId)
-    if (demo) { const inDemo = mine.includes(demo); return () => inDemo } // "como si el reloj estuviera en ese rango"
-    return (cur: number) => { try { return mine.some(r => rangeCovers(r, cur)) } catch { return true } }
+    if (demo) { const inDemo = demo.sections.includes(key); return () => inDemo } // exclusivo: EXACTAMENTE lo de ese rango
+    const live = ranges.filter(isLive)
+    const listed = live.some(r => r.sections.includes(key))
+    return (cur: number) => {
+      try {
+        let inCourse = false
+        for (const r of live) {
+          if (!rangeCovers(r, cur)) continue
+          if (r.sections.includes(key)) return true // la unión de los rangos en curso
+          inCourse = true
+        }
+        return !inCourse && !listed // ningún rango en curso: lo que no figura en ninguno
+      } catch { return true }
+    }
   } catch {
     return () => true
   }
@@ -103,14 +134,17 @@ export function sectionAvailableAt(ranges: unknown, key: SectionKey, cur: number
 }
 
 /** "HH:MM" del próximo minuto de HOY en que la sección pasa a estar disponible; null si está disponible, si hoy ya no abre o
- *  si rige un override de demo (el override no sigue al reloj). */
+ *  si rige un override de demo (el override no sigue al reloj). La disponibilidad solo cambia en el from o el to de un rango
+ *  vivo: se barren esos cortes, después de `cur` y antes de la medianoche. */
 export function opensAtToday(ranges: unknown, key: SectionKey, cur: number, demoRangeId?: string | null): string | null {
   try {
     if (findRange(ranges, demoRangeId)) return null
     const at = evaluator(ranges, key)
     const c = norm(cur)
-    if (at(c)) return null
-    for (let m = c + 1; m < DAY; m++) if (at(m)) return hhmm(m)
+    if (at(c) || !Array.isArray(ranges)) return null
+    const cuts = new Set<number>()
+    for (const r of ranges) if (isLive(r)) { cuts.add(parseHHMM(r.from)!); cuts.add(parseHHMM(r.to)!) }
+    for (const m of [...cuts].sort((a, b) => a - b)) if (m > c && at(m)) return hhmm(m)
     return null
   } catch {
     return null
@@ -178,11 +212,18 @@ export function checkCycle(raw: unknown, kid: string, reserved: Iterable<string>
   return { ok: true, value: drafts.map(d => ({ ...d, id: d.id ?? freshId(taken) })) }
 }
 
-/* ---------- saneo al LEER el archivo (nunca tira; lo raro se arregla hacia ABIERTO y se avisa) ---------- */
-/** Lo que vino de schedules.json para un integrante → rangos bien formados, sin cambiar la disponibilidad hacia CERRADO:
- *  horas inválidas → 24 h ("00:00"–"00:00": abre sus secciones todo el día, como la regla fail-open), secciones que no son
- *  lista → ninguna, secciones desconocidas → afuera, id ausente/inválido/repetido → r1, r2…, nombre inválido → "Rango N".
- *  No recorta a 8 (sacar un rango podría CERRAR una sección). `fixes` = qué se arregló (para el log). */
+/* ---------- saneo al LEER el archivo (nunca tira; nunca cambia la disponibilidad; lo raro se avisa) ---------- */
+/** Lo que vino de schedules.json para un integrante → rangos bien formados, SIN cambiar la disponibilidad: sectionAvailableAt
+ *  da lo mismo sobre lo crudo y sobre lo saneado, minuto a minuto (test). Con los rangos exclusivos (29-oct) el saneo viejo
+ *  ENCERRABA, y cambió en dos puntos:
+ *  · secciones que no son lista → el rango SALE (no cierra ni abre nada; antes quedaba "sin secciones", que en curso cerraría
+ *    todo en su horario);
+ *  · horas inválidas → vacías ("": el rango sigue roto —no cierra nada y abre sus secciones las 24 h, la regla fail-open— y
+ *    el editor lo marca «Revisá las horas»; antes iba a "00:00"–"00:00", las 24 h, que en curso cerraría TODO EL DÍA lo que
+ *    no lista). Una hora válida del par se conserva canónica.
+ *  Igual que antes: secciones desconocidas → afuera, id ausente/inválido/repetido → r1, r2…, nombre inválido → "Rango N",
+ *  entradas que no son objeto → afuera. No recorta a 8 (sacar un rango vivo podría CERRAR una sección). `fixes` = qué se
+ *  arregló (para el log). */
 export function sanitizeStoredRanges(raw: unknown): { ranges: CycleRange[]; fixes: string[] } {
   const fixes: string[] = []
   if (raw === undefined) return { ranges: [], fixes }
@@ -192,17 +233,16 @@ export function sanitizeStoredRanges(raw: unknown): { ranges: CycleRange[]; fixe
   const out: (CycleRange | null)[] = []
   raw.forEach((r, i) => {
     if (!isObject(r)) { fixes.push(`rango ${i + 1}: no era un objeto, lo salteo`); return }
+    if (!Array.isArray(r.sections)) { fixes.push(`rango ${i + 1}: las secciones no eran una lista → lo saco (un rango así no cierra nada)`); return }
     const name = checkName(r.name, `rango ${i + 1}`)
     if (!name.ok) fixes.push(`rango ${i + 1}: nombre inválido → «Rango ${i + 1}»`)
     const from = parseHHMM(r.from), to = parseHHMM(r.to)
-    const okTimes = from != null && to != null
-    if (!okTimes) fixes.push(`rango ${i + 1}: horas inválidas → las 24 h (fail-open)`)
-    if (!Array.isArray(r.sections)) fixes.push(`rango ${i + 1}: las secciones no eran una lista → ninguna`)
-    const given = Array.isArray(r.sections) ? r.sections : []
+    if (from == null || to == null) fixes.push(`rango ${i + 1}: horas inválidas → vacías (no cierra nada y abre sus secciones las 24 h: fail-open)`)
+    const given: unknown[] = r.sections
     if (given.some(s => !isSectionKey(s))) fixes.push(`rango ${i + 1}: secciones desconocidas afuera`)
     const body = {
       name: name.ok ? name.value : `Rango ${i + 1}`,
-      from: okTimes ? hhmm(from) : '00:00', to: okTimes ? hhmm(to) : '00:00',
+      from: from != null ? hhmm(from) : '', to: to != null ? hhmm(to) : '',
       sections: SECTION_KEYS.filter(k => given.includes(k)),
     }
     const id = typeof r.id === 'string' ? r.id.trim() : ''

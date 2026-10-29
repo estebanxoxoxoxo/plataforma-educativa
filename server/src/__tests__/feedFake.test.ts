@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-/* Tanda "Feed diverso" (28-oct): el Feed fake de punta a punta — la ráfaga de "Simular NPCs" (EXACTAMENTE 5, una de cada
-   tipo: racha, insignia, unidad, ruta compartida y la carrera de la liga) y el seed de cada franja (cards de muchos tipos).
+/* Tanda "Feed diverso" (28-oct): el Feed fake de punta a punta — la ráfaga de "Simular NPCs" y el seed de cada franja (cards
+   de muchos tipos). Tanda "Ráfaga variada" (29-oct): la ráfaga ya no es una de cada tipo sino 5 de composición SORTEADA
+   (feedMix.composeBurst: hasta 2 por tipo entre racha, insignia, unidad, ruta compartida, medalla de liga y carrera).
    Se mockea TODO lo que lee o escribe server/data (parent.json, el catálogo, Learn, los NPCs de friendsFake, el ciclo de
    leaguesFake); quedan de verdad feedFake.ts, feedMix.ts, learnProgress.ts (puro), perUser/requestContext/users (solo leen
    la config, como en perUser.test.ts) y zonedClock. */
@@ -83,9 +84,17 @@ vi.mock('../leaguesFake', () => {
     cycleWeek: () => 0, hashOf, rng, shuffle, lastClose: () => null, lastCloseLabel: () => 'el domingo',
     MEDAL_EMOJI: { oro: '🥇', plata: '🥈', bronce: '🥉' },
     myLeague: () => ({ name: 'Liga Cometa', total: 12, closes: 'el domingo', closesInDays: 4, lastWeek: { pos: 2, medal: 'plata' } }),
+    // Tanda "Ráfaga variada": como el de verdad, `count` compañeros DISTINTOS (antes el mock daba siempre uno: la ráfaga
+    // pedía como mucho una carrera; ahora el sorteo puede pedir dos)
     npcPractice: (r: () => number, count: number, avoid: ReadonlySet<string> = new Set()) => {
-      const free = TABLE.filter((n) => !avoid.has(n));
-      return count > 0 ? [{ nick: free[Math.floor(r() * free.length)], color: '#3A5BD9', gain: 20 + Math.floor(r() * 30), from: 6, to: 5, passedMe: false, league: 'Liga Cometa' }] : [];
+      const out: { nick: string; color: string; gain: number; from: number; to: number; passedMe: boolean; league: string }[] = [];
+      for (let k = 0; k < count; k++) {
+        const all = TABLE.filter((n) => !out.some((o) => o.nick === n)), fresh = all.filter((n) => !avoid.has(n));
+        const free = fresh.length ? fresh : all;
+        if (!free.length) break;
+        out.push({ nick: free[Math.floor(r() * free.length)], color: '#3A5BD9', gain: 20 + Math.floor(r() * 30), from: 6, to: 5, passedMe: false, league: 'Liga Cometa' });
+      }
+      return out;
     },
     sinceLabel: () => 'recién', weeksAgoLabel: (n: number) => `hace ${n} semanas`,
   };
@@ -105,27 +114,58 @@ function liveBursts(): Item[][] {
   for (const it of live) { const k = Math.floor((Number(it.id.slice(3)) - 1) / 5); (out[k] ??= []).push(it); }
   return out.filter(Boolean);
 }
-const FIVE = ['badge', 'race', 'route', 'streak', 'unit'];
+/** Lo que la tanda "Ráfaga variada" exige de CADA ráfaga: 5 noticias, como mucho 2 de un tipo (→ ≥ 3 tipos) y 5
+ *  protagonistas distintos (las carreras son de compañeros de tu tabla: nunca un amigo). */
+function expectBurst(b: Item[], label: string) {
+  expect(b, label).toHaveLength(5);
+  const per = new Map<string, number>();
+  for (const it of b) per.set(typeOf(it), (per.get(typeOf(it)) ?? 0) + 1);
+  expect(Math.max(...per.values()), `${label}: ${b.map(typeOf).join(', ')}`).toBeLessThanOrEqual(2);
+  expect(per.size, label).toBeGreaterThanOrEqual(3);
+  expect(new Set(b.map(protagonist)).size, label).toBe(5);
+}
+const mixOf = (b: Item[]) => b.map(typeOf).sort().join(',');
+const refsOf = (b: Item[]) => b.flatMap((it) => (it.kind === 'route' ? [it.course.id] : []));
 
 beforeEach(() => { Object.assign(FLAGS, { amigos: true, ligas: true }); resetFeed(); ROWS.list = []; });
 afterEach(() => { vi.useRealTimers(); });
 
-describe('Simular NPCs: 5 por toque, una de cada tipo', () => {
-  it('3 ráfagas seguidas de Ian → 15 noticias; cada ráfaga con los 5 tipos, 5 protagonistas distintos y nada repetido', () => {
+// Tanda "Ráfaga variada" (29-oct): antes cada ráfaga era EXACTAMENTE los 5 tipos, una de cada (FIVE) y con Ligas apagado
+// salían 4; ahora la composición se sortea (pedido del dueño: «tienen que ser de todo tipo y random»). Lo que sigue
+// valiendo se afirma igual: 5 por toque, protagonistas distintos, nada repetido, la ruta cambia entre ráfagas seguidas.
+describe('Simular NPCs: 5 por toque, de composición sorteada', () => {
+  it('3 ráfagas seguidas de Ian → 15 noticias; cada una con ≤ 2 por tipo, ≥ 3 tipos, 5 protagonistas distintos y nada repetido', () => {
     runAsUser('ian', () => {
       expect([simulateNpcs(), simulateNpcs(), simulateNpcs()]).toEqual([{ added: 5 }, { added: 5 }, { added: 5 }]);
       const bursts = liveBursts();
       expect(bursts.flat()).toHaveLength(15);
-      for (const b of bursts) {
-        expect(b.map(typeOf).sort()).toEqual(FIVE);
-        expect(new Set(b.map(protagonist)).size).toBe(5);
-      }
+      bursts.forEach((b, i) => expectBurst(b, `ráfaga ${i + 1}`));
       const ids = bursts.flat().map(identity);
       expect(new Set(ids).size).toBe(ids.length);
-      // la ruta compartida es del catálogo real (mock) y cambia de ruta entre ráfagas seguidas
-      const routes = bursts.map((b) => (b.find((it) => it.kind === 'route') as Extract<Item, { kind: 'route' }>).course.id);
-      expect(routes[0]).not.toBe(routes[1]);
-      expect(routes[1]).not.toBe(routes[2]);
+      // la composición no se repite dos veces seguidas
+      expect(mixOf(bursts[1])).not.toBe(mixOf(bursts[0]));
+      expect(mixOf(bursts[2])).not.toBe(mixOf(bursts[1]));
+      // las rutas compartidas son del catálogo real (mock), distintas dentro de la ráfaga y nunca la de la ráfaga anterior
+      for (let i = 0; i < bursts.length; i++) {
+        const refs = refsOf(bursts[i]);
+        expect(new Set(refs).size).toBe(refs.length);
+        if (i > 0) for (const ref of refs) expect(refsOf(bursts[i - 1])).not.toContain(ref);
+      }
+    });
+  });
+
+  it('6 ráfagas de Ian: la composición VARÍA (nunca la misma dos veces seguidas), hay medallas de liga de amigos con los 3 tintes y cada ráfaga cumple las reglas', () => {
+    runAsUser('ian', () => {
+      for (let i = 0; i < 6; i++) expect(simulateNpcs()).toEqual({ added: 5 });
+      const bursts = liveBursts();
+      bursts.forEach((b, i) => expectBurst(b, `ráfaga ${i + 1}`));
+      for (let i = 1; i < bursts.length; i++) expect(mixOf(bursts[i]), `ráfaga ${i + 1}`).not.toBe(mixOf(bursts[i - 1]));
+      expect(new Set(bursts.map(mixOf)).size).toBeGreaterThanOrEqual(3);
+      const medals = bursts.flat().filter((it): it is Extract<Item, { kind: 'friend' }> => it.kind === 'friend' && it.icon === 'medal');
+      for (const tint of ['🥇', '🥈', '🥉']) expect(medals.some((it) => it.text.includes(tint)), `sin ${tint}: ${medals.map((it) => it.text).join(' | ')}`).toBe(true);
+      // de quien Ian ve, con el "por qué" de su grafo
+      for (const it of medals) expect(['TomiCohete', 'LuliVolcan', 'MateoDino', 'MartuLuna']).toContain(it.friend.nick);
+      for (const it of medals) expect(it.reason).toMatch(/ es tu amig[oa]$/);
     });
   });
 
@@ -134,17 +174,19 @@ describe('Simular NPCs: 5 por toque, una de cada tipo', () => {
     runAsUser('luna', () => {
       expect(simulateNpcs()).toEqual({ added: 5 });
       const [b] = liveBursts();
-      expect(b.map(typeOf).sort()).toEqual(FIVE);
+      expectBurst(b, 'Luna');
       for (const it of b.filter((x) => typeOf(x) !== 'race')) expect(['CataEstrella', 'MartuLuna', 'LeaTelescopio', 'TriniPiano', 'FedeAjedrez']).toContain(protagonist(it));
     });
     runAsUser('ian', () => expect(liveBursts().flat()).toHaveLength(10));
   });
 
-  it('con Ligas apagado salen 4 (sin la carrera, sin repetir tipo); con Amigos apagado no entra nada', () => {
+  it('con Ligas apagado: sin carrera ni medallas, y 5 igual (alcanzan los candidatos); con Amigos apagado no entra nada', () => {
     FLAGS.ligas = false;
     runAsUser('ian', () => {
-      expect(simulateNpcs()).toEqual({ added: 4 });
-      expect(liveBursts().flat().map(typeOf).sort()).toEqual(['badge', 'route', 'streak', 'unit']);
+      for (let i = 0; i < 6; i++) expect(simulateNpcs()).toEqual({ added: 5 });
+      const bursts = liveBursts();
+      bursts.forEach((b, i) => expectBurst(b, `sin Ligas, ráfaga ${i + 1}`));
+      expect(new Set(bursts.flat().map(typeOf))).toEqual(new Set(['badge', 'route', 'streak', 'unit']));
     });
     FLAGS.amigos = false;
     runAsUser('ian', () => expect(simulateNpcs()).toEqual({ added: 0 }));

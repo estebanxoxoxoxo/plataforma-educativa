@@ -108,14 +108,17 @@ export type SectionKey = 'chat' | 'buscar' | 'mytube' | 'aprender' | 'tienda' | 
 /* ---------- Ciclo del día (tanda F1, 28-oct; docs/USUARIOS.md §11): config del padre, POR INTEGRANTE ----------
    El padre arma RANGOS horarios del día y elige qué secciones están disponibles en cada uno. Rigen TODOS los días (sin día
    de la semana) y SOLO para un chico activo (al adulto no lo gatea nada). Regla (src/shared/lib/cycleRules.ts: el MISMO
-   código en server y cliente desde F2):
-   · una sección que no figura en ningún rango → siempre disponible;
-   · una que figura en ≥ 1 rango → disponible solo cuando el reloj (hora del SERVER, `serverNow`, en la zona de la FAMILIA,
-     `tz`) cae dentro de ALGUNO de sus rangos ([from, to); to < from cruza la medianoche; from == to = las 24 h);
-   · datos inválidos → disponible (fail-open);
-   · con override de demo (`demoRange`): como si el reloj estuviera dentro de ESE rango — sus secciones disponibles, las que
-     figuran en otros rangos y no en ése cerradas, las que no figuran en ninguno disponibles (los solapamientos no cuentan).
-   Fuera de rango, la API de la sección responde `403 {error: 'horario', section, opensAt}` (opensAt = "HH:MM" del próximo
+   código en server y cliente desde F2) — los rangos son MOMENTOS EXCLUSIVOS (29-oct):
+   · con algún rango EN CURSO (el reloj —hora del SERVER, `serverNow`, en la zona de la FAMILIA, `tz`— cae en su [from, to);
+     to < from cruza la medianoche; from == to = las 24 h) → disponible = SOLO la unión de las `sections` de los rangos en
+     curso; una lista vacía en curso cierra todo;
+   · sin ninguno en curso → la que figura en ≥ 1 rango está cerrada (solo abre en los suyos); la que no figura en ninguno,
+     disponible; sin rangos, todo disponible;
+   · datos inválidos → disponible (fail-open: un rango roto nunca está en curso ni hace «figurar»; horas inválidas abren
+     las 24 h lo que ese rango lista);
+   · con override de demo (`demoRange`): como si el reloj estuviera dentro de ESE rango, exclusivo de verdad — disponible =
+     EXACTAMENTE sus secciones (los solapamientos no cuentan).
+   Cerrada ahora, la API de la sección responde `403 {error: 'horario', section, opensAt}` (opensAt = "HH:MM" del próximo
    minuto de HOY en que abre, o null; null también con override). ---------- */
 export type CycleRange = {
   /** Único en el ciclo del integrante: 1-40 de [A-Za-z0-9_-]. En el POST puede faltar: el server pone r1, r2… */ id: string;
@@ -294,7 +297,7 @@ export type FeedMotion = 'calmo' | 'normal' | 'vivo';
 export type FeedItem =
   | { kind: 'video'; id: string; time: string; reason: string; video: VideoResult }
   | { kind: 'article'; id: string; time: string; reason: string; title: string; url: string; source: string; snippet?: string }
-  | { kind: 'route'; id: string; time: string; reason: string; course: { id: string; name: string; /** postas */ units: number; img: string; bg: [string, string]; emoji?: string } }
+  | { kind: 'route'; id: string; time: string; reason: string; course: { id: string; name: string; /** postas */ units: number; /** postas ya hechas (ADITIVO, tanda "Cards del feed" 29-oct): la card pinta el avance; si falta, no se pinta */ done?: number; img: string; bg: [string, string]; emoji?: string } }
   /** `icon`: 'unit' = unidad completada (ADITIVO, tanda "Feed diverso" 28-oct; antes iba como 'badge'). */
   | { kind: 'friend'; id: string; time: string; reason?: string; friend: { nick: string; color: string }; text: string; icon: 'medal' | 'streak' | 'badge' | 'unit' | 'route' | 'league'; reactions: FeedReaction[] }
   | { kind: 'league'; id: string; time: string; reason?: string; name: string; desc: string }

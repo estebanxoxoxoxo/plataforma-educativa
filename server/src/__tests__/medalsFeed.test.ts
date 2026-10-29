@@ -80,7 +80,10 @@ describe('la noticia de una medalla nueva, en el feed de SU dueño', () => {
     runAsUser('ian', () => { M.syncMedals('ian'); M.syncMedals('ian'); });
     expect(medalsIn('ian').map(n => n.medal.id).sort()).toEqual(['de-vuelta', 'primer-guardado']);
     resetFeed('ian');
-    expect(medalsIn('ian')).toEqual([]);
+    // Tanda "Cards del feed" (29-oct): las VIVAS se van con el reset del feed, pero las medallas siguen ganadas y la
+    // primera página siembra la más reciente (feedFake.seedMedal; mientras estaba viva, el dedupe la escondía). Antes
+    // esperaba [] porque no había medalla sembrada.
+    expect(medalsIn('ian').map(n => n.id)).toEqual(['fm-seed-de-vuelta']);
   });
   it('el resumen de la edición NO la cuenta (no es contenido recomendado)', () => {
     const before = summaryIn('andres');

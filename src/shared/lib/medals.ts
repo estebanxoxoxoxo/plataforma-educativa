@@ -11,7 +11,11 @@ export const MEDALS_CHANGED = 'innerith:medals-changed';
 export const medalsChanged = () => { window.dispatchEvent(new Event(MEDALS_CHANGED)); };
 
 /** ¿Trae alguna noticia de medalla? (el Feed decide con esto si avisa al chip) */
-export const hasMedalNews = (items: readonly { kind: string }[]) => items.some((it) => it.kind === 'medal');
+/** Noticia de medalla EN VIVO (recién ganada): dispara el re-pedido de medallas. La SEMBRADA (`fm-seed-…`, tanda "Cards
+ *  del feed": tu medalla más reciente, siempre en la primera página) no cuenta — si contara, cada carga del Feed pediría
+ *  /api/medals de nuevo sin que nada haya cambiado. */
+export const hasMedalNews = (items: readonly { kind: string; id: string }[]) =>
+  items.some((it) => it.kind === 'medal' && !it.id.startsWith('fm-seed-'));
 
 /** aria-label del chip: "Tus medallas: 5" · "Tus medallas: 5, 1 nueva" · "Tus medallas: 6, 2 nuevas". */
 export function chipLabel(count: number, unseen: number): string {

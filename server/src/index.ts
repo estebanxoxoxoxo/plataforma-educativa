@@ -128,9 +128,9 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     //     armaría un ciclo). Un error acá no tumba el pedido. ---
     closeFamilyWeekIfRead(url.pathname, me.id)
 
-    // --- CICLO DEL DÍA (tanda F1, 28-oct; reemplaza a los horarios por sección del porte W7): una sección que figura en
-    //     rangos del ciclo del chico y no está disponible ahora (reloj del server en la zona de la familia, o el override de
-    //     demo) responde 403 ANTES de rutear (el server es el candado). Qué prefijo es de qué sección —y qué no se gatea
+    // --- CICLO DEL DÍA (tanda F1, 28-oct; reemplaza a los horarios por sección del porte W7): una sección que el ciclo del
+    //     chico no tiene disponible AHORA (rangos EXCLUSIVOS desde el 29-oct: src/shared/lib/cycleRules.ts; reloj del server
+    //     en la zona de la familia, o el override de demo) responde 403 ANTES de rutear (el server es el candado). Qué prefijo es de qué sección —y qué no se gatea
     //     nunca: Feed, amigos, progreso, ligas, Familia, demo, lector y reproductor— en schedule.ts:sectionForApi. Capas
     //     independientes: si la familia APAGÓ la sección (Chat/Tienda), gana el apagado (responde la ruta con su propio
     //     403); el ciclo rige solo si está prendida. El ciclo es del CHICO: con un adulto como usuario activo no se mira
@@ -183,7 +183,8 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
       if (!b.id) return send(res, 400, { error: 'id' })
       return send(res, 200, feedLess(String(b.id), b.undo === true))
     }
-    // Botón de demo "Simular NPCs" (Feed): ráfaga de 5 noticias frescas de los NPCs, una de cada tipo (feedFake/feedMix).
+    // Botón de demo "Simular NPCs" (Feed): ráfaga de 5 noticias frescas de los NPCs, composición SORTEADA —como mucho 2 del
+    // mismo tipo, ≥ 3 tipos— (feedFake/feedMix, tanda "Ráfaga variada", 29-oct).
     // Con Amigos apagado del CHICO activo la ráfaga no existe: 403 fail-closed antes de tocar nada, como /api/friends*
     // (mismo texto; tanda "Feed diverso", 28-oct — antes respondía 200 {added: 0}). Con un adulto no rige.
     if (url.pathname === '/api/feed/simulate-npcs' && req.method === 'POST') {

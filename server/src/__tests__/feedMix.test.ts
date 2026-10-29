@@ -1,14 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import {
-  EDITIONS, NPC_NEWS, SHARERS, SLOTS, interleave, newBurstMemory, planBurst, roundRobinBy, spaceOut,
-  type BurstCand, type Daypart, type Slot,
+  BURST_MAX_PER_TYPE, BURST_SIZE, EDITIONS, NPC_MEDALS, NPC_NEWS, SHARERS, SLOTS, composeBurst, interleave, mixKey, newBurstMemory,
+  planBurst, roundRobinBy, spaceOut,
+  type BurstCand, type BurstMemory, type Daypart, type Slot,
 } from '../feedMix';
 import { visibleNicksAtStart } from '../npcRoster';
 
 /* Tanda "Feed diverso" (28-oct; pedido del dueño: «el botón de lanzar NPC que sean 5 por vez y de diversos tipos; y que los
    que vienen por default sean más diversos»). Las reglas PURAS de server/src/feedMix.ts: la edición sembrada (cabeza con la
    plantilla de la franja + resto balanceado), lo del cierre de liga espaciado y el plan de la ráfaga (una por tipo social,
-   sin repetir hasta agotar). Puro: no toca server/data. */
+   sin repetir hasta agotar). Tanda "Ráfaga variada" (29-oct): la ráfaga del server pasa a composeBurst (composición
+   sorteada, hasta 2 por tipo, con medallas de liga): los casos de planBurst SIN cupo siguen fijando las reglas finas en el
+   modo de una por tipo (el mismo código, con cupo 1: da exactamente lo mismo que antes) y los de composeBurst, abajo, las
+   fijan con el sorteo. Puro: no toca server/data. */
 
 /** El rng de leaguesFake (mulberry32), para ráfagas determinísticas como las del server. */
 function rng(seed: number): () => number {
@@ -206,7 +210,9 @@ describe('el pool de la ráfaga (NPC_NEWS)', () => {
       for (const t of SOCIAL) expect(cands.filter((c) => c.type === t).length, `${user} · ${t}`).toBeGreaterThanOrEqual(3);
     }
   });
-  it('ya no trae "va 2º en su liga" (las medallas de liga son solo del cierre de la semana)', () => {
+  // Tanda "Ráfaga variada": las medallas de liga de los amigos ahora SÍ salen en la ráfaga, pero desde su pool (NPC_MEDALS,
+  // abajo); NPC_NEWS sigue sin "va 2º en su liga" ni podios.
+  it('ya no trae "va 2º en su liga" (las medallas de liga van en su pool aparte, NPC_MEDALS)', () => {
     expect(NPC_NEWS.filter((e) => /\bva \d+º en su Liga|podio/i.test(e.text))).toEqual([]);
   });
 });
@@ -237,4 +243,159 @@ describe('la ráfaga no repite protagonista si hay alternativa, con las semillas
       });
     }
   }
+});
+
+/* ---------- tanda "Ráfaga variada" (29-oct): la composición sorteada ---------- */
+// Pedido del dueño: «Simular npc siempre indica medallas de amigos supuestos. tienen que ser de todo tipo y random». Antes
+// cada ráfaga era la misma plantilla (una racha, una insignia, una unidad, una ruta y la carrera). Ahora composeBurst sortea
+// la composición entre seis tipos (con la MEDALLA DE LIGA de un amigo, nueva) con todas las reglas finas de planBurst.
+describe('composeBurst: la ráfaga sorteada, con las semillas REALES del server', () => {
+  /** FNV-1a de leaguesFake (copia: leaguesFake arrastra parent.ts). Con rng: la semilla de feedFake.simulateNpcs. */
+  const hashOf = (s: string) => { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
+  /** Los candidatos como los arma feedFake.simulateNpcs: lo de candsFor + (con Ligas) las medallas de quien ve. */
+  const candsOf = (user: string, ligas = true, routes = ROUTES): BurstCand[] => [
+    ...candsFor(user, routes),
+    ...(ligas ? NPC_MEDALS.filter((m) => VISIBLE[user].includes(m.nick)).map((m): BurstCand => ({ key: m.key, type: 'medal', nick: m.nick })) : []),
+  ];
+  const run = (user: string, week: number, n: number, ligas = true, routes = ROUTES, mem: BurstMemory = newBurstMemory()) => {
+    const cands = candsOf(user, ligas, routes);
+    return Array.from({ length: n }, (_, i) => composeBurst(cands, mem, rng(hashOf(`npcs:${i + 1}:${week}`)), ligas ? BURST_MAX_PER_TYPE : 0));
+  };
+  type Plan = ReturnType<typeof run>[number];
+  const typesOf = (p: Plan) => [...p.picks.map((c) => c.type as string), ...Array.from({ length: p.race }, () => 'race')];
+
+  it('es determinística: mismo usuario, número de ráfaga y semana → misma ráfaga', () => {
+    const keys = (ps: Plan[]) => ps.map((p) => [mixKey(p.mix), p.picks.map((c) => c.key).join()]);
+    expect(keys(run('ian', 0, 8))).toEqual(keys(run('ian', 0, 8)));
+    expect(keys(run('ian', 0, 8))).not.toEqual(keys(run('ian', 1, 8))); // otra semana, otras ráfagas
+  });
+
+  for (const user of ['ian', 'luna']) {
+    it(`${user}: 6 ráfagas seguidas → 5 cada una, nunca > 2 del mismo tipo, ≥ 3 tipos, protagonistas distintos y la composición VARÍA`, () => {
+      const ps = run(user, 0, 6);
+      for (const [i, p] of ps.entries()) {
+        const ts = typesOf(p);
+        expect(ts, `ráfaga ${i + 1}`).toHaveLength(BURST_SIZE);
+        expect(Math.max(...[...new Set(ts)].map((t) => ts.filter((x) => x === t).length)), `ráfaga ${i + 1}: ${ts}`).toBeLessThanOrEqual(2);
+        expect(new Set(ts).size, `ráfaga ${i + 1}`).toBeGreaterThanOrEqual(3);
+        expect(new Set(p.picks.map((c) => c.nick)).size, `ráfaga ${i + 1}`).toBe(p.picks.length);
+        for (const c of p.picks) expect(VISIBLE[user]).toContain(c.nick);
+        if (i > 0) expect(mixKey(p.mix), `ráfaga ${i + 1}`).not.toBe(mixKey(ps[i - 1].mix));
+      }
+      expect(new Set(ps.map((p) => mixKey(p.mix))).size).toBeGreaterThanOrEqual(2);
+    });
+  }
+
+  it('las medallas de liga salen con los TRES tintes a lo largo de las ráfagas (Ian y Luna)', () => {
+    const tint = new Map(NPC_MEDALS.map((m) => [m.key, m.medal]));
+    for (const user of ['ian', 'luna']) {
+      const got = new Set(run(user, 0, 12).flatMap((p) => p.picks.filter((c) => c.type === 'medal').map((c) => tint.get(c.key))));
+      expect(got, user).toEqual(new Set(['oro', 'plata', 'bronce']));
+    }
+  });
+
+  for (const user of ['ian', 'luna']) {
+    for (const week of [0, 1, 2]) {
+      it(`${user}, semana ${week}: 300 ráfagas → todas las reglas finas, en cada una y entre seguidas`, () => {
+        let prev: Plan | null = null;
+        let early = 0;
+        const seen: Record<string, Set<string>> = {};
+        const all = (t: string) => candsOf(user).filter((c) => c.type === t).map((c) => c.key);
+        for (const [i, p] of run(user, week, 300).entries()) {
+          const at = `ráfaga ${i + 1}`, ts = typesOf(p);
+          expect(ts, at).toHaveLength(5);
+          expect(Math.max(...[...new Set(ts)].map((t) => ts.filter((x) => x === t).length)), at).toBeLessThanOrEqual(2);
+          // protagonistas distintos, siempre (con la carrera: compañeros de la tabla, nunca un amigo)
+          expect(new Set(p.picks.map((c) => c.nick)).size, `${at}: ${p.picks.map((c) => c.nick)}`).toBe(p.picks.length);
+          // dos rutas de la misma ráfaga, rutas distintas; y nunca la ruta de la ráfaga anterior (con 2 rutas en el catálogo)
+          const refs = p.picks.flatMap((c) => (c.ref ? [c.ref] : []));
+          expect(new Set(refs).size, at).toBe(refs.length);
+          if (prev) {
+            const before = prev.picks.flatMap((c) => (c.ref ? [c.ref] : []));
+            for (const ref of refs) expect(before, `${at}: ruta ${ref}`).not.toContain(ref);
+            // nunca lo de la ráfaga anterior, y nunca la misma composición dos veces seguidas
+            for (const c of p.picks) expect(prev.picks.map((x) => x.key), `${at}: ${c.key}`).not.toContain(c.key);
+            expect(mixKey(p.mix), at).not.toBe(mixKey(prev.mix));
+          }
+          // no repetir hasta agotar el tipo: una noticia que vuelve encuentra su tipo agotado (salvo el reciclado mínimo de
+          // FS-BASE-B, cuando no hay otra forma de tener protagonistas distintos)
+          for (const t of new Set(p.picks.map((c) => c.type))) {
+            const ks = p.picks.filter((c) => c.type === t).map((c) => c.key), s = (seen[t] ??= new Set());
+            if (ks.some((k) => s.has(k))) {
+              const after = new Set([...s, ...ks]);
+              if (!all(t).every((k) => after.has(k) || prev!.picks.some((x) => x.key === k))) early++;
+              seen[t] = new Set(ks);
+            } else for (const k of ks) s.add(k);
+          }
+          prev = p;
+        }
+        // medido el 29-oct: Ian 0 en las tres semanas; Luna 0-3 de cada 300 (FS-BASE-B, con la ráfaga de antes: 16-30)
+        expect(early).toBeLessThanOrEqual(user === 'ian' ? 0 : 5);
+      });
+    }
+  }
+
+  it('con Ligas apagado: ni carrera ni medallas, y 5 igual si alcanzan los candidatos (Ian y Luna)', () => {
+    for (const user of ['ian', 'luna']) {
+      for (const p of run(user, 0, 20, false)) {
+        expect(p.race).toBe(0);
+        expect(p.picks.filter((c) => c.type === 'medal')).toEqual([]);
+        expect(p.picks).toHaveLength(5);
+        expect(new Set(p.picks.map((c) => c.nick)).size).toBe(5);
+      }
+    }
+  });
+
+  it('si no alcanzan los candidatos, una ráfaga más CORTA (honestidad antes que relleno), nunca con repetidos de más', () => {
+    const few: BurstCand[] = [{ key: 'b1', type: 'badge', nick: 'A' }, { key: 's1', type: 'streak', nick: 'B' }, { key: 's2', type: 'streak', nick: 'C' }];
+    const p = composeBurst(few, newBurstMemory(), rng(1), 0);
+    expect(p.picks.map((c) => c.key).sort()).toEqual(['b1', 's1', 's2']);
+    expect(p.race).toBe(0);
+    expect(composeBurst([], newBurstMemory(), rng(1), 0)).toMatchObject({ picks: [], race: 0 });
+    // solo carreras posibles (sin amigos con noticias): como mucho 2
+    expect(composeBurst([], newBurstMemory(), rng(1), 2)).toMatchObject({ picks: [], race: 2 });
+  });
+
+  it('dos de un mismo tipo y le quedaba UNA sin publicar: sale esa sí o sí y la otra recicla (nunca lo de la ráfaga anterior)', () => {
+    const cands: BurstCand[] = [
+      { key: 'u1', type: 'unit', nick: 'A' }, { key: 'u2', type: 'unit', nick: 'B' }, { key: 'u3', type: 'unit', nick: 'C' },
+    ];
+    const mem = newBurstMemory();
+    mem.used = new Set(['u1', 'u2']); mem.lastKeys = ['u2']; mem.lastNicks = ['B'];
+    const picks = planBurst(cands, mem, rng(4), { unit: 2 });
+    expect(picks.map((c) => c.key).sort()).toEqual(['u1', 'u3']); // u3 (la que quedaba) + u1 (recicla; u2 fue la anterior)
+    expect([...mem.used].sort()).toEqual(['u1', 'u3']); // el tipo vuelve a empezar con lo de ahora
+  });
+});
+
+describe('el pool de medallas de liga (NPC_MEDALS)', () => {
+  const EMOJI = { oro: '🥇', plata: '🥈', bronce: '🥉' } as const;
+  it('claves únicas y que no chocan con NPC_NEWS; textos únicos; UNA medalla por NPC', () => {
+    const keys = NPC_MEDALS.map((m) => m.key);
+    expect(new Set(keys).size).toBe(keys.length);
+    for (const k of keys) expect(NPC_NEWS.map((e) => e.key)).not.toContain(k);
+    expect(new Set(NPC_MEDALS.map((m) => m.text)).size).toBe(NPC_MEDALS.length);
+    expect(new Set(NPC_MEDALS.map((m) => m.nick)).size).toBe(NPC_MEDALS.length);
+  });
+  it('cada texto lleva el emoji de SU medalla y ningún otro (el cliente pinta el tinte por el emoji)', () => {
+    for (const m of NPC_MEDALS) {
+      expect(m.text, m.key).toContain(EMOJI[m.medal]);
+      for (const other of Object.values(EMOJI).filter((e) => e !== EMOJI[m.medal])) expect(m.text, m.key).not.toContain(other);
+    }
+  });
+  it('nombra la liga de hoy del NPC y, si nombra otra, es la de abajo en la escalera (podio → sube)', () => {
+    // la escalera de leaguesFake.LADDER (copia: leaguesFake arrastra parent.ts)
+    const LADDER = ['Liga Chispa', 'Liga Cometa', 'Liga Estrella', 'Liga Supernova', 'Liga Galaxia'];
+    for (const m of NPC_MEDALS) {
+      expect(m.text, m.key).toContain(m.league);
+      const named = LADDER.filter((l) => m.text.includes(l));
+      const below = LADDER[LADDER.indexOf(m.league) - 1];
+      for (const l of named) expect([m.league, below], `${m.key}: ${l}`).toContain(l);
+    }
+  });
+  it('Ian y Luna ven, cada uno, medallas de los TRES metales', () => {
+    for (const user of ['ian', 'luna']) {
+      expect(new Set(NPC_MEDALS.filter((m) => VISIBLE[user].includes(m.nick)).map((m) => m.medal)), user).toEqual(new Set(['oro', 'plata', 'bronce']));
+    }
+  });
 });

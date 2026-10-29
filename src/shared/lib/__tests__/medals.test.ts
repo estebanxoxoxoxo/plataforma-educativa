@@ -54,9 +54,11 @@ describe('hiddenNote (Familia → Actividad)', () => {
 
 describe('noticias del Feed', () => {
   it('título de la noticia', () => expect(newsTitle({ title: 'Primera posta' })).toBe('Ganaste la medalla «Primera posta»'));
-  it('hasMedalNews mira el kind', () => {
-    expect(hasMedalNews([{ kind: 'video' }, { kind: 'friend' }])).toBe(false);
-    expect(hasMedalNews([{ kind: 'video' }, { kind: 'medal' }])).toBe(true);
+  it('hasMedalNews mira el kind y saltea la sembrada', () => {
+    expect(hasMedalNews([{ kind: 'video', id: 'fv-1' }, { kind: 'friend', id: 'ff-1' }])).toBe(false);
+    expect(hasMedalNews([{ kind: 'video', id: 'fv-1' }, { kind: 'medal', id: 'fm-3' }])).toBe(true);
+    // La medalla SEMBRADA de cada carga (fm-seed-…) no es noticia nueva: no dispara el re-pedido de /api/medals.
+    expect(hasMedalNews([{ kind: 'medal', id: 'fm-seed-ruta-completa' }])).toBe(false);
     expect(hasMedalNews([])).toBe(false);
   });
 });

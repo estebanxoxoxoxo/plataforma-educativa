@@ -258,6 +258,12 @@ const NEWS: { f: string; text: string; icon: NewsIcon }[] = [
   { f: 'f6', text: 'terminó la unidad «Los cinco sentidos» de Mi cuerpo 👀', icon: 'unit' },
   { f: 'f8', text: 'practicó con música tranquila y no cortó su racha 🎶', icon: 'streak' },
   { f: 'f4', text: 'se ganó la insignia «Estrella Fugaz» en Inglés inicial 🌠', icon: 'badge' },
+  // Tanda "Cards del feed" (29-oct): Luna no veía NINGUNA medalla de amigos (el oro y el bronce de arriba son de amigos de
+  // Ian), así que la noticia de liga con tinte de medalla nunca le aparecía. Dos de los suyos, una de oro y una de bronce
+  // (los dos tintes), con el ascenso que les toca por la regla del cierre (podio → sube: leaguesFake) y que cuadra con la
+  // liga de cada uno hoy; Ian no las ve (no son de su grafo).
+  { f: 'f9', text: 'ganó la medalla de oro 🥇 en la Liga Cometa y subió a la Liga Estrella ⭐', icon: 'medal' },
+  { f: 'f12', text: 'ganó la medalla de bronce 🥉 en la Liga Chispa y subió a la Liga Cometa ☄️', icon: 'medal' },
 ]
 /** Las noticias que son de ligas (medallas, ascensos): con Ligas apagado el chico no las ve (feedFake). */
 const LEAGUEISH: ReadonlySet<NewsIcon> = new Set<NewsIcon>(['medal', 'league'])
@@ -418,10 +424,12 @@ export function npcRelation(fid: string | undefined): 'friend' | 'request' | nul
   const st = slices.now()
   return st.friends.includes(fid) ? 'friend' : st.requests.includes(fid) ? 'request' : null
 }
-/** El id, el color y si es chica de un NPC por su nick (el feed no duplica colores ni géneros). */
-export function npcInfo(nick: string): { id: string; color: string; girl: boolean } | undefined {
+/** El id, el color y si es chica de un NPC por su nick (el feed no duplica colores ni géneros). `league` (tanda "Ráfaga
+ *  variada", 29-oct): su liga de hoy —la del perfil—, con la que cuadran las medallas de la ráfaga (feedMix.NPC_MEDALS; lo
+ *  coteja feedBurst.test). */
+export function npcInfo(nick: string): { id: string; color: string; girl: boolean; league: string } | undefined {
   const n = NPCS.find(x => x.nick === nick)
-  return n ? { id: n.id, color: n.color, girl: n.girl } : undefined
+  return n ? { id: n.id, color: n.color, girl: n.girl, league: n.league } : undefined
 }
 /** Cuántos amigos tiene el usuario activo (el feed no dice "la ven tus amigos" a quien no tiene). */
 export const friendCount = (): number => slices.now().friends.length

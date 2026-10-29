@@ -5,6 +5,7 @@
 //   - UNA EDICIÓN FINITA. La MEZCLA es del server (plantilla editorial por franja del día, no un sort). Primera página:
 //       [ 'next' (el hero: SIEMPRE la siguiente mejor acción de APRENDIZAJE —jamás comercio—, del progreso real),
 //         lo que entró en vivo (noticias frescas, lo más nuevo primero),
+//         tu medalla MÁS RECIENTE (la sembrada: tanda "Cards del feed", 29-oct — seedMedal, abajo),
 //         la edición sembrada: noticia de amigos → 1-2 "para vos" (lectura/ruta) → la grilla 'videos' → más social →
 //         el 'summary' (que CONFIESA la mezcla y cómo cambia con la hora) → el resto ].
 //     Las páginas siguientes siguen la edición, más vieja, sin hero ni resumen; la última trae next=null ("Estás al día").
@@ -33,7 +34,10 @@
 //     (mismos nicks y colores, y cada NPC "sabe" lo que publicó). Cada usuario ve las de SUS amigos y de quien le pidió
 //     contacto (isVisibleNpc: el grafo del activo, U4). Las reacciones son datos de demo en memoria. Las medallas
 //     y ascensos (y la tarjeta de la liga de la semana) se fechan en el último cierre de liga (lastCloseLabel) y entran en
-//     la edición donde les toca por antigüedad: se reparten el domingo, no a cualquier hora.
+//     la edición donde les toca por antigüedad: se reparten el domingo, no a cualquier hora. Tanda "Ráfaga variada"
+//     (29-oct, pedido del dueño: «En el inicial también tiene que tener alguno que otro de liga cerrada de un amigo»): la
+//     PRIMERA página trae 1-2 de esas noticias de amigos aunque la antigüedad las mande más abajo (leadLeague: se ADELANTA
+//     su lugar, la fecha sigue siendo la del cierre).
 //   - La noticia de MI LIGA cuenta el ciclo semanal: cómo me fue en el cierre pasado (lastWeek/lastClose de leaguesFake)
 //     + dónde compito esta semana. Se arma al servir, no se duplica.
 //   - La CONFIG DEL PADRE se aplica acá EN SERIO: lo que pega con un tema NEGRO o trae una palabra de la familia no se
@@ -52,10 +56,12 @@
 //     Learn DEL ACTIVO (learnResults.resultRows) y la tarjeta de la liga, de SU ciclo (leaguesFake).
 //   - DEMO VIVO (RAM, docs/AGENTS.md regla 9): lo que entra en vivo pasa por los MISMOS filtros vivos al servirse:
 //       · injectLeagueClose(): las noticias del cierre simulado de liga (lo orquesta leaguesFake.closeWeek).
-//       · simulateNpcs() (botón "Simular NPCs" del Feed): una ráfaga de EXACTAMENTE 5 noticias frescas, una de cada tipo
-//         (racha, insignia, unidad completada, ruta compartida del catálogo real y la carrera de tu liga con XP real;
-//         tanda "Feed diverso", 28-oct — las reglas en feedMix.planBurst). El cliente NO las mete solo: muestra la píldora
-//         "N novedades ↑" y las trae cuando el chico la toca. Con Amigos apagado del chico el endpoint responde 403.
+//       · simulateNpcs() (botón "Simular NPCs" del Feed): una ráfaga de 5 noticias frescas de composición SORTEADA (tanda
+//         "Ráfaga variada", 29-oct; antes —"Feed diverso", 28-oct— era una de cada tipo, siempre igual): entre racha,
+//         insignia, unidad completada, ruta compartida del catálogo real, medalla de liga de un amigo y la carrera de tu liga
+//         con XP real, como mucho 2 del mismo tipo y nunca la misma composición dos veces seguidas (las reglas en
+//         feedMix.composeBurst/planBurst). El cliente NO las mete solo: muestra la píldora "N novedades ↑" y las trae cuando
+//         el chico la toca. Con Amigos apagado del chico el endpoint responde 403.
 //       · feedLess(): "Ver menos de esto" — los ids ocultos se filtran de TODAS las respuestas siguientes (reversible).
 //     Después de un cierre, lo de semanas anteriores se fecha por semanas. resetFeed(userId?) vuelve al seed lo de ese
 //     usuario (sin id, lo de todos; va en /api/demo/reset).
@@ -78,12 +84,12 @@ import { LEARN_EC, resultRows } from './learnResults'
 import { servedRoutes, type CatalogRoute } from './learnRoutes'
 import { routeInProgress, routeRuns, type RouteRun } from './learnProgress'
 import { MEDALS, type EarnedMedal } from './medalRules'
-import { registerMedalNews } from './medals'
+import { medalsOf, registerMedalNews } from './medals'
 import { familyCatalogVersion, searchVideosStrict, toVideoResult, type CatalogVideo } from './videos'
 import { perUser } from './perUser'
 import { currentUser } from './requestContext'
 import {
-  EDITIONS, NPC_NEWS, SHARERS, interleave, newBurstMemory, planBurst, roundRobinBy, spaceOut,
+  BURST_MAX_PER_TYPE, EDITIONS, NPC_MEDALS, NPC_NEWS, SHARERS, composeBurst, interleave, newBurstMemory, roundRobinBy, spaceOut,
   type BurstCand, type BurstMemory, type Daypart, type Slot,
 } from './feedMix'
 
@@ -93,8 +99,10 @@ export interface FeedReaction { emoji: string; count: number; mine: boolean }
 type NewsIcon = 'medal' | 'streak' | 'badge' | 'unit' | 'route' | 'league'
 /** La ruta como la dibuja la card (forma `course` del contrato): `units` = sus postas (sin contar los repasos), `img` = la
  *  portada ('' si no hay: la card cae al emoji). `emoji` = ADITIVO de W3 (pendiente de formalizar en src/api/types.ts por
- *  el coordinador): el ícono de la ruta, para la card sin portada. */
-type RouteCourse = { id: string; name: string; units: number; img: string; bg: [string, string]; emoji?: string }
+ *  el coordinador): el ícono de la ruta, para la card sin portada. `done` = ADITIVO (tanda "Cards del feed", 29-oct; ya en
+ *  src/api/types.ts): las postas que el usuario del pedido ya hizo (la misma regla del camino que el hero), para que la card
+ *  pinte su avance; el server lo manda siempre. */
+type RouteCourse = { id: string; name: string; units: number; done?: number; img: string; bg: [string, string]; emoji?: string }
 export type FeedItem =
   | { kind: 'video'; id: string; time: string; reason: string; video: VideoCard }
   | { kind: 'article'; id: string; time: string; reason: string; title: string; url: string; source: string; snippet?: string }
@@ -248,7 +256,7 @@ function catalogRuns(): { route: CatalogRoute; run: RouteRun }[] {
   return routes.map((route, i) => ({ route, run: runs[i] }))
 }
 function routeCourse(route: CatalogRoute, run: RouteRun): RouteCourse {
-  return { id: run.id, name: run.title, units: run.total, img: routeImg(route), bg: ROUTE_BG[hashOf(run.id) % ROUTE_BG.length], emoji: run.emoji || undefined }
+  return { id: run.id, name: run.title, units: run.total, done: run.done, img: routeImg(route), bg: ROUTE_BG[hashOf(run.id) % ROUTE_BG.length], emoji: run.emoji || undefined }
 }
 /** El "por qué" de una ruta: en el eje del chico (lo que lleva hecho), salvo que pegue con un tema de la familia. */
 function routeWhy(run: RouteRun): string {
@@ -442,7 +450,53 @@ function seedStream(dp: Daypart): FeedItem[] {
   const h = closeAgeHours()
   let at = 0
   while (at < out.length && ageOf(at) <= h) at++
-  return spaceOut(out, late, at)
+  const stream = spaceOut(out, late, at)
+  // La primera página trae alguna noticia de liga cerrada de un amigo (leadLeague): esas salen del reparto por antigüedad y
+  // se adelantan; el resto de lo del cierre sigue entrando espaciado donde le toca.
+  const lead = leadLeague(stream, late)
+  return lead.length ? leadInto(spaceOut(out, late.filter(it => !lead.includes(it)), at), lead) : stream
+}
+
+/* ---------- la liga cerrada de los amigos, en la primera página (tanda "Ráfaga variada", 29-oct) ---------- */
+// Pedido del dueño: «En el inicial también tiene que tener alguno que otro de liga cerrada de un amigo». Las medallas y
+// ascensos de los amigos se fechan en el último cierre y entran por antigüedad (arriba): salvo el lunes temprano, quedaban en
+// la página 3 o más abajo y la primera página casi nunca traía una.
+/** Cuántas se adelantan como mucho: "alguno que otro" (1, y 2 si hay de sobra). */
+const LEAD_MAX = 2
+/** Desde qué lugar de la edición se buscan sus lugares (después de la primera noticia de amigos y un "para vos"). */
+const LEAD_AT = 2
+const isFriendLeague = (it: FeedItem): it is Of<'friend'> => it.kind === 'friend' && LEAGUEISH.has(it.icon)
+const isLeagueish = (it: FeedItem): boolean => it.kind === 'league' || isFriendLeague(it)
+/** Las noticias de liga cerrada de amigos que se ADELANTAN a la primera página: 1-2 (las medallas primero —el tinte de oro,
+ *  plata o bronce es lo que se ve—, después los ascensos), y solo si hace falta: Amigos y Ligas prendidos (si no, `late` no
+ *  trae ninguna de amigos), el grafo del activo deja ver alguna y la primera página de la edición NO trae ya ninguna (el
+ *  lunes temprano la antigüedad ya las pone arriba). Tras un cierre simulado (semana > 0) no: lo vivo del cierre (la
+ *  medalla y el podio de esa liga) ya está arriba y lo de la edición es "de la semana pasada" — no se duplica. Lo que
+ *  entró en vivo por una ráfaga NO cuenta para decidir: la edición sembrada no puede cambiar con lo vivo (el cursor de las
+ *  páginas es su posición: una ráfaga no corre las páginas que el chico ya pidió). */
+function leadLeague(stream: readonly FeedItem[], late: readonly FeedItem[]): FeedItem[] {
+  if (cycleWeek() > 0 || stream.slice(0, PAGE).some(isFriendLeague)) return []
+  const theirs = late.filter(isFriendLeague)
+  return [...theirs.filter(it => it.icon === 'medal'), ...theirs.filter(it => it.icon !== 'medal')].slice(0, LEAD_MAX)
+}
+/** Mete `lead` en la primera página de la edición, desde LEAD_AT y con dos ítems de por medio entre una y otra: en el primer
+ *  lugar que no queda pegado a otra noticia de liga (la regla de spaceOut: nunca dos de liga seguidas) ni, si se puede, a
+ *  otra noticia de amigos (la plantilla de la franja nunca pone dos sociales seguidas). Conserva su fecha (la del cierre): se
+ *  adelanta el lugar, no se miente la fecha. */
+function leadInto(stream: readonly FeedItem[], lead: readonly FeedItem[]): FeedItem[] {
+  const s = [...stream]
+  let from = LEAD_AT
+  for (const it of lead) {
+    const near = (x: FeedItem | undefined, calm: boolean) => !!x && (isLeagueish(x) || (calm && x.kind === 'friend'))
+    const free = (j: number, calm: boolean) => !near(s[j - 1], calm) && !near(s[j], calm)
+    let j = -1
+    for (const calm of [true, false]) for (let k = from; k < PAGE && k <= s.length && j < 0; k++) if (free(k, calm)) j = k
+    for (let k = from; k <= s.length && j < 0; k++) if (free(k, false)) j = k // (no pasa con una edición normal)
+    if (j < 0) j = s.length
+    s.splice(j, 0, it)
+    from = j + 3
+  }
+  return s
 }
 
 /** Las rutas del catálogo que la familia deja ver, con su avance real (las que pegan con un tema negro o una palabra de la
@@ -639,6 +693,32 @@ export function injectMedalNews(m: EarnedMedal): void {
 }
 registerMedalNews(injectMedalNews)
 
+/** Cuándo se ganó la medalla sembrada, en la escala de lo sembrado (timeOf): de hoy, como lo vivo ("hace 3 h": sinceLabel);
+ *  de ayer, "ayer"; más vieja —o del seed sin fecha (racha, semanas, copa, amigos: `at` null)—, "esta semana", y tras un
+ *  cierre simulado, como el resto de lo sembrado ("la semana pasada": weeksAgoLabel). Lee el rótulo de sinceLabel (que ya
+ *  cuenta los días de pared en la zona de la familia) en vez de contar los días otra vez. */
+function seedMedalTime(at: number | null, week: number): string {
+  const since = at === null ? null : sinceLabel(at)
+  if (since !== null && !/^hace \d+ días$/.test(since)) return since
+  return week > 0 ? weeksAgoLabel(week) : 'esta semana'
+}
+/** Tanda "Cards del feed" (29-oct; spec §4.1): sin ganar una medalla en vivo, la card 'medal' no aparecía NUNCA. Ahora la
+ *  primera página siembra tu medalla MÁS RECIENTE de las reales (medals.ts: derivadas de hechos, nunca entregadas) como
+ *  noticia propia: la más nueva de las que VES — medalsOf ya esconde las de un candado y `ok` pasa los mismos filtros que
+ *  lo vivo (liveAllowed por su dominio, las palabras y temas de la familia): si la más nueva no se puede mostrar, sale la
+ *  que le sigue. Si ESA medalla ya entró en vivo (la acabás de ganar), sale solo la viva: nunca dos veces la misma. Id
+ *  estable fm-seed-<medalla> (cumple FEED_ID); como la viva, sin reacciones ni "ver menos" (§5.5c) y el resumen no la
+ *  cuenta. Sin medallas (el adulto del seed), nada. */
+function seedMedal(fresh: readonly Fresh[], week: number, ok: (it: FeedItem) => boolean): Of<'medal'> | null {
+  for (const m of medalsOf(lives.nowId())) {
+    const medal: EarnedMedal = { id: m.id, emoji: m.emoji, title: m.title, text: m.text, at: m.at, ...(m.times ? { times: m.times } : {}) }
+    const it: Of<'medal'> = { kind: 'medal', id: `fm-seed-${m.id}`, time: seedMedalTime(m.at, week), reason: 'Es tu medalla más reciente', medal }
+    if (!ok(it)) continue
+    return fresh.some(f => f.item.kind === 'medal' && f.item.medal.id === m.id) ? null : it
+  }
+  return null
+}
+
 /* ---------- "Simular NPCs": lo que publican los NPCs del demo ---------- */
 /** El color de cada NPC: el de friendsFake (una sola lista de NPCs: coincide con el dock). */
 const friendColor = (nick: string) => npcInfo(nick)?.color ?? '#3A5BD9'
@@ -651,46 +731,58 @@ function raceText(ev: NpcRace): string {
   return `practicó un montón: +${ev.gain} XP en tu ${ev.league} 💪`
 }
 const NPC_NEWS_BY_KEY = new Map(NPC_NEWS.map(e => [e.key, e]))
+const NPC_MEDALS_BY_KEY = new Map(NPC_MEDALS.map(e => [e.key, e]))
 
-/** Botón "Simular NPCs" (Feed): los NPCs "viven" un rato EN EL FEED DEL ACTIVO (su liga, sus amigos; U4). Tanda "Feed
- *  diverso" (28-oct, pedido del dueño: «que sean 5 por vez y de diversos tipos»): deja listas EXACTAMENTE 5 noticias
- *  frescas, UNA DE CADA TIPO (entran ARRIBA de la primera página cuando el chico toca la píldora "N novedades ↑"), con
- *  reacciones de arranque:
- *  - lo social (feedMix.planBurst): una RACHA, una INSIGNIA y una UNIDAD COMPLETADA de los amigos (feedMix.NPC_NEWS) y una
- *    RUTA COMPARTIDA (kind 'route', del catálogo REAL de Learn: se abre en Aprender). Protagonistas distintos dentro de la
- *    ráfaga y, primero, otros que los de la anterior; nada se repite hasta agotar su tipo (y al reciclar, nunca lo de la
- *    ráfaga anterior); la ruta compartida cambia de ruta entre ráfagas seguidas.
- *  - la CARRERA DE TU LIGA: UN compañero de tu tabla practica DE VERDAD (su XP sube en Ligas: leaguesFake.npcPractice), otro
- *    que el de la ráfaga anterior.
+/** Botón "Simular NPCs" (Feed): los NPCs "viven" un rato EN EL FEED DEL ACTIVO (su liga, sus amigos; U4). Deja listas 5
+ *  noticias frescas (pedido del 28-oct: «que sean 5 por vez y de diversos tipos»; entran ARRIBA de la primera página cuando
+ *  el chico toca la píldora "N novedades ↑"), con reacciones de arranque. Tanda "Ráfaga variada" (29-oct, pedido del
+ *  dueño: «tienen que ser de todo tipo y random»): la COMPOSICIÓN se sortea en cada ráfaga (feedMix.composeBurst) entre
+ *  seis tipos, como mucho 2 del mismo y nunca la misma dos veces seguidas (antes: una de cada tipo, siempre las mismas 5):
+ *  - lo social (feedMix.planBurst, con todas sus reglas): RACHAS, INSIGNIAS y UNIDADES COMPLETADAS de los amigos
+ *    (feedMix.NPC_NEWS), RUTAS COMPARTIDAS (kind 'route', del catálogo REAL de Learn: se abren en Aprender) y, con Ligas,
+ *    MEDALLAS DE LIGA de los amigos (feedMix.NPC_MEDALS: icono 'medal', con el emoji de su metal; coherentes con la liga de
+ *    cada uno). Protagonistas distintos dentro de la ráfaga y, primero, otros que los de la anterior; nada se repite hasta
+ *    agotar su tipo (y al reciclar, nunca lo de la ráfaga anterior); la ruta compartida cambia de ruta entre ráfagas
+ *    seguidas y, si van dos, son rutas distintas.
+ *  - la CARRERA DE TU LIGA (con Ligas; 0, 1 o 2 según el sorteo): compañeros DISTINTOS de tu tabla practican DE VERDAD (su
+ *    XP sube en Ligas: leaguesFake.npcPractice), otros que los de la ráfaga anterior.
  *  Solo de quien el activo ve (isVisibleNpc: su grafo) y por los mismos filtros vivos de la familia: un tipo que se queda
- *  sin candidatos no sale (honestidad antes que relleno) — con Ligas apagado no hay carrera (salen 4). Con Amigos
- *  apagado no entra nada (el endpoint ya responde 403 antes: index.ts). Devuelve cuántas entraron. */
+ *  sin candidatos no entra en el sorteo y, si no alcanzan para 5, salen menos (honestidad antes que relleno). Con Ligas
+ *  apagado, ni carrera ni medallas. Con Amigos apagado no entra nada (el endpoint ya responde 403 antes: index.ts).
+ *  Devuelve cuántas entraron. */
 export function simulateNpcs(): { added: number } {
   if (!featureOnNow('amigos')) return { added: 0 }
   const L = live()
   const n = ++L.bursts, week = cycleWeek()
-  const r = rng(hashOf(`npcs:${n}:${week}`))
+  // La semilla lleva al USUARIO: sin él, ian y luna compartían la misma secuencia de composiciones (QA-INTEGRAL, 29-oct).
+  const r = rng(hashOf(`npcs:${lives.nowId()}:${n}:${week}`))
   const blocked = familyFilter(), ligas = featureOnNow('ligas')
   const out: FeedItem[] = []
   const routes = catalogRuns().filter(({ run }) => !blocked(run.title))
   const cands: BurstCand[] = [
     ...NPC_NEWS.filter(e => visibleNick(e.nick) && !blocked(e.text)).map((e): BurstCand => ({ key: e.key, type: e.type, nick: e.nick })),
     ...SHARERS.filter(visibleNick).flatMap(nick => routes.map(({ run }): BurstCand => ({ key: `share:${nick}:${run.id}`, type: 'route', nick, ref: run.id }))),
+    ...(ligas ? NPC_MEDALS.filter(m => visibleNick(m.nick) && !blocked(m.text)).map((m): BurstCand => ({ key: m.key, type: 'medal', nick: m.nick })) : []),
   ]
-  for (const c of planBurst(cands, L.burst, r)) {
+  const plan = composeBurst(cands, L.burst, r, ligas ? BURST_MAX_PER_TYPE : 0)
+  for (const c of plan.picks) {
     const s = c.type === 'route' ? routes.find(x => x.run.id === c.ref) : undefined
-    const e = NPC_NEWS_BY_KEY.get(c.key)
+    const e = NPC_NEWS_BY_KEY.get(c.key), m = NPC_MEDALS_BY_KEY.get(c.key)
     if (s) out.push({ kind: 'route', id: `fs-${++L.freshSeq}`, time: 'recién', reason: `La compartió ${c.nick}`, course: routeCourse(s.route, s.run) })
     else if (e) out.push(newsItem(e.nick, friendColor(e.nick), e.text, e.type, npcWhy(e.nick)))
+    else if (m) out.push(newsItem(m.nick, friendColor(m.nick), m.text, 'medal', npcWhy(m.nick)))
   }
-  if (ligas) {
-    const [ev] = npcPractice(r, 1, new Set(L.lastRace))
-    const text = ev ? raceText(ev) : ''
-    if (ev && !blocked(text)) { out.push(newsItem(ev.nick, ev.color, text, 'league', 'Compite en tu liga esta semana')); L.lastRace = [ev.nick] }
+  if (plan.race > 0) {
+    const ran: string[] = []
+    for (const ev of npcPractice(r, plan.race, new Set(L.lastRace))) {
+      const text = raceText(ev)
+      if (!blocked(text)) { out.push(newsItem(ev.nick, ev.color, text, 'league', 'Compite en tu liga esta semana')); ran.push(ev.nick) }
+    }
+    if (ran.length) L.lastRace = ran
   }
   const items = shuffle(out, r)
   pushFresh(items, week)
-  console.log(`[feed] Simular NPCs #${n} de ${lives.nowId()}: +${items.length} noticias (${items.map(it => (it.kind === 'friend' ? it.icon : it.kind)).join(', ')}; esperan la píldora del Feed)`)
+  console.log(`[feed] Simular NPCs #${n} de ${lives.nowId()}: +${items.length} noticias (${items.map(it => (it.kind === 'friend' ? (it.icon === 'league' ? 'carrera' : it.icon) : it.kind)).join(', ')}; esperan la píldora del Feed)`)
   return { added: items.length }
 }
 
@@ -719,14 +811,17 @@ export function getFeed(after?: string | null): FeedResponse {
   // Primera página. Lo que entró en vivo va arriba (debajo del hero), con los MISMOS filtros vivos de la familia y los
   // on-off; lo de esta semana se fecha por la hora real ("recién", "hace 5 min"), lo de semanas anteriores por semanas.
   const blocked = familyFilter(), amigos = featureOnNow('amigos'), ligas = featureOnNow('ligas')
+  const livePasses = (it: FeedItem) => liveAllowed(it, amigos, ligas) && (it.kind === 'league' || !blocked(freshText(it)))
   const liveItems = fresh
-    .filter(f => !hidden.has(f.item.id) && liveAllowed(f.item, amigos, ligas) && (f.item.kind === 'league' || !blocked(freshText(f.item))))
+    .filter(f => !hidden.has(f.item.id) && livePasses(f.item))
     .map(f => serve(withTime(f.item, f.week === week ? sinceLabel(f.at) : weeksAgoLabel(week - f.week))))
+  // Tu medalla más reciente, debajo de lo vivo (seedMedal). Lo oculto con "ver menos" lo saca el filtro final, como a todo.
+  const mine = seedMedal(fresh, week, livePasses)
   const shelf = shelfOf(dp, stream)
   const sum = summaryOf(dp, now, [...liveItems, ...stream.filter(keep)], shelf)
   const { shelfAfter, summaryAfter } = EDITIONS[dp]
   const head = stream.slice(0, PAGE)
-  const items: FeedItem[] = [nextStep(dp), ...liveItems]
+  const items: FeedItem[] = [nextStep(dp), ...liveItems, ...(mine ? [mine] : [])]
   for (let i = 0; i <= head.length; i++) {
     if (i === Math.min(shelfAfter, head.length) && shelf) items.push(shelf)
     if (i === Math.min(summaryAfter, head.length)) items.push(sum)
