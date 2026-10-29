@@ -29,13 +29,22 @@
 // migra en el acto a users.ian (userDataMigrate.ts, puro y testeado) y el texto original queda UNA vez en
 // learn-results.json.pre-v2 (un checkout viejo reventaría al leer el v2). Ilegible → copia .roto-<ms> y arranca vacío (antes
 // el próximo guardado lo pisaba en silencio); se escribe recién con el próximo POST.
-import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+//
+// FS-BASE-A (hallazgos learnResults.ts:134 y :174): el cuerpo se lee con TOPE (MAX_BODY → 413; antes juntaba todo en memoria
+// del proceso de la familia) y la fila nueva entra a RAM recién cuando quedó en DISCO: si writeFile falla se deshace (la RAM
+// vuelve a lo de antes, el seq no retrocede: un id nunca significa dos cosas) y responde 500 sin pagar. Antes la fila quedaba
+// en RAM como «ya completado»: el reintento del cliente (learnData.ts reintenta los 5xx) no cobraba nunca y la partida quedaba
+// DUPLICADA en disco con la próxima escritura buena.
+import { existsSync, readFileSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { join } from 'node:path'
 import { SERVER_ROOT } from './config'
+import { backupBeforeMigrate, quarantine, writeFileAtomic } from './durable'
 import { isObject } from './familyMigrate'
 import { catalogRoutes, routeTitle } from './learnRoutes'
 import { lastPlayedRoute, routeRuns } from './learnProgress'
+import { learnFactsFrom } from './medalRules'
+import { ensureMedals, registerMedalFacts, syncMedals } from './medals'
 import { addXp, registerContinue } from './progress'
 import { currentUser } from './requestContext'
 import { upgradeLearnRaw } from './userDataMigrate'
@@ -66,11 +75,8 @@ const FILE = join(SERVER_ROOT, 'data', 'learn-results.json')
 /** Las filas de cada usuario (RAM = el archivo entero; se escribe completo en cada POST). */
 const byUser = new Map<string, ActivityResultRow[]>()
 
-function writeFile(): void {
-  const tmp = `${FILE}.tmp`
-  writeFileSync(tmp, JSON.stringify({ version: 2, users: Object.fromEntries(byUser) }))
-  renameSync(tmp, FILE)
-}
+/** Tira si falla (durable.ts, FS-BASE-B: tmp + fsync + rename). */
+function writeFile(): void { writeFileAtomic(FILE, JSON.stringify({ version: 2, users: Object.fromEntries(byUser) })) }
 
 function load(): void {
   if (!existsSync(FILE)) return
@@ -80,9 +86,8 @@ function load(): void {
     text = readFileSync(FILE, 'utf8')
     up = upgradeLearnRaw(JSON.parse(text), DEFAULT_USER_ID)
   } catch (e) {
-    const roto = `${FILE}.roto-${Date.now()}`
-    console.warn(`[learn] learn-results.json ilegible, arranco sin resultados (copia en ${roto}):`, e)
-    try { renameSync(FILE, roto) } catch { /* sin copia: seguimos igual (el próximo POST escribe uno nuevo) */ }
+    console.warn('[learn] learn-results.json ilegible, arranco sin resultados (copia en .roto-*):', e)
+    quarantine(FILE, 'learn') // sin copia: seguimos igual (el próximo POST escribe uno nuevo)
     return
   }
   for (const [id, list] of Object.entries(up.raw.users)) {
@@ -92,9 +97,9 @@ function load(): void {
     byUser.set(id, ok)
   }
   if (up.from === 1) {
-    // v1 → v2: lo de antes era de Ian. Respaldo LITERAL una sola vez (si ya existe, es el de la PRIMERA migración).
-    const pre = `${FILE}.pre-v2`
-    try { if (!existsSync(pre)) writeFileSync(pre, text) } catch (e) { console.error('[learn] no pude escribir el respaldo .pre-v2:', e) }
+    // v1 → v2: lo de antes era de Ian. Respaldo LITERAL (durable.ts: si ya hay un .pre-v2 con OTRO contenido, va a
+    // .pre-v2-<ms>; nunca se saltea en silencio). La migración no pierde nada (todo pasa a ian), así que sigue aunque falle.
+    backupBeforeMigrate(FILE, '.pre-v2', text, 'learn')
     try { writeFile() } catch (e) { console.error('[learn] no pude escribir learn-results.json v2:', e) }
     console.log(`[learn] learn-results.json v1 → v2: ${byUser.get(DEFAULT_USER_ID)?.length ?? 0} fila(s) a «${DEFAULT_USER_ID}» (respaldo en learn-results.json.pre-v2)`)
   }
@@ -115,6 +120,9 @@ registerContinue((userId) => {
   const r = lastPlayedRoute(routeRuns(catalogRoutes(), resultRowsOf(userId)))
   return r ? { courseId: r.id, title: r.title, done: r.done, total: r.total } : null
 })
+// U5-B: los hechos de Learn de las medallas (primera-posta, diez-objetivos, ruta-completa, posta-perfecta, primer-repaso),
+// derivados de SUS filas persistidas y del catálogo vigente (medalRules.learnFactsFrom, puro).
+registerMedalFacts((userId) => learnFactsFrom(resultRowsOf(userId), catalogRoutes()), 'Learn')
 
 /** Cómo se lee el movimiento en "Tus movimientos" de la Tienda: la ruta de donde salió (o el repaso de la raíz). */
 function txLabel(source: string): string {
@@ -124,9 +132,18 @@ function txLabel(source: string): string {
   return title ? `Ruta: ${title}` : 'Aprender'
 }
 
+/** Tope del cuerpo de un resultado (una fila son unos cientos de bytes; `skills` no llega a KB). */
+export const MAX_BODY = 64 * 1024
+class TooBig extends Error {}
 async function readBody(req: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = []
-  for await (const c of req) chunks.push(c as Buffer)
+  let size = 0
+  for await (const c of req) {
+    const buf = typeof c === 'string' ? Buffer.from(c) : (c as Buffer)
+    size += buf.length
+    if (size > MAX_BODY) throw new TooBig()
+    chunks.push(buf)
+  }
   return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}')
 }
 
@@ -136,7 +153,10 @@ export async function learnResultsRoutes(req: IncomingMessage, res: ServerRespon
   if (url.pathname === '/api/learn/results' && req.method === 'GET') return send(res, 200, { rows: resultRowsOf(actingUser(req).id) })
   if (url.pathname === '/api/learn/results' && req.method === 'POST') {
     let b: Record<string, unknown>
-    try { b = (await readBody(req)) as Record<string, unknown> } catch { return send(res, 400, { error: 'Body inválido.' }) }
+    try { b = (await readBody(req)) as Record<string, unknown> } catch (e) {
+      return e instanceof TooBig ? send(res, 413, { error: 'El resultado es demasiado grande.' }) : send(res, 400, { error: 'Body inválido.' })
+    }
+    if (!b || typeof b !== 'object' || Array.isArray(b)) return send(res, 400, { error: 'Body inválido.' })
     if (typeof b.target !== 'string' || !b.target || typeof b.source !== 'string' || typeof b.typeId !== 'string' ||
       typeof b.outcome !== 'string' || !OUTCOMES.has(b.outcome) ||
       typeof b.score !== 'number' || typeof b.maxScore !== 'number' || typeof b.pct !== 'number') {
@@ -162,17 +182,29 @@ export async function learnResultsRoutes(req: IncomingMessage, res: ServerRespon
     const mine = byUser.get(me) ?? []
     const pays = row.outcome === 'completed' && !row.rollup &&
       !mine.some((r) => r.target === row.target && r.outcome === 'completed' && !r.rollup)
-    mine.push(row)
-    byUser.set(me, mine)
-    writeFile()
+    // U5-B: el slice de medallas existe ANTES de la fila nueva (si naciera después, esta posta entraría al seed como "ya
+    // vista" y no habría medalla nueva); el sync va antes de responder, en las dos ramas (cubre también tres-dias y
+    // de-vuelta, que mueve addXp adentro de este mismo pedido).
+    ensureMedals(me)
+    // FS-BASE-A: a disco PRIMERO; la RAM cambia solo si quedó escrita (si no, se deshace y 500: el reintento cobra y no duplica)
+    const had = byUser.has(me)
+    byUser.set(me, [...mine, row])
+    try { writeFile() } catch (e) {
+      if (had) byUser.set(me, mine)
+      else byUser.delete(me)
+      console.error('[learn] no pude guardar learn-results.json (la fila no quedó):', e)
+      return send(res, 500, { error: 'No pude guardar el resultado. Probá de nuevo.' })
+    }
     if (pays) {
       // addXp cae en el usuario del pedido (el contexto de U3: es `me`)
       const p = addXp(LEARN_EC, txLabel(row.source))
       if (p.xp > 0) {
         console.log(`[learn] +${p.xp} ⚡/XP a ${me} · primera vez completado: ${row.target} (${row.source})`)
+        syncMedals(me)
         return send(res, 200, { row, awarded: { ec: p.xp, xp: p.xp } })
       }
     }
+    syncMedals(me)
     return send(res, 200, { row })
   }
   return send(res, 404, { error: 'No existe.' })

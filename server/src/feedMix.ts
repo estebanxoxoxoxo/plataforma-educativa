@@ -12,7 +12,16 @@
 //   2) LA RÁFAGA DE NPCs (planBurst): UNA noticia de cada tipo social —racha, insignia, unidad completada, ruta
 //      compartida— (feedFake suma la quinta: la carrera de tu liga, con XP real), NUNCA dos del mismo tipo; protagonistas
 //      distintos dentro de la ráfaga siempre que se pueda y, primero, otros que los de la ráfaga anterior; sin repetir una
-//      noticia hasta agotar SU tipo, y al reciclarlo nunca las de la ráfaga anterior.
+//      noticia hasta agotar SU tipo, y al reciclarlo nunca las de la ráfaga anterior. FS-BASE-B (hallazgo feedMix.ts:141):
+//      esas reglas podían TRABAR una ráfaga —en la 7.ª de Luna, a insignia y unidad solo les quedaba una noticia cada una y
+//      las dos eran de CataEstrella, así que salía dos veces—. Ahora (a) dentro de cada tipo se prefiere, con peso
+//      fraccionario, la noticia de quien más tiene sin publicar (balanceo: los restos no se concentran en una persona), (b)
+//      entre los repartos buenos se prefiere el que deja la ráfaga SIGUIENTE con reparto posible (lookahead de un paso) y
+//      (c) si igual no hay reparto con protagonistas distintos, un tipo trabado RECICLA antes de agotarse lo ya publicado
+//      (nunca lo de la ráfaga anterior), lo mínimo indispensable. Protagonistas distintos GANAN sobre "no repetir hasta
+//      agotar"; repetir quién queda solo para cuando no hay con quién (pocos amigos con noticias). Medido con las semillas
+//      reales del server (300 ráfagas por semana, semanas 0-2): protagonista repetido, Luna 41-46 → 0 e Ian 3-6 → 0;
+//      reciclado antes de agotar (antes 0), Luna 16-30 e Ian 0-3 de cada 300 (simulación en el informe de FS-BASE-B).
 // Todo determinístico con el `r` que se pasa (rng de leaguesFake): mismas ráfagas para el mismo usuario y semana.
 
 /* ---------- la edición sembrada ---------- */
@@ -109,15 +118,16 @@ function shuffled<T>(xs: readonly T[], r: () => number): T[] {
 /** Cuántos candidatos (los mejores de cada tipo) mira la búsqueda del mejor reparto: 8⁴ combinaciones como mucho. */
 const BEST_TOP = 8
 /** Una por opción, todas con protagonista DISTINTO y con el MENOR puntaje total (menos repeticiones de la ráfaga
- *  anterior). Busca entre los BEST_TOP mejores de cada tipo; si ahí no hay reparto con todos distintos, entre todos (el
- *  primero que aparezca). null = imposible con protagonistas distintos. */
-function distinctAssign(options: readonly BurstCand[][], score: (c: BurstCand) => number): BurstCand[] | null {
+ *  anterior; `leaf` suma un costo por el reparto entero: el lookahead de planBurst). Busca entre los BEST_TOP mejores de
+ *  cada tipo; si ahí no hay reparto con todos distintos, entre todos (el primero que aparezca). null = imposible con
+ *  protagonistas distintos. */
+function distinctAssign(options: readonly BurstCand[][], score: (c: BurstCand) => number, leaf: (picks: readonly BurstCand[]) => number = () => 0): BurstCand[] | null {
   const search = (lists: readonly BurstCand[][], firstOnly: boolean): BurstCand[] | null => {
     let best: BurstCand[] | null = null, bestScore = Infinity
     const pick: BurstCand[] = [], taken = new Set<string>()
     const go = (i: number, acc: number): void => {
       if (acc >= bestScore) return
-      if (i === lists.length) { best = [...pick]; bestScore = firstOnly ? -1 : acc; return }
+      if (i === lists.length) { const total = acc + leaf(pick); if (total < bestScore) { best = [...pick]; bestScore = firstOnly ? -1 : total } return }
       for (const c of lists[i]) {
         if (taken.has(c.nick)) continue
         taken.add(c.nick); pick.push(c)
@@ -132,6 +142,28 @@ function distinctAssign(options: readonly BurstCand[][], score: (c: BurstCand) =
   return search(options.map((o) => o.slice(0, BEST_TOP)), false) ?? search(options, true)
 }
 
+/** ¿Hay un reparto con protagonistas DISTINTOS entre estas listas? (emparejamiento tipo → protagonista, por aumento). */
+function distinctFeasible(lists: readonly (readonly string[])[]): boolean {
+  const owner = new Map<string, number>()
+  const tryList = (i: number, seen: Set<string>): boolean => {
+    for (const nick of lists[i]) {
+      if (seen.has(nick)) continue
+      seen.add(nick)
+      const o = owner.get(nick)
+      if (o === undefined || tryList(o, seen)) { owner.set(nick, i); return true }
+    }
+    return false
+  }
+  return lists.every((_, i) => tryList(i, new Set()))
+}
+/** Penalización del lookahead: dejar la ráfaga siguiente SIN reparto de protagonistas distintos (pesa más que repetir un
+ *  protagonista o una ruta de la anterior, que valen 1 y 2). */
+const TRAP = 5
+/** Penalización de reciclar ANTES de agotar el tipo (solo si no hay otra forma de tener protagonistas distintos). */
+const RECYCLE = 50
+/** Peso del balanceo (fraccionario: suma como mucho BALANCE por noticia, menos que una preferencia entera). */
+const BALANCE = 0.4
+
 /** El plan de UNA ráfaga: como mucho una noticia por tipo social (los tipos sin candidatos —filtros de la familia, nadie
  *  visible— no salen: honestidad antes que relleno). Actualiza `mem` (lo publicado, la ráfaga anterior) y devuelve lo
  *  elegido en el orden de SOCIAL_BURST_TYPES. */
@@ -139,7 +171,7 @@ export function planBurst(cands: readonly BurstCand[], mem: BurstMemory, r: () =
   const lastKeys = new Set(mem.lastKeys), lastNicks = new Set(mem.lastNicks), lastRefs = new Set(mem.lastRefs)
   // otra ruta que la de la ráfaga anterior pesa más que otro protagonista
   const score = (c: BurstCand) => (c.ref !== undefined && lastRefs.has(c.ref) ? 2 : 0) + (lastNicks.has(c.nick) ? 1 : 0)
-  const options: BurstCand[][] = []
+  const types: { all: BurstCand[]; avail: BurstCand[] }[] = []
   for (const t of SOCIAL_BURST_TYPES) {
     const all = cands.filter((c) => c.type === t)
     if (!all.length) continue
@@ -148,11 +180,41 @@ export function planBurst(cands: readonly BurstCand[], mem: BurstMemory, r: () =
       for (const c of all) mem.used.delete(c.key)
       avail = all.filter((c) => !lastKeys.has(c.key))
     }
-    if (avail.length) options.push(shuffled(avail, r).sort((a, b) => score(a) - score(b)))
+    if (avail.length) types.push({ all, avail })
   }
-  options.sort((a, b) => a.length - b.length)
-  // protagonistas distintos si se puede; si no (pocos amigos con noticias), el mejor de cada tipo sin repetir quien se pueda
-  let picks = distinctAssign(options, score)
+  // FS-BASE-B, lookahead: con estas elegidas, ¿la ráfaga que sigue tiene reparto con protagonistas distintos? (lo que le
+  // quedaría a cada tipo; si se agota, vuelve a empezar sin lo de ESTA ráfaga, como arriba)
+  const leaf = (picks: readonly BurstCand[]): number => {
+    const chosen = new Set(picks.map((c) => c.key))
+    const next = types.map(({ all }) => {
+      const left = all.filter((c) => !mem.used.has(c.key) && !chosen.has(c.key))
+      return (left.length ? left : all.filter((c) => !chosen.has(c.key))).map((c) => c.nick)
+    }).filter((l) => l.length)
+    return distinctFeasible(next) ? 0 : TRAP
+  }
+  // FS-BASE-B, balanceo: dentro de un tipo se prefiere (con peso FRACCIONARIO: nunca pisa lo de la ráfaga anterior) la
+  // noticia del protagonista al que más le quedan en ese tipo, así lo que queda sin publicar no se concentra en una sola
+  // persona (la traba de arriba nace de eso).
+  const left = new Map<string, number>()
+  for (const { avail } of types) for (const c of avail) left.set(`${c.type}|${c.nick}`, (left.get(`${c.type}|${c.nick}`) ?? 0) + 1)
+  const bscore = (c: BurstCand) => score(c) + BALANCE / (left.get(`${c.type}|${c.nick}`) ?? 1)
+  const options = types.map(({ avail }) => shuffled(avail, r).sort((a, b) => bscore(a) - bscore(b)))
+    .sort((a, b) => a.length - b.length)
+  // protagonistas distintos si se puede
+  let picks = distinctAssign(options, bscore, leaf)
+  if (!picks) {
+    // FS-BASE-B: trabado (ningún reparto con protagonistas distintos entre lo NO publicado). Se deja reciclar ANTES de
+    // agotar el tipo lo ya publicado —nunca lo de la ráfaga anterior—, con una penalización alta: se recicla lo mínimo.
+    const recycled = new Set<string>()
+    const wide = types.map(({ all, avail }) => {
+      const extra = all.filter((c) => !avail.includes(c) && !lastKeys.has(c.key))
+      for (const c of extra) recycled.add(c.key)
+      return [...avail, ...extra]
+    })
+    const wscore = (c: BurstCand) => score(c) + (recycled.has(c.key) ? RECYCLE : 0)
+    picks = distinctAssign(wide.map((o) => shuffled(o, r).sort((a, b) => wscore(a) - wscore(b))).sort((a, b) => a.length - b.length), wscore)
+  }
+  // si tampoco (pocos amigos con noticias), el mejor de cada tipo sin repetir quien se pueda
   if (!picks) {
     const taken = new Set<string>()
     picks = options.map((o) => { const c = o.find((x) => !taken.has(x.nick)) ?? o[0]; taken.add(c.nick); return c })

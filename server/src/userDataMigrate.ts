@@ -4,7 +4,7 @@
 // market.ts leen y ESCRIBEN server/data/ al importarse, así que solo lo puro se testea con vitest sin tocar datos reales
 // (server/src/__tests__/userDataMigrate.test.ts). El respaldo .pre-v2, el saneo fila por fila y la copia .roto-* de un
 // archivo ilegible los hace cada módulo al cargar: acá solo la FORMA, que es lo que no se puede romper sin perder lo de Ian.
-import { isObject } from './familyMigrate'
+import { assertKnownVersion, isObject } from './familyMigrate'
 
 export type Up<T> = { raw: T; from: 1 | 2 }
 
@@ -28,6 +28,9 @@ export function upgradeWishRaw(raw: unknown, owner: string): Up<{ version: 2; us
 export function upgradeSpaceRaw(raw: unknown, owner: string, defaultFollows: readonly string[]):
   Up<{ version: 2; seq: number; users: Record<string, unknown> }> {
   if (!isObject(raw)) throw new Error('space.json no es un objeto')
+  // FS-BASE-B (hallazgo familyMigrate.ts:31, también acá): una versión desconocida tira (space.ts la aparta como .roto-*);
+  // antes se "migraba" como un v1 y el Drive de Ian quedaba vacío.
+  assertKnownVersion(raw, [1, 2], 'space.json')
   if (raw.version === 2) { if (!isObject(raw.users)) throw new Error('v2 sin users'); return { raw: raw as never, from: 2 } }
   const arr = (k: string) => (Array.isArray(raw[k]) ? raw[k] as unknown[] : [])
   const follows = arr('follows')

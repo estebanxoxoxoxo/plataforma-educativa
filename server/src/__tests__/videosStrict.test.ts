@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 /* Fix "fuzzy del Feed" (28-oct): la vía ESTRICTA de videos.ts (searchVideosStrict) contra la del POC (searchVideos, fuzzy
    0.2), sobre un catálogo FIXTURE chico. Se mockean config (los boosts y el tope de defaults.json), filters (una palabra
@@ -35,7 +35,7 @@ vi.mock('../config', () => {
 });
 vi.mock('../filters', () => ({ matchBlockedWord: (text: string) => (/prohibido/i.test(text) ? 'prohibido' : null) }));
 
-const { searchVideos, searchVideosStrict, strictVideoMatch, wordForms } = await import('../videos');
+const { familyCatalogVersion, loadChannelMeta, loadVideoMeta, searchVideos, searchVideosStrict, setFamilyCatalog, strictVideoMatch, toVideoResult, wordForms } = await import('../videos');
 const ids = (vs: { videoId: string }[]) => vs.map(v => v.videoId);
 const byId = (id: string) => FIXTURE.find(v => v.videoId === id)!;
 
@@ -100,5 +100,74 @@ describe('strictVideoMatch', () => {
   });
   it('sin palabras de contenido no hay coincidencia', () => {
     expect(strictVideoMatch(byId('w1'), 'videos de')).toBe(false);
+  });
+});
+
+/* ---------- FS-BASE-B ---------- */
+describe('FS-BASE-B: plural -z/-ces (hallazgo videos.ts:113)', () => {
+  it('wordForms: avestruz ↔ avestruces, pez ↔ peces, luz ↔ luces (y lo de siempre sigue igual)', () => {
+    expect(wordForms('avestruces')).toContain('avestruz');
+    expect(wordForms('avestruz')).toContain('avestruces');
+    expect(wordForms('pez')).toContain('peces');
+    expect(wordForms('luces')).toContain('luz');
+    expect(wordForms('ballenas')).toContain('ballena');
+  });
+});
+
+describe('FS-BASE-B: la capa de la FAMILIA en el índice', () => {
+  const fv = (videoId: string, title: string, description = '') => ({
+    videoId, title, thumb: '', channelId: `ch-${videoId}`, channelTitle: 'Canal de la familia', source: 'Entrada de la familia',
+    description, duration: 300, addedAt: 0, tags: [] as string[], topics: [] as string[],
+  });
+  const fam = [
+    fv('fam1', 'El avestruz corre rápido'),
+    fv('fam2', 'Documental de la sabana', `${'x'.repeat(150)} palabraescondida`),
+    fv('fam3', 'Documental del desierto', 'Hay camellos y palabravisible al principio.'),
+  ];
+  let ver = 7;
+  beforeAll(() => { setFamilyCatalog({ get: (id: string) => fam.find(v => v.videoId === id), all: () => fam, version: () => ver }); });
+  afterAll(() => { setFamilyCatalog({ get: () => undefined, all: () => [], version: () => -1 }); });
+  it('la vía estricta encuentra «avestruces» en un título que dice «avestruz» (antes: 0 videos)', () => {
+    expect(ids(searchVideosStrict('avestruces'))).toEqual(['fam1']);
+  });
+  it('el fuzzy indexa SOLO los primeros 140 caracteres de la descripción, como el POC (videoSearch.ts buildDocs)', () => {
+    expect(ids(searchVideos('palabraescondida'))).toEqual([]); // después del carácter 140: el POC no lo encuentra
+    expect(ids(searchVideos('palabravisible'))).toEqual(['fam3']);
+  });
+  it('familyCatalogVersion es la versión de la capa (el Feed la suma a la clave de sus pools)', () => {
+    expect(familyCatalogVersion()).toBe(7);
+    ver = 8;
+    expect(familyCatalogVersion()).toBe(8);
+  });
+});
+
+describe('FS-BASE-B: metadatos de YouTube (hallazgo videos.ts:226)', () => {
+  it('con timeout; una FALLA no se guarda para siempre: vence a los 10 min y se vuelve a pedir', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-29T10:00:00Z'));
+    process.env.YOUTUBE_API_KEY = 'test-no-es-una-clave';
+    const calls: { url: string; signal?: AbortSignal | null }[] = [];
+    let up = false;
+    vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
+      calls.push({ url: String(url), signal: init?.signal });
+      if (!up) return new Response('quota', { status: 403 });
+      return String(url).includes('/videos?')
+        ? new Response(JSON.stringify({ items: [{ id: 'w2', snippet: { publishedAt: '2024-05-01T00:00:00Z' }, statistics: { likeCount: '10' } }] }))
+        : new Response(JSON.stringify({ items: [{ snippet: { thumbnails: { default: { url: 'https://yt3/x.jpg' } } }, statistics: { subscriberCount: '1500' } }] }));
+    });
+    try {
+      await loadVideoMeta(['w2']);
+      expect(await loadChannelMeta('ch-w2')).toEqual({});
+      expect(toVideoResult(byId('w2')).date).toBe('');
+      const n = calls.length;
+      await loadVideoMeta(['w2']); await loadChannelMeta('ch-w2'); // dentro de los 10 min: no se martilla la API
+      expect(calls.length).toBe(n);
+      up = true;
+      vi.setSystemTime(new Date('2026-10-29T10:11:00Z'));
+      await loadVideoMeta(['w2']);
+      expect(toVideoResult(byId('w2')).date).not.toBe(''); // antes: vacío hasta reiniciar el server
+      expect((await loadChannelMeta('ch-w2')).subscribers).toBe(1500);
+      for (const c of calls) expect(c.signal, c.url).toBeInstanceOf(AbortSignal);
+    } finally { vi.unstubAllGlobals(); vi.useRealTimers(); }
   });
 });

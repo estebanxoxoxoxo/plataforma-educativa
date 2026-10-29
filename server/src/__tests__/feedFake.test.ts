@@ -7,34 +7,48 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
    la config, como en perUser.test.ts) y zonedClock. */
 
 const FLAGS = vi.hoisted(() => ({ amigos: true, ligas: true, tienda: true, chat: true } as Record<string, boolean>));
+/** FS-BASE-B: el catálogo aprobado del mock —su versión (familyCatalogVersion) y lo que la familia des-aprobó (sale de
+ *  searchVideosStrict)—, para el caso "el Feed tras des-aprobar un video". */
+const CAT = vi.hoisted(() => ({ version: 0, removed: new Set<string>() }));
+/** Las filas de Learn del usuario (resultRows): para el caso "con una ruta en curso" del resumen de la noche. */
+const ROWS = vi.hoisted(() => ({ list: [] as { target: string; pct: number; source?: string; finishedAt?: number }[] }));
 
 vi.mock('../parent', () => ({
   familyBlockedTerms: () => [], familyTopics: () => ({ white: [], black: [] }), familyTz: () => null,
   featureOnNow: (k: string) => FLAGS[k] !== false, feedMotion: () => 'normal', topicHit: () => null,
 }));
 vi.mock('../filters', () => ({ matchBlockedWord: () => null }));
-vi.mock('../learnResults', () => ({ LEARN_EC: 30, resultRows: () => [] }));
+vi.mock('../learnResults', () => ({ LEARN_EC: 30, resultRows: () => ROWS.list }));
 vi.mock('../learnRoutes', () => ({
-  catalogRoutes: () => [
+  // FS-BASE-A: el Feed lee servedRoutes (lo que ve el usuario del pedido); acá, las mismas dos rutas
+  servedRoutes: () => [
     { id: 'ruta.a', title: 'Ruta A', emoji: '🪐', postas: [{ target: 'a1' }, { target: 'a2' }, { target: 'a3' }] },
     { id: 'ruta.b', title: 'Ruta B', emoji: '🌋', postas: [{ target: 'b1' }, { target: 'b2' }] },
   ],
+  // el catálogo CRUDO trae además una ruta que al usuario del pedido NO se le sirve (p. ej. la importó un hermano y no pasó
+  // la moderación): el Feed nunca la puede mostrar (último caso de este archivo)
+  catalogRoutes: () => [
+    { id: 'ruta.a', title: 'Ruta A', emoji: '🪐', postas: [{ target: 'a1' }, { target: 'a2' }, { target: 'a3' }] },
+    { id: 'ruta.b', title: 'Ruta B', emoji: '🌋', postas: [{ target: 'b1' }, { target: 'b2' }] },
+    { id: 'ruta.cruda', title: 'Ruta Cruda', emoji: '🚫', postas: [{ target: 'c1' }] },
+  ],
 }));
 vi.mock('../videos', () => ({
-  // 6 videos por tema, cortitos (entran de día y de noche)
+  // 6 videos por tema, cortitos (entran de día y de noche), menos lo des-aprobado
   searchVideosStrict: (q: string, lim = 24) => Array.from({ length: Math.min(lim, 6) }, (_, i) => ({
     videoId: `${q.replace(/\s+/g, '_')}-${i}`, title: `${q} ${i}`, thumb: '', channelId: 'c', channelTitle: 'Canal', source: 'Canal',
     description: '', duration: 120 + i * 30, addedAt: 0, tags: [], topics: [],
-  })),
+  })).filter((v) => !CAT.removed.has(v.videoId)),
+  familyCatalogVersion: () => CAT.version,
   toVideoResult: (v: { videoId: string; title: string }) => ({ id: v.videoId, img: '', title: v.title, subtitle: '', duration: '2:00', channel: 'Canal', date: '' }),
 }));
 vi.mock('../friendsFake', async () => {
   const { currentUser } = await import('../requestContext');
-  const VIS: Record<string, string[]> = {
-    ian: ['TomiCohete', 'LuliVolcan', 'MateoDino', 'CataEstrella', 'JuanchiRayo', 'MartuLuna', 'NicoRobot'],
-    luna: ['CataEstrella', 'MartuLuna', 'LeaTelescopio', 'TriniPiano', 'FedeAjedrez'],
-  };
-  const vis = () => VIS[currentUser()?.id ?? 'ian'] ?? [];
+  // FS-BASE-B (hallazgo feedMix.test.ts:122): quién ve a quién sale del seed REAL (npcRoster.ts, el mismo que friendsFake
+  // verifica al arrancar), no de una copia a mano.
+  const { GRAPH_IDS, NPC_ROSTER, visibleNicksAtStart } = await import('../npcRoster');
+  const vis = () => visibleNicksAtStart(currentUser()?.id ?? 'ian');
+  const requests = () => (GRAPH_IDS[currentUser()?.id ?? 'ian']?.requests ?? []).map((id) => NPC_ROSTER.find((n) => n.id === id)!.nick);
   // Un seed social como el de friendsFake.NEWS (subtipos alternados + lo de ligas que se reparte en el cierre)
   const NEWS: [string, string, string][] = [
     ['MateoDino', 'ganó la medalla de oro 🥇 en la Liga Cometa', 'medal'], ['TomiCohete', 'llegó a una racha de 12 días', 'streak'],
@@ -52,7 +66,8 @@ vi.mock('../friendsFake', async () => {
   return {
     friendNews: () => NEWS.map(([nick, text, icon]) => ({ fid: nick, friend: { nick, color: '#123456' }, text, icon })),
     isVisibleNpc: (fid?: string) => !!fid && vis().includes(fid),
-    npcInfo: (nick: string) => ({ id: nick, color: '#123456', girl: false }),
+    npcInfo: (nick: string) => ({ id: nick, color: '#123456', girl: NPC_ROSTER.find((n) => n.nick === nick)?.girl ?? false }),
+    npcRelation: (fid?: string) => (!fid || !vis().includes(fid) ? null : requests().includes(fid) ? 'request' : 'friend'),
     friendCount: () => vis().length,
   };
 });
@@ -92,7 +107,7 @@ function liveBursts(): Item[][] {
 }
 const FIVE = ['badge', 'race', 'route', 'streak', 'unit'];
 
-beforeEach(() => { Object.assign(FLAGS, { amigos: true, ligas: true }); resetFeed(); });
+beforeEach(() => { Object.assign(FLAGS, { amigos: true, ligas: true }); resetFeed(); ROWS.list = []; });
 afterEach(() => { vi.useRealTimers(); });
 
 describe('Simular NPCs: 5 por toque, una de cada tipo', () => {
@@ -161,4 +176,87 @@ describe('el seed por defecto: cards de muchos tipos en TODAS las franjas', () =
       });
     });
   }
+});
+
+describe('FS-BASE-A: el Feed sirve las rutas como las ve el usuario del pedido (servedRoutes), nunca el catálogo crudo', () => {
+  it('una ruta que no se le sirve no aparece en ninguna página ni en las ráfagas de NPCs («La compartió …»)', () => {
+    runAsUser('ian', () => {
+      for (let i = 0; i < 4; i++) simulateNpcs();
+      const pages = [getFeed()];
+      for (let next = pages[0].next; next; ) { const r = getFeed(next); pages.push(r); next = r.next; }
+      const all = JSON.stringify(pages);
+      expect(all).toContain('ruta.a');
+      expect(all).not.toContain('ruta.cruda');
+      expect(all).not.toContain('Ruta Cruda');
+    });
+  });
+});
+
+/* ---------- FS-BASE-B ---------- */
+/** Todas las páginas de la edición del usuario del pedido. */
+function allItems(): Item[] {
+  const out: Item[] = [];
+  let page = getFeed();
+  out.push(...page.items);
+  for (let guard = 0; page.next && guard < 50; guard++) { page = getFeed(page.next); out.push(...page.items); }
+  return out;
+}
+const videoIds = () => allItems().flatMap((it) => (it.kind === 'video' ? [it.video.id] : it.kind === 'videos' ? it.videos.map((v) => v.id) : []));
+
+describe('FS-BASE-B: el pool del Feed sigue al catálogo aprobado (hallazgo feedFake.ts:302)', () => {
+  it('el padre des-aprueba un video que el Feed servía (sube la versión del catálogo): el próximo GET ya no lo trae', () => {
+    runAsUser('ian', () => {
+      const before = videoIds();
+      expect(before.length).toBeGreaterThan(0);
+      const gone = before[0];
+      CAT.removed.add(gone);
+      CAT.version++; // mytube.removeYtEntry → reindex: la versión de la capa de la familia sube
+      try { expect(videoIds()).not.toContain(gone); } finally { CAT.removed.clear(); CAT.version++; }
+    });
+  });
+});
+
+describe('FS-BASE-B: el "por qué" de un NPC según el grafo del activo (hallazgo feedFake.ts:194)', () => {
+  it('a Luna, FedeAjedrez (solo una solicitud pendiente) "quiere ser tu amigo"; sus amigas, "es tu amiga"', () => {
+    runAsUser('luna', () => {
+      simulateNpcs(); simulateNpcs(); // también lo que entra en vivo pasa por el mismo "por qué"
+      const social = allItems().filter((it): it is Extract<Item, { kind: 'friend' }> => it.kind === 'friend' && it.icon !== 'league');
+      const fede = social.filter((it) => it.friend.nick === 'FedeAjedrez');
+      expect(fede.length).toBeGreaterThan(0);
+      for (const it of fede) expect(it.reason).toBe('FedeAjedrez quiere ser tu amigo'); // antes: «FedeAjedrez es tu amigo»
+      const cata = social.find((it) => it.friend.nick === 'CataEstrella');
+      expect(cata?.reason).toBe('CataEstrella es tu amiga');
+    });
+  });
+});
+
+describe('FS-BASE-B: el resumen dice la verdad sobre el hero (hallazgo feedFake.ts:382)', () => {
+  const first = () => getFeed().items;
+  const hero = (xs: Item[]) => xs.find((it): it is Extract<Item, { kind: 'next' }> => it.kind === 'next')!;
+  const sum = (xs: Item[]) => xs.find((it): it is Extract<Item, { kind: 'summary' }> => it.kind === 'summary')!;
+  const at = (h: number) => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date(2026, 9, 29, h, 0)); }; // hora LOCAL (sin zona de la familia)
+  it('de noche sin ruta en curso: el hero es "Empezá …" y el resumen NO promete "un repaso sin apuro"', () => {
+    at(23);
+    runAsUser('ian', () => {
+      const xs = first();
+      expect(hero(xs).title).toMatch(/^Empezá /);
+      expect(sum(xs).desc).not.toMatch(/repaso/);
+      expect(sum(xs).desc).toMatch(/tranquila/);
+    });
+  });
+  it('de noche CON una ruta en curso: "Repasá …, sin apuro" y el resumen sí lo dice', () => {
+    at(23);
+    ROWS.list = [{ target: 'a1', pct: 1, source: 'ruta:ruta.a/posta:a1', finishedAt: Date.now() - 3600e3 }];
+    runAsUser('ian', () => {
+      const xs = first();
+      expect(hero(xs).title).toMatch(/^Repasá Ruta A, sin apuro/);
+      expect(sum(xs).desc).toMatch(/un repaso sin apuro/);
+    });
+  });
+  it('a la tarde: "a la nochecita cambia a repaso tranquilo" solo si de verdad va a haber repaso', () => {
+    at(16);
+    runAsUser('ian', () => { expect(sum(first()).later).not.toMatch(/repaso/); });
+    ROWS.list = [{ target: 'a1', pct: 1, source: 'ruta:ruta.a/posta:a1', finishedAt: Date.now() - 3600e3 }];
+    runAsUser('ian', () => { expect(sum(first()).later).toMatch(/repaso tranquilo/); });
+  });
 });

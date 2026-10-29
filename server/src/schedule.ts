@@ -9,10 +9,15 @@
 // PERSISTENCIA (config del padre, regla 9: FUERA de /api/demo/reset): server/data/schedules.json v3
 //   { version: 3, members: { [childId]: { ranges: CycleRange[] } } }   (sin entrada = sin rangos = todo disponible)
 // Un v1/v2 (los horarios semanales por sección) NO se convierte (familyMigrate.ts:upgradeCycleRaw; los modelos no mapean):
-// el original queda UNA vez en schedules.json.pre-v3 y cada integrante arranca sin rangos. Lo raro de un archivo editado a
-// mano se sanea hacia ABIERTO al leer (cycleRules.ts:sanitizeStoredRanges). Ilegible → .roto-<ms> y todo disponible.
+// el original queda en schedules.json.pre-v3 y cada integrante arranca sin rangos. FS-BASE-B (hallazgo schedule.ts:87): si
+// ya había un .pre-v3 con OTRO contenido (una segunda migración), el respaldo va a .pre-v3-<ms> (durable.ts
+// backupBeforeMigrate: antes se salteaba en silencio y el archivo se pisaba sin copia); si el respaldo no se puede escribir,
+// el archivo NO se reescribe al cargar (rige en RAM; el primer guardado del padre lo escribe). Lo raro de un archivo editado
+// a mano se sanea hacia ABIERTO al leer (cycleRules.ts:sanitizeStoredRanges). Ilegible → .roto-<ms> y todo disponible; una
+// `version` DESCONOCIDA (ni ausente, ni 1, 2 o 3: un "3" de texto, un 4 de un checkout futuro) también es ilegible
+// (familyMigrate.ts, FS-BASE-B): el archivo queda entero en el .roto-* en vez de "migrarse" como un v1 perdiendo los rangos.
 // ⚠ Un checkout pre-F1 con el server corriendo leería el v3 como un v1 y lo reescribiría como v2 (los rangos quedarían
-// adentro de members.ian, recuperables a mano): no hacerlo.
+// adentro de members.ian, recuperables a mano: ahora también quedan en el .pre-v3-<ms> del próximo arranque): no hacerlo.
 //
 // OVERRIDE DE DEMO (RAM, POR USUARIO con perUser, regla 9): POST /api/demo/cycle {rangeId} → el chico se evalúa "como si el
 // reloj estuviera dentro de ese rango" (cycleRules.ts). Lo limpia POST /api/demo/reset de ESE usuario ({scope:'all'}: el de
@@ -34,10 +39,11 @@
 //        real. Sin cuerpo JSON o sin rangeId → 400.
 //   GET/POST /api/parent/cycle?member → viven en parent.ts (sesión + integrante) con cycleView / checkCycle / saveCycle.
 //   POST /api/parent/schedules → 410 (parent.ts): los horarios por sección se retiraron.
-import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { join } from 'node:path'
 import { SERVER_ROOT } from './config'
+import { backupBeforeMigrate, quarantine, tryWriteFileAtomic } from './durable'
 import { type CycleRange, type SectionKey, findRange, minuteOfDay, opensAtToday, sanitizeStoredRanges, sectionAvailableAt } from '../../src/shared/lib/cycleRules'
 import { isObject, upgradeCycleRaw } from './familyMigrate'
 import { perUser } from './perUser'
@@ -56,11 +62,6 @@ const copyRange = (r: CycleRange): CycleRange => ({ id: r.id, name: r.name, from
 /** Todos los dependientes del seed sin rangos (arranque sin archivo, o archivo ilegible). */
 const emptyFile = (): CycleFile => ({ version: 3, members: Object.fromEntries(allDependents().map(id => [id, { ranges: [] }])) })
 
-function backupOnce(path: string, text: string): void {
-  try { if (!existsSync(path)) { writeFileSync(path, text); console.log(`[ciclo] respaldo de la versión anterior en ${path.split(/[\\/]/).pop()}`) } }
-  catch (e) { console.error(`[ciclo] no pude escribir el respaldo ${path}:`, e) }
-}
-
 function load(): CycleFile {
   if (!existsSync(FILE)) return emptyFile() // todo disponible; no se escribe hasta el primer guardado
   let text: string, up: ReturnType<typeof upgradeCycleRaw>
@@ -69,7 +70,7 @@ function load(): CycleFile {
     up = upgradeCycleRaw(JSON.parse(text), allDependents())
   } catch (e) {
     console.error('[ciclo] schedules.json ilegible → todo disponible (fail-open); copia en .roto-*:', e)
-    try { renameSync(FILE, `${FILE}.roto-${Date.now()}`) } catch { /* sin copia: seguimos igual */ }
+    quarantine(FILE, 'ciclo') // sin copia: seguimos igual
     return emptyFile()
   }
   // Un integrante que ya no es dependiente de nadie se conserva (no se pierde config) y no se sirve.
@@ -84,23 +85,15 @@ function load(): CycleFile {
   for (const id of allDependents()) if (!Object.hasOwn(members, id)) members[id] = { ranges: [] }
   const f: CycleFile = { version: 3, members }
   if (up.from !== 3) {
-    backupOnce(`${FILE}.pre-v3`, text)
-    if (write(f)) console.log(`[ciclo] schedules.json v${up.from} → v3 (Ciclo del día): los horarios por sección NO se convierten; cada integrante arranca sin rangos`)
+    // Migración CON PÉRDIDA (lo de antes no se convierte): sin respaldo escrito, el original no se pisa.
+    if (!backupBeforeMigrate(FILE, '.pre-v3', text, 'ciclo')) console.error(`[ciclo] schedules.json v${up.from} → v3 solo en RAM: sin respaldo no lo reescribo (el primer guardado del padre lo hará)`)
+    else if (write(f)) console.log(`[ciclo] schedules.json v${up.from} → v3 (Ciclo del día): los horarios por sección NO se convierten; cada integrante arranca sin rangos`)
   }
   return f
 }
 
-function write(next: CycleFile): boolean {
-  try {
-    const tmp = `${FILE}.tmp`
-    writeFileSync(tmp, JSON.stringify(next, null, 1))
-    renameSync(tmp, FILE)
-    return true
-  } catch (e) {
-    console.error('[ciclo] no pude guardar schedules.json:', e)
-    return false
-  }
-}
+/** FS-BASE-B: el helper común (durable.ts: tmp + fsync + rename); false = no quedó escrito (logueado). */
+const write = (next: CycleFile): boolean => tryWriteFileAtomic(FILE, JSON.stringify(next, null, 1), 'ciclo')
 let file: CycleFile = load()
 
 /* ---------- la zona horaria de la familia (la presta parent.ts, dueño del dato) ---------- */
@@ -108,6 +101,12 @@ let tzSource: () => string | null = () => null
 export function setFamilyTzSource(fn: () => string | null): void { tzSource = fn }
 /** La zona IANA de la familia, o null = la del server. */
 export const familyTzNow = (): string | null => tzSource()
+/** FS-BASE-B (hallazgos cycleRules.ts:62 / mentors.ts:49): la zona IANA de ESTE proceso (la que usa la hora local del server:
+ *  `tz` null = "Automática" = ésta). Viaja ADITIVA como `serverTz` en las respuestas que ya llevan `tz` (GET /api/schedules,
+ *  POST /api/demo/cycle, GET/POST /api/parent/cycle): el cliente evalúa con `tz ?? serverTz` (cycle.ts) y así el menú, la
+ *  pantalla "descansando", el Calendario y Mentores leen la MISMA pared que el server aunque el navegador esté en otra zona
+ *  (antes, con tz null, el cliente usaba la del NAVEGADOR). `tz` sigue diciendo lo que eligió el adulto (null = Automática). */
+export const serverTimeZone = (): string => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' } catch { return 'UTC' } }
 
 /* ---------- el ciclo de cada integrante ---------- */
 const rangesOf = (member: string): readonly CycleRange[] => (Object.hasOwn(file.members, member) ? file.members[member].ranges : [])
@@ -205,18 +204,18 @@ export function closedSectionFor(pathname: string, member: string, now: Date = n
 
 /* ---------- vistas ---------- */
 type SchedulesView = {
-  serverNow: number; tz: string | null; member?: string
+  serverNow: number; tz: string | null; /** FS-BASE-B, aditivo: la zona del server (ver serverTimeZone) */ serverTz: string; member?: string
   cycle: { ranges: CycleRange[] }; demoRange: string | null
 }
 /** SchedulesResponse de un integrante (sin integrante: la vacía del adulto sin dependientes). */
 function schedulesView(member: string | undefined, now: Date = new Date()): SchedulesView {
-  const tz = tzSource()
-  if (!member) return { serverNow: now.getTime(), tz, cycle: { ranges: [] }, demoRange: null }
-  return { serverNow: now.getTime(), tz, member, cycle: { ranges: cycleOf(member) }, demoRange: demoRangeOf(member) }
+  const tz = tzSource(), serverTz = serverTimeZone()
+  if (!member) return { serverNow: now.getTime(), tz, serverTz, cycle: { ranges: [] }, demoRange: null }
+  return { serverNow: now.getTime(), tz, serverTz, member, cycle: { ranges: cycleOf(member) }, demoRange: demoRangeOf(member) }
 }
 /** CycleResponse de GET/POST /api/parent/cycle (parent.ts). */
-export function cycleView(member: string): { cycle: { ranges: CycleRange[] }; member: string; serverNow: number; tz: string | null; demoRange: string | null } {
-  return { cycle: { ranges: cycleOf(member) }, member, serverNow: Date.now(), tz: tzSource(), demoRange: demoRangeOf(member) }
+export function cycleView(member: string): { cycle: { ranges: CycleRange[] }; member: string; serverNow: number; tz: string | null; serverTz: string; demoRange: string | null } {
+  return { cycle: { ranges: cycleOf(member) }, member, serverNow: Date.now(), tz: tzSource(), serverTz: serverTimeZone(), demoRange: demoRangeOf(member) }
 }
 
 /* ---------- rutas públicas ---------- */

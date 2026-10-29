@@ -19,16 +19,18 @@
 // usuario: market.ts, docs/USUARIOS.md §10.) El look de cada uno lo lee además la tabla de la semana de la familia
 // (lookOf, abajo; GET /api/leagues/family en leaguesFake.ts).
 // PERSISTE en server/data/identity.json (regla 9: es un ACTIVO del usuario, como space.json y wishlist.json — NO es
-// economía y NO se registra en /api/demo/reset: recargar la página no lo toca). Escritura atómica tmp+rename (space.ts).
+// economía y NO se registra en /api/demo/reset: recargar la página no lo toca). Escritura atómica y DISCO PRIMERO con el
+// helper común (durable.ts, FS-BASE-B: tmp + fsync + rename; si falla, el look de RAM no cambia y la ruta responde 500).
 //   v2 (14-oct): { version: 2, users: { [id]: { look, updatedAt } } }. El formato VIEJO ({ look, updatedAt }, de cuando
 //   había un solo usuario) es el de ian: MIGRA al cargar (se reescribe como v2 en el acto). Archivo ilegible (JSON roto,
 //   otra forma o algún look fuera del set) → copia en .roto-* y todos con su look por defecto, como antes.
 // Moderación: no abre superficie nueva — el look es un índice, un color y un id de listas cerradas (ni texto ni
 // imágenes), y el nick sale del seed de usuarios (el de Ian, de la configuración de la familia; acá no se edita).
-import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { join } from 'node:path'
 import { SERVER_ROOT } from './config'
+import { quarantine, writeFileAtomic } from './durable'
 import { DEFAULT_USER_ID, actingUser, type UserInfo } from './users'
 import { readJson, send } from './web'
 
@@ -81,10 +83,7 @@ function entryOf(raw: unknown, id: string): Entry {
   if (look === undefined) throw new Error(`el look guardado de «${id}» no es del set`)
   return { look, updatedAt: Number(r.updatedAt) || 0 }
 }
-function writeAtomic(s: Stored) {
-  writeFileSync(FILE + '.tmp', JSON.stringify(s))
-  renameSync(FILE + '.tmp', FILE)
-}
+function writeAtomic(s: Stored) { writeFileAtomic(FILE, JSON.stringify(s)) } // tira si falla (durable.ts)
 function load(): Stored {
   if (!existsSync(FILE)) return { version: 2, users: {} }
   try {
@@ -105,7 +104,7 @@ function load(): Stored {
     return s
   } catch (e) {
     console.warn('[identity] identity.json ilegible, vuelvo a los looks por defecto:', e)
-    try { renameSync(FILE, `${FILE}.roto-${Date.now()}`) } catch { /* sin copia: seguimos igual */ }
+    quarantine(FILE, 'identity') // .roto-<ms>; sin copia, seguimos igual
     return { version: 2, users: {} }
   }
 }

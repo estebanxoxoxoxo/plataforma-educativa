@@ -2,18 +2,18 @@ import { describe, expect, it } from 'vitest';
 import {
   ADULT_GEO_NICKS, ADULT_GEO_NICKS_PAIS, ADULT_LEAGUE, GEO_NICKS, GEO_NICKS_PAIS, GEO_POOLS, LEAGUE_NICKS, LUNA_LEAGUE, MORE_NICKS, NICKS,
 } from '../leaguePools';
+import { NPC_ROSTER } from '../npcRoster';
+import { users } from '../users';
 
 /* U4-B (docs/USUARIOS.md §10): cada usuario del demo compite en su liga pública con un pool de NPCs PROPIO. Regla 7 de
    docs/AGENTS.md: un chico tiene UN puntaje y aparece en UNA tabla, así que los pools son disjuntos entre sí, con los
    rankings de zona/país y con los NPCs amigos. */
 
-/** Los 14 NPCs amigos de server/src/friendsFake.ts (f1-f14). Si cambian los NPCs de friendsFake, actualizar esta lista. */
-const FRIEND_NPCS = [
-  'TomiCohete', 'LuliVolcan', 'MateoDino', 'CataEstrella', 'JuanchiRayo', 'MartuLuna', 'NicoRobot',
-  'TriniPiano', 'FedeAjedrez', 'MicaPincel', 'GeroColibrí', 'LeaTelescopio', 'NahueGol', 'ConiCiencia',
-];
-/** Los nicks de los usuarios del seed (users.ts): la fila "Vos" de cada tabla. */
-const USER_NICKS = ['Ian', 'Luna', 'Andrés'];
+/** Los 14 NPCs amigos (f1-f14). FS-BASE-B (hallazgo feedMix.test.ts:122): del seed REAL —npcRoster.ts, que friendsFake.ts
+ *  verifica al arrancar—, no de una copia a mano. */
+const FRIEND_NPCS = NPC_ROSTER.map((n) => n.nick);
+/** Los nicks de los usuarios del seed: la fila "Vos" de cada tabla (users.ts; el de Ian sale de config.apodo). */
+const USER_NICKS = users().map((u) => u.nick);
 
 const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 

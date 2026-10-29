@@ -39,11 +39,19 @@ export function setFamilyCatalog(l: NonNullable<typeof family>): void {
 /** Un video del catálogo aprobado: el base y, si no está ahí, el de la familia (un videoId existe una sola vez: la ingesta
  *  de mytube.ts no re-agrega lo que ya está en el base). */
 export const getCatalogVideo = (id: string): CatalogVideo | undefined => byId.get(id) ?? family?.get(id)
+/** FS-BASE-B (hallazgo feedFake.ts:302): la VERSIÓN del catálogo aprobado —sube con cada alta, reingesta o baja de la capa
+ *  de la familia (mytube.ts)—. El Feed la suma a la clave de sus pools cacheados: sin ella seguía sirviendo la card de un video
+ *  que el padre ya des-aprobó. El base no cambia en runtime: sin capa, 0. */
+export const familyCatalogVersion = (): number => (family ? family.version() : 0)
 /** Tamaño del catálogo BASE (mytube.ts le suma las filas de la familia en su `total`: no cambiar sin mirar ahí). */
 export const catalogSize = () => catalog.length
 
 const normalize = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ')
-const toDoc = (v: CatalogVideo) => ({ videoId: v.videoId, title: v.title, source: [v.source, v.channelTitle].filter(Boolean).join(' '), description: v.description, tags: v.tags.join(' '), topics: v.topics.join(' ') })
+/** El documento del índice: el MISMO que arma el POC (videoSearch.ts buildDocs), incluida la descripción CORTADA a 140
+ *  caracteres — FS-BASE-B (hallazgo videos.ts:46): el base ya llega cortado desde el import (import-smarty.mjs), pero los
+ *  videos de la FAMILIA entran con la descripción completa de YouTube y una palabra después del carácter 140 los hacía
+ *  aparecer donde el POC no (y movía el largo medio del campo para el BM25 de todos). */
+const toDoc = (v: CatalogVideo) => ({ videoId: v.videoId, title: v.title, source: [v.source, v.channelTitle].filter(Boolean).join(' '), description: (v.description ?? '').slice(0, 140), tags: v.tags.join(' '), topics: v.topics.join(' ') })
 let index: MiniSearch | null = null
 function ensureIndex(): MiniSearch {
   if (!index) {
@@ -108,12 +116,15 @@ export function searchVideos(query: string, limit = ov.num('const.videoMostrados
  *  muletillas fuera). Va repetida a propósito: la vía del POC no se toca. */
 const contentTerms = (query: string) => normalize(query ?? '').split(/[^a-z0-9]+/).filter(t => t && !STOPWORDS.has(t))
 /** Singular/plural simple: la palabra, +s, +es y, si termina en -s / -es, sin esa terminación (dejando 3+ letras).
- *  "ballena" ↔ "ballenas", "volcán" ↔ "volcanes", "robot" ↔ "robots". No hay raíces ni parecidos: "gallinas" nunca es
- *  "ballenas" y "fiji" nunca es "niji". */
+ *  "ballena" ↔ "ballenas", "volcán" ↔ "volcanes", "robot" ↔ "robots". FS-BASE-B (hallazgo videos.ts:113): también el plural
+ *  de -z, que en castellano es -ces: "avestruz" ↔ "avestruces", "pez" ↔ "peces", "luz" ↔ "luces" (antes "avestruces" rendía
+ *  0 videos con 7 en el catálogo). No hay raíces ni parecidos: "gallinas" nunca es "ballenas" y "fiji" nunca es "niji". */
 export function wordForms(w: string): string[] {
   const out = new Set([w, `${w}s`, `${w}es`])
   if (w.length > 3 && w.endsWith('s')) out.add(w.slice(0, -1))
   if (w.length > 4 && w.endsWith('es')) out.add(w.slice(0, -2))
+  if (w.length > 1 && w.endsWith('z')) out.add(`${w.slice(0, -1)}ces`)
+  if (w.length > 4 && w.endsWith('ces')) out.add(`${w.slice(0, -3)}z`)
   return [...out]
 }
 /** Los campos del índice que miran los candidatos exactos ('source' es fuente + canal; el filtro final mira el canal). */
@@ -215,32 +226,49 @@ export function relatedVideos(video: CatalogVideo, limit: number): CatalogVideo[
   return out
 }
 
-/* ---------- metadatos de YouTube (Data API v3, 1 unidad por llamada; cache en memoria) ---------- */
+/* ---------- metadatos de YouTube (Data API v3, 1 unidad por llamada; cache en memoria) ----------
+   FS-BASE-B (hallazgo videos.ts:226): son COSMÉTICOS (fecha, Me gusta, suscriptores, avatar del canal: el video ya está
+   aprobado y se reproduce sin ellos), así que llevan timeout corto (YT_META_TIMEOUT_MS; la API responde en ~0,3 s) y el
+   reproductor pide los del video y los del canal EN PARALELO (antes en serie: con googleapis colgado, ~10 min de reproductor
+   sin cargar). Y una FALLA ya no se guarda para siempre: antes un corte o la cuota diaria agotada dejaba esos videos y canales
+   vacíos hasta reiniciar aunque YouTube volviera; ahora la falla vale YT_META_RETRY_MS (después se vuelve a pedir). Lo que
+   YouTube respondió bien (aunque no traiga el dato) y "sin clave" se guardan como siempre. */
+const YT_META_TIMEOUT_MS = 5_000
+const YT_META_RETRY_MS = 10 * 60_000
 interface YtMeta { publishedAt?: string; likes?: number; channelThumb?: string; subscribers?: number }
 const meta = new Map<string, YtMeta>()
 const chMeta = new Map<string, { thumb?: string; subscribers?: number }>()
-async function yt<T>(path: string, params: Record<string, string>): Promise<T | null> {
+/** Cuándo falló por última vez cada video / canal (id → ms): hasta YT_META_RETRY_MS después no se vuelve a pedir. */
+const metaFailedAt = new Map<string, number>()
+const chFailedAt = new Map<string, number>()
+const recentlyFailed = (m: Map<string, number>, id: string) => { const t = m.get(id); return t !== undefined && Date.now() - t < YT_META_RETRY_MS }
+/** 'nokey' = sin YOUTUBE_API_KEY (estado estable: se cachea vacío) · 'failed' = error, !ok o timeout (no se cachea). */
+async function yt<T>(path: string, params: Record<string, string>): Promise<T | 'nokey' | 'failed'> {
   const key = (process.env.YOUTUBE_API_KEY ?? '').trim()
-  if (!key) return null
+  if (!key) return 'nokey'
   try {
-    const r = await fetch(`https://www.googleapis.com/youtube/v3/${path}?${new URLSearchParams({ ...params, key })}`)
-    return r.ok ? ((await r.json()) as T) : null
-  } catch { return null }
+    const r = await fetch(`https://www.googleapis.com/youtube/v3/${path}?${new URLSearchParams({ ...params, key })}`, { signal: AbortSignal.timeout(YT_META_TIMEOUT_MS) })
+    return r.ok ? ((await r.json()) as T) : 'failed'
+  } catch { return 'failed' }
 }
 
 /* Fecha y Me gusta de varios videos en una sola llamada (para la lista de resultados y el reproductor). */
 export async function loadVideoMeta(ids: string[]): Promise<void> {
-  const missing = ids.filter(id => !meta.has(id)).slice(0, 50)
+  const missing = ids.filter(id => !meta.has(id) && !recentlyFailed(metaFailedAt, id)).slice(0, 50)
   if (!missing.length) return
   const data = await yt<{ items?: { id: string; snippet?: { publishedAt?: string }; statistics?: { likeCount?: string } }[] }>('videos', { part: 'snippet,statistics', id: missing.join(','), maxResults: '50' })
-  for (const it of data?.items ?? []) meta.set(it.id, { publishedAt: it.snippet?.publishedAt, likes: it.statistics?.likeCount ? Number(it.statistics.likeCount) : undefined })
-  for (const id of missing) if (!meta.has(id)) meta.set(id, {})
+  if (data === 'failed') { const now = Date.now(); for (const id of missing) metaFailedAt.set(id, now); return }
+  for (const it of data === 'nokey' ? [] : data.items ?? []) meta.set(it.id, { publishedAt: it.snippet?.publishedAt, likes: it.statistics?.likeCount ? Number(it.statistics.likeCount) : undefined })
+  for (const id of missing) { metaFailedAt.delete(id); if (!meta.has(id)) meta.set(id, {}) }
 }
 export async function loadChannelMeta(channelId: string): Promise<{ thumb?: string; subscribers?: number }> {
   if (!channelId) return {}
   if (chMeta.has(channelId)) return chMeta.get(channelId)!
+  if (recentlyFailed(chFailedAt, channelId)) return {}
   const data = await yt<{ items?: { snippet?: { thumbnails?: { default?: { url?: string } } }; statistics?: { subscriberCount?: string; hiddenSubscriberCount?: boolean } }[] }>('channels', { part: 'snippet,statistics', id: channelId })
-  const it = data?.items?.[0]
+  if (data === 'failed') { chFailedAt.set(channelId, Date.now()); return {} }
+  chFailedAt.delete(channelId)
+  const it = data === 'nokey' ? undefined : data.items?.[0]
   const m = { thumb: it?.snippet?.thumbnails?.default?.url, subscribers: it?.statistics && !it.statistics.hiddenSubscriberCount && it.statistics.subscriberCount ? Number(it.statistics.subscriberCount) : undefined }
   chMeta.set(channelId, m)
   return m
@@ -284,8 +312,7 @@ export function toVideoResult(v: CatalogVideo) {
 export async function getVideo(id: string) {
   const v = getCatalogVideo(id) // base o familia
   if (!v || matchBlockedWord(v.title) !== null) return null // solo videos aprobados
-  await loadVideoMeta([id])
-  const ch = await loadChannelMeta(v.channelId)
+  const [, ch] = await Promise.all([loadVideoMeta([id]), loadChannelMeta(v.channelId)]) // en paralelo (FS-BASE-B)
   const m = meta.get(id) ?? {}
   return {
     ...toVideoResult(v), channelId: v.channelId, durationSec: v.duration, reviewed: true, verified: false,

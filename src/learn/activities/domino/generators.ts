@@ -7,6 +7,7 @@
  * distintas (garantía de no-callejones) + un renderizador de celdas por slot.
  */
 import { mulberry32, shuffle } from '../../activity/index'
+import { SCALED_PARAM_MAX } from '../../scaledParams'
 import type { Cell, DominoContent, Tile } from './types'
 
 export type Operation = '+' | '-'
@@ -75,10 +76,15 @@ function makeExprCell(value: number, maxValue: number, ops: Operation[], rng: ()
 
 /** Dominó MATEMÁTICO (determinista por seed): expresión ↔ número. */
 export function mathDominoGenerator(params: MathDominoParams, seed: number): DominoContent {
-  const { maxValue, ops } = params
+  const { ops } = params
+  // FIX-MINT (desvío del POC, defensa en profundidad): maxValue y tileCount con tope duro (SCALED_PARAM_MAX). En el POC el
+  // pool es Array.from({length: maxValue + 1}) y cada celda recorre 0..maxValue: sin tope, un maxValue enorme (o un texto
+  // como "200000000", que `+ 1` CONCATENA) era un Array de miles de millones → el proceso moría por falta de memoria. Dentro
+  // del tope el resultado es idéntico al del POC.
+  const maxValue = Math.min(params.maxValue, SCALED_PARAM_MAX.maxValue)
   const rng = mulberry32(seed)
   // keys distintas ⇒ se necesitan T+1 valores únicos en 0..maxValue
-  const tileCount = Math.max(2, Math.min(params.tileCount, maxValue))
+  const tileCount = Math.max(2, Math.min(params.tileCount, maxValue, SCALED_PARAM_MAX.tileCount))
   const pool = shuffle(
     Array.from({ length: maxValue + 1 }, (_, i) => i),
     rng,

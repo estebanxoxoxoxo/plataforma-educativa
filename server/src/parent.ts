@@ -94,15 +94,27 @@
 //   { version: 3, seq, tz, pinHash, members: { [idDelIntegrante]: { features, items, topics, extraWords, volume, preset,
 //     feedMotion } } }
 // `seq` (próximo id de premio) es de la FAMILIA: los canjes, el stock y la lista de deseos referencian ids sin integrante.
-// Los canjes, el saldo y el stock consumido siguen en RAM (market.ts / progress.ts). Los AVISOS también viven en RAM (no se
-// registran en /api/demo/reset: se pierden solo si se reinicia el server). Escritura atómica (tmp + rename, como space.ts)
-// e INMEDIATA, sin debounce a propósito: son pocos cambios y un reinicio de tsx watch justo después no puede perderlos.
+// Los canjes, el saldo y el stock consumido siguen en RAM (market.ts / progress.ts). Los AVISOS PERSISTEN desde FS-BASE-A
+// (antes vivían en RAM y un reinicio de tsx watch borraba una crisis sin ver: el POC los persistía en IndexedDB) en
+// server/data/alerts.json `{version: 1, seq, alerts}` —de la FAMILIA, este módulo es su único dueño, FUERA de /api/demo/reset
+// (también de {scope:'all'}), modo 0600 porque una crisis lleva el texto del chico—; `seq` SOLO CRECE (un id nunca se reusa:
+// una pestaña vieja de Avisos no puede marcar como vista una crisis nueva) y, sin archivo, arranca en los segundos del reloj
+// (no retrocede entre procesos). Tope propio (MAX_ALERTS) que desaloja primero lo VISTO más viejo y nunca una crisis sin
+// ver. Siguen en RAM a propósito: el contador del "insistió" (blockTimes), las sesiones del token dormido y el rate-limit del
+// PIN. Escritura atómica (el helper común durable.ts: tmp + fsync + rename) e INMEDIATA, sin debounce a propósito: son
+// pocos cambios y un reinicio de tsx watch justo después no puede perderlos. FS-BASE-B (hallazgo parent.ts:732): todo
+// cambio de la config va DISCO PRIMERO (commit, abajo): si parent.json no se escribe, el cambio NO rige (la RAM queda como
+// estaba), la ruta responde el error y el reintento vuelve a intentar escribir (antes el cambio regía igual en RAM y el
+// reintento caía en el "sin cambios" y respondía 200 sin guardar nada; un premio fallido quedaba canjeable y el reintento
+// lo duplicaba).
 // La primera vez (sin archivo) se escribe el seed: cada dependiente con todo prendido + los premios demo (ian 1–8, luna
 // 9–16). Un parent.json v1/v2 (la config de UN chico) MIGRA en el acto (familyMigrate.ts, puro y testeado): lo de antes
 // pasa ENTERO a ian, los dependientes sin entrada nacen con la config de fábrica (Luna: todo prendido, sin temas ni
 // palabras, topes 100 y una copia de los 8 premios demo con ids nuevos), y el archivo original queda UNA vez en
-// parent.json.pre-v3 (un checkout viejo leería el v3 como "todo apagado y sin premios" y lo reescribiría). Archivo
-// ilegible → arranca CERRADO (todos los dependientes con todo apagado y sin premios; copia en .roto-*), como en la v1.
+// parent.json.pre-v3 (un checkout viejo leería el v3 como "todo apagado y sin premios" y lo reescribiría; FS-BASE-B: si ya
+// hay un .pre-v3 con OTRO contenido, el respaldo va a .pre-v3-<ms>). Archivo ilegible —o con una `version` desconocida
+// (FS-BASE-B: familyMigrate.ts)— → arranca CERRADO (todos los dependientes con todo apagado y sin premios; el archivo queda
+// entero en .roto-*), como en la v1.
 //
 // PIN DE LA ZONA DE PADRES (dormido desde el 14-oct, con el portón): en parent.json va SOLO su hash (sha256 hex), nunca
 // el texto, y es de la FAMILIA. POST /api/parent/unlock compara en tiempo constante y responde IGUAL (200 {ok:false})
@@ -118,15 +130,17 @@
 // porque NINGUNO llama al otro en el nivel superior del módulo (solo dentro de funciones): el orden de evaluación da igual.
 // Mantener esa regla: nada de llamadas a market/filters/space/videos al cargar este módulo, ni de ellos hacia acá.
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
-import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
-import { basename, join } from 'node:path'
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { addTrack, allTracks, removeTrack } from './afterday'
 import { SERVER_ROOT, blackTopics, config, ov, whiteTopics, whitelistSites } from './config'
+import { backupBeforeMigrate, quarantine, tryWriteFileAtomic } from './durable'
 import { isObject, upgradeParentRaw } from './familyMigrate'
 import { deliverRedemption, listRedemptions, redeemedCount, stockLeft } from './market'
-import { currentUser } from './requestContext'
-import { checkCycle, cycleView, saveCycle, setFamilyTzSource } from './schedule'
+import { medalsOf, registerMedalGate, syncMedals } from './medals'
+import { currentUser, runAsUser } from './requestContext'
+import { checkCycle, cycleOf, cycleView, saveCycle, setFamilyTzSource } from './schedule'
 import { setProgressTzSource, summaryOf } from './progress'
 import { allSavedForParent } from './space'
 import { DEFAULT_USER_ID, actingUser, allDependents, isAdultReq, memberFor, userById } from './users'
@@ -258,7 +272,7 @@ const toInt = (v: unknown): number | null => {
   const n = typeof v === 'number' ? v : typeof v === 'string' && /^\s*\d{1,9}\s*$/.test(v) ? Number(v) : NaN
   return Number.isSafeInteger(n) ? n : null
 }
-type Check<T> = { ok: true; value: T } | { ok: false; error: string }
+export type Check<T> = { ok: true; value: T } | { ok: false; error: string }
 const fail = (error: string): { ok: false; error: string } => ({ ok: false, error })
 function checkTitle(v: unknown): Check<string> {
   const t = typeof v === 'string' ? cleanText(v) : ''
@@ -284,6 +298,15 @@ function checkStock(v: unknown): Check<number | null> {
   if (v === undefined || v === null || (typeof v === 'string' && !v.trim())) return { ok: true, value: null }
   const n = toInt(v)
   return n !== null && n >= 0 && n <= LIMITS.stock ? { ok: true, value: n } : fail('El stock tiene que ser un número entero (o vacío = sin límite).')
+}
+/** U5-A: los campos de TEXTO de un premio —título (2-60), descripción (≤ 140, opcional) y emoji (1 o 2)— con la MISMA
+ *  validación y los MISMOS textos de error que un premio de la Tienda (en el orden de addItem). Lo usa el premio de la
+ *  semana de la familia "Uno nuevo" (leaguesFake.ts; este módulo no importa leaguesFake). */
+export function checkPrizeFields(b: Record<string, unknown>): Check<{ emoji: string; title: string; desc?: string }> {
+  const title = checkTitle(b.title); if (!title.ok) return title
+  const desc = checkDesc(b.desc); if (!desc.ok) return desc
+  const emoji = checkEmoji(b.emoji); if (!emoji.ok) return emoji
+  return { ok: true, value: { emoji: emoji.value, title: title.value, ...(desc.value ? { desc: desc.value } : {}) } }
 }
 
 /* Términos de la familia (temas y palabras). Se comparan como los compara el filtro de palabras: sin tildes, sin
@@ -347,18 +370,8 @@ function sanitizeVolume(v: unknown): ParentVolume {
 }
 
 /* ---------- persistencia ---------- */
-function writeAtomic(s: ParentStore): boolean {
-  try { writeFileSync(FILE + '.tmp', JSON.stringify(s, null, 2)); renameSync(FILE + '.tmp', FILE); return true }
-  catch (e) { console.error('[parent] no pude guardar parent.json:', e); return false }
-}
-/** Copia LITERAL del archivo de antes de migrar; si ya existe, no se pisa (queda la de la primera migración). */
-function backupOnce(path: string, text: string): void {
-  try {
-    if (existsSync(path)) return
-    writeFileSync(path, text)
-    console.log(`[parent] respaldo de la versión anterior en ${basename(path)}`)
-  } catch (e) { console.error(`[parent] no pude escribir el respaldo ${basename(path)}:`, e) }
-}
+/** FS-BASE-B: el helper común (durable.ts: tmp + fsync + rename); false = no quedó escrito (logueado). */
+const writeAtomic = (s: ParentStore): boolean => tryWriteFileAtomic(FILE, JSON.stringify(s, null, 2), 'parent')
 /** Un integrante leído de disco, validando todo (el cuerpo de la v2 por integrante). Lo que falta o vino mal en `features`
  *  queda APAGADO (fail-closed). `seen` = ids de premio de TODA la familia: uno repetido entre integrantes se saltea (los
  *  canjes y la lista de deseos no saben de integrantes). */
@@ -447,12 +460,12 @@ function load(): ParentStore {
     // Fail-closed: sin la config del padre no se prende nada opcional. Se guarda copia del roto. El PIN
     // vuelve al del demo (si no, nadie podría entrar a la Zona de padres a prender las cosas de nuevo).
     console.error('[parent] parent.json ilegible → arranco CERRADO (todos los integrantes con todo apagado y sin premios); copia en .roto-*:', e)
-    try { renameSync(FILE, `${FILE}.roto-${Date.now()}`) } catch { /* sin copia: seguimos igual */ }
+    quarantine(FILE, 'parent') // sin copia: seguimos igual
     const s: ParentStore = { version: 3, seq: 1, tz: null, pinHash: DEMO_PIN_HASH, members: Object.fromEntries(deps.map(d => [d, closedMember()])) }
     writeAtomic(s) // si no, el próximo arranque vería "sin archivo" y sembraría todo prendido
     return s
   }
-  if (up.from !== 3) backupOnce(`${FILE}.pre-v3`, text)
+  if (up.from !== 3) backupBeforeMigrate(FILE, '.pre-v3', text, 'parent') // copia LITERAL (nunca saltea: durable.ts)
   const s = sanitize(up.raw)
   const created = ensureMembers(s, deps)
   const missing = memberFieldsMissing(up.raw)
@@ -465,6 +478,15 @@ function load(): ParentStore {
 }
 const store: ParentStore = load()
 const save = () => writeAtomic(store)
+/** FS-BASE-B (hallazgo parent.ts:732): un cambio de la config, DISCO PRIMERO. `change` trabaja sobre una COPIA del store; si
+ *  parent.json se escribe, la copia pasa a regir; si no, la RAM queda como estaba (el candado NO rige) y devuelve false. */
+function commit(change: (draft: ParentStore) => void): boolean {
+  const draft = structuredClone(store)
+  change(draft)
+  if (!writeAtomic(draft)) return false
+  store.seq = draft.seq; store.tz = draft.tz; store.pinHash = draft.pinHash; store.members = draft.members
+  return true
+}
 // schedule.ts evalúa el ciclo del día en la zona de la familia: se la PRESTA este módulo (dueño del dato) sin que schedule.ts
 // lo importe (no hay ciclo; la función recién se llama al atender pedidos). Lo mismo progress.ts (U4: el corte de semana de
 // la XP y el día de la racha, en la misma zona que el ciclo de liga).
@@ -489,6 +511,10 @@ function mem(id: string): MemberConfig {
 /* ACCESOS EXPLÍCITOS (rutas de Familia sobre el integrante M y el gating que tiene req: index/market/leagues/friends). */
 /** ¿Esta funcionalidad está prendida PARA ESTE CHICO? Fail-closed: clave o integrante desconocidos → false. */
 export const featureOn = (key: FeatureKey, childId: string): boolean => memberConf(childId)?.features[key] === true
+// U5-B: los candados de las medallas (medals.ts no importa este módulo: este se registra). Las de `domain` ('amigos' /
+// 'ligas') se ESCONDEN —no se borran— si ese chico tiene la funcionalidad apagada. ⚠ featureOn de un ADULTO da false
+// (fail-closed: no tiene config de integrante): sin el `kind === 'adult'`, al adulto se le escondería su propia copa.
+registerMedalGate((uid, d) => userById(uid)?.kind === 'adult' || featureOn(d, uid))
 /** Los on-off de un integrante (copia); sin config → todo apagado (fail-closed). */
 export const memberFeatures = (id: string): ParentFeatures => { const m = memberConf(id); return m ? { ...m.features } : allFeatures(false) }
 /** Los topes de volumen de un integrante (copia); sin config → 100/100 (sin tope, como Smarty). */
@@ -498,6 +524,9 @@ export function itemOwner(itemId: number): string | undefined {
   for (const [id, m] of Object.entries(store.members)) if (m.items.some(i => i.id === itemId)) return id
   return undefined
 }
+/** U5-A: los premios NO archivados de un integrante (copias, en su orden): las opciones "De la Tienda de Luna" del premio de
+ *  la semana de la familia. Sin config → []. */
+export const memberItemsOf = (id: string): ParentItem[] => (memberConf(id)?.items ?? []).filter(i => !i.archived).map(i => ({ ...i }))
 /** Un premio de CUALQUIER integrante (copia): para el 400 de "solo se puede regalar ropa". */
 export function anyParentItem(itemId: number): ParentItem | undefined {
   for (const m of Object.values(store.members)) { const it = m.items.find(i => i.id === itemId); if (it) return { ...it } }
@@ -583,7 +612,10 @@ export function topicHit(text: string, topics: readonly string[]): string | null
   if (!text || !topics.length) return null
   const hay = ` ${keyOf(text).replace(/[^a-z0-9]+/g, ' ').trim()} `
   const stem = (w: string) => (w.length > 4 && w.endsWith('es') ? w.slice(0, -2) : w.length > 3 && w.endsWith('s') ? w.slice(0, -1) : w)
-  const has = (w: string) => { const s = stem(w); return hay.includes(` ${s} `) || hay.includes(` ${s}s `) || hay.includes(` ${s}es `) }
+  // FS-BASE-B (hallazgo videos.ts:113, la misma regla acá): el plural de -z es -ces ("disfraz" pega con "Disfraces…", "cruz"
+  // con "cruces"; antes no, y un tema NEGRO así dejaba pasar el plural: fail-open angosto).
+  const zForms = (w: string) => (w.endsWith('z') ? [`${w.slice(0, -1)}ces`] : w.length > 4 && w.endsWith('ces') ? [`${w.slice(0, -3)}z`] : [])
+  const has = (w: string) => { const s = stem(w); return [s, `${s}s`, `${s}es`, ...zForms(w)].some(f => hay.includes(` ${f} `)) }
   for (const t of topics) {
     const ws = topicWords(t)
     if (ws.length && ws.every(has)) return t
@@ -591,11 +623,77 @@ export function topicHit(text: string, topics: readonly string[]): string | null
   return null
 }
 
-/* ---------- avisos al padre (RAM) ---------- */
-interface Alert { id: number; ts: number; kind: AlertKind; text: string; source: string; seen: boolean; /** U3: el chico ACTIVO que lo disparó */ childId?: string }
-const alerts: Alert[] = [] // del más viejo al más nuevo
-let alertSeq = 1
-const MAX_ALERTS = 100
+/* ---------- avisos al padre (PERSISTIDOS desde FS-BASE-A en server/data/alerts.json; ver la cabecera) ---------- */
+interface Alert {
+  id: number; ts: number; kind: AlertKind; text: string; source: string; seen: boolean; /** U3: el chico ACTIVO que lo disparó */ childId?: string
+  /** FS-BASE-A, INTERNO (no se sirve): el aviso agrupado "sin clasificar" de notifyUnreviewed — cuántos mensajes y los
+   *  últimos textos. */ agg?: { n: number; quotes: string[] }
+}
+const ALERTS_FILE = join(SERVER_ROOT, 'data', 'alerts.json')
+/** Tope de avisos guardados: al pasarse se van primero los VISTOS más viejos, después los no-crisis sin ver más viejos; una
+ *  crisis sin ver no se desaloja (salvo que ellas solas pasen ALERTS_HARD, para que el archivo no crezca sin fin). */
+const MAX_ALERTS = 200
+const ALERTS_HARD = 1000
+const ALERT_KINDS: readonly AlertKind[] = ['crisis', 'contacto', 'bloqueos']
+/** Sin archivo (o ilegible): los ids arrancan en los segundos del reloj, que no retroceden entre procesos. */
+const seqFloor = () => Math.max(1, Math.floor(Date.now() / 1000))
+const strOf = (v: unknown, max: number) => (typeof v === 'string' ? cleanText(v).slice(0, max) : '')
+/** Una fila de alerts.json leída de disco, validando todo; null = se descarta. */
+function sanitizeAlert(r: unknown, ids: Set<number>): Alert | null {
+  if (!isObject(r)) return null
+  const id = typeof r.id === 'number' && Number.isSafeInteger(r.id) && r.id > 0 ? r.id : null
+  if (id === null || ids.has(id)) return null
+  const kind = ALERT_KINDS.find(k => k === r.kind)
+  const text = strOf(r.text, 2000), source = strOf(r.source, 80)
+  if (!kind || !text || typeof r.ts !== 'number' || !Number.isFinite(r.ts)) return null
+  ids.add(id)
+  const a: Alert = { id, ts: Math.round(r.ts), kind, text, source: source || 'Innerith', seen: r.seen === true } // sin dato: SIN VER (lo seguro)
+  if (typeof r.childId === 'string' && MEMBER_ID.test(r.childId)) a.childId = r.childId
+  if (isObject(r.agg) && typeof r.agg.n === 'number' && r.agg.n > 0 && Array.isArray(r.agg.quotes)) {
+    a.agg = { n: Math.min(Math.round(r.agg.n), 9999), quotes: r.agg.quotes.map(q => strOf(q, 160)).filter(Boolean).slice(-3) }
+  }
+  return a
+}
+function loadAlerts(): { seq: number; list: Alert[] } {
+  if (!existsSync(ALERTS_FILE)) return { seq: seqFloor(), list: [] } // nace con el primer aviso
+  try {
+    const raw: unknown = JSON.parse(readFileSync(ALERTS_FILE, 'utf8'))
+    if (!isObject(raw) || !Array.isArray(raw.alerts)) throw new Error('forma inesperada')
+    const ids = new Set<number>()
+    const list = raw.alerts.map(r => sanitizeAlert(r, ids)).filter((a): a is Alert => a !== null).sort((a, b) => a.id - b.id)
+    if (list.length < raw.alerts.length) console.warn(`[parent] alerts.json: descarto ${raw.alerts.length - list.length} aviso(s) mal formados`)
+    const maxId = list.reduce((m, a) => Math.max(m, a.id), 0)
+    const stored = typeof raw.seq === 'number' && Number.isSafeInteger(raw.seq) ? raw.seq : 1
+    return { seq: Math.max(stored, maxId + 1, 1), list }
+  } catch (e) {
+    console.error('[parent] alerts.json ilegible → arranco sin avisos (copia en .roto-*):', e)
+    quarantine(ALERTS_FILE, 'parent') // sin copia: seguimos igual
+    return { seq: seqFloor(), list: [] }
+  }
+}
+const loadedAlerts = loadAlerts()
+const alerts: Alert[] = loadedAlerts.list // del más viejo al más nuevo
+let alertSeq = loadedAlerts.seq
+/** Guarda los avisos (atómico; 0600: una crisis lleva el texto del chico). Si falla: log y el aviso sigue en RAM (un "visto"
+ *  que no se guardó vuelve como Nuevo tras un reinicio: la dirección segura). */
+function saveAlerts(): boolean {
+  return tryWriteFileAtomic(ALERTS_FILE, JSON.stringify({ version: 1, seq: alertSeq, alerts }), 'parent', { mode: 0o600 }) // durable.ts
+}
+/** El tope (ver MAX_ALERTS): nunca desaloja una crisis sin ver mientras haya otra cosa que sacar. */
+function evictAlerts(): void {
+  const drop = (pick: (a: Alert) => boolean, limit: number) => {
+    while (alerts.length > limit) { const i = alerts.findIndex(pick); if (i < 0) return; alerts.splice(i, 1) }
+  }
+  drop(a => a.seen, MAX_ALERTS)
+  drop(a => a.kind !== 'crisis', MAX_ALERTS)
+  drop(() => true, ALERTS_HARD)
+}
+/** Agrega un aviso (id nuevo, nunca reusado), aplica el tope y persiste. */
+function pushAlert(a: Omit<Alert, 'id'>): void {
+  alerts.push({ id: alertSeq++, ...a })
+  evictAlerts()
+  saveAlerts()
+}
 /** Bloqueos repetidos: cuántos hacen un aviso ("insistió") y en qué ventana. El umbral es el del sondeo de Smarty
  *  (const.sondeoUmbral: N redirecciones en una sesión → evento 'sondeo' para el padre). U3: se cuentan POR CHICO y fuente
  *  (Ian + Luna no suman un "insistió" entre los dos). */
@@ -615,8 +713,11 @@ const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s)
  *  U3: el aviso es SOBRE el chico activo del pedido (requestContext): queda etiquetado con su id y el texto usa su nombre
  *  ("Luna escribió: «…»"); con un ADULTO activo no se genera (solo log: los avisos son sobre los integrantes); fuera de un
  *  pedido, sin etiqueta y "tu hijo".
- *  `source` = dónde pasó, en minúscula para ir dentro de una oración ("el chat con el asistente"). Nunca tira. */
-export function notifyParent(kind: AlertKind, text: string, source: string): void {
+ *  `source` = dónde pasó, en minúscula para ir dentro de una oración ("el chat con el asistente"). Nunca tira.
+ *  FS-BASE-A: `opts.unclassified` (solo con 'crisis') = la crisis NO la vio el juez —no respondió— sino la red de frases
+ *  (crisisNet.ts): el aviso lo dice ("sin clasificar") para que el padre lo lea sabiendo que puede no serlo. Todo aviso
+ *  queda PERSISTIDO (alerts.json) apenas nace. */
+export function notifyParent(kind: AlertKind, text: string, source: string, opts?: { unclassified?: boolean }): void {
   try {
     const src = quote(String(source ?? ''), 80) || 'Innerith'
     const u = currentUser()
@@ -624,7 +725,10 @@ export function notifyParent(kind: AlertKind, text: string, source: string): voi
     const child = u?.kind === 'child' ? u : undefined
     const kid = child?.name || 'tu hijo', Kid = cap(kid)
     let body: string
-    if (kind === 'crisis') {
+    if (kind === 'crisis' && opts?.unclassified) {
+      const said = quote(String(text ?? ''), 220)
+      body = `Posible mensaje de crisis en ${src}, sin clasificar: el revisor automático no respondió y una red de frases lo marcó.${said ? ` ${Kid} escribió: «${said}».` : ''} Se le mostró el mensaje de contención de la familia, que lo invita a hablarlo con un adulto de confianza. Leelo y, si hace falta, hablalo con ${kid} con calma cuanto antes.`
+    } else if (kind === 'crisis') {
       const said = quote(String(text ?? ''), 220)
       body = `Hubo un mensaje de crisis en ${src}.${said ? ` ${Kid} escribió: «${said}».` : ''} Se le mostró el mensaje de contención de la familia, que lo invita a hablarlo con un adulto de confianza. Hablalo con ${kid} con calma cuanto antes.`
     } else if (kind === 'contacto') {
@@ -639,15 +743,42 @@ export function notifyParent(kind: AlertKind, text: string, source: string): voi
       const said = quote(String(text ?? ''), 100)
       body = `${Kid} insistió: el Moderador frenó ${recent.length} mensajes suyos en ${src} en pocos minutos (palabras, insultos o temas que la familia no quiere). Ninguno llegó.${said ? ` El último: «${said}».` : ''}`
     }
-    alerts.push({ id: alertSeq++, ts: Date.now(), kind, text: body, source: src, seen: false, ...(child ? { childId: child.id } : {}) })
-    if (alerts.length > MAX_ALERTS) alerts.splice(0, alerts.length - MAX_ALERTS)
-    console.log(`[parent] AVISO ${kind.toUpperCase()} en ${src}${child ? ` · sobre ${child.id}` : ''}`) // nunca se loguea lo que escribió el chico
+    pushAlert({ ts: Date.now(), kind, text: body, source: src, seen: false, ...(child ? { childId: child.id } : {}) })
+    console.log(`[parent] AVISO ${kind.toUpperCase()}${opts?.unclassified && kind === 'crisis' ? ' (sin clasificar)' : ''} en ${src}${child ? ` · sobre ${child.id}` : ''}`) // nunca se loguea lo que escribió el chico
   } catch (e) { console.error('[parent] no pude registrar el aviso:', e) }
 }
-/** Los avisos (el más nuevo primero) con el nombre del chico; con `member`, solo los de ese integrante. */
+/** FS-BASE-A: un mensaje del chico que el revisor automático NO pudo revisar (juez de entrada caído, vencido o con un
+ *  veredicto fuera de esquema) y que la red de frases (crisisNet.ts) no marcó. No se le mostró nada (fail-closed), pero
+ *  podría ser importante y nadie más lo vio: el padre lo recibe como aviso de crisis "sin clasificar", con el texto. AGRUPADO
+ *  para que una caída del modelo no llene Avisos: mientras haya uno SIN VER del mismo chico y la misma fuente con menos de
+ *  10 minutos, se REEMPLAZA por uno nuevo (id nuevo: una pestaña vieja no marca como visto lo que todavía no leyó) con la
+ *  cuenta y los últimos 3 textos. Con un adulto activo, nada (como notifyParent). Nunca tira. */
+export function notifyUnreviewed(text: string, source: string): void {
+  try {
+    const src = quote(String(source ?? ''), 80) || 'Innerith'
+    const u = currentUser()
+    if (u?.kind === 'adult') { console.log(`[parent] mensaje sin revisar de un adulto en ${src}: sin aviso`); return }
+    const child = u?.kind === 'child' ? u : undefined
+    const Kid = cap(child?.name || 'tu hijo')
+    const now = Date.now()
+    const i = alerts.findIndex(a => !!a.agg && !a.seen && a.childId === child?.id && a.source === src && now - a.ts < BLOCK_WINDOW_MS)
+    const prev = i >= 0 ? alerts.splice(i, 1)[0] : undefined
+    const n = (prev?.agg?.n ?? 0) + 1
+    const quotes = [...(prev?.agg?.quotes ?? []), quote(String(text ?? ''), 140)].filter(Boolean).slice(-3)
+    const said = quotes.map(q => `«${q}»`).join(' · ')
+    const body = `Sin clasificar: el revisor automático no pudo revisar ${n === 1 ? 'un mensaje' : `${n} mensajes`} de ${Kid} en ${src} (no respondió). No se le mostró ninguna respuesta y se le sugirió hablar con un adulto de confianza si le pasa algo. Por si era importante, ${quotes.length > 1 ? 'esto es lo último que escribió' : 'esto es lo que escribió'}: ${said}.`
+    pushAlert({ ts: now, kind: 'crisis', text: body, source: src, seen: false, ...(child ? { childId: child.id } : {}), agg: { n, quotes } })
+    console.log(`[parent] AVISO SIN CLASIFICAR (${n}) en ${src}${child ? ` · sobre ${child.id}` : ''}`) // sin el texto del chico
+  } catch (e) { console.error('[parent] no pude registrar el aviso sin clasificar:', e) }
+}
+/** Los avisos (el más nuevo primero) con el nombre del chico; con `member`, solo los de ese integrante. La forma ParentAlert
+ *  de types.ts (los campos internos, como `agg`, no se sirven). */
 const alertList = (member?: string) => alerts.slice().reverse()
   .filter(a => member === undefined || a.childId === member)
-  .map(a => ({ ...a, ...(a.childId ? { childName: userById(a.childId)?.name ?? a.childId } : {}) }))
+  .map(a => ({
+    id: a.id, ts: a.ts, kind: a.kind, text: a.text, source: a.source, seen: a.seen,
+    ...(a.childId ? { childId: a.childId, childName: userById(a.childId)?.name ?? a.childId } : {}),
+  }))
 
 /* ---------- sesión de la Zona de padres (RAM) ---------- */
 const SESSION_MS = 15 * 60_000
@@ -711,12 +842,10 @@ function tryUnlock(pin: unknown): { ok: boolean; token?: string; waitSeconds?: n
 function touchedByHand(m: MemberConfig, mid: string) { if (m.preset !== null) { console.log(`[parent] ${mid}: cambio a mano, el preset «${m.preset}» deja de estar aplicado`); m.preset = null } }
 
 function setFeature(mid: string, key: FeatureKey, on: boolean): boolean {
-  const m = mem(mid)
-  if (m.features[key] === on) return true
-  m.features[key] = on
-  touchedByHand(m, mid)
-  console.log(`[parent] ${mid}: ${key} → ${on ? 'prendida' : 'APAGADA'}`)
-  return save()
+  if (mem(mid).features[key] === on) return true
+  const ok = commit(d => { const m = d.members[mid]; m.features[key] = on; touchedByHand(m, mid) })
+  if (ok) console.log(`[parent] ${mid}: ${key} → ${on ? 'prendida' : 'APAGADA'}`)
+  return ok
 }
 
 type Input = Record<string, unknown>
@@ -726,11 +855,16 @@ function addItem(mid: string, b: Input): Check<ParentItem> {
   const price = checkPrice(b.price); if (!price.ok) return price
   const emoji = checkEmoji(b.emoji); if (!emoji.ok) return emoji
   const stock = checkStock(b.stock); if (!stock.ok) return stock
-  const m = mem(mid)
-  const it: ParentItem = { id: store.seq++, emoji: emoji.value, title: title.value, ...(desc.value ? { desc: desc.value } : {}), price: price.value, stock: stock.value, archived: false, createdAt: Date.now() }
-  m.items.push(it)
+  mem(mid)
+  let it!: ParentItem
+  // El id sale del `seq` de la COPIA: si no se guarda, ni el premio ni el id llegan a regir (el reintento no duplica).
+  const ok = commit(d => {
+    it = { id: d.seq++, emoji: emoji.value, title: title.value, ...(desc.value ? { desc: desc.value } : {}), price: price.value, stock: stock.value, archived: false, createdAt: Date.now() }
+    d.members[mid].items.push(it)
+  })
+  if (!ok) return fail('No pude guardar el premio. Probá de nuevo.')
   console.log(`[parent] ${mid}: premio #${it.id} publicado: ${it.emoji} ${it.title} (${it.price} ⚡${it.stock !== null ? ` · stock ${it.stock}` : ''})`)
-  return save() ? { ok: true, value: { ...it } } : fail('No pude guardar el premio. Probá de nuevo.')
+  return { ok: true, value: { ...it } }
 }
 /** Edición parcial: solo los campos que vienen. `desc: ''` la borra · `stock: null|''` = sin límite ·
  *  `archived: false` reactiva (true archiva). 'missing' = ese premio no existe o no es de este integrante. */
@@ -748,9 +882,10 @@ function updateItem(mid: string, id: number, b: Input): Check<true> | 'missing' 
   if ('archived' in b) { if (typeof b.archived !== 'boolean') return fail('archived tiene que ser true o false.'); next.archived = b.archived; touched = true }
   if (!touched) return fail('No vino ningún cambio para guardar.')
   next.updatedAt = Date.now()
-  m.items[m.items.indexOf(it)] = next
+  const i = m.items.indexOf(it)
+  if (!commit(d => { d.members[mid].items[i] = next })) return fail('No pude guardar el cambio. Probá de nuevo.')
   console.log(`[parent] ${mid}: premio #${next.id} editado: ${next.emoji} ${next.title} · ${next.price} ⚡ · stock ${next.stock ?? '∞'}${next.archived ? ' · ARCHIVADO' : ''}`)
-  return save() ? { ok: true, value: true } : fail('No pude guardar el cambio. Probá de nuevo.')
+  return { ok: true, value: true }
 }
 
 const sameList = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x, i) => x === b[i])
@@ -766,20 +901,19 @@ function setTopics(mid: string, b: Input): Check<ParentTopics> {
   const both = next.white.find(t => inBlack.has(keyOf(t)))
   if (both) return fail(`«${both}» no puede estar en las dos listas: sacalo de una primero.`)
   if (sameList(next.white, m.topics.white) && sameList(next.black, m.topics.black)) return { ok: true, value: topicsOf(m) }
-  m.topics = { white: [...next.white], black: [...next.black] }
-  touchedByHand(m, mid)
-  console.log(`[parent] ${mid}: temas de la familia → blancos: ${m.topics.white.length} · negros: ${m.topics.black.length}`)
-  return save() ? { ok: true, value: topicsOf(m) } : fail('No pude guardar los temas. Probá de nuevo.')
+  if (!commit(d => { const dm = d.members[mid]; dm.topics = { white: [...next.white], black: [...next.black] }; touchedByHand(dm, mid) })) return fail('No pude guardar los temas. Probá de nuevo.')
+  const now = mem(mid)
+  console.log(`[parent] ${mid}: temas de la familia → blancos: ${now.topics.white.length} · negros: ${now.topics.black.length}`)
+  return { ok: true, value: topicsOf(now) }
 }
 function setWords(mid: string, b: Input): Check<string[]> {
   const m = mem(mid)
   const c = checkTerms(b.extra, 'palabra', TERMS.words, memberName(mid))
   if (!c.ok) return c
   if (sameList(c.value, m.extraWords)) return { ok: true, value: [...m.extraWords] }
-  m.extraWords = c.value
-  touchedByHand(m, mid)
-  console.log(`[parent] ${mid}: palabras de la familia → ${m.extraWords.length} (se suman a las ${config.blockedWords.length} de fábrica)`)
-  return save() ? { ok: true, value: [...m.extraWords] } : fail('No pude guardar las palabras. Probá de nuevo.')
+  if (!commit(d => { const dm = d.members[mid]; dm.extraWords = [...c.value]; touchedByHand(dm, mid) })) return fail('No pude guardar las palabras. Probá de nuevo.')
+  console.log(`[parent] ${mid}: palabras de la familia → ${c.value.length} (se suman a las ${config.blockedWords.length} de fábrica)`)
+  return { ok: true, value: [...mem(mid).extraWords] }
 }
 function setVolume(mid: string, b: Input): Check<ParentVolume> {
   if (!('maxMusic' in b) && !('maxNoise' in b)) return fail('No vino ningún tope (maxMusic o maxNoise).')
@@ -788,10 +922,9 @@ function setVolume(mid: string, b: Input): Check<ParentVolume> {
   if ('maxMusic' in b) { const c = checkVolume(b.maxMusic, 'El tope de la música'); if (!c.ok) return c; next.maxMusic = c.value }
   if ('maxNoise' in b) { const c = checkVolume(b.maxNoise, 'El tope de los ruidos'); if (!c.ok) return c; next.maxNoise = c.value }
   if (next.maxMusic === m.volume.maxMusic && next.maxNoise === m.volume.maxNoise) return { ok: true, value: { ...m.volume } }
-  m.volume = next
-  touchedByHand(m, mid)
+  if (!commit(d => { const dm = d.members[mid]; dm.volume = { ...next }; touchedByHand(dm, mid) })) return fail('No pude guardar los topes. Probá de nuevo.')
   console.log(`[parent] ${mid}: topes de volumen → música ${next.maxMusic} · ruidos ${next.maxNoise}`)
-  return save() ? { ok: true, value: { ...m.volume } } : fail('No pude guardar los topes. Probá de nuevo.')
+  return { ok: true, value: { ...mem(mid).volume } }
 }
 /** Dial de animación del Feed (patrón de los topes: valida, guarda al toque y rige en el próximo GET del feed). Los
  *  presets no dicen nada de la animación, así que moverlo NO deja la configuración como "propia" (no toca el preset). */
@@ -799,9 +932,10 @@ function setFeedMotion(mid: string, b: Input): Check<FeedMotion> {
   if (!isFeedMotion(b.motion)) return fail(`La animación tiene que ser una de: ${FEED_MOTIONS.join(', ')}.`)
   const m = mem(mid)
   if (b.motion === m.feedMotion) return { ok: true, value: m.feedMotion }
-  m.feedMotion = b.motion
-  console.log(`[parent] ${mid}: animación del Feed → ${m.feedMotion}`)
-  return save() ? { ok: true, value: m.feedMotion } : fail('No pude guardar la animación. Probá de nuevo.')
+  const motion = b.motion
+  if (!commit(d => { d.members[mid].feedMotion = motion })) return fail('No pude guardar la animación. Probá de nuevo.')
+  console.log(`[parent] ${mid}: animación del Feed → ${motion}`)
+  return { ok: true, value: mem(mid).feedMotion }
 }
 
 /** Zona horaria de la FAMILIA: una IANA que este motor conoce (se guarda canónica, p. ej. "america/new_york" →
@@ -811,9 +945,9 @@ function setTz(b: Input): Check<string | null> {
   if (raw !== null && !isValidTimeZone(raw)) return fail('La zona horaria tiene que ser una IANA (por ejemplo America/Argentina/Buenos_Aires) o null = automática.')
   const tz = raw === null ? null : new Intl.DateTimeFormat('en-US', { timeZone: raw }).resolvedOptions().timeZone
   if (tz === store.tz) return { ok: true, value: store.tz }
-  store.tz = tz
+  if (!commit(d => { d.tz = tz })) return fail('No pude guardar la zona horaria. Probá de nuevo.')
   console.log(`[parent] zona horaria de la familia → ${tz ?? 'automática (la del server)'}`)
-  return save() ? { ok: true, value: store.tz } : fail('No pude guardar la zona horaria. Probá de nuevo.')
+  return { ok: true, value: store.tz }
 }
 
 const wordsView = (m: MemberConfig) => ({ extra: [...m.extraWords], builtin: config.blockedWords.length })
@@ -830,14 +964,18 @@ const presetView = (p: PresetDef) => ({
 function applyPreset(mid: string, id: unknown): { ok: true; preset: PresetDef } | { ok: false; status: number; error: string } {
   const p = PRESETS.find(x => x.id === id)
   if (!p) return { ok: false, status: 400, error: 'Ese preset no existe.' }
-  const m = mem(mid)
-  m.features = { ...p.features }
-  m.topics = { white: [...p.topics.white], black: [...p.topics.black] }
-  m.extraWords = [...p.words]
-  m.volume = { ...p.volume }
-  m.preset = p.id
+  mem(mid)
+  const ok = commit(d => {
+    const m = d.members[mid]
+    m.features = { ...p.features }
+    m.topics = { white: [...p.topics.white], black: [...p.topics.black] }
+    m.extraWords = [...p.words]
+    m.volume = { ...p.volume }
+    m.preset = p.id
+  })
+  if (!ok) return { ok: false, status: 500, error: 'No pude guardar el preset. Probá de nuevo.' }
   console.log(`[parent] ${mid}: preset «${p.name}» aplicado: ${FEATURE_KEYS.map(k => `${k} ${p.features[k] ? 'on' : 'OFF'}`).join(' · ')} · temas ${p.topics.white.length}+/${p.topics.black.length}- · palabras ${p.words.length} · topes ${p.volume.maxMusic}/${p.volume.maxNoise}`)
-  return save() ? { ok: true, preset: p } : { ok: false, status: 500, error: 'No pude guardar el preset. Probá de nuevo.' }
+  return { ok: true, preset: p }
 }
 
 /** Lo que ya protege el backend real para ESTE integrante: lo de fábrica SIEMPRE + lo que sumó la familia para él
@@ -859,6 +997,9 @@ function protections(m: MemberConfig) {
 function activity(mid: string) {
   const s = summaryOf(mid)
   const m = mem(mid)
+  // U5-B: sus medallas frescas — el sync corre bajo SU runAsUser (si ganó una, la noticia cae en el feed de ÉL, no en el del
+  // adulto que mira); después se leen TODAS (forParent: sin `fresh`, con `hidden` en las que un candado le esconde).
+  runAsUser(mid, () => syncMedals(mid))
   return {
     xpWeek: s.xpWeek, ec: s.ec, streakDays: s.streakDays, continue: s.continue,
     saved: allSavedForParent(mid),
@@ -870,6 +1011,9 @@ function activity(mid: string) {
     })),
     protections: protections(m),
     member: mid,
+    // U5-B (aditivo, ParentActivity.medals): TODAS las ganadas por el integrante, sin "Nueva"; `hidden` = 'ligas' | 'amigos'
+    // en las que él no ve por un candado ("(Ligas apagadas: Luna no la ve)").
+    medals: medalsOf(mid, { forParent: true }),
   }
 }
 
@@ -1017,7 +1161,7 @@ export async function parentRoutes(req: IncomingMessage, res: ServerResponse, ur
     case '/api/parent/alerts/seen': {
       const id = parseId(b)
       const a = id === null ? undefined : alerts.find(x => x.id === id && (alertsOf === undefined || x.childId === alertsOf))
-      if (a) a.seen = true
+      if (a && !a.seen) { a.seen = true; saveAlerts() } // FS-BASE-A: persiste (si no se pudo, vuelve como Nuevo tras un reinicio)
       return send(res, 200, { ok: !!a })
     }
     case '/api/parent/presets/apply': {
@@ -1032,7 +1176,8 @@ export async function parentRoutes(req: IncomingMessage, res: ServerResponse, ur
     // Ciclo del día (F1) de M: {ranges} REEMPLAZA la lista completa. Inválido (ids repetidos, nombre, horas, secciones, más de
     // 8 rangos) → 400 con el motivo; la validación y schedules.json viven en schedule.ts / cycleRules.ts.
     case '/api/parent/cycle': {
-      const c = checkCycle(b.ranges, memberName(member))
+      // FS-BASE-B: los ids que ya tenía M quedan reservados para los rangos nuevos (un id borrado no se recicla en este guardado)
+      const c = checkCycle(b.ranges, memberName(member), cycleOf(member).map(r => r.id))
       if (!c.ok) return send(res, 400, { error: c.error })
       return saveCycle(member, c.value) ? send(res, 200, cycleView(member)) : send(res, 500, { error: 'No pude guardar el ciclo del día. Probá de nuevo.' })
     }

@@ -26,7 +26,12 @@ export type ImageResult = { id: string; img: string; caption: string; source: { 
 export type VideoResult = { id: string; img: string; title: string; subtitle: string; duration: string; channel: string; date: string };
 export type RelatedChip = { label: string; img: string };
 
-export type SearchResponse<T> = { query: string; items: Moderated<T>[]; related?: RelatedChip[]; /** solo en la UI: la búsqueda falló */ error?: string };
+export type SearchResponse<T> = { query: string; items: Moderated<T>[]; related?: RelatedChip[]; /** solo en la UI: la búsqueda falló */ error?: string;
+  /** ADITIVO (FS-BASE-A, server/src/searchGuard.ts): con un CHICO activo, la consulta entera (o esta solapa) NO se buscó y
+   *  `items` llega vacío. `text` es lo que hay que mostrarle TAL CUAL (puede traer saltos de línea): 'crisis' = el guion de
+   *  contención de la familia (el padre ya recibió el aviso); 'tema' = palabra bloqueada o tema de la lista negra (la
+   *  redirección del POC); 'falla' = no se pudo revisar (fail-closed). Ausente = búsqueda normal. */
+  block?: { kind: 'crisis' | 'tema' | 'falla'; text: string } };
 
 /** Artículo real extraído y moderado por el backend (Wikipedia REST o Jina → Readability → DOMPurify → juez). */
 export type Article = {
@@ -124,6 +129,7 @@ export type CycleConfig = { ranges: CycleRange[] };
 /** GET /api/parent/cycle?member y POST /api/parent/cycle?member {ranges} (sesión del adulto). */
 export type CycleResponse = { cycle: CycleConfig; member: string; /** reloj del server (ms) */ serverNow: number;
   /** zona IANA de la familia (null = la del server) */ tz: string | null;
+  /** FS-BASE-B (ADITIVO): la zona IANA del SERVER (la de "Automática"): el cliente lee la pared con `tz ?? serverTz`. */ serverTz?: string;
   /** override de demo vigente de ese integrante (id de un rango suyo) o null = reloj real */ demoRange: string | null };
 /** POST /api/parent/cycle?member: la lista COMPLETA reemplaza a la anterior (los rangos nuevos pueden venir sin id). */
 export type CycleSaveRequest = { ranges: (Omit<CycleRange, 'id'> & { id?: string })[] };
@@ -137,6 +143,9 @@ export type DemoCycleRequest = { rangeId: string | null };
 export type SchedulesResponse = {
   /** reloj del server (ms) */ serverNow: number;
   /** Zona horaria IANA de la familia (null = la del server); el ciclo y el daypart se evalúan en ella. */ tz?: string | null;
+  /** FS-BASE-B (ADITIVO): la zona IANA del SERVER, la que rige con `tz` null ("Automática"). El cliente evalúa con
+   *  `tz ?? serverTz` (antes, con tz null, usaba la del NAVEGADOR y no coincidía con el 403 si estaban en zonas distintas). */
+  serverTz?: string;
   /** U3: de qué integrante es (el chico activo, o el ?member= que pidió el adulto). Ausente = ninguno (adulto sin
    *  integrantes). */ member?: string;
   /** F1: el ciclo del día de ese integrante (vacío si no hay integrante). */ cycle: CycleConfig;
@@ -149,7 +158,8 @@ export type ProgressSummary = {
   /** Saldo de Energy Coin (⚡) para gastar en la Tienda */ ec: number;
   streakDays: number;
   /** Para "Seguí practicando" (null si nunca practicó) */
-  /** La última RUTA de Learn jugada con postas pendientes (courseId = id de ruta desde W3). */
+  /** La última RUTA de Learn jugada, TERMINADA O NO (courseId = id de ruta desde W3; el server usa lastPlayedRoute de
+   *  learnProgress.ts: puede venir con done === total). FS-BASE-B: antes decía "con postas pendientes". */
   continue: { courseId: string; title: string; done: number; total: number } | null;
 };
 export type EcTx = { id: number; ts: number; kind: 'earn' | 'spend'; amount: number; label: string };
@@ -167,7 +177,13 @@ export type MarketItem = {
   /** Solo kind 'ropa': qué accesorio del set del cliente desbloquea */ accessoryId?: AccessoryId;
   /** Solo kind 'ropa': ya está en tu guardarropas (compras en RAM: resetean por carga) */ owned?: boolean;
 };
-export type Redemption = { id: number; itemId: number; title: string; emoji: string; price: number; ts: number; status: 'pendiente' | 'entregado' };
+export type Redemption = {
+  id: number; itemId: number; title: string; emoji: string; price: number; ts: number; status: 'pendiente' | 'entregado';
+  /** U5: el premio de la semana de la liga de la familia que ganó este chico (con origin: itemId 0 y price 0 — no es un ítem
+   *  de la Tienda ni movió ⚡). Lo entrega el adulto con el mismo "Ya se lo di". */
+  origin?: 'liga-familia';
+  /** U5: cuándo cerró la semana que lo dio (solo con origin) */ closedAt?: number;
+};
 
 /* ---------- Zona del padre (v1): grandes on-off, premios propios, actividad del chico ---------- */
 /** Funcionalidades que el padre prende/apaga (audio 22: "si no quiere que exista, no existe"). */
@@ -200,6 +216,9 @@ export type ParentActivity = {
   /** U3/U4: de qué integrante es TODO lo de arriba (desde U4 también xpWeek/ec/streakDays/continue/saved: cada
    *  integrante tiene su progreso y su Mi espacio). */
   member?: string;
+  /** U5 (lo sirve la tanda U5-B): TODAS las medallas ganadas por el integrante, sin `fresh`; `hidden` marca las que él no ve
+   *  por un candado ("(Ligas apagadas: Luna no la ve)"). */
+  medals?: (EarnedMedal & { hidden?: 'ligas' | 'amigos' })[];
 };
 
 export type Friend = {
@@ -285,7 +304,11 @@ export type FeedItem =
   /** Grilla de videos inline (shelf): 1 lugar del hilo = N videos + "Ver todos" (`topic` arma el link al buscador). */
   | { kind: 'videos'; id: string; time: string; reason: string; title: string; total: number; videos: VideoResult[]; topic?: string }
   /** Resumen de la edición (panel propio): la mezcla de hoy y cómo cambia según la hora. */
-  | { kind: 'summary'; id: string; title: string; desc: string; mix: { label: string; n: number }[]; later: string };
+  | { kind: 'summary'; id: string; title: string; desc: string; mix: { label: string; n: number }[]; later: string }
+  /** U5 (ADITIVO; lo emite el server de U5-B, la tarjeta `FeedMedalCard` es de U5-D): "Ganaste la medalla «…»" — una
+   *  noticia PROPIA por cada medalla nueva del usuario, en lo vivo (píldora "N novedades ↑"), sin reacciones. id `fm-<n>`,
+   *  reason 'Es tu medalla nueva'. Un cliente sin este case no pinta nada (el switch del Feed no tiene default). */
+  | { kind: 'medal'; id: string; time: string; reason: string; medal: EarnedMedal };
 export type FeedResponse = { items: FeedItem[]; next: string | null; motion: FeedMotion };
 
 /* ---------- Identidad (avatar propio; visión audios 26, 32, 41-42) ----------
@@ -390,7 +413,8 @@ export type LearnModule = { id: string; title: string; emoji?: string; source?: 
 export type LearnRouteData = {
   id: string; title: string; description: string; emoji: string;
   postas: LearnPosta[]; modules?: LearnModule[];
-  /** dataURL JPEG 640x360 (portada subida en /crear) */ cover?: string;
+  /** Portada: un dataURL JPEG 640x360 (subida en /crear) o la URL http(s) del thumbnail de Wikipedia que pone el server al
+   *  importar sin portada (learnRoutes.ts → routeCover.ts). FS-BASE-B: antes decía solo dataURL. */ cover?: string;
   category?: string;
 };
 export type DefinitionRecipeData = {
@@ -428,10 +452,10 @@ export type ActivityResultInput = Omit<ActivityResultRow, 'id' | 'finishedAt'>;
 
 /* ---------- Auditoría de veracidad de un fact (port del factAudit del POC, corre en NUESTRO server) ---------- */
 export type AuditFact = { statement?: string; front?: string; back?: string; quote?: string; kind?: string };
-export type AuditSource = { title: string; url: string; snippet: string; /** 'si' | 'no' | 'parcial' (como lo marque el modelo) */ agrees: string };
+export type AuditSource = { title: string; url: string; snippet: string; /** 'si' | 'no' | 'parcial' | 'irrelevante' (como lo marque el modelo; 'irrelevante' es también el valor por defecto del server: create.ts) */ agrees: string };
 export type AuditResult = {
   /** 'confirmado' | 'contradicho' | los estados intermedios del POC */ status: string;
-  /** 0-100 */ confidence: number;
+  /** 0 a 1 (el server la acota: create.ts; la UI la muestra ×100 como %). FS-BASE-B: antes decía 0-100. */ confidence: number;
   summary: string; correction?: string;
   sources: AuditSource[]; model: string; auditedAt: number;
 };
@@ -446,13 +470,94 @@ export type GiftResult = { ok: boolean; error?: string; /** saldo tras regalar *
    amigos e hilos, liga, feed en vivo) viaja por la MISMA cabecera X-Innerith-User: ninguna forma cambia. */
 /** POST /api/demo/reset: sin cuerpo vuelve al seed SOLO al usuario activo; {scope:'all'} a todos (QA). */
 export type DemoResetResult = { ok: true; scope: 'user' | 'all'; user?: string };
-/** GET /api/leagues/family: la tabla de la semana de la familia (grandes y chicos). No es una liga de la escalera: no se
- *  asigna ni se cierra; vuelve a cero el lunes con la XP. */
+/** GET /api/leagues/family: la tabla de la semana de la familia (grandes y chicos). No es una liga de la escalera (no se
+ *  asigna, sin NPCs). U5: tiene SEMANA con cierre (el lunes de la familia, o el botón de demo del adulto), historial, premio
+ *  del adulto y el reto de constancia; los campos de U5 van opcionales en el tipo (el server de U5 los manda SIEMPRE). */
 export type FamilyLeagueRow = {
   pos: number; id: string; name: string; nick: string; kind: 'adult' | 'child';
   /** XP de la semana = los ⚡ que ganó aprendiendo esta semana (1:1); el MISMO número de su liga, zona y país. */ xp: number;
-  streakDays: number;
+  /** U4; NO se retira (compat), pero la fila de U5 ya no la pinta: la racha sigue en el Feed */ streakDays: number;
   /** El avatar ELEGIDO (identity.json v2); null = iniciales. */ look: AvatarLook;
   me?: boolean;
+  /** U5: días con aprendizaje NUEVO en la semana abierta (0-7): el reto "N de 7 días" (D2). Solo sube dentro de la semana. */
+  days?: number;
+  /** U5: el tramo de días seguidos más largo dentro de la semana (la variante "seguidos" de D2, también monotónica) */ bestRun?: number;
+  /** U5: XP de SU semana anterior registrada (null = no hay). El ↑ "superó su semana" es `prevXp != null && xp > prevXp`;
+   *  mientras no se logra NO se muestra nada (ni "te faltan N"). */ prevXp?: number | null;
+  /** U5: ganó la copa 🏆 de la semana pasada (history[0]) */ wonLastWeek?: true;
+  /** U5: es un CHICO de la tabla: puede llevarse el premio de la semana (lo haya o no; el adulto juega la tabla pero no lo cobra) */
+  prizeEligible?: true;
 };
-export type FamilyLeague = { /** días al domingo de la semana del calendario */ closesInDays: number; rows: FamilyLeagueRow[] };
+export type FamilyLeague = {
+  /** días al cierre: al domingo del calendario de la familia; U5: tras un cierre SIMULADO de la familia, 7 − días reales desde
+   *  ese cierre (nunca negativo) */ closesInDays: number;
+  rows: FamilyLeagueRow[];
+  /** U5: el premio en juego esta semana (null = ninguno) */ prize?: FamilyWeekPrize | null;
+  /** U5: semanas cerradas, la más nueva primero (≤ 8); la última es history[0] */ history?: FamilyWeekClosed[];
+  /** U5: el que mira es ADULTO: pone el premio y simula el cierre de la familia (D4) */ canManage?: boolean;
+  /** U5: 0 = la semana del seed; cada cierre de la familia suma 1 (= history[0].week) */ week?: number;
+};
+
+/* ---------- U5 (28-oct): la liga de la familia completa + las medallas de la plataforma ----------
+   docs/U5-LIGA-FAMILIAR-Y-MEDALLAS.md §6 y docs/USUARIOS.md §12. Contratos CONGELADOS por la tanda U5-A (aditivos: ninguna forma
+   existente cambia de significado). El kind `medal` de FeedItem lo sumó U5-B (aditivo, junto con su emisión en el server);
+   su tarjeta la pinta U5-D.
+     GET  /api/leagues/family                    → FamilyLeague          · chico con Ligas apagadas: 403 (U4)
+     POST /api/leagues/family/prize {FamilyPrizeRequest} → FamilyLeague  · 403 chico · 400 {error} con el motivo · 405 GET
+     POST /api/leagues/family/prize/clear        → FamilyLeague (prize null)   · 403 chico · 405 GET
+     GET  /api/leagues/family/prize-options      → FamilyPrizeOptions          · 403 chico
+     POST /api/leagues/family/close-week         → FamilyCloseResult           · 403 chico · 400 (< 2 integrantes) · 405 GET
+     GET  /api/medals                            → MedalsResponse (U5-B)
+     POST /api/medals/seen                       → MedalsResponse (unseen 0; U5-B) · 405 GET */
+export type FamilyPrizeCondition = 'supera-su-semana' | 'gana-la-semana';
+/** El premio de la semana de la familia: un TEXTO fijo que promete el adulto (sin ⚡, sin sorteo, sin magnitud variable). */
+export type FamilyWeekPrize = {
+  emoji: string; title: string; desc?: string;
+  condition: FamilyPrizeCondition;
+  /** El adulto que lo prometió ("Te lo da Andrés"). */ by: { id: string; name: string };
+  /** Copiado de un premio de la Tienda de un chico (informativo: no lo ata) o null = escrito en la hoja. */
+  from: { member: string; itemId: number } | null;
+  setAt: number;
+};
+/** 🏆 ganó la semana (solo el 1.º, con XP > 0 y ≥ 2 filas) · ↑ superó su semana anterior · ✨ aprendió los 7 días. */
+export type FamilyWeekMark = 'gano' | 'supero' | 'siete';
+export type FamilyWeekClosedRow = {
+  id: string; name: string; kind: 'adult' | 'child'; xp: number;
+  /** días con aprendizaje nuevo esa semana (0-7) */ days: number;
+  marks: FamilyWeekMark[];
+  /** se llevó el premio de esa semana */ prize?: true;
+};
+/** Una semana cerrada de la familia (resumen SIN puestos: solo marcas alcanzables + la copa). */
+export type FamilyWeekClosed = {
+  /** 0 = la "semana pasada" del seed; cada cierre suma 1 */ week: number;
+  closedAt: number;
+  /** "la semana pasada" · "hace 2 semanas"… (lo arma el server al servir, por posición) */ label: string;
+  /** botón de demo (true) o lunes real / seed (false) */ simulated: boolean;
+  /** en el orden de la tabla al cerrar */ rows: FamilyWeekClosedRow[];
+  /** "Entre todos sumaron N XP" */ total: number;
+  /** el premio que estaba en juego; winners [] = nadie lo ganó AL CERRAR (si sigue en juego HOY lo dice `prizeInPlay`) */
+  prize: (FamilyWeekPrize & { winners: string[] }) | null;
+  /** Revisión de U5 (aditivo; el server lo manda SIEMPRE): el premio de ESA semana sigue en juego HOY —quedó sin ganadores y
+   *  es el vigente (mismo `setAt`): el adulto no lo cambió ni lo quitó y ningún cierre posterior lo consumió—. Con un premio
+   *  arrastrado varias semanas, true en cada una. false: no hubo premio, alguien lo ganó, o ya no es el vigente. */
+  prizeInPlay?: boolean;
+};
+export type FamilyCloseResult = { closed: FamilyWeekClosed; /** el cierre de la liga PÚBLICA del que apretó */ mine: CloseWeekResult };
+export type FamilyPrizeOptions = {
+  /** los premios NO archivados de cada dependiente, en el orden de `dependents` */
+  groups: { member: string; name: string; items: { itemId: number; emoji: string; title: string; desc?: string }[] }[];
+};
+export type FamilyPrizeRequest = { condition: FamilyPrizeCondition } &
+  ({ from: { member: string; itemId: number } } | { emoji: string; title: string; desc?: string });
+
+export type MedalId = 'primera-posta' | 'diez-objetivos' | 'ruta-completa' | 'posta-perfecta' | 'primer-repaso'
+  | 'primer-guardado' | 'ruta-creada' | 'primer-amigo' | 'tres-dias' | 'de-vuelta' | 'semana-completa' | 'mejor-semana'
+  | 'semana-familia';
+/** Una medalla GANADA (el catálogo no viaja nunca al cliente). */
+export type EarnedMedal = {
+  id: MedalId; emoji: string; title: string; text: string;
+  /** desde cuándo (null = del seed, sin fecha) */ at: number | null;
+  /** solo las repetibles con 2 o más ("×3") */ times?: number;
+  /** todavía no la vio en "Tus medallas" */ fresh?: true;
+};
+export type MedalsResponse = { medals: EarnedMedal[]; unseen: number };

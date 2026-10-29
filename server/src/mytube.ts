@@ -74,10 +74,11 @@
 // base (solo las de la familia) y «Completar canales» completa datos faltantes solo en filas de la familia (el base ya los
 // trae); un canal del catálogo base sin entidad toma el título del catálogo como respaldo (el POC caía al channelId); y
 // editar la descripción de un canal que todavía no tiene entidad la crea (en el POC todo canal con videos ya la tenía).
-import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { join } from 'node:path'
 import { MODELS, SERVER_ROOT } from './config'
+import { quarantine, tryWriteFileAtomic } from './durable'
 import { matchBlockedWord } from './filters'
 import { complete } from './llm'
 import { hasParentSession } from './parent'
@@ -139,7 +140,7 @@ function load(): Store {
     }
   } catch (e) {
     console.warn('[mytube] mytube.json ilegible: guardo una copia y arranco con la semilla:', e)
-    try { renameSync(FILE, FILE + '.broken-' + Date.now()) } catch { /* sin copia */ }
+    quarantine(FILE, 'mytube') // FS-BASE-B: .roto-<ms> como los demás módulos (antes .broken-<ms>); sin copia, seguimos
   }
   return seed()
 }
@@ -147,12 +148,19 @@ const store: Store = load()
 const channels = new Map(store.channels.map(c => [c.channelId, c]))
 const playlists = new Map(store.playlists.map(p => [p.playlistId, p]))
 
-function save(): void {
+/** FS-BASE-A (hallazgo mytube.ts:153): devuelve si quedó escrito y anota la falla en `saveFailed`; las rutas del padre la
+ *  miran (adminOp) y responden el fallo real —antes se lo tragaba y el panel recibía ok:true, y un reinicio revertía el cambio
+ *  (lo que el adulto quitó volvía a estar aprobado)—. */
+let saveFailed = false
+function save(): boolean {
   store.channels = [...channels.values()].sort((a, b) => cmpKey(a.channelId, b.channelId))
   store.playlists = [...playlists.values()]
-  try { writeFileSync(FILE + '.tmp', JSON.stringify(store)); renameSync(FILE + '.tmp', FILE) }
-  catch (e) { console.error('[mytube] no pude guardar mytube.json:', e) }
+  if (tryWriteFileAtomic(FILE, JSON.stringify(store), 'mytube')) return true // FS-BASE-B: el helper común (durable.ts)
+  saveFailed = true
+  return false
 }
+/** El texto del fallo de disco que ve el panel del padre (corto: explainYtError del cliente muestra hasta 80 letras). */
+const SAVE_ERR = 'No pude guardar en disco (mytube.json). Probá de nuevo.'
 if (!existsSync(FILE)) save()
 
 /* ---------- índices de las filas de la familia (se rehacen después de cada cambio) ---------- */
@@ -272,6 +280,10 @@ export function esPlaylistReal(list: string): boolean {
 
 /** parseYtUrl del POC, TAL CUAL: youtu.be / watch?v= / shorts / embed / playlist?list= / @handle; &list= con PL/UU/OL/FL =
  *  playlist. NO acepta /channel/UC…, /c/ ni /user/. */
+/** FS-BASE-A (hallazgo mytube.ts:293): un id de video de YouTube son 11 caracteres [A-Za-z0-9_-]. Antes /shorts/ y /embed/
+ *  sin id daban {id: ''} («agregué 1 video» que no existe) y `watch?v=abc%20<b>` entraba como el video «abc <b>». */
+const VIDEO_ID = /^[A-Za-z0-9_-]{11}$/
+const videoRef = (id: string | undefined | null): YtRef | null => (id && VIDEO_ID.test(id) ? { type: 'video', id } : null)
 export function parseYtUrl(input: string): YtRef | null {
   const s = input.trim()
   let u: URL
@@ -282,16 +294,16 @@ export function parseYtUrl(input: string): YtRef | null {
     const id = u.pathname.slice(1).split('/')[0]
     // Link de video dentro de una playlist real → preferimos la playlist.
     if (list && esPlaylistReal(list)) return { type: 'playlist', id: list }
-    return id ? { type: 'video', id } : null
+    return videoRef(id)
   }
   if (host !== 'youtube.com' && host !== 'youtube-nocookie.com') return null
   if (u.pathname === '/playlist' && list) return { type: 'playlist', id: list }
   // /watch?v=VID&list=PL... → preferimos la playlist real sobre el video.
   if (list && esPlaylistReal(list)) return { type: 'playlist', id: list }
   const v = u.searchParams.get('v')
-  if (v) return { type: 'video', id: v }
-  if (u.pathname.startsWith('/shorts/')) return { type: 'video', id: u.pathname.split('/')[2] }
-  if (u.pathname.startsWith('/embed/')) return { type: 'video', id: u.pathname.split('/')[2] }
+  if (v) return videoRef(v)
+  if (u.pathname.startsWith('/shorts/')) return videoRef(u.pathname.split('/')[2])
+  if (u.pathname.startsWith('/embed/')) return videoRef(u.pathname.split('/')[2])
   if (u.pathname.startsWith('/@')) return { type: 'canal', handle: u.pathname.slice(1).split('/')[0] }
   return null
 }
@@ -498,6 +510,7 @@ async function curarDescripcion(title: string, raw: string): Promise<string> {
       system: 'Resumís en 1-2 oraciones, en español rioplatense y tono cálido para un niño de 9-12 años, de qué trata un canal de YouTube. Sin links, sin promociones, sin pedir suscripciones. Si no hay info útil, devolvé una frase neutra y breve.',
       messages: [{ role: 'user', content: `Canal: ${title}\nDescripción: ${limpia || '(sin descripción)'}` }],
       maxTokens: 120,
+      budget: 'aux', // FS-BASE-B: 12 s sin reintento (corre dentro del slot de 2 del enriquecimiento; si vence, la limpia)
     })
     return text.trim().slice(0, 400) || limpia.slice(0, 400)
   } catch {
@@ -589,14 +602,20 @@ async function syncChannelPlaylists(channelId: string): Promise<boolean> {
   return ok
 }
 
+/** ¿Es un título de verdad? noembed devuelve el videoId cuando falla (o el video no se puede insertar): con ese "título"
+ *  ninguna palabra bloqueada (de fábrica, de la familia ni del integrante) ve el video. */
+const realTitle = (t: string | undefined, videoId: string) => !!t && !!t.trim() && t.trim() !== videoId
 /* Snapshot ENRIQUECIDO: items con canal+duración, canal-dueño de la entrada, y canales upserteados. La parte de
-   duración/canal-por-video y la metadata de canal son best-effort: si la API falla, se guarda lo que haya. */
+   duración/canal-por-video y la metadata de canal son best-effort: si la API falla, se guarda lo que haya.
+   FS-BASE-A (hallazgo mytube.ts:599): si el título del item no es real (el videoId de noembed caído), vale el de videos.list
+   (`d.title`, que antes se descartaba); el de la entrada de un video suelto, también. */
 async function buildSnapshot(ref: YtRef): Promise<{ items: ApiItem[]; title: string; entryChannelId: string }> {
   const snap = await snapshotFromRef(ref)
   const details = await videoDetails(snap.items.map(i => i.videoId)).catch(() => new Map<string, VideoDetail>())
   for (const it of snap.items) {
     const d = details.get(it.videoId)
     if (d) {
+      if (!realTitle(it.title, it.videoId) && realTitle(d.title, it.videoId)) it.title = d.title
       it.duration = d.duration
       it.tags = d.tags; it.categoryId = d.categoryId; it.topics = d.topics
       if (!it.channelId) { it.channelId = d.channelId; it.channelTitle = d.channelTitle }
@@ -607,7 +626,8 @@ async function buildSnapshot(ref: YtRef): Promise<{ items: ApiItem[]; title: str
   const channelIds = snap.items.map(i => i.channelId).filter(Boolean) as string[]
   if (entryChannelId) channelIds.push(entryChannelId)
   await upsertChannels(channelIds)
-  return { items: snap.items, title: snap.title, entryChannelId }
+  const title = ref.type === 'video' && !realTitle(snap.title, ref.id) && realTitle(snap.items[0]?.title, ref.id) ? snap.items[0].title : snap.title
+  return { items: snap.items, title, entryChannelId }
 }
 
 /* Guarda los videos de una entrada. Dedup por videoId (un video = una fila, contra el catálogo ENTERO: base + familia).
@@ -626,7 +646,8 @@ function saveVideos(items: ApiItem[], entryId: number, refresh = false): void {
       famById.set(row.videoId, row) // la misma entrada puede traer el mismo video dos veces
     } else if (refresh && existing) {
       Object.assign(existing, {
-        title: it.title, description: it.description,
+        // FS-BASE-A: la reingesta nunca pisa un título real con el videoId (noembed caído)
+        title: realTitle(it.title, it.videoId) ? it.title : existing.title, description: it.description,
         channelId: it.channelId ?? existing.channelId, channelTitle: it.channelTitle ?? existing.channelTitle,
         duration: it.duration ?? existing.duration,
         tags: it.tags ?? existing.tags, categoryId: it.categoryId ?? existing.categoryId, topics: it.topics ?? existing.topics,
@@ -656,16 +677,26 @@ async function addYtEntry(input: string): Promise<{ added: number; title: string
 
   const { items, title, entryChannelId } = await buildSnapshot(ref)
   if (!items.length) throw new Error('SIN_VIDEOS')
+  // FS-BASE-A: un video sin título real no se aprueba (fail-closed: sin título no hay palabras bloqueadas que lo vean)
+  if (ref.type === 'video' && !realTitle(items[0]?.title, ref.id)) throw new Error('Sin título no se puede revisar el video (YouTube no respondió). Probá más tarde.')
 
   const entry: YtEntry = {
     id: store.entrySeq++, type: ref.type, url: input.trim(), title, videoIds: items.map(i => i.videoId),
     status: 'activo', channelId: entryChannelId || undefined, createdAt: Date.now(),
   }
+  saveFailed = false
   store.entries.push(entry)
   saveVideos(items, entry.id)
   if (ref.type === 'canal') await syncChannelPlaylists(entryChannelId)
   else if (ref.type === 'playlist') upsertPlaylist(ref.id, entryChannelId, title, undefined, items.map(i => i.videoId))
   save()
+  if (saveFailed) {
+    // FS-BASE-A: no quedó en disco → se deshace en RAM (al padre se le dice que falló: no puede quedar aprobado igual)
+    store.entries = store.entries.filter(e => e.id !== entry.id)
+    store.videos = store.videos.filter(v => v.entryId !== entry.id)
+    reindex()
+    throw new Error(SAVE_ERR)
+  }
   return { added: items.length, title }
 }
 
@@ -699,7 +730,8 @@ async function reingestYtEntry(entryId: number): Promise<{ added: number; title:
   const { items, title, entryChannelId } = await buildSnapshot(ref)
   if (!items.length) throw new Error('SIN_VIDEOS')
 
-  Object.assign(entry, { title, videoIds: items.map(i => i.videoId), channelId: entryChannelId || entry.channelId })
+  // FS-BASE-A: un video suelto cuyo título no se pudo leer conserva el que tenía
+  Object.assign(entry, { title: ref.type === 'video' && !realTitle(title, ref.id) ? entry.title : title, videoIds: items.map(i => i.videoId), channelId: entryChannelId || entry.channelId })
   saveVideos(items, entryId, true)
   if (ref.type === 'canal') await syncChannelPlaylists(entryChannelId || entry.channelId || '')
   else if (ref.type === 'playlist') upsertPlaylist(ref.id, entryChannelId || entry.channelId || '', title, undefined, items.map(i => i.videoId))
@@ -784,7 +816,9 @@ function syncsOwnPlaylists(cid: string): boolean {
 /** ¿Le falta algo que se puede traer ahora? (sin pasos fallidos recientes) */
 function enrichmentNeeded(cid: string): boolean {
   const ch = channels.get(cid)
-  if (!ch?.metaAt) return !fresh(ch?.metaTriedAt)
+  // FS-BASE-A (hallazgo mytube.ts:787): la misma condición que metaPending —también el enfriamiento en RAM de un lote que
+  // FALLÓ—; antes, con channels.list fallando, cada GET creaba un job vacío y respondía pending:true durante 30 min.
+  if (!ch?.metaAt) return metaPending(cid)
   if (!ch.desc && !ch.descTriedAt) return true
   return syncsOwnPlaylists(cid) && !ch.playlistsAt && !fresh(ch.playlistsTriedAt)
 }
@@ -964,26 +998,34 @@ export async function mytubeRoutes(req: IncomingMessage, res: ServerResponse, ur
       return send(res, 200, await serial(async () => {
         try { return { ok: true, ...(await addYtEntry(String(b.url ?? '').slice(0, 600))) } } catch (e) { return { ok: false, error: errText(e) } }
       }))
+    // FS-BASE-A (hallazgo mytube.ts:153): si un save() del camino falló, el panel recibe el fallo real (`saveFailed`).
     case '/api/mytube/admin/reingest':
       return send(res, 200, await serial(async () => {
-        try { return { ok: true, ...(await reingestYtEntry(num('id'))) } } catch (e) { return { ok: false, error: errText(e) } }
+        saveFailed = false
+        try { const r = await reingestYtEntry(num('id')); return saveFailed ? { ok: false, error: SAVE_ERR } : { ok: true, ...r } } catch (e) { return { ok: false, error: errText(e) } }
       }))
     case '/api/mytube/admin/remove':
-      return send(res, 200, await serial(async () => { removeYtEntry(num('id')); return { ok: true } }))
+      // Si no quedó en disco igual sigue quitada en RAM (lo des-aprobado no se le vuelve a mostrar al chico), pero el padre
+      // sabe que falló: reintentar vuelve a escribir (removeYtEntry de una entrada que ya no está solo guarda).
+      return send(res, 200, await serial(async () => { saveFailed = false; removeYtEntry(num('id')); return saveFailed ? { ok: false, error: SAVE_ERR } : { ok: true } }))
     case '/api/mytube/admin/backfill':
       return send(res, 200, await serial(async () => {
-        try { return { ok: true, ...(await backfillChannels()) } } catch (e) { return { ok: false, error: errText(e) } }
+        saveFailed = false
+        try { const r = await backfillChannels(); return saveFailed ? { ok: false, error: SAVE_ERR } : { ok: true, ...r } } catch (e) { return { ok: false, error: errText(e) } }
       }))
     case '/api/mytube/admin/dedup':
       return send(res, 200, await serial(async () => {
-        try { return { ok: true, removed: dedupYtEntries() } } catch (e) { return { ok: false, error: errText(e) } }
+        saveFailed = false
+        try { const removed = dedupYtEntries(); return saveFailed ? { ok: false, error: SAVE_ERR } : { ok: true, removed } } catch (e) { return { ok: false, error: errText(e) } }
       }))
-    case '/api/mytube/admin/cap':
-      return send(res, 200, await serial(async () => {
+    case '/api/mytube/admin/cap': {
+      // 500 si no quedó en disco: el panel solo mira si el pedido respondió (y si no, dice «No se pudo guardar»)
+      const r = await serial(async () => {
         store.videoCap = Number(b.cap) || 0 // «Guardar ajustes» del POC: vacío o no numérico = 0 = sin tope
-        save()
-        return { ok: true, videoCap: capSetting() }
-      }))
+        return save()
+      })
+      return r ? send(res, 200, { ok: true, videoCap: capSetting() }) : send(res, 500, { ok: false, error: SAVE_ERR, videoCap: capSetting() })
+    }
     case '/api/mytube/admin/channel-desc':
       return send(res, 200, await serial(async () => {
         const cid = String(b.channelId ?? '').trim()
@@ -992,8 +1034,7 @@ export async function mytubeRoutes(req: IncomingMessage, res: ServerResponse, ur
         const ch = channels.get(cid)
         if (ch) ch.desc = desc
         else channels.set(cid, { channelId: cid, title: catalogTitle(cid) ?? cid, desc, createdAt: Date.now() })
-        save()
-        return { ok: true }
+        return save() ? { ok: true } : { ok: false, error: SAVE_ERR }
       }))
   }
   return send(res, 404, { error: 'not found' })

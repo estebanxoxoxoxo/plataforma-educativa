@@ -128,7 +128,30 @@ describe('upgradeCycleRaw', () => {
     for (const bad of [null, 7, 'x', [], false]) expect(() => upgradeCycleRaw(bad, DEPS)).toThrow();
   });
 
-  it('nunca crea un integrante "__proto__"', () => {
-    expect(Object.hasOwn(upgradeCycleRaw({}, ['__proto__', 'ian']).raw.members, '__proto__')).toBe(false);
+  it('nunca crea un integrante "__proto__" (ni le cambia el prototipo a members)', () => {
+    // FS-BASE-B (hallazgo familyMigrate.test.ts:132): `members['__proto__'] = …` sobre un objeto literal NO crea una clave
+    // propia —cambia el PROTOTIPO—, así que mirar solo hasOwn quedaba en verde aunque se borrara la guarda.
+    const members = upgradeCycleRaw({}, ['__proto__', 'ian']).raw.members;
+    expect(Object.hasOwn(members, '__proto__')).toBe(false);
+    expect(Object.getPrototypeOf(members)).toBe(Object.prototype);
+    expect(Object.keys(members)).toEqual(['ian']);
+    expect((members as Record<string, unknown>).ranges).toBeUndefined(); // nada heredado
+  });
+
+  it('FS-BASE-B (hallazgo familyMigrate.ts:31): una versión DESCONOCIDA tira (el que llama la aparta como .roto-*); ausente = v1', () => {
+    for (const version of ['3', 4, 0, null, 'v3', 2.5]) expect(() => upgradeCycleRaw({ version, members: { ian: { ranges: [] } } }, DEPS), String(version)).toThrow(/versión desconocida/);
+    expect(upgradeCycleRaw({ version: 1 }, DEPS).from).toBe(1);
+    expect(upgradeCycleRaw({}, DEPS).from).toBe(1);
+  });
+});
+
+describe('upgradeParentRaw con una versión desconocida (FS-BASE-B, hallazgo familyMigrate.ts:31)', () => {
+  it('"3" de texto, 4 o cualquier otra cosa presente → tira; antes se armaba como un v1 y Luna quedaba con la config de fábrica', () => {
+    for (const version of ['3', 4, 0, null, true]) expect(() => upgradeParentRaw({ version, seq: 9, members: { ian: {} } }, 'ian'), String(version)).toThrow(/versión desconocida/);
+  });
+  it('los v1 de siempre (sin version) y los v2/v3 siguen igual', () => {
+    expect(upgradeParentRaw({ features: {} }, 'ian').from).toBe(1);
+    expect(upgradeParentRaw({ version: 2, features: {} }, 'ian').from).toBe(2);
+    expect(upgradeParentRaw({ version: 3, members: {} }, 'ian').from).toBe(3);
   });
 });

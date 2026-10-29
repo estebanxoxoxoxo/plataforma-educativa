@@ -60,6 +60,13 @@ describe('upgradeWishRaw', () => {
   });
 });
 
+describe('upgradeSpaceRaw con una versión desconocida (FS-BASE-B, hallazgo familyMigrate.ts:31)', () => {
+  it('"2" de texto, 3 o cualquier otra cosa presente → tira (space.ts la aparta como .roto-*; antes el Drive de Ian quedaba vacío)', () => {
+    for (const version of ['2', 3, 0, null]) expect(() => upgradeSpaceRaw({ version, seq: 5, users: { ian: { folders: [] } } }, 'ian', DEMO), String(version)).toThrow(/versión desconocida/);
+    expect(upgradeSpaceRaw({ version: 1, folders: [] }, 'ian', DEMO).from).toBe(1);
+  });
+});
+
 describe('upgradeSpaceRaw', () => {
   const FOLDERS = [{ id: 1, name: 'carpeta1', parentId: 0, createdAt: 1 }, { id: 3, name: 'otra', parentId: 1, createdAt: 3 }];
   const ITEMS = [{ id: 2, type: 'video', title: 'V', target: { type: 'video', id: 'abc' }, folderId: 1, createdAt: 2 }];

@@ -21,10 +21,32 @@
 // Modelo: AUDIT_MODEL (abajo). Prompt: el knob 'audit.prompt' del POC — el override de la familia (config.overrides, del
 // respaldo) o el valor de fábrica copiado tal cual (defaults.json se volcó antes de que existiera el knob).
 // Serper con el país/idioma de la familia (config.searchGl/searchHl = settings.searchGl/searchHl del POC; default ar/es).
+//
+// FS-BASE-A (hallazgo create.ts:211 + revisión del módulo entero, que ningún workflow había auditado):
+//   · Con un CHICO activo (/crear vive en la zona del chico) la auditoría NO le trae la web abierta: `buscar_web` busca en la
+//     LISTA BLANCA de sitios (searchPages de search.ts: el Serper acotado de Buscar, con su filtro de dominios y palabras),
+//     `buscar_wikipedia` solo devuelve lo que pasa la lista blanca y las palabras, y el resultado pasa auditForChild
+//     (auditView.ts): fuentes solo de la lista blanca y sin palabras bloqueadas; con una palabra bloqueada en el resumen o la
+//     corrección, ok:false (no se muestra). Con un adulto (el editor) todo como el POC: Serper amplio.
+//   · `lang` se valida (2-3 letras): iba crudo al HOSTNAME de Wikipedia (`https://${lang}.wikipedia.org/…`) y con
+//     `lang: "evil.example#"` el server pedía a evil.example y devolvía su respuesta como «fuente» (SSRF).
+//   · Wikipedia y Serper con timeout (FETCH_MS): sin él, un fetch colgado dejaba la auditoría esperando minutos.
+//   QUEDA (reportado, no arreglado acá): sin tope de auditorías por usuario (cada clic es gpt-5.5 con hasta 8 rondas: costo);
+//   el `statement` va al prompt sin spotlight (fiel al POC) y no pasa por el juez de entrada (una crisis escrita en un fact no
+//   dispara el guion: sería una superficie de moderación nueva, a decidir).
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { config, fill } from './config'
 import { completeWithTools, parseJudgeJson, tool } from './llm'
 import { readJson, send } from './web'
+import { currentUser } from './requestContext'
+import { searchPages } from './search'
+import { auditForChild, childSafeSource } from './auditView'
+
+/** Timeout de cada fetch de las herramientas (Wikipedia, Serper). */
+const FETCH_MS = 15_000
+/** Un código de idioma de Wikipedia (es, en, pt…): lo único que puede ir al hostname. */
+const LANG_RE = /^[a-z]{2,3}$/
+const isChild = () => currentUser()?.kind === 'child'
 
 /** Modelo del auditor = `auditModel()` del POC (settings.ts, clave `smarty.auditModel`, default 'gpt-5.5': "el más capaz
  *  disponible", desacoplado del preset del chat; allá el padre lo cambia en Ajustes entre gpt-5.5, gpt-5.4 y gpt-5.4-mini).
@@ -73,8 +95,9 @@ const AGREES = ['si', 'parcial', 'no', 'irrelevante'] as const
 /* ---------- herramientas ---------- */
 async function searchWikipedia(lang: string, q: string): Promise<Retrieved[]> {
   try {
-    const base = (lang || 'es').split('-')[0]
-    const r = await fetch(`https://${base}.wikipedia.org/w/rest.php/v1/search/page?q=${encodeURIComponent(q)}&limit=5`, { headers: { 'User-Agent': UA } })
+    const b0 = (lang || 'es').split('-')[0].toLowerCase()
+    const base = LANG_RE.test(b0) ? b0 : 'es' // FS-BASE-A: nada que no sea un código de idioma llega al hostname (SSRF)
+    const r = await fetch(`https://${base}.wikipedia.org/w/rest.php/v1/search/page?q=${encodeURIComponent(q)}&limit=5`, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(FETCH_MS) })
     if (!r.ok) return []
     const data = (await r.json()) as { pages?: { key?: string; title: string; excerpt?: string; description?: string }[] }
     return (data.pages ?? []).map((p) => ({
@@ -101,6 +124,7 @@ async function serperSearchResult(q: string, opts?: { num?: number }): Promise<{
       method: 'POST',
       headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
       body: JSON.stringify({ q, num: opts?.num ?? 20, gl: config.searchGl || 'ar', hl: config.searchHl || 'es' }),
+      signal: AbortSignal.timeout(FETCH_MS),
     })
     if (!r.ok) { const t = await r.text().catch(() => ''); return { organic: [], error: describeSerperError(r.status, t) } }
     const data = (await r.json()) as { organic?: SerperOrganic[] }
@@ -110,6 +134,12 @@ async function serperSearchResult(q: string, opts?: { num?: number }): Promise<{
   }
 }
 async function searchWeb(q: string): Promise<{ results: Retrieved[]; error?: string }> {
+  if (isChild()) {
+    // FS-BASE-A: con un chico, la búsqueda de Buscar (lista blanca + dominios + palabras de su política), no la web abierta
+    const r = await searchPages(q, { limit: 6 })
+    if (!r.results.length && r.error) return { results: [], error: r.error }
+    return { results: r.results.map((o) => ({ title: o.title, url: o.link, snippet: o.snippet ?? '' })) }
+  }
   const r = await serperSearchResult(q, { num: 6 }) // Serper AMPLIO (no la whitelist infantil): herramienta del editor
   if (r.error) return { results: [], error: r.error }
   return { results: r.organic.slice(0, 6).map((o) => ({ title: o.title, url: o.link, snippet: o.snippet ?? '' })) }
@@ -150,7 +180,8 @@ export async function auditFact(fact: AuditFactInput, opts?: { lang?: string }):
       return { output: JSON.stringify({ results }) }
     }
     if (name === 'buscar_wikipedia') {
-      const results = await searchWikipedia(lang, q)
+      const all = await searchWikipedia(lang, q)
+      const results = isChild() ? all.filter(childSafeSource) : all // FS-BASE-A: con un chico, lista blanca + palabras
       remember(results)
       return { output: JSON.stringify({ results }) }
     }
@@ -167,6 +198,7 @@ export async function auditFact(fact: AuditFactInput, opts?: { lang?: string }):
     tools,
     onToolCall,
     maxToolRounds: 8,
+    budget: 'audit', // FS-BASE-B: 60 s por ronda, plazo total 240 s (llm.ts); si vence, tira como un modelo caído
   })
 
   // SIEMPRE con fuentes: si no buscó nada, es sin-datos
@@ -217,11 +249,18 @@ export async function createRoutes(req: IncomingMessage, res: ServerResponse, ur
     const f = p?.fact as Record<string, unknown> | null | undefined
     if (!f || typeof f !== 'object') return send(res, 400, { ok: false, error: 'Falta el dato a auditar (fact).' })
     const fact: AuditFactInput = { statement: str(f.statement), front: str(f.front), back: str(f.back), quote: str(f.quote), kind: str(f.kind) }
-    const lang = typeof p?.lang === 'string' && p.lang ? p.lang : 'es'
+    const lang = typeof p?.lang === 'string' && LANG_RE.test(p.lang.split('-')[0].toLowerCase()) ? p.lang.split('-')[0].toLowerCase() : 'es' // FS-BASE-A
     const label = (fact.statement || `${fact.front} → ${fact.back}`).slice(0, 70)
     const t0 = Date.now()
     try {
-      const result = await auditFact(fact, { lang })
+      const raw = await auditFact(fact, { lang })
+      // FS-BASE-A: a un chico, solo lo que pasa la lista blanca y sus palabras (auditView.ts); si el resumen no se puede
+      // mostrar, ok:false con un texto neutro (la vista lo muestra como "Auditoría: <mensaje>")
+      const result = isChild() ? auditForChild(raw) : raw
+      if (!result) {
+        console.log(`[audit] «${label}» → resultado no apto para un chico (palabra bloqueada en el resumen) (${Date.now() - t0} ms)`)
+        return send(res, 200, { ok: false, error: 'El resultado de esta auditoría no se puede mostrar.' })
+      }
       console.log(`[audit] «${label}» → ${result.status} ${Math.round(result.confidence * 100)}% · ${result.sources.length} fuentes · ${result.model} (${Date.now() - t0} ms)`)
       return send(res, 200, { ok: true, result })
     } catch (e) {

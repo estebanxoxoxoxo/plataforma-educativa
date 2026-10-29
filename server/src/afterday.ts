@@ -20,10 +20,11 @@
 // DESVÍO (decidido en el contrato del coordinador): sin nombre del padre, el título se busca en noembed (sin key, como el
 // video suelto de mytube.ts); si noembed falla, queda SIN título — "(sin nombre)" en el panel, "Audio" en la tarjeta del
 // chico y "Música" en el MiniPlayer, igual que el POC, que nunca buscaba título.
-import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { join } from 'node:path'
 import { SERVER_ROOT } from './config'
+import { quarantine, writeFileAtomic } from './durable'
 import { send } from './web'
 
 export interface AfterDayTrack { videoId: string; url: string; title?: string; thumb: string; addedAt: number }
@@ -39,11 +40,14 @@ function load(): AfterDayTrack[] {
   if (!existsSync(FILE)) return []
   try {
     const raw: unknown = JSON.parse(readFileSync(FILE, 'utf8'))
-    return Array.isArray(raw) ? raw.filter(isTrack) : []
+    // FS-BASE-B (mapa de durabilidad): un JSON válido que NO es la lista también es ilegible (antes quedaba [] sin copia y el
+    // próximo "agregar" pisaba la lista que había armado el padre).
+    if (!Array.isArray(raw)) throw new Error('no es una lista de temas')
+    return raw.filter(isTrack)
   } catch (e) {
     // Ilegible: arranca vacía, pero la copia queda aparte (el próximo guardado no pisa la lista que armó el padre).
     console.error('[afterday] music.json ilegible → lista vacía; copia en .roto-*:', e)
-    try { renameSync(FILE, `${FILE}.roto-${Date.now()}`) } catch { /* sin copia: seguimos igual */ }
+    quarantine(FILE, 'afterday') // sin copia: seguimos igual
     return []
   }
 }
@@ -51,9 +55,7 @@ let tracks: AfterDayTrack[] = load()
 
 /** Guarda la lista (atómico). Primero el disco y después la memoria: si la escritura falla, nada cambia. */
 export function saveTracks(next: AfterDayTrack[]): void {
-  const tmp = `${FILE}.tmp`
-  writeFileSync(tmp, JSON.stringify(next, null, 1))
-  renameSync(tmp, FILE)
+  writeFileAtomic(FILE, JSON.stringify(next, null, 1)) // tira si falla (durable.ts): `tracks` no cambia
   tracks = next
 }
 /** Del más nuevo al más viejo (la vista del chico y la lista del padre). Empates de addedAt: el último agregado primero,

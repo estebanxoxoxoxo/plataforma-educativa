@@ -18,6 +18,14 @@ const ALLOWED_TAGS = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li',
 const ALLOWED_ATTR = ['href', 'src', 'alt', 'title', 'referrerpolicy', 'loading', 'decoding', 'data-figure']
 const UA = 'InnerithBot/0.1 (educational; contact andres@innerith.com)'
 const maxText = () => ov.num('const.maxTextoArticulo')
+/* FS-BASE-B (hallazgos search.ts:13 y extract.ts:155): timeouts de cada fetch (antes ninguno: un sitio colgado esperaba los
+   300 s de undici por pedido, y un artículo encadena hasta 4). Wikipedia REST (summary y HTML) responde en < 1 s: 15 s. Jina
+   (r.jina.ai) va a buscar la página destino y espera hasta 30 s por ella (X-Timeout: 30, el valor del POC): nuestro socket
+   le da 35 s —con menos cortaríamos páginas lentas pero válidas que Jina iba a devolver—; su fallback markdown, 15 s. Peor
+   caso de una extracción: ~80 s (antes, ~20 min). Vencido = el error de siempre (getArticle → {status:'error'}, sin caché). */
+const WIKI_TIMEOUT_MS = 15_000
+const JINA_TIMEOUT_MS = 35_000
+const JINA_MD_TIMEOUT_MS = 15_000
 
 const UNREADABLE = /just a moment|performing security verification|checking your (browser|site connection)|enable javascript and cookies|verify you are (a )?human|protect against malicious bots|service to protect against|attention required|requiring captcha|target url returned error|this page maybe (not yet fully loaded|requiring captcha)|consider explicitly specify a timeout/i
 const looksUnreadable = (text: string) => UNREADABLE.test((text ?? '').slice(0, 1500))
@@ -98,10 +106,10 @@ async function extractWikipedia(lang: string, title: string, sourceUrl: string):
   const enc = encodeURIComponent(title.replace(/ /g, '_'))
   const apiBase = `https://${lang}.wikipedia.org/api/rest_v1/page`
   const headers = { 'User-Agent': UA }
-  const summary = await fetch(`${apiBase}/summary/${enc}`, { headers }).then(r => (r.ok ? r.json() : null)).catch(() => null) as
+  const summary = await fetch(`${apiBase}/summary/${enc}`, { headers, signal: AbortSignal.timeout(WIKI_TIMEOUT_MS) }).then(r => (r.ok ? r.json() : null)).catch(() => null) as
     { title?: string; extract?: string; originalimage?: { source: string }; thumbnail?: { source: string } } | null
   const hero = summary?.originalimage?.source || summary?.thumbnail?.source
-  const htmlRes = await fetch(`${apiBase}/html/${enc}`, { headers })
+  const htmlRes = await fetch(`${apiBase}/html/${enc}`, { headers, signal: AbortSignal.timeout(WIKI_TIMEOUT_MS) })
   if (!htmlRes.ok) throw new Error(`WIKI_${htmlRes.status}`)
   const doc = parse(await htmlRes.text(), sourceUrl)
   doc.querySelectorAll(
@@ -139,7 +147,7 @@ function pickTitle(metaTitle: string, h1: string | undefined, bodyText: string):
 const escapeHtml = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!))
 
 async function extractGeneral(url: string): Promise<Extracted> {
-  const res = await fetch(`https://r.jina.ai/${url}`, { headers: { 'X-Return-Format': 'html', 'X-Retain-Images': 'all', 'X-Timeout': '30' } })
+  const res = await fetch(`https://r.jina.ai/${url}`, { headers: { 'X-Return-Format': 'html', 'X-Retain-Images': 'all', 'X-Timeout': '30' }, signal: AbortSignal.timeout(JINA_TIMEOUT_MS) })
   if (!res.ok) throw new Error(`JINA_${res.status}`)
   const doc = parse(await res.text(), url)
   const h1 = doc.querySelector('h1')?.textContent?.replace(/\s+/g, ' ').trim() || undefined // antes de Readability (muta el doc)
@@ -151,8 +159,12 @@ async function extractGeneral(url: string): Promise<Extracted> {
       return { title: pickTitle(article.title || url, h1, text), html: finish(article.content, url), text, siteName: article.siteName ?? undefined }
     }
   }
-  // Fallback: markdown de jina → párrafos simples.
-  const md = await fetch(`https://r.jina.ai/${url}`, { headers: { Accept: 'text/plain' } }).then(r => r.text())
+  // Fallback: markdown de jina → párrafos simples. FS-BASE-B (hallazgo extract.ts:155): mira r.ok como el pedido de arriba —un
+  // 429 (Jina limita por IP), un 5xx o una página de error de Cloudflare se convertía en párrafos y quedaba guardado 7 días
+  // como EL artículo (y el chat lo inyectaba como extracto)—: ahora tira y getArticle no cachea nada.
+  const mdRes = await fetch(`https://r.jina.ai/${url}`, { headers: { Accept: 'text/plain' }, signal: AbortSignal.timeout(JINA_MD_TIMEOUT_MS) })
+  if (!mdRes.ok) throw new Error(`JINA_${mdRes.status}`)
+  const md = await mdRes.text()
   const title = /Title:\s*(.+)/.exec(md)?.[1]?.trim() ?? url
   const body = md.replace(/^Title:.*\n?|^URL Source:.*\n?|^Markdown Content:\n?/gm, '').replace(/\[\d+\]/g, '').replace(/\[edit(ar)?\]/gi, '').trim().slice(0, maxText())
   if (looksUnreadable(body)) throw new Error('BOTWALL')

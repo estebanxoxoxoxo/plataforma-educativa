@@ -6,6 +6,11 @@ import { applyDomainFilter, isBlockedSite, matchBlockedWord } from './filters'
 
 export interface SerperOrganic { title: string; link: string; snippet?: string; date?: string; position?: number }
 
+/** FS-BASE-B (hallazgo search.ts:13): timeout de cada búsqueda en Serper (responde en ~1 s). Sin él, un Serper colgado
+ *  dejaba la solapa Páginas (y la tool search_articles del chat) esperando hasta los 300 s de undici, POR cada uno de los
+ *  hasta 8 lotes en paralelo. Vencido: 0 resultados con `error` (lo mismo que un HTTP de error), en 15 s. */
+const SERPER_TIMEOUT_MS = 15_000
+
 async function serperSearch(q: string): Promise<{ organic: SerperOrganic[]; error?: string }> {
   const key = (process.env.SERPER_API_KEY ?? '').trim()
   if (!key) return { organic: [], error: 'Falta SERPER_API_KEY' }
@@ -14,6 +19,7 @@ async function serperSearch(q: string): Promise<{ organic: SerperOrganic[]; erro
       method: 'POST',
       headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
       body: JSON.stringify({ q, num: 10, gl: config.searchGl, hl: config.searchHl }),
+      signal: AbortSignal.timeout(SERPER_TIMEOUT_MS),
     })
     if (!r.ok) return { organic: [], error: `Serper HTTP ${r.status}` }
     const data = (await r.json()) as { organic?: SerperOrganic[] }

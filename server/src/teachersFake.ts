@@ -63,10 +63,11 @@
 // de rango, dos el mismo día, o a la misma hora que otra clase de su beneficiario) → se saltea con un aviso; un pendiente
 // con días → se vacían; un `since` que no es un instante (entero de epoch ms) → arranca en la próxima clase; un id que no
 // es un entero positivo o está repetido → se renumera con `seq`.
-import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { SERVER_ROOT } from './config'
+import { quarantine, tryWriteFileAtomic } from './durable'
 import { familyTzNow } from './schedule'
 import { DEFAULT_USER_ID, actingUser, isAdultReq, userById, type UserInfo } from './users'
 import { readJson, send } from './web'
@@ -213,10 +214,8 @@ const parsePlan = (v: unknown): MentorPlan | null => (typeof v === 'number' && (
 /* ---------- persistencia ---------- */
 const FILE = join(SERVER_ROOT, 'data', 'teachers.json')
 
-function writeAtomic(s: Store): boolean {
-  try { writeFileSync(FILE + '.tmp', JSON.stringify(s, null, 2)); renameSync(FILE + '.tmp', FILE); return true }
-  catch (e) { console.error('[mentors] no pude guardar teachers.json:', e); return false }
-}
+/** FS-BASE-B: el helper común (durable.ts: tmp + fsync + rename, un solo formato de log). */
+const writeAtomic = (s: Store): boolean => tryWriteFileAtomic(FILE, JSON.stringify(s, null, 2), 'mentors')
 function seed(): Store {
   const { weekday, hour } = SEED.slot
   return { version: 2, seq: 2, contracts: [{ id: 1, teacherId: SEED.teacherId, beneficiary: SEED.beneficiary, daysPerWeek: 1,
@@ -318,7 +317,7 @@ function load(): Store {
     return r.store
   } catch (e) {
     console.error('[mentors] teachers.json ilegible → arranco del seed; copia en .roto-*:', e)
-    try { renameSync(FILE, `${FILE}.roto-${Date.now()}`) } catch { /* sin copia: seguimos igual */ }
+    quarantine(FILE, 'mentors') // .roto-<ms>; sin copia, seguimos igual
     const s = seed()
     writeAtomic(s)
     return s

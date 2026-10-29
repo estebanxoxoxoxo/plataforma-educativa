@@ -83,6 +83,14 @@ export function familyOf(userId: string): UserInfo[] {
   for (const g of guardians) { ids.add(g.id); for (const d of g.dependents ?? []) ids.add(d) }
   return SEED.filter(u => ids.has(u.id)).map(copy)
 }
+/** U5 (docs/U5-LIGA-FAMILIAR-Y-MEDALLAS.md §2.1): la CLAVE de la familia de un usuario —de quién es el estado de la semana de
+ *  la familia (historial, premio, copas), UNA vez por familia—: el id del PRIMER adulto guardián en el orden del seed. Para un
+ *  adulto, él mismo; un chico sin guardián (o un id desconocido), él mismo. En el seed: 'andres' para los tres. */
+export function familyKeyOf(userId: string): string {
+  const me = SEED.find(u => u.id === userId)
+  if (!me || me.kind === 'adult') return userId
+  return SEED.find(u => u.kind === 'adult' && (u.dependents ?? []).includes(me.id))?.id ?? me.id
+}
 
 /** Los integrantes que este pedido puede configurar: adulto activo → sus dependents (en su orden); si no (un chico con el
  *  token DORMIDO del portón: la sesión la mira el que llama) → allDependents(). */

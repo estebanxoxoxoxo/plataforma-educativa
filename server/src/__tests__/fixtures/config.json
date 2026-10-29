@@ -1,0 +1,67 @@
+{
+  "_fixture": "FS-BASE-B: config SINTÉTICA para correr los tests sin server/data/config.json (clon limpio o CI). No tiene datos de la familia. La lee config.ts SOLO bajo vitest y SOLO si falta el archivo real.",
+  "policyVersion": 1,
+  "modelPreset": "calidad",
+  "articulosModo": "blanca",
+  "searchGl": "ar",
+  "searchHl": "es",
+  "apodo": "Ian",
+  "instrucciones": "",
+  "helpline": "",
+  "soloFuentes": false,
+  "imagenesActivo": true,
+  "saltearJuezVideos": false,
+  "moderacionEstricta": true,
+  "lenses": [],
+  "ficha": [],
+  "ytEntries": [],
+  "sites": [
+    {
+      "domain": "es.wikipedia.org",
+      "status": "activo",
+      "blocked": false
+    },
+    {
+      "domain": "concepto.de",
+      "status": "activo",
+      "blocked": false
+    },
+    {
+      "domain": "spaceplace.nasa.gov",
+      "status": "activo",
+      "blocked": false
+    }
+  ],
+  "topics": [
+    {
+      "kind": "negra",
+      "name": "violencia gráfica",
+      "description": "Escenas o descripciones de violencia explícita.",
+      "critical": false
+    },
+    {
+      "kind": "negra",
+      "name": "satanismo",
+      "description": "Culto o prácticas satánicas.",
+      "critical": true
+    },
+    {
+      "kind": "negra",
+      "name": "autolesiones",
+      "description": "Hacerse daño a uno mismo.",
+      "critical": true
+    },
+    {
+      "kind": "blanca",
+      "name": "educación sexual",
+      "description": "Lo que el chat puede tratar si el chico pregunta.",
+      "critical": false
+    }
+  ],
+  "domainRules": [],
+  "blockedWords": [
+    "idiota",
+    "estúpido"
+  ],
+  "overrides": {}
+}

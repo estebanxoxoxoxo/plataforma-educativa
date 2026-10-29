@@ -64,7 +64,7 @@
 //     regla que el camino: learnProgress.ts). Los 5 cursos fijos de Aprender/Practicar se retiraron. Todo lleva a
 //     /aprender?ruta=<id> (abre la ruta directo; la vista limpia el parámetro).
 // Para conectar el backend real: reemplazar getFeed()/reactFeed()/feedLess() manteniendo las formas.
-import { friendCount, friendNews, isVisibleNpc, npcInfo } from './friendsFake'
+import { friendCount, friendNews, isVisibleNpc, npcInfo, npcRelation } from './friendsFake'
 import {
   cycleWeek, hashOf, lastClose, lastCloseLabel, MEDAL_EMOJI, myLeague, npcPractice, rng, shuffle, sinceLabel, weeksAgoLabel,
   type CloseNews, type Medal, type NpcRace,
@@ -73,9 +73,13 @@ import { matchBlockedWord } from './filters'
 import { familyBlockedTerms, familyTopics, familyTz, featureOnNow, feedMotion, topicHit, type FeedMotion } from './parent'
 import { wallClock } from '../../src/shared/lib/zonedClock'
 import { LEARN_EC, resultRows } from './learnResults'
-import { catalogRoutes, type CatalogRoute } from './learnRoutes'
+// FS-BASE-A: el Feed sirve las rutas como las ve el usuario del pedido (servedRoutes: lo que importó un hermano pasa la
+// moderación y su portada subida no se sirve; learnRoutes.ts), no el catálogo crudo.
+import { servedRoutes, type CatalogRoute } from './learnRoutes'
 import { routeInProgress, routeRuns, type RouteRun } from './learnProgress'
-import { searchVideosStrict, toVideoResult, type CatalogVideo } from './videos'
+import { MEDALS, type EarnedMedal } from './medalRules'
+import { registerMedalNews } from './medals'
+import { familyCatalogVersion, searchVideosStrict, toVideoResult, type CatalogVideo } from './videos'
 import { perUser } from './perUser'
 import { currentUser } from './requestContext'
 import {
@@ -104,6 +108,9 @@ export type FeedItem =
   | { kind: 'videos'; id: string; time: string; reason: string; title: string; total: number; videos: VideoCard[]; topic?: string }
   /** Resumen de la edición: la mezcla CONTADA de lo servido y cómo cambia con la hora. */
   | { kind: 'summary'; id: string; title: string; desc: string; mix: { label: string; n: number }[]; later: string }
+  /** U5-B: "Ganaste la medalla «…»" — una noticia PROPIA por cada medalla nueva (injectMedalNews), sin reacciones ni
+   *  festejos de NPCs (no es la medalla de liga "que ven tus amigos"). Un cliente sin este kind no pinta nada. */
+  | { kind: 'medal'; id: string; time: string; reason: string; medal: EarnedMedal }
 type Of<K extends FeedItem['kind']> = Extract<FeedItem, { kind: K }>
 export interface FeedResponse { items: FeedItem[]; next: string | null; motion: FeedMotion }
 /** El mismo ítem con otro "hace cuánto" (el resumen no tiene). */
@@ -183,13 +190,17 @@ const TOPIC_WHY: Record<string, string> = {
 const kidWhy = (topic: string) => TOPIC_WHY[topic] ?? `Porque te interesa: ${topic}`
 /** El motivo de una sugerencia de la familia (tema blanco de la Zona de padres). */
 const familyReason = (t: string) => `Porque a tu familia le interesa: ${t}`
-/** Por qué aparece lo de un NPC: "<nick> es tu amiga/amigo" (el género sale de friendsFake.npcInfo: una sola lista de NPCs
- *  en el sistema). NicoRobot conserva SIEMPRE su caso especial (el de la solicitud de amistad de Ian: puede no ser amigo
- *  todavía, pero hace Fracciones como Ian). Lo que se sirve ya pasó por isVisibleNpc (amigo o te pidió contacto). */
+/** Por qué aparece lo de un NPC, según lo que es EN EL GRAFO DEL ACTIVO (FS-BASE-B, hallazgo feedFake.ts:194: antes era por
+ *  nick y a Luna le decía «FedeAjedrez es tu amigo» cuando él solo le había mandado una solicitud): amigo → "<nick> es tu
+ *  amiga/amigo"; solicitud pendiente → "<nick> quiere ser tu amiga/amigo" (el género sale de friendsFake.npcInfo: una sola
+ *  lista de NPCs en el sistema). NicoRobot conserva SIEMPRE su caso especial (el de la solicitud de amistad de Ian: hace
+ *  Fracciones como Ian, sea o no su amigo todavía). Lo que se sirve ya pasó por isVisibleNpc (amigo o te pidió contacto). */
 const npcWhy = (nick: string) => {
   if (nick === 'NicoRobot') return 'NicoRobot hace Fracciones como vos'
   const n = npcInfo(nick)
-  return n ? `${nick} es tu ${n.girl ? 'amiga' : 'amigo'}` : 'Es de tus amigos'
+  if (!n) return 'Es de tus amigos'
+  const who = n.girl ? 'amiga' : 'amigo'
+  return npcRelation(n.id) === 'request' ? `${nick} quiere ser tu ${who}` : `${nick} es tu ${who}`
 }
 
 /* ---------- pools de demo ---------- */
@@ -232,7 +243,7 @@ function routeImg(r: CatalogRoute): string {
 }
 /** Cada ruta del catálogo con su avance real (resultados persistidos), en el orden del catálogo. */
 function catalogRuns(): { route: CatalogRoute; run: RouteRun }[] {
-  const routes = catalogRoutes()
+  const routes = servedRoutes()
   const runs = routeRuns(routes, resultRows())
   return routes.map((route, i) => ({ route, run: runs[i] }))
 }
@@ -291,10 +302,13 @@ interface Pool {
   news: { n: number; fid: string; friend: { nick: string; color: string }; text: string; icon: NewsIcon }[]
 }
 /** Pools por política (U3): la clave son los temas y palabras que rigen; tope MAX_POOLS (al pasarse, se va el que hace más
- *  que no se usa). Ian y el adulto sin filtros de la familia comparten el mismo. */
+ *  que no se usa). Ian y el adulto sin filtros de la familia comparten el mismo. FS-BASE-B (hallazgo feedFake.ts:302): la
+ *  clave lleva también la VERSIÓN del catálogo aprobado (videos.ts familyCatalogVersion): cuando el padre quita (o suma, o
+ *  reingesta) algo en Familia → MyTube, el próximo GET /api/feed rearma el pool y la grilla (shelfOf usa esta misma clave)
+ *  —antes seguían cacheados y el chico veía la card de un video que ya no estaba aprobado (y tocarla daba 404)—. */
 const pools = new Map<string, Pool>()
 const MAX_POOLS = 4
-const poolKey = () => JSON.stringify([familyTopics(), familyBlockedTerms()])
+const poolKey = () => JSON.stringify([familyTopics(), familyBlockedTerms(), familyCatalogVersion()])
 /** Lo que la familia no quiere ver: pega con uno de sus temas NEGROS o trae una de sus palabras (fail-closed). */
 function familyFilter(): (text: string) => boolean {
   const fam = familyTopics(), famTerms = familyBlockedTerms()
@@ -382,6 +396,11 @@ const LATER: Record<Daypart, string> = {
   tarde: 'a la nochecita cambia a repaso tranquilo',
   noche: 'mañana arranca con más para aprender',
 }
+/* FS-BASE-B (hallazgo feedFake.ts:382): el "repaso sin apuro" de la noche solo existe si hay una ruta EN CURSO (nextStep: sin
+   ella el hero de la noche es "Empezá …" o "Elegí qué aprender hoy"). Sin ruta en curso, el resumen de la noche no lo promete
+   y el de la tarde no anuncia un repaso que no va a venir: el resumen "confiesa la mezcla y es verdad". */
+const DESC_NOCHE_SIN_REPASO = 'Armé una edición más tranquila, con videos cortitos — cambia según la hora del día.'
+const LATER_TARDE_SIN_REPASO = 'a la nochecita cambia a algo más tranquilo'
 /** Horas desde el cierre de liga del seed (lunes 00:00 de esta semana), en la ZONA HORARIA DE LA FAMILIA como la franja
  *  (sin zona, la del server). Horas "de pared" desde el lunes: en la semana del cambio de horario puede correrse una
  *  hora, y da igual (ubica en la escala de ageOf, que va de 1 a 100 h). */
@@ -512,6 +531,7 @@ function summaryOf(dp: Daypart, now: Date, served: readonly FeedItem[], shelf: O
     else if (it.kind === 'article') n.lecturas++
     else if (it.kind === 'league') n.liga++
     else if (it.kind === 'friend') { if (LEAGUEISH.has(it.icon)) n.liga++; else n.amigos++ }
+    // 'medal' (U5-B) no se cuenta: no es contenido recomendado ni social, es tuyo
   }
   const mix = [
     { label: n.rutas === 1 ? 'ruta' : 'rutas', n: n.rutas },
@@ -520,7 +540,10 @@ function summaryOf(dp: Daypart, now: Date, served: readonly FeedItem[], shelf: O
     { label: 'de amigos', n: n.amigos },
     { label: 'de la liga', n: n.liga },
   ].filter(m => m.n > 0)
-  return { kind: 'summary', id: 'fsum', title: `Tu ${DP_NAME[dp]} de ${dayName(now)}`, desc: DESC[dp], mix, later: LATER[dp] }
+  const review = dp === 'manana' || !!routeInProgress(visibleRuns()) // ¿el hero de la noche va a ser un repaso? (nextStep)
+  const desc = dp === 'noche' && !review ? DESC_NOCHE_SIN_REPASO : DESC[dp]
+  const later = dp === 'tarde' && !review ? LATER_TARDE_SIN_REPASO : LATER[dp]
+  return { kind: 'summary', id: 'fsum', title: `Tu ${DP_NAME[dp]} de ${dayName(now)}`, desc, mix, later }
 }
 
 /* ---------- demo vivo: lo que entra en vivo (RAM, en el Live del usuario: ver arriba) ---------- */
@@ -530,14 +553,17 @@ const MAX_FRESH = 90
  *  TODOS (registrado en POST /api/demo/reset). */
 export function resetFeed(userId?: string): void { lives.reset(userId) }
 
-/** Lo que miran los filtros de la familia en una noticia en vivo (la de la liga no se filtra: es el ciclo de Ian). */
-const freshText = (it: FeedItem) => (it.kind === 'friend' ? it.text : it.kind === 'route' ? it.course.name : '')
+/** Lo que miran los filtros de la familia en una noticia en vivo (la de la liga no se filtra: es el ciclo de Ian). U5-B: la
+ *  de medalla, por su título y su texto (como toda noticia en vivo). */
+const freshText = (it: FeedItem) => (it.kind === 'friend' ? it.text : it.kind === 'route' ? it.course.name : it.kind === 'medal' ? `${it.medal.title} ${it.medal.text}` : '')
 /** Los on-off del padre sobre lo que entró en vivo: sin Amigos nada social (noticias ni rutas compartidas), sin Ligas
- *  nada de ligas. */
+ *  nada de ligas. U5-B: una noticia de medalla sigue el `domain` de su medalla (la copa de la familia solo con Ligas, el
+ *  primer amigo solo con Amigos); el resto, siempre (no es social: es tuyo). Se ESCONDE al servir, no se borra. */
 function liveAllowed(it: FeedItem, amigos: boolean, ligas: boolean): boolean {
   if (it.kind === 'league') return ligas
   if (it.kind === 'friend') return amigos && (ligas || !LEAGUEISH.has(it.icon))
   if (it.kind === 'route') return amigos
+  if (it.kind === 'medal') { const d = MEDALS[it.medal.id]?.domain; return d === 'ligas' ? ligas : d === 'amigos' ? amigos : true }
   return true
 }
 /** Reacciones de arranque de una noticia en vivo (las de los demás ya están; la de Ian, ninguna: mine false). */
@@ -601,6 +627,17 @@ export function injectLeagueClose(r: CloseNews): number {
   pushFresh(out, r.week)
   return out.length
 }
+
+/** U5-B (docs/U5-LIGA-FAMILIAR-Y-MEDALLAS.md §5.5c): la noticia de una medalla NUEVA, en lo VIVO del usuario DEL CONTEXTO
+ *  (medals.syncMedals la emite siempre bajo el runAsUser del dueño): entra por la píldora "N novedades ↑", como el cierre de
+ *  liga. Sin reacciones ni festejos de NPCs; filtrada al servir por liveAllowed (su dominio) y por las palabras/temas de
+ *  la familia; el resumen de la edición no la cuenta. Lo registra medals.ts como sumidero (abajo). */
+export function injectMedalNews(m: EarnedMedal): void {
+  const L = live()
+  const medal: EarnedMedal = { id: m.id, emoji: m.emoji, title: m.title, text: m.text, at: m.at, ...(m.times ? { times: m.times } : {}) }
+  pushFresh([{ kind: 'medal', id: `fm-${++L.freshSeq}`, time: 'recién', reason: 'Es tu medalla nueva', medal }], cycleWeek())
+}
+registerMedalNews(injectMedalNews)
 
 /* ---------- "Simular NPCs": lo que publican los NPCs del demo ---------- */
 /** El color de cada NPC: el de friendsFake (una sola lista de NPCs: coincide con el dock). */

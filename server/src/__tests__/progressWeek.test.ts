@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { addXp, familyDayNum, familyWeekStart, resetProgress, setProgressTzSource, startNewWeek, summaryOf } from '../progress';
+import {
+  addXp, familyDayNum, familyWeekStart, medalCountersOf, resetProgress, seedLastWeekOf, setProgressTzSource, startNewWeek,
+  summaryOf, weekFactsOf,
+} from '../progress';
 import { runAsUser } from '../requestContext';
 
 /* U4-A (remate): el corte de semana de la XP y el día de la racha corren en la ZONA HORARIA DE LA FAMILIA (la misma del
@@ -96,3 +99,152 @@ describe('racha: días de calendario DE LA FAMILIA', () => {
     expect(summaryOf('andres').streakDays).toBe(2);
   });
 });
+
+/* U5-A (docs/U5-LIGA-FAMILIAR-Y-MEDALLAS.md §2.3, §4.1, §5.4): el corte de semana deja de PERDER la semana — guarda lastWeek,
+   mueve pbWeeks/fullWeeks — y la semana abierta lleva sus días con aprendizaje nuevo (weekDays). Zona fija 'UTC' para que el
+   día de la semana no dependa del proceso: miércoles 28-oct-2026 (dow 2), lunes 26-oct, domingo 1-nov, lunes 2-nov. */
+const UTC = 'UTC';
+const day = (iso: string) => familyDayNum(Date.parse(iso), UTC);
+const WEEK = day('2026-10-26T12:00:00Z'); // el lunes de la semana de referencia
+const as = <T,>(id: string, fn: () => T) => runAsUser(id, fn);
+
+describe('U5: seeds con semana pasada y días coherentes con la racha', () => {
+  it('un miércoles: esta semana Ian 3 · Luna 3 · Andrés 2 días; la pasada 6 · 6 · 3 (Luna no puede tener 7: el lunes anterior fue hueco)', () => {
+    setProgressTzSource(() => UTC);
+    at('2026-10-28T12:00:00Z');
+    reseed();
+    expect([weekFactsOf('ian').days, weekFactsOf('luna').days, weekFactsOf('andres').days]).toEqual([3, 3, 2]);
+    expect(weekFactsOf('luna').bestRun).toBe(3);
+    expect(weekFactsOf('ian').lastWeek).toEqual({ weekStart: WEEK - 7, xp: 1180, days: 6, prevXp: null });
+    expect(weekFactsOf('luna').lastWeek).toEqual({ weekStart: WEEK - 7, xp: 1350, days: 6, prevXp: null });
+    expect(weekFactsOf('andres').lastWeek).toEqual({ weekStart: WEEK - 7, xp: 300, days: 3, prevXp: null });
+    expect(seedLastWeekOf('luna')).toEqual({ weekStart: WEEK - 7, xp: 1350, days: 6 });
+  });
+  it('un lunes Luna tiene los 7 de la pasada (racha 9) y 1 de esta; un domingo, 7 de esta', () => {
+    setProgressTzSource(() => UTC);
+    at('2026-10-26T12:00:00Z');
+    reseed();
+    expect(seedLastWeekOf('luna')?.days).toBe(7);
+    expect(weekFactsOf('luna').days).toBe(1);
+    at('2026-11-01T12:00:00Z');
+    reseed();
+    expect(weekFactsOf('luna').days).toBe(7);
+  });
+  it('hechos fijos de las medallas del seed (§5.4) y un usuario sin seed sin semana anterior', () => {
+    setProgressTzSource(() => UTC);
+    at('2026-10-28T12:00:00Z');
+    reseed();
+    expect(medalCountersOf('ian')).toEqual({ bestStreak: 5, comebacks: 0, pbWeeks: 0, fullWeeks: 0 });
+    expect(medalCountersOf('luna')).toEqual({ bestStreak: 9, comebacks: 0, pbWeeks: 0, fullWeeks: 1 });
+    expect(medalCountersOf('andres')).toEqual({ bestStreak: 2, comebacks: 0, pbWeeks: 0, fullWeeks: 0 });
+    expect(seedLastWeekOf('nadie')).toBeNull();
+  });
+});
+
+describe('U5: el corte guarda la semana (lastWeek) y mueve los contadores', () => {
+  it('cierre simulado: lastWeek = la semana que cerró (con su comparación), XP y días a 0; ↑ suma pbWeeks', () => {
+    setProgressTzSource(() => UTC);
+    at('2026-10-28T12:00:00Z');
+    reseed();
+    as('ian', () => startNewWeek()); // 1.240 > 1.180 → superó su semana
+    expect(weekFactsOf('ian')).toEqual({ days: 0, bestRun: 0, lastWeek: { weekStart: WEEK, xp: 1240, days: 3, prevXp: 1180 } });
+    expect(summaryOf('ian').xpWeek).toBe(0);
+    expect(medalCountersOf('ian').pbWeeks).toBe(1);
+    as('luna', () => startNewWeek()); // 1.290 < 1.350 → no
+    expect(medalCountersOf('luna').pbWeeks).toBe(0);
+    as('ian', () => startNewWeek()); // 0 contra 1.240 → no; igualar tampoco alcanzaría
+    expect(weekFactsOf('ian').lastWeek).toEqual({ weekStart: WEEK, xp: 0, days: 0, prevXp: 1240 });
+    expect(medalCountersOf('ian').pbWeeks).toBe(1);
+  });
+  it('tras un cierre simulado el MISMO día, la próxima posta de hoy cuenta en la semana nueva (weekDays fuera de touchStreak)', () => {
+    setProgressTzSource(() => UTC);
+    at('2026-10-28T12:00:00Z');
+    reseed();
+    as('luna', () => startNewWeek());
+    expect(weekFactsOf('luna').days).toBe(0);
+    expect(as('luna', () => addXp(30, 'Ruta: x')).streakDays).toBe(9); // la racha ya contó hoy: no se mueve
+    expect(weekFactsOf('luna').days).toBe(1); // pero el día SÍ cuenta para la semana
+    as('luna', () => addXp(30, 'Ruta: x'));
+    expect(weekFactsOf('luna').days).toBe(1); // un mismo día cuenta una vez
+    expect(as('luna', () => addXp(0, 'nada')).xp).toBe(0);
+    expect(weekFactsOf('luna').days).toBe(1); // un monto 0 no marca nada
+  });
+  it('los 7 días de la semana suman fullWeeks al cortar (Luna un domingo)', () => {
+    setProgressTzSource(() => UTC);
+    at('2026-11-01T12:00:00Z');
+    reseed();
+    as('luna', () => startNewWeek());
+    expect(weekFactsOf('luna').lastWeek?.days).toBe(7);
+    expect(medalCountersOf('luna').fullWeeks).toBe(2); // la del seed + ésta
+  });
+  it('lunes real (perezoso): se registra la semana que estaba abierta, aunque hayan pasado varias; las del medio no existen', () => {
+    setProgressTzSource(() => UTC);
+    at('2026-10-28T12:00:00Z');
+    reseed();
+    as('luna', () => addXp(30, 'Ruta: x')); // 1.320, mismo día
+    at('2026-11-11T12:00:00Z'); // miércoles de DOS semanas después (se salteó la del 2-nov)
+    expect(weekFactsOf('luna')).toEqual({ days: 0, bestRun: 0, lastWeek: { weekStart: WEEK, xp: 1320, days: 3, prevXp: 1350 } });
+    expect(summaryOf('luna').xpWeek).toBe(0);
+    expect(medalCountersOf('luna').pbWeeks).toBe(0); // 1.320 < 1.350
+    at('2026-11-16T12:00:00Z'); // el lunes siguiente: se corta la semana del 9-nov (sin XP) contra la última registrada
+    expect(weekFactsOf('luna').lastWeek).toEqual({ weekStart: WEEK + 14, xp: 0, days: 0, prevXp: 1320 });
+  });
+});
+
+describe('U5: hechos de constancia (bestStreak, comebacks)', () => {
+  it('bestStreak lleva el máximo histórico (no la racha de hoy)', () => {
+    setProgressTzSource(() => UTC);
+    at('2026-10-28T12:00:00Z');
+    reseed();
+    at('2026-10-29T12:00:00Z');
+    as('luna', () => addXp(30, 'Ruta: x')); // racha 10
+    expect(medalCountersOf('luna').bestStreak).toBe(10);
+    at('2026-11-02T12:00:00Z');
+    as('luna', () => addXp(30, 'Ruta: x')); // salteó → racha 1, el máximo queda
+    expect(summaryOf('luna').streakDays).toBe(1);
+    expect(medalCountersOf('luna').bestStreak).toBe(10);
+  });
+  it('comebacks: aprender algo nuevo tras ≥ 3 días de calendario sin hacerlo; con 2 no', () => {
+    setProgressTzSource(() => UTC);
+    at('2026-10-28T12:00:00Z');
+    reseed(); // Andrés: último día = hoy (28)
+    at('2026-10-30T12:00:00Z'); // 2 días
+    as('andres', () => addXp(30, 'Aprender'));
+    expect(medalCountersOf('andres').comebacks).toBe(0);
+    at('2026-11-02T12:00:00Z'); // 3 días desde el 30
+    as('andres', () => addXp(30, 'Aprender'));
+    expect(medalCountersOf('andres').comebacks).toBe(1);
+    expect(medalCountersOf('ian').comebacks).toBe(0); // cada uno lo suyo
+  });
+});
+
+/* ---------- FS-BASE-B (hallazgo progress.ts:206): el padre corre la zona de la familia hacia ATRÁS a mitad de semana ---------- */
+describe('cambio de la zona de la familia hacia atrás', () => {
+  it('Madrid → Los Ángeles pasada la medianoche de Madrid: la racha NO se corta (antes volvía a 1) y la XP sigue en su semana', () => {
+    setProgressTzSource(() => 'Europe/Madrid');
+    at('2026-10-28T22:30:00Z'); // miércoles 23:30 en Madrid
+    reseed();
+    runAsUser('luna', () => addXp(10, 'posta'));
+    at('2026-10-28T23:30:00Z'); // jueves 00:30 en Madrid: un día más de racha
+    const r1 = runAsUser('luna', () => addXp(10, 'posta'));
+    setProgressTzSource(() => 'America/Los_Angeles'); // el adulto elige Pacífico: allá es miércoles 16:30
+    const r2 = runAsUser('luna', () => addXp(10, 'posta'));
+    expect(r2.streakDays).toBe(r1.streakDays); // el "último día" quedó en el futuro: no es saltear un día
+    expect(r2.xpWeek).toBe(r1.xpWeek + 10); // lunes 26-oct en las dos zonas: la misma semana
+    at('2026-10-29T23:30:00Z'); // jueves 16:30 en Los Ángeles: el día siguiente de verdad
+    expect(runAsUser('luna', () => addXp(10, 'posta')).streakDays).toBe(r1.streakDays); // jueves = el "último día": sigue igual
+  });
+  it('un retroceso que cruza el LUNES: la XP de la semana vuelve a 0 sin registrar nada (rollWeek, DOCUMENTADO); la racha no se corta', () => {
+    // Se FIJA el comportamiento de antes a propósito: ese corte se cruza con el cierre de la semana de la familia (U5) y no se
+    // cambia sin revisarlo (informe de FS-BASE-B).
+    setProgressTzSource(() => 'Europe/Madrid');
+    at('2026-11-01T23:30:00Z'); // lunes 2-nov 00:30 en Madrid: semana nueva
+    reseed();
+    const before = runAsUser('luna', () => addXp(30, 'posta'));
+    setProgressTzSource(() => 'America/Los_Angeles'); // domingo 1-nov 15:30 allá: la semana ANTERIOR
+    const after = runAsUser('luna', () => addXp(5, 'posta'));
+    expect(after.xpWeek).toBe(5);
+    expect(after.streakDays).toBe(before.streakDays);
+  });
+});
+

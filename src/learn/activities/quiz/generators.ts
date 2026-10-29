@@ -4,6 +4,7 @@
  * genera, los generadores sí. Hoy dos: matemático y capitales.
  */
 import { mulberry32, shuffle } from '../../activity/index'
+import { SCALED_PARAM_MAX } from '../../scaledParams'
 import type { EquivPair } from '../domino/index'
 import type { Question, QuizContent } from './types'
 
@@ -53,8 +54,14 @@ function makeMathQuestion(id: string, params: MathQuizParams, rng: () => number)
     if (cand >= 0 && cand !== answer) options.add(cand)
   }
   // por si no se llenó (rango muy chico), completa hacia arriba
+  // FIX-MINT (desvío del POC, defensa en profundidad): con TOPE de vueltas, como el de arriba (di < 200). Sin él, una
+  // respuesta NaN —`ops` vacío o con un operador desconocido: evalOp devuelve undefined— no llenaba nunca el Set (NaN ya
+  // está: add(NaN) no lo agranda) y el while giraba PARA SIEMPRE (el acuñado seco colgaba el server al 100% de CPU, con
+  // params en rango); un optionCount enorme eran millones de vueltas. Con optionCount en rango (≤ 12) el tope no se alcanza
+  // nunca: el resultado es el del POC. Si se alcanza, la pregunta sale corta y el portero del Tipo decide.
   let up = answer + 1
-  while (options.size < optionCount) options.add(up++)
+  let ui = 0
+  while (options.size < optionCount && ui++ < 200) options.add(up++)
 
   return {
     id,
@@ -68,7 +75,8 @@ function makeMathQuestion(id: string, params: MathQuizParams, rng: () => number)
 /** Quiz MATEMÁTICO (determinista por seed): cuentas de opción múltiple. */
 export function mathQuizGenerator(params: MathQuizParams, seed: number): QuizContent {
   const rng = mulberry32(seed)
-  const questions = Array.from({ length: Math.max(1, params.questionCount) }, (_, i) =>
+  // FIX-MINT: questionCount con tope duro (SCALED_PARAM_MAX; dentro del tope, idéntico al POC)
+  const questions = Array.from({ length: Math.min(Math.max(1, params.questionCount), SCALED_PARAM_MAX.questionCount) }, (_, i) =>
     makeMathQuestion(`q${i}`, params, rng),
   )
   return { questions }

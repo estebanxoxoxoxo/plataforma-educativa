@@ -1,9 +1,23 @@
 // Configuración importada desde Smarty (server/data/config.json, generado por scripts/import-smarty.mjs).
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 export const SERVER_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
+
+/* FS-BASE-B (hallazgo config.ts:31): server/data/ está en .gitignore, así que en un clon limpio (o en CI) no hay config.json
+   ni defaults.json, y las 20 suites que llegan a este módulo morían al importar con ENOENT. Bajo vitest (VITEST=true) y SOLO
+   si falta el archivo real, se leen los FIXTURES commiteados de server/src/__tests__/fixtures/: una config SINTÉTICA (sin
+   datos de la familia) y los valores de fábrica (copia de defaults.json, que sale del código del POC: no tiene nada de la
+   familia). Con los archivos reales presentes no cambia nada. Fuera de los tests, sin el archivo la API no arranca, como
+   siempre (correr el import de Smarty: README). */
+function dataFile(name: string): string {
+  const real = join(SERVER_ROOT, 'data', name)
+  if (existsSync(real) || process.env.VITEST !== 'true') return real
+  const fx = join(SERVER_ROOT, 'src', '__tests__', 'fixtures', name)
+  console.warn(`[config] falta server/data/${name}: los tests usan el fixture ${join('server', 'src', '__tests__', 'fixtures', name)}`)
+  return fx
+}
 
 export interface SmartyConfig {
   policyVersion: number
@@ -28,11 +42,11 @@ export interface SmartyConfig {
   overrides: Record<string, string>
 }
 
-export const config: SmartyConfig = JSON.parse(readFileSync(join(SERVER_ROOT, 'data', 'config.json'), 'utf8'))
+export const config: SmartyConfig = JSON.parse(readFileSync(dataFile('config.json'), 'utf8'))
 
 /* Valores de fábrica de Smarty: server/data/defaults.json, leído del código de Smarty (scripts/dump-smarty-defaults.ts).
    El override de la familia (exportado en el backup) gana sobre el de fábrica, igual que en Smarty. */
-const DEFAULTS: Record<string, { kind: string; def: string }> = JSON.parse(readFileSync(join(SERVER_ROOT, 'data', 'defaults.json'), 'utf8'))
+const DEFAULTS: Record<string, { kind: string; def: string }> = JSON.parse(readFileSync(dataFile('defaults.json'), 'utf8'))
 const splitWords = (s: string) => s.split(/[\n,;]+/).map(t => t.trim()).filter(Boolean)
 const splitLines = (s: string) => s.split('\n').map(t => t.trim()).filter(Boolean)
 export const ov = {

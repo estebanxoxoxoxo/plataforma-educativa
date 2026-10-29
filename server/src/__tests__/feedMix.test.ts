@@ -3,6 +3,7 @@ import {
   EDITIONS, NPC_NEWS, SHARERS, SLOTS, interleave, newBurstMemory, planBurst, roundRobinBy, spaceOut,
   type BurstCand, type Daypart, type Slot,
 } from '../feedMix';
+import { visibleNicksAtStart } from '../npcRoster';
 
 /* Tanda "Feed diverso" (28-oct; pedido del dueño: «el botón de lanzar NPC que sean 5 por vez y de diversos tipos; y que los
    que vienen por default sean más diversos»). Las reglas PURAS de server/src/feedMix.ts: la edición sembrada (cabeza con la
@@ -118,11 +119,9 @@ describe('roundRobinBy: las lecturas intercaladas por tema', () => {
 });
 
 /* ---------- la ráfaga ---------- */
-/** Los NPCs que ve cada chico en el seed de friendsFake (GRAPH_SEEDS: amigos + quien le pidió contacto). */
-const VISIBLE: Record<string, string[]> = {
-  ian: ['TomiCohete', 'LuliVolcan', 'MateoDino', 'CataEstrella', 'JuanchiRayo', 'MartuLuna', 'NicoRobot'],
-  luna: ['CataEstrella', 'MartuLuna', 'LeaTelescopio', 'TriniPiano', 'FedeAjedrez'],
-};
+/** Los NPCs que ve cada chico en el seed de friendsFake (amigos + quien le pidió contacto). FS-BASE-B (hallazgo
+ *  feedMix.test.ts:122): del seed REAL —npcRoster.ts, que friendsFake verifica al arrancar—, no de una copia a mano. */
+const VISIBLE: Record<string, string[]> = { ian: visibleNicksAtStart('ian'), luna: visibleNicksAtStart('luna') };
 const ROUTES = ['ruta.a', 'ruta.b'];
 /** Los candidatos como los arma feedFake.simulateNpcs: el pool de quien ve + cada compartidor visible × cada ruta. */
 function candsFor(user: string, routes = ROUTES): BurstCand[] {
@@ -210,4 +209,32 @@ describe('el pool de la ráfaga (NPC_NEWS)', () => {
   it('ya no trae "va 2º en su liga" (las medallas de liga son solo del cierre de la semana)', () => {
     expect(NPC_NEWS.filter((e) => /\bva \d+º en su Liga|podio/i.test(e.text))).toEqual([]);
   });
+});
+
+/* ---------- FS-BASE-B (hallazgo feedMix.ts:141) ---------- */
+describe('la ráfaga no repite protagonista si hay alternativa, con las semillas REALES del server', () => {
+  /** FNV-1a de leaguesFake (copia: leaguesFake arrastra parent.ts). Con rng: la semilla de feedFake.simulateNpcs. */
+  const hashOf = (s: string) => { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
+  const run = (user: string, week: number, n: number) => {
+    const mem = newBurstMemory(), cands = candsFor(user);
+    return Array.from({ length: n }, (_, i) => planBurst(cands, mem, rng(hashOf(`npcs:${i + 1}:${week}`))));
+  };
+  it('el caso del hallazgo: la 7.ª ráfaga de Luna (antes: CataEstrella en insignia Y en unidad) trae 4 protagonistas distintos', () => {
+    const b7 = run('luna', 0, 7)[6];
+    expect(b7.map((c) => c.type)).toEqual(SOCIAL);
+    expect(new Set(b7.map((c) => c.nick)).size).toBe(4);
+  });
+  for (const user of ['ian', 'luna']) {
+    for (const week of [0, 1, 2]) {
+      it(`${user}, semana ${week}: 300 ráfagas → nunca un protagonista dos veces, nunca un tipo dos veces, nunca lo de la ráfaga anterior`, () => {
+        let prev = new Set<string>();
+        for (const [i, b] of run(user, week, 300).entries()) {
+          expect(b.map((c) => c.type), `ráfaga ${i + 1}`).toEqual(SOCIAL);
+          expect(new Set(b.map((c) => c.nick)).size, `ráfaga ${i + 1}: ${b.map((c) => c.nick).join(', ')}`).toBe(4);
+          for (const c of b) expect(prev.has(c.key), `ráfaga ${i + 1}: ${c.key}`).toBe(false);
+          prev = new Set(b.map((c) => c.key));
+        }
+      });
+    }
+  }
 });

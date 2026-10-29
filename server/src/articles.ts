@@ -5,9 +5,10 @@
 // juzgar con el modelo. Los campos `verdict`/`policyVersion`/`familySalt` se siguen escribiendo con el último (lectores
 // viejos) y valen como "legado" si coinciden la huella y la versión.
 import { createHash } from 'node:crypto'
-import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { mkdirSync, readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { SERVER_ROOT, config } from './config'
+import { tryWriteFileAtomic } from './durable'
 import { extractArticle, type Extracted } from './extract'
 import { isAllowedArticleSite } from './filters'
 import { judgeText, type Verdict } from './judge'
@@ -50,7 +51,9 @@ function remember(snap: Snapshot, salt: string, verdict: Verdict): void {
 }
 const cacheFile = (url: string) => join(CACHE_DIR, createHash('sha1').update(url).digest('hex') + '.json')
 const readCache = (url: string): Snapshot | null => { try { return existsSync(cacheFile(url)) ? JSON.parse(readFileSync(cacheFile(url), 'utf8')) : null } catch { return null } }
-const writeCache = (s: Snapshot) => writeFileSync(cacheFile(s.url), JSON.stringify(s))
+/** FS-BASE-B (mapa de durabilidad): atómica (durable.ts; antes un writeFileSync directo podía dejar un JSON a medias), sin
+ *  fsync —es una caché regenerable— y sin tirar: si no se guarda, la próxima lectura vuelve a extraer y juzgar. */
+const writeCache = (s: Snapshot) => { tryWriteFileAtomic(cacheFile(s.url), JSON.stringify(s), 'article', { durable: false }) }
 
 export type ArticleResult =
   | { status: 'ok'; article: { id: string; url: string; topic: string; title: string; siteName?: string; hero?: string; html: string } }

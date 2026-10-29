@@ -11,7 +11,8 @@
 import { MODELS, config, fill, ov } from './config'
 import { matchBlockedWord } from './filters'
 // Zona del padre v2: temas y palabras de fábrica + los de la familia, y el aviso de crisis al padre.
-import { blackTopicsAll, familyTopics, familyWords, notifyParent } from './parent'
+import { blackTopicsAll, familyTopics, familyWords, notifyParent, notifyUnreviewed } from './parent'
+import { crisisNetHit } from './crisisNet'
 import { currentUser } from './requestContext'
 import { DEFAULT_USER_ID } from './users'
 import { completeWithTools, spotlight, tool, type Msg } from './llm'
@@ -63,7 +64,22 @@ function chatKid(): { name: string; ficha: typeof config.ficha } {
   if (u?.kind === 'adult') return { name: u.name, ficha: [] }
   return { name: config.apodo, ficha: config.ficha }
 }
-const guionCrisis = () => fill(ov.text('crisis.guion'), { helpline: config.helpline.trim() ? ` También podés comunicarte con: ${config.helpline.trim()}.` : '' })
+const helplineSuffix = () => (config.helpline.trim() ? ` También podés comunicarte con: ${config.helpline.trim()}.` : '')
+const guionCrisis = () => fill(ov.text('crisis.guion'), { helpline: helplineSuffix() })
+/** FS-BASE-A: la línea de cuidado que acompaña al fail-closed cuando el juez de ENTRADA no pudo revisar lo que escribió el
+ *  chico (no se sabe si era una crisis): lo invita a hablar con un adulto y le deja la línea de ayuda de la familia. */
+const safetyLine = () => ` Si te pasa algo o te sentís mal, contáselo a un adulto de confianza.${helplineSuffix()}`
+/** FS-BASE-A (hallazgo chat.ts:252): el juez de ENTRADA no respondió (caído, vencido o veredicto fuera de esquema) → el
+ *  mensaje NO se responde normal y una crisis no se pierde en silencio. Si la red de frases (crisisNet.ts) pega, es el
+ *  camino de crisis —el guion de contención y el aviso de crisis al padre, marcado "sin clasificar"—; si no, fail-closed con
+ *  la línea de cuidado y un aviso "sin clasificar" agrupado (parent.ts: notifyUnreviewed) para que el padre lo lea. Lo usan
+ *  el chat, Buscar (searchGuard.ts) y Amigos (friendsFake.ts). */
+export function onInputJudgeDown(childText: string, source: string): { crisis: boolean; hit: string | null } {
+  const hit = crisisNetHit(childText)
+  if (hit) notifyParent('crisis', childText, source, { unclassified: true })
+  else notifyUnreviewed(childText, source)
+  return { crisis: !!hit, hit }
+}
 const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ')
 
 function buildSystemPrompt(): string {
@@ -244,20 +260,32 @@ export async function sendChildMessage(history: Msg[], childText: string): Promi
     maxTokens: ov.num('const.principalMaxTokens'), tools: buildTools(), signal: controller.signal,
     onToolCall: async (name, args) => ({ output: JSON.stringify(await exec(name, args).catch(e => ({ error: String(e).slice(0, 120) }))) }),
   }).catch(err => { if (controller.signal.aborted) return null; throw err })
+  // FS-BASE-A (hallazgo ALTA chat.ts:246): la promesa queda MANEJADA apenas nace. Si el principal falla (un 4xx, o 429/5xx tras
+  // los reintentos del SDK) ANTES de que termine el juez de entrada, el rechazo quedaba sin handler hasta el await de abajo y
+  // Node 24 (unhandled-rejections=throw) tumbaba TODO el server con exit 1. Esto no se traga nada: el `await principalPromise`
+  // de más abajo igual recibe el error y responde el fail-closed. Red extra en index.ts: process.on('unhandledRejection').
+  principalPromise.catch(() => {})
 
   const recent = ctx.slice(-ov.num('const.juezInputTurnos')).map(t => `${t.role === 'user' ? 'niño' : 'asistente'}: ${t.content.slice(0, ov.num('const.juezInputChars'))}`).join('\n')
   let verdict: InputVerdict
   try {
     verdict = await judgeInput(`Contexto reciente:\n${spotlight(recent || '(inicio de la conversación)')}\n\nÚLTIMO MENSAJE DEL NIÑO:\n${spotlight(childText)}`)
   } catch (e) {
-    controller.abort(); principalPromise.catch(() => {})
+    controller.abort()
     console.error('[chat] juez de entrada:', e)
-    return failClosed('El juez de entrada falló: no se mostró nada (fail-closed).')
+    // FS-BASE-A: con el juez caído una crisis no se pierde en silencio (ver onInputJudgeDown).
+    const down = onInputJudgeDown(childText, 'el chat con el asistente')
+    if (down.crisis) {
+      const t = guionCrisis()
+      return { kind: 'crisis', text: t, contextText: t, childContextText: '[mensaje sensible — atendido con protocolo de contención]', trace: `El juez de entrada falló; la red de frases vio una posible crisis («${down.hit}»): guion fijo de contención y aviso al padre (sin clasificar).` }
+    }
+    const t = ov.text('copy.failClosed') + safetyLine()
+    return { kind: 'failclosed', text: t, contextText: t, trace: 'El juez de entrada falló: no se mostró nada (fail-closed), con la línea de cuidado y aviso al padre (sin clasificar).' }
   }
 
   // 2) Crisis: guion fijo, no generativo.
   if (verdict.es_crisis) {
-    controller.abort(); principalPromise.catch(() => {})
+    controller.abort()
     // Aviso al padre CON el texto del chico (decisión de Esteban, 11-oct: "que se vea con toda la info").
     // La cuarentena del CONTEXTO del chat (childContextText) sigue intacta: esto es solo el aviso del panel.
     notifyParent('crisis', childText, 'el chat con el asistente')
@@ -266,7 +294,7 @@ export async function sendChildMessage(history: Msg[], childText: string): Promi
   }
   // 3) Lista negra: redirección sin nombrar el tema; el principal nunca responde.
   if (verdict.en_lista_negra) {
-    controller.abort(); principalPromise.catch(() => {})
+    controller.abort()
     const t = pickRedireccion()
     return { kind: 'redireccion', text: t, contextText: t, childContextText: '[pregunta sobre tema no permitido — redirigida]', trace: `Tema de la lista negra «${verdict.tema}»${verdict.es_critico ? ' [CRÍTICO]' : ''}: redirigido.` }
   }
@@ -304,5 +332,6 @@ export async function sendChildMessage(history: Msg[], childText: string): Promi
 }
 
 /* ---------- exports aditivos (tanda 7): piezas del pipeline que reusan los mensajes entre amigos (friendsFake.ts) ---------- */
-/** Guion fijo de crisis de la familia (crisis.guion + helpline): el MISMO protocolo de contención que el chat. */
-export { guionCrisis }
+/** Guion fijo de crisis de la familia (crisis.guion + helpline): el MISMO protocolo de contención que el chat. FS-BASE-A:
+ *  también la línea de cuidado del fail-closed con el juez caído (Amigos y Buscar). */
+export { guionCrisis, safetyLine }
