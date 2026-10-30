@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../../../api';
 import type { EcTx, FamilyWeekPrize, Friend, MarketItem, Redemption } from '../../../api/types';
 import { useUser } from '../../../hooks/user';
-import { IcNavStore } from '../../../shared/components/icons';
+import { IcCoin, IcNavStore } from '../../../shared/components/icons';
 import { openAvatarPicker, saveMyLook, useMyIdentity } from '../../../shared/components/ProfileCard';
 import { chatFriendsChanged, openChat } from '../../friends/lib/chatDock';
 import { useSocial } from '../../friends/lib/social';
@@ -397,9 +397,9 @@ export function StorePage() {
                 ) : famPrize ? (
                   /* con el premio de la liga de la familia a la vista, "todavía no publicaron premios" se contradecía. Sin «el de
                      arriba»: en el escritorio la tarjeta va en la columna de la derecha (30-oct). */
-                  <p className="st-empty">Todavía no hay premios para canjear con ⚡. El premio de la semana de tu familia se gana en la liga.</p>
+                  <p className="st-empty">Todavía no hay premios para canjear con <IcCoin className="ec-coin" aria-hidden="true" />. El premio de la semana de tu familia se gana en la liga.</p>
                 ) : (
-                  <p className="st-empty">Papá y mamá todavía no publicaron premios. ¡Seguí juntando ⚡ mientras tanto!</p>
+                  <p className="st-empty">Papá y mamá todavía no publicaron premios. ¡Seguí juntando <IcCoin className="ec-coin" aria-hidden="true" /> mientras tanto!</p>
                 )}
               </section>
 

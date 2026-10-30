@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { IcCoin } from '../../../shared/components/icons';
 import { fmtEc } from '../lib/format';
 import { HeartInline } from './Heart';
 
@@ -46,7 +47,7 @@ export function WalletHero({ ec, wishCount, pending, onPractice, onWishes, onRed
       <div className="st-hero-main">
         <span className="st-kicker" id="st-hero-k">Tu billetera</span>
         <p className="st-bal">
-          <span className="st-bal-bolt" aria-hidden="true">⚡</span>
+          <IcCoin className="st-bal-bolt" aria-hidden="true" />
           <b className="st-bal-num" data-ec={ec}>{fmtEc(shown)}</b>
         </p>
         <span className="st-unit">Energy Coins</span>

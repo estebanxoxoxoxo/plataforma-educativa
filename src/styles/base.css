@@ -32,8 +32,11 @@ input,textarea{font:inherit;color:inherit}
 .ph-img{width:100%;height:100%;display:block;object-fit:cover}
 
 /* marca de 3 puntos */
-/* La marca es un SVG desde el 30-oct (BrandMark: puntos subiendo); acá solo el tamaño. */
+/* La marca es un SVG desde el 30-oct (BrandMark); acá solo el tamaño. */
 .mark{width:34px;height:34px;flex:none}
+/* La Energy Coin inline (IcCoin con .ec-coin, 30-oct: la moneda va en TODOS los lugares del ⚡): escala con la fuente
+   del texto que la rodea y se asienta sobre la línea base. */
+.ec-coin{width:1em;height:1em;flex:none;vertical-align:-.12em}
 
 /* item genérico de resultado + esqueleto + sello de filtrado */
 .it{position:relative;background:#fff;border:1.5px solid #E7EAF2;overflow:hidden;transition:height .45s,padding .45s,margin .45s,opacity .4s,transform .4s,background .25s,border-color .25s}

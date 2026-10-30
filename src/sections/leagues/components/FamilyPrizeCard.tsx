@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { IcCoin } from '../../../shared/components/icons';
 import type { FamilyWeekPrize } from '../../../api/types';
 import { conditionText, prizeByText } from '../lib/familyWeek';
 
@@ -45,7 +46,7 @@ export function FamilyPrizeCard({ prize, carried, repeatable, manage, meId, busy
         <span className="lgp-disc" aria-hidden="true">🎁</span>
         <div className="lgp-body">
           <h4 className="lgp-k" id={id} tabIndex={-1} data-lgp-focus>Poné un premio para esta semana</h4>
-          <p className="lgp-sub">Lo elegís vos y se lo das vos: no se compra con ⚡ ni se sortea.</p>
+          <p className="lgp-sub">Lo elegís vos y se lo das vos: no se compra con <IcCoin className="ec-coin" aria-hidden="true" /> ni se sortea.</p>
           <div className="lgp-btns">
             <button type="button" className="lgp-btn" onClick={(e) => onOpen(e.currentTarget)} disabled={!!busy}>Elegir un premio</button>
             {repeatable && (

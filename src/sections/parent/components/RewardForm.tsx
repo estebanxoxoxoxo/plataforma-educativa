@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { IcCoin } from '../../../shared/components/icons';
 import type { NewMarketItem } from '../../../api/types';
 import { EMOJI_SUGGESTIONS, LIMITS, draftFrom, validateDraft, type Draft, type DraftErrors } from '../lib/rewardDraft';
 import type { ParentItemView } from '../lib/types';
@@ -73,7 +74,7 @@ export function RewardForm({ item, kid, busy, error, onSubmit, onCancel }: {
 
       <div className="pz-field-pair">
         <div className="pz-field">
-          <label htmlFor="pz-rf-price">Precio en Energy Coins (⚡)</label>
+          <label htmlFor="pz-rf-price">Precio en Energy Coins (<IcCoin className="ec-coin" aria-hidden="true" />)</label>
           <input id="pz-rf-price" className="pz-input pz-input--num" value={d.price} inputMode="numeric" autoComplete="off"
             placeholder="Ej.: 300" onChange={(e) => set('price')(e.target.value)} {...err('price')} />
           {msg('price')}

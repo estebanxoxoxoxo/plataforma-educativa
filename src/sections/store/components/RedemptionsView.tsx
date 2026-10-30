@@ -1,4 +1,5 @@
 import type { Redemption } from '../../../api/types';
+import { IcCoin } from '../../../shared/components/icons';
 import { RedemptionRow } from '../cards/RedemptionRow';
 
 /** "Tus canjes" (/tienda?vista=canjes): página propia, como la lista de deseos (pedido 12-oct: las
@@ -23,7 +24,7 @@ export function RedemptionsView({ list, fresh, onBack }: {
       {list === null ? (
         <p className="st-page-empty">No pude cargar tus canjes ahora. Probá recargando en un ratito.</p>
       ) : list.length === 0 ? (
-        <p className="st-page-empty">Todavía no canjeaste nada. Elegí un premio en la Tienda y canjealo con tus ⚡.</p>
+        <p className="st-page-empty">Todavía no canjeaste nada. Elegí un premio en la Tienda y canjealo con tus <IcCoin className="ec-coin" aria-hidden="true" />.</p>
       ) : (
         <ul className="st-list st-list--page">{list.map((r) => <RedemptionRow key={r.id} r={r} fresh={r.id === fresh} />)}</ul>
       )}

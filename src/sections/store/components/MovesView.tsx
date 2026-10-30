@@ -1,4 +1,5 @@
 import type { EcTx } from '../../../api/types';
+import { IcCoin } from '../../../shared/components/icons';
 import { TxRow } from '../cards/TxRow';
 
 /** "Tus movimientos" (/tienda?vista=movimientos): página propia, como la lista de deseos (pedido 12-oct:
@@ -15,7 +16,7 @@ export function MovesView({ tx, onBack }: { tx: EcTx[] | null; onBack: () => voi
       {tx === null ? (
         <p className="st-page-empty">No pude cargar los movimientos ahora. Probá recargando en un ratito.</p>
       ) : tx.length === 0 ? (
-        <p className="st-page-empty">Todavía no hay movimientos: practicá y vas a ver acá tus primeros ⚡.</p>
+        <p className="st-page-empty">Todavía no hay movimientos: practicá y vas a ver acá tus primeros <IcCoin className="ec-coin" aria-hidden="true" />.</p>
       ) : (
         <ul className="st-list st-list--page">{tx.map((t) => <TxRow key={t.id} t={t} />)}</ul>
       )}

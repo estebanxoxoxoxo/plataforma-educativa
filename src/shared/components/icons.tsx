@@ -144,6 +144,17 @@ export const IcNavChat = filled(<>
   <circle cx="10" cy="14.5" r="2.1" fill="#fff" /><circle cx="16" cy="14.5" r="2.1" fill="#fff" /><circle cx="22" cy="14.5" r="2.1" fill="#fff" />
 </>);
 /** Mi espacio: la carpeta amarilla de siempre, SOLA (colores de IcFolderWin; pedido 9-oct: sin corazón). */
+/* La Energy Coin (30-oct, pedido de Esteban: «una moneda dorada con el rayo dentro de la moneda»): canto oscuro, cara
+   dorada y el rayo en ámbar quemado. Va donde la moneda es ÍCONO (menú, billetera, precios); en el texto corrido el ⚡
+   sigue siendo emoji. */
+export const IcCoin = (props: P) => (
+  <svg viewBox="0 0 24 24" {...props}>
+    <circle cx="12" cy="12" r="11" fill="#E39710" />
+    <circle cx="12" cy="12" r="8.8" fill="#FFC23D" />
+    <path d="M13.6 4.8L7.2 13.4h3.5l-1.3 5.8 6.6-8.4h-3.7z" fill="#8A5200" />
+  </svg>
+);
+
 /* Carpeta moderna de una pieza (estilo macOS, pedido de Esteban 30-oct: «un mejor ícono»): atrás con la solapa en una
    sola curva, frente a dos tonos y una chispa blanca que la hace «Mi espacio» (tu biblioteca). */
 export const IcNavSpace = filled(<>

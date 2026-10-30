@@ -1,7 +1,9 @@
 import { useState, type CSSProperties } from 'react';
 import type { MarketItem } from '../../../api/types';
+import { IcCoin } from '../../../shared/components/icons';
+import { Faltan } from '../components/CoinBits';
 import { Heart } from '../components/Heart';
-import { faltan, fmtEc, isSoldOut, missingFor, pctOf, sourceText, stockText, tintFor } from '../lib/format';
+import { fmtEc, isSoldOut, missingFor, pctOf, sourceText, stockText, tintFor } from '../lib/format';
 
 /** Premio de la Tienda: emoji grande, de quién es, precio en ⚡, stock si es finito, el corazón de la
  *  lista de deseos y el botón de canje — o por qué todavía no se puede (te faltan N ⚡ / agotado).
@@ -43,13 +45,13 @@ export function RewardCard({ item, ec, wished, progress = false, onRedeem, onWis
         {item.desc && <p className="st-desc">{item.desc}</p>}
       </div>
       <div className="st-meta">
-        <span className="st-price"><span aria-hidden="true">⚡</span> {fmtEc(item.price)}<span className="st-sr"> Energy Coins</span></span>
+        <span className="st-price"><IcCoin aria-hidden="true" /> {fmtEc(item.price)}<span className="st-sr"> Energy Coins</span></span>
         {item.stock !== null && !out && <span className="st-stock">{stockText(item.stock)}</span>}
       </div>
       {progress && (
         <div className={`st-prog${out ? ' is-out' : missing === 0 ? ' is-ok' : ''}`}>
           <span className="st-prog-bar" aria-hidden="true"><i style={{ width: `${out ? 0 : pct}%` }} /></span>
-          <span className="st-prog-m">{out ? 'Agotado' : missing === 0 ? '¡Ya te alcanza!' : faltan(missing)}</span>
+          <span className="st-prog-m">{out ? 'Agotado' : missing === 0 ? '¡Ya te alcanza!' : <Faltan n={missing} />}</span>
         </div>
       )}
       {out ? (
@@ -57,7 +59,7 @@ export function RewardCard({ item, ec, wished, progress = false, onRedeem, onWis
       ) : missing > 0 ? (
         progress
           ? <button type="button" className="st-btn" disabled>Canjear</button>
-          : <button type="button" className="st-btn is-short" disabled style={{ '--pct': `${Math.max(6, pct)}%` } as CSSProperties}>{faltan(missing)}</button>
+          : <button type="button" className="st-btn is-short" disabled style={{ '--pct': `${Math.max(6, pct)}%` } as CSSProperties}><Faltan n={missing} /></button>
       ) : (
         <button type="button" className="st-btn" onClick={(e) => onRedeem(e.currentTarget)}>Canjear</button>
       )}

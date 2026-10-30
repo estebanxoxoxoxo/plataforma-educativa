@@ -1,4 +1,5 @@
 import type { Redemption } from '../../../api/types';
+import { IcCoin } from '../../../shared/components/icons';
 import { useCycle } from '../lib/cycle';
 import { fmtDay, fmtFull, fmtNum, fmtWhen, isoOf } from '../lib/format';
 
@@ -25,7 +26,7 @@ export function DeliveryRow({ r, busy, onDeliver }: { r: Redemption; busy: boole
           ) : (
             <>
               <time dateTime={isoOf(r.ts)} title={fmtFull(r.ts, tz)}>{fmtWhen(r.ts, undefined, tz)}</time>
-              {' · '}<span aria-hidden="true">⚡</span> {fmtNum(r.price)}<span className="pz-sr"> Energy Coins</span>
+              {' · '}<IcCoin className="ec-coin" aria-hidden="true" /> {fmtNum(r.price)}<span className="pz-sr"> Energy Coins</span>
             </>
           )}
         </span>

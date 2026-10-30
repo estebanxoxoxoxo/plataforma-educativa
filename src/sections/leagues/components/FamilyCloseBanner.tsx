@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, type CSSProperties } from 'react';
 import type { FamilyCloseResult } from '../../../api/types';
-import { IcArrowRight, IcClose } from '../../../shared/components/icons';
+import { IcCoin, IcArrowRight, IcClose } from '../../../shared/components/icons';
 import { closesLabel } from '../lib/cycle';
 import { familyCloseCopy } from '../lib/familyWeek';
 
@@ -44,7 +44,7 @@ export function FamilyCloseBanner({ r, meId, coins, onDismiss, onFeed }: {
           </p>
         )}
         <p className="lgx-note">
-          {c.mine} Arrancó la semana nueva: la XP de todos vuelve a 0{coins && <> y las <span aria-hidden>⚡</span>{' '}Energy Coins siguen en cada billetera</>}. {closesLabel(days)}{days > 0 && '.'}
+          {c.mine} Arrancó la semana nueva: la XP de todos vuelve a 0{coins && <> y las <IcCoin className="ec-coin" aria-hidden="true" />{' '}Energy Coins siguen en cada billetera</>}. {closesLabel(days)}{days > 0 && '.'}
         </p>
         {r.mine.feedAdded > 0 && <button type="button" className="lgx-go" onClick={onFeed}>Ver las novedades del cierre en el Feed<IcArrowRight /></button>}
       </div>

@@ -2,6 +2,8 @@ import type { CSSProperties } from 'react';
 import type { MarketItem } from '../../../api/types';
 import { accessoryById, putOnLabel, wornLabel, yoursLabel } from '../../../shared/components/Avatar';
 import { MyAvatar } from '../../../shared/components/ProfileCard';
+import { IcCoin } from '../../../shared/components/icons';
+import { Faltan } from '../components/CoinBits';
 import { faltan, fmtEc, missingFor, pctOf, sourceText, tintFor } from '../lib/format';
 
 /** En qué está una prenda para el chico: comprar · ponérsela (ya es suya) · puesta (la tiene ahora). */
@@ -37,7 +39,7 @@ export function WardrobeCard({ item, ec, me, state, wearing, giftOn, onBuy, onWe
         {item.desc && <p className="st-desc">{item.desc}</p>}
       </div>
       <div className="st-meta">
-        <span className="st-price"><span aria-hidden="true">⚡</span> {fmtEc(item.price)}<span className="st-sr"> Energy Coins</span></span>
+        <span className="st-price"><IcCoin aria-hidden="true" /> {fmtEc(item.price)}<span className="st-sr"> Energy Coins</span></span>
         {/* solo si de verdad está en el guardarropas (tras recargar, la puesta puede no estar: el look persiste, las compras no) */}
         {item.owned && <span className="st-wtag" title="Está en tu guardarropas">✓ {acc ? yoursLabel(acc) : 'Es tuya'}</span>}
       </div>
@@ -49,7 +51,7 @@ export function WardrobeCard({ item, ec, me, state, wearing, giftOn, onBuy, onWe
             {wearing ? <><span className="st-spin" aria-hidden="true" />Poniendo…</> : acc ? putOnLabel(acc) : 'Ponérsela'}
           </button>
         ) : missing > 0 ? (
-          <button type="button" className="st-btn is-short" disabled style={{ '--pct': `${Math.max(6, pct)}%` } as CSSProperties}>{faltan(missing)}</button>
+          <button type="button" className="st-btn is-short" disabled style={{ '--pct': `${Math.max(6, pct)}%` } as CSSProperties}><Faltan n={missing} /></button>
         ) : (
           <button type="button" className="st-btn" onClick={(e) => onBuy(e.currentTarget)}>Comprar</button>
         )}

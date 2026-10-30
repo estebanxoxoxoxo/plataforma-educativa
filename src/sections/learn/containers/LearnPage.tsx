@@ -203,9 +203,9 @@ function LearnLeagueCard({ board }: { board: LeagueBoard }) {
     <Link className="lp-league" to="/ligas" aria-label={`${l.name}: puesto ${l.pos} de ${l.total}. Ver las ligas`}>
       <span className="lp-lg-head">
         <LeagueIcon color={l.color} />
+        {/* Sin subtítulo (pedido de Esteban, 30-oct): el nombre solo; el puesto ya se ve en la tabla («Vos»). */}
         <span className="lp-lg-tx">
           <b>{l.name}</b>
-          <small>Tu puesto {l.pos} de {l.total} · {l.xp.toLocaleString('es-AR')} XP esta semana</small>
         </span>
       </span>
       {rows && (

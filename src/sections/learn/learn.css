@@ -10,15 +10,15 @@
 .lp-title{display:flex;align-items:center;gap:14px;min-width:0}
 .lp-tico{flex:none;display:grid;place-items:center;width:52px;height:52px;border-radius:12px;background:#E8EDFE;border:1px solid #CBD6F6;color:#2843A8}
 .lp-tico svg{width:30px;height:30px}
-/* «+ Crear» (pedido de Esteban, 30-oct): el MISMO azul que la entrada de Active recall (.ln-recall: #3A5BD9, hover #2F4FCB,
-   sombra/active #2843A8) en lugar del violeta de antes; alto y forma de siempre. El + con trazo 2.6: a 18 px el de 2 se
-   veía flaco al lado del texto en display. */
+/* «+ Crear» SUAVE, con el mismo lavado que la teja del ícono de Aprender (.lp-tico: #E8EDFE / borde #CBD6F6 / tinta
+   #2843A8; Esteban, 30-oct: dos sólidos competían con el Active recall — el recall se queda con el único sólido azul).
+   El + con trazo 2.6: a 18 px el de 2 se veía flaco al lado del texto en display. */
 .lp-create{display:inline-flex;align-items:center;gap:8px;min-height:42px;padding:9px 18px 9px 14px;border-radius:11px;
-  background:#3A5BD9;color:#fff;font-family:var(--display);font-weight:800;font-size:15.5px;line-height:1;
-  box-shadow:0 3px 0 #2843A8;transition:background .2s,transform .12s,box-shadow .12s;cursor:pointer}
+  background:#E8EDFE;border:1px solid #CBD6F6;color:#2843A8;font-family:var(--display);font-weight:800;font-size:15.5px;line-height:1;
+  box-shadow:0 3px 0 #CBD6F6;transition:background .2s,transform .12s,box-shadow .12s;cursor:pointer}
 .lp-create svg{width:18px;height:18px;stroke-width:2.6}
-.lp-create:hover{background:#2F4FCB}
-.lp-create:active{transform:translateY(2px);box-shadow:0 1px 0 #2843A8;background:#2843A8}
+.lp-create:hover{background:#DCE4FC}
+.lp-create:active{transform:translateY(2px);box-shadow:0 1px 0 #CBD6F6;background:#CFDAFA}
 
 /* ---- mosaico ---- */
 /* Entrada raíz de Active recall (aparece con algo ya jugado). */

@@ -166,7 +166,8 @@
 .pz-stat dt{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#6A7390}
 .pz-stat dd{margin:4px 0 0;font-family:var(--display);font-weight:800;font-size:28px;line-height:1.1;color:#1B2238;font-variant-numeric:tabular-nums}
 .pz-stat-sub{font-size:12.5px;font-weight:600;color:#6A7390}
-.pz-bolt{font-size:20px;vertical-align:2px}
+/* La moneda (IcCoin) en el dash de Actividad; antes era el emoji ⚡ con font-size. */
+.pz-bolt{width:20px;height:20px;vertical-align:-4px}
 .pz-cont{display:grid;gap:8px;max-width:520px}
 .pz-cont-t{margin:0;font-size:14.5px;font-weight:600;color:#1B2238}
 .pz-cont-t b{font-weight:800}

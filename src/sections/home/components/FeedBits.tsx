@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { IcClock, IcClose } from '../../../shared/components/icons';
+import { IcClock, IcClose, IcCoin } from '../../../shared/components/icons';
 
 /** Chip "por qué" (mock v6): el algoritmo se muestra. `title` = el motivo (tooltip nativo) y, al tocarlo o enfocarlo, la
  *  misma frase en un globito (en una tablet no hay hover). FEED-3 (30-oct): va SIEMPRE en la esquina INFERIOR DERECHA de
@@ -22,5 +22,7 @@ export const LessButton = ({ onClick, className }: { onClick: () => void; classN
 /** La Energy Coin dentro de un texto del server ("… · al cerrar la unidad, +30 ⚡") en el acento de la Tienda (oro). */
 const COIN = /(\+?\d[\d.]*\s?⚡)/u;
 export const Coins = ({ text }: { text: string }) => (
-  <>{text.split(COIN).map((p, i) => (i % 2 === 1 ? <span key={i} className="hf-ec">{p}</span> : p))}</>
+  <>{text.split(COIN).map((p, i) => (i % 2 === 1
+    ? <span key={i} className="hf-ec">{p.replace(/\s?⚡/u, '')} <IcCoin className="ec-coin" aria-hidden="true" /></span>
+    : p))}</>
 );

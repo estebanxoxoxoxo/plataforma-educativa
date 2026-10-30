@@ -69,7 +69,8 @@
    SHELL-FIX). Una hoja .shov que vive DENTRO de una vista ("Guardar en",
    listas, carpetas, canje de la Tienda) no puede quedar arriba por z-index (su contexto es .view): mientras haya una
    abierta, el dock se aparta (regla :has de abajo; en tablet y teléfono, con CUALQUIER hoja que no sea la del propio dock). */
-.fdk{position:fixed;left:calc(var(--side-w, 240px) + 16px);right:16px;bottom:var(--bnav-h, 0px);z-index:55;display:flex;align-items:flex-end;justify-content:flex-end;gap:var(--fdk-gap);pointer-events:none}
+/* right:0 — la barra de Mensajes PEGA contra el borde derecho de la ventana (Esteban, 30-oct; antes 16 de aire). */
+.fdk{position:fixed;left:calc(var(--side-w, 240px) + 16px);right:0;bottom:var(--bnav-h, 0px);z-index:55;display:flex;align-items:flex-end;justify-content:flex-end;gap:var(--fdk-gap);pointer-events:none}
 .fdk[hidden]{display:none}
 .fdk > *{pointer-events:auto}
 .app:has(.main .shov) .fdk{visibility:hidden}
@@ -111,7 +112,8 @@
 .fdk-b svg{width:18px;height:18px}
 
 /* barra «Mensajes»: minimizada es una tira; desplegada, la lista de conversaciones (crece hacia arriba, mismo ancho) */
-.fdk-list{flex:none;width:var(--fdk-bar);display:flex;flex-direction:column;background:#fff;border:1.5px solid #E1E5EE;border-bottom:0;border-radius:12px 12px 0 0;box-shadow:0 -4px 30px -14px rgba(27,34,56,.34)}
+/* Sin redondeo arriba a la derecha (Esteban, 30-oct): la barra pega contra el borde derecho y esa esquina va recta. */
+.fdk-list{flex:none;width:var(--fdk-bar);display:flex;flex-direction:column;background:#fff;border:1.5px solid #E1E5EE;border-bottom:0;border-right:0;border-radius:12px 0 0 0;box-shadow:0 -4px 30px -14px rgba(27,34,56,.34)}
 .fdk-list.open{height:min(480px,calc(100vh - 96px));height:min(480px,calc(100dvh - 96px))}
 .fdk-lhead{flex:none;width:100%;height:48px;display:flex;align-items:center;gap:10px;padding:0 6px 0 10px;border-radius:11px 11px 0 0;text-align:left;transition:background .2s}
 .fdk-lhead:hover{background:#F8F9FC}
@@ -161,7 +163,7 @@
 /* ── Tablet y teléfono (< 1024) ── */
 @container app (max-width:1023.98px){
   /* la caja respeta el área segura lateral (la muesca con el teléfono acostado), igual que el shell (.app) */
-  .fdk{left:calc(var(--side-w, 240px) + 16px + env(safe-area-inset-left,0px));right:calc(16px + env(safe-area-inset-right,0px))}
+  .fdk{left:calc(var(--side-w, 240px) + 16px + env(safe-area-inset-left,0px));right:env(safe-area-inset-right,0px)}
   /* con CUALQUIER hoja abierta que no sea la del propio dock (la del perfil de un amigo vive adentro de .fdk), el dock se
      aparta: también "Tu avatar" y "Tus medallas" (desde SHELL-FIX van por portal a .app) y las que se montan en <body> */
   body:has(.shov:not(.fdk .shov)) .fdk{visibility:hidden}

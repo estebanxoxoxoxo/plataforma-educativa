@@ -45,7 +45,7 @@
   .st-aside .st-hero-side{max-width:none;justify-items:stretch;gap:8px}
   .st-aside .st-pill{justify-content:flex-start}
   .st-aside .st-bal-num{font-size:54px}
-  .st-aside .st-bal-bolt{font-size:38px}
+  .st-aside .st-bal-bolt{width:38px;height:38px}
   .st-aside .st-sk-hero{height:330px}
   /* premios y ropa con la columna al lado: de a tres (con el mínimo de 214 quedaban de a dos y enormes) */
   .st-main .st-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,188px),1fr))}
@@ -58,7 +58,9 @@
 .st-hero-main{flex:1 1 300px;min-width:0;display:grid;align-content:start;justify-items:start}
 .st-kicker{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8A5A00}
 .st-bal{margin:8px 0 0;display:flex;align-items:center;gap:10px;line-height:1}
-.st-bal-bolt{font-size:44px;line-height:1;filter:drop-shadow(0 4px 6px rgba(196,131,10,.28))}
+/* La MONEDA (IcCoin, 30-oct): dorada con el rayo adentro; antes era el emoji ⚡ pelado. */
+.st-bal-bolt{width:44px;height:44px;flex:none;filter:drop-shadow(0 4px 6px rgba(196,131,10,.28))}
+.st-price svg{width:15px;height:15px;flex:none}
 .st-bal-num{font-family:var(--display);font-weight:800;font-size:62px;line-height:.95;letter-spacing:-.01em;color:#1B2238;font-variant-numeric:tabular-nums}
 .st-unit{margin-top:4px;font-family:var(--display);font-weight:800;font-size:18px;color:#8A5A00}
 .st-earn{margin:12px 0 0;font-weight:700;font-size:14.5px;color:#47506B}
@@ -228,8 +230,9 @@
 
 /* ---- Tus canjes / Tus movimientos: paginas propias (?vista=canjes|movimientos, pedido 12-oct) ---- */
 .st-list{list-style:none;margin:0;padding:0;display:grid}
-.st-list--page{max-width:620px;background:#fff;border:1px solid #E6E9F1;border-radius:12px;padding:8px 14px}
-.st-page-empty{margin:4px 0;max-width:620px;background:#fff;border:1px dashed #D9DEEA;border-radius:12px;padding:22px 18px;font-weight:700;font-size:14px;line-height:1.5;color:#6A7390}
+/* A TODO el ancho de la sección (Esteban, 30-oct: Tus canjes y Tus movimientos iban en columna de 620). */
+.st-list--page{background:#fff;border:1px solid #E6E9F1;border-radius:12px;padding:8px 14px}
+.st-page-empty{margin:4px 0;background:#fff;border:1px dashed #D9DEEA;border-radius:12px;padding:22px 18px;font-weight:700;font-size:14px;line-height:1.5;color:#6A7390}
 .st-row,.st-tx{display:flex;align-items:center;gap:12px;min-width:0;padding:9px 6px;border-radius:9px}
 .st-row + .st-row,.st-tx + .st-tx{border-top:1px solid #F0F2F7}
 .st-row.is-new{animation:st-new 2.6s ease both}

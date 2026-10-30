@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, type CSSProperties } from 'react';
+import { IcCoin } from '../../../shared/components/icons';
 import type { MarketItem } from '../../../api/types';
 import { fmtEc, tintFor } from '../lib/format';
 import { useVeil } from '../lib/sheet';
@@ -10,7 +11,7 @@ export type SheetState =
 
 const BURST = ['#F2A81D', '#2B8420', '#3A5BD9', '#F26B3A', '#8A5CF5', '#13A39A', '#E5487A', '#FFC23D'];
 
-/** Hoja de canje (patrón global .shov/.shcard): ¿Canjeás N ⚡ por X? → Canjeando… (spinner; NADA
+/** Hoja de canje (patrón global .shov/.shcard): ¿Canjeás N <IcCoin className="ec-coin" aria-hidden="true" /> por X? → Canjeando… (spinner; NADA
  *  optimista: es una transacción) → ¡Canjeado! / No se pudo. Pura: la transacción la hace el contenedor. */
 export function RedeemSheet({ s, ec, onConfirm, onClose }: {
   s: SheetState;
@@ -66,8 +67,8 @@ export function RedeemSheet({ s, ec, onConfirm, onClose }: {
             <h3 className="st-done-t" id="st-sheet-t">🎉 ¡Canjeado!</h3>
             <p className="st-done-p" id="st-sheet-d">Quedó pendiente: avisale a papá o mamá.</p>
             <p className="st-done-bal">
-              <span>Canjeaste {item.title} por {fmtEc(item.price)} ⚡</span>{' '}
-              <span>Te quedan <b>{fmtEc(s.ec)} ⚡</b></span>
+              <span>Canjeaste {item.title} por {fmtEc(item.price)} <IcCoin className="ec-coin" aria-hidden="true" /></span>{' '}
+              <span>Te quedan <b>{fmtEc(s.ec)} <IcCoin className="ec-coin" aria-hidden="true" /></b></span>
             </p>
             <div className="st-sheet-btns">
               <button type="button" className="st-btn" data-autofocus onClick={onClose}>¡Genial!</button>
@@ -85,9 +86,9 @@ export function RedeemSheet({ s, ec, onConfirm, onClose }: {
         ) : (
           <>
             <div className="st-sheet-art" style={tint}><span aria-hidden="true">{item.emoji}</span></div>
-            <h3 className="st-sheet-q" id="st-sheet-t">¿Canjeás {fmtEc(item.price)} ⚡ por {item.title}?</h3>
+            <h3 className="st-sheet-q" id="st-sheet-t">¿Canjeás {fmtEc(item.price)} <IcCoin className="ec-coin" aria-hidden="true" /> por {item.title}?</h3>
             <p className="st-sheet-sub" id="st-sheet-d">
-              {after >= 0 && <><span>Después te quedan <b>{fmtEc(after)} ⚡</b></span>{' '}</>}
+              {after >= 0 && <><span>Después te quedan <b>{fmtEc(after)} <IcCoin className="ec-coin" aria-hidden="true" /></b></span>{' '}</>}
               <span>Queda pendiente hasta que papá o mamá te lo den.</span>
             </p>
             <div className="st-sheet-btns">

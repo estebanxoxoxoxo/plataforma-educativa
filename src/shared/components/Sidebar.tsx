@@ -10,7 +10,7 @@ import { cycleAllows, useCycle } from '../../sections/parent/lib/cycle';
 import { BrandMark } from './BrandMark';
 import { ProfileCard } from './ProfileCard';
 import {
-  IcNavChat, IcNavFamily, IcNavMoon, IcNavMyTube, IcNavLearn,
+  IcCoin, IcNavChat, IcNavFamily, IcNavMoon, IcNavMyTube, IcNavLearn,
   IcNavNews, IcNavSearch, IcNavSpace, IcNavStore,
 } from './icons';
 
@@ -204,8 +204,8 @@ export function Sidebar({ user, covered = false }: { user?: User; /** tapada por
         {/* El span permite el ajuste óptico vertical de Baloo 2 (ver .nav-item span en shell.css) */}
         <n.Icon /><span>{n.label}</span>
         {coins !== null && (
-          /* el MISMO ⚡ naranja que usaba la barra superior (y la billetera de la Tienda) */
-          <span className="nav-ec" aria-hidden="true"><span className="nav-bolt">⚡</span>{coins.toLocaleString('es-AR')}</span>
+          /* la MONEDA dorada con el rayo (IcCoin, 30-oct), la misma de la billetera y los precios de la Tienda */
+          <span className="nav-ec" aria-hidden="true"><IcCoin className="nav-bolt" />{coins.toLocaleString('es-AR')}</span>
         )}
         {/* el circulito de destacados (30-oct): cuántos ítems esperan en el menú contextual de la sección */}
         {hl > 0 && <span className="nav-hl" aria-hidden="true">{hl > 9 ? '9+' : hl}</span>}

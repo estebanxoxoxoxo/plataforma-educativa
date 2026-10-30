@@ -1,4 +1,5 @@
 import { hiddenNote, sinceText, timesText } from '../../../shared/lib/medals';
+import { IcCoin } from '../../../shared/components/icons';
 import { useCycle } from '../lib/cycle';
 import { TYPE_LABEL, fmtFull, fmtNum, fmtWhen, isoOf } from '../lib/format';
 import type { ParentDashboard } from '../lib/types';
@@ -23,7 +24,7 @@ export function ActivityPanel({ kid, dash, failed, onRetry }: { kid: string; das
       </header>
       <p className="pz-note">
         <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" strokeWidth="1.6" /><path d="M10 9v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /><circle cx="10" cy="6.2" r="1.1" fill="currentColor" /></svg>
-        Todo lo de acá es de {kid}: su XP, sus ⚡ y su racha, lo que está practicando y lo que guardó en su Mi espacio. Lo que
+        Todo lo de acá es de {kid}: su XP, sus <IcCoin className="ec-coin" aria-hidden="true" /> y su racha, lo que está practicando y lo que guardó en su Mi espacio. Lo que
         sigue siendo de toda la familia es el catálogo: las rutas de Aprender y el YouTube que aprobás.
       </p>
       {!dash ? <PanelState failed={failed} onRetry={onRetry} /> : (
@@ -36,7 +37,7 @@ export function ActivityPanel({ kid, dash, failed, onRetry }: { kid: string; das
             </div>
             <div className="pz-stat">
               <dt>Energy Coins disponibles</dt>
-              <dd><span className="pz-bolt" aria-hidden="true">⚡</span> {fmtNum(dash.ec)}</dd>
+              <dd><IcCoin className="pz-bolt" aria-hidden="true" /> {fmtNum(dash.ec)}</dd>
               <span className="pz-stat-sub">Para canjear en la Tienda</span>
             </div>
             <div className="pz-stat">

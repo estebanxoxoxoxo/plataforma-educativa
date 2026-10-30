@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import { IcCoin } from '../../../shared/components/icons';
 import type { Redemption } from '../../../api/types';
 import { useCycle } from '../../parent/lib/cycle';
 import { fmtEc, fmtFull, fmtWhen, isoOf, tintFor } from '../lib/format';
@@ -21,7 +22,7 @@ export function RedemptionRow({ r, fresh }: { r: Redemption; fresh?: boolean }) 
           : null}
         <time dateTime={isoOf(r.ts)} title={fmtFull(r.ts, tz)}>{fmtWhen(r.ts, undefined, tz)}</time>
       </span>
-      {!league && <span className="st-row-amt"><span aria-hidden="true">⚡</span> {fmtEc(r.price)}<span className="st-sr"> Energy Coins</span></span>}
+      {!league && <span className="st-row-amt"><IcCoin className="ec-coin" aria-hidden="true" /> {fmtEc(r.price)}<span className="st-sr"> Energy Coins</span></span>}
       <span className={`st-status ${done ? 'is-done' : 'is-pend'}`}>{done ? 'Entregado' : 'Pendiente'}</span>
     </li>
   );

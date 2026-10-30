@@ -1,4 +1,5 @@
 import { useEffect, useState, type ComponentType } from 'react';
+import { IcCoin } from '../../../shared/components/icons';
 import { ensureAudio } from '../../../learn/audio/service';
 import type { ActivityInstance, CommonSnapshot } from '../../../learn/activity';
 import { useActivityClock, useActivitySnapshot } from '../../../learn/react/useActivity';
@@ -80,7 +81,7 @@ function Result({ instance, awardedEc, onPlayAgain, onClose }: {
         {r.score}
         <span> / {r.maxScore}</span>
       </div>
-      {awardedEc > 0 && <div className="ln-result-ec">+{awardedEc} ⚡</div>}
+      {awardedEc > 0 && <div className="ln-result-ec">+{awardedEc} <IcCoin className="ec-coin" aria-hidden="true" /></div>}
       <div className="ln-result-stats">
         <span>✅ {r.stats.correct}</span>
         <span>❌ {r.stats.wrong}</span>

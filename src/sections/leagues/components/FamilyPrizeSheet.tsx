@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { IcCoin } from '../../../shared/components/icons';
 import type { FamilyPrizeOptions, FamilyPrizeRequest, FamilyWeekPrize } from '../../../api/types';
 import { useSheetKeys, useVeil } from '../../store/lib/sheet';
 import { CONDITIONS, PRIZE_EMOJIS, draftFrom, prizeRequest, reconcileDraft, type PrizeDraft, type PrizeMode } from '../lib/familyWeek';
@@ -50,7 +51,7 @@ export function FamilyPrizeSheet({ initial, options, busy, error, errorSeq, onSu
           onFocus={(e) => { const el = e.target; if (el instanceof HTMLInputElement && el.type === 'radio') el.scrollIntoView({ block: 'nearest' }); }}>
           <header>
             <h3 className="lgp-sheet-t" id={`${uid}-t`}>{initial ? 'Cambiar el premio de la semana' : 'El premio de esta semana'}</h3>
-            <p className="lgp-sheet-d" id={`${uid}-d`}>Lo ve toda la familia en Ligas. Se lo das vos cuando cierre la semana: no se compra con ⚡ ni se sortea.</p>
+            <p className="lgp-sheet-d" id={`${uid}-d`}>Lo ve toda la familia en Ligas. Se lo das vos cuando cierre la semana: no se compra con <IcCoin className="ec-coin" aria-hidden="true" /> ni se sortea.</p>
           </header>
 
           <fieldset className="lgp-modes" disabled={busy}>

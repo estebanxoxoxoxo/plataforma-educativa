@@ -1,4 +1,5 @@
 import { useRef, type CSSProperties } from 'react';
+import { IcCoin } from '../../../shared/components/icons';
 import type { MarketItem } from '../../../api/types';
 import { accessoryArticle, accessoryById, putOnLabel, yoursLabel } from '../../../shared/components/Avatar';
 import { MyAvatar } from '../../../shared/components/ProfileCard';
@@ -52,8 +53,8 @@ export function BuySheet({ s, ec, me, canWear, onConfirm, onWear, onClose }: {
             <h3 className="st-done-t" id="st-buy-t">🎉 {yours}</h3>
             <p className="st-done-p" id="st-buy-d">Ya está en tu guardarropas.</p>
             <p className="st-done-bal">
-              <span>Compraste {name} por {fmtEc(item.price)} ⚡</span>{' '}
-              <span>Te quedan <b>{fmtEc(s.ec)} ⚡</b></span>
+              <span>Compraste {name} por {fmtEc(item.price)} <IcCoin className="ec-coin" aria-hidden="true" /></span>{' '}
+              <span>Te quedan <b>{fmtEc(s.ec)} <IcCoin className="ec-coin" aria-hidden="true" /></b></span>
             </p>
             <div className="st-sheet-btns">
               <button type="button" className="st-btn st-btn--ghost" onClick={onClose}>Después</button>
@@ -75,9 +76,9 @@ export function BuySheet({ s, ec, me, canWear, onConfirm, onWear, onClose }: {
         ) : (
           <>
             {art()}
-            <h3 className="st-sheet-q" id="st-buy-t">¿Comprás {name} por {fmtEc(item.price)} ⚡?</h3>
+            <h3 className="st-sheet-q" id="st-buy-t">¿Comprás {name} por {fmtEc(item.price)} <IcCoin className="ec-coin" aria-hidden="true" />?</h3>
             <p className="st-sheet-sub" id="st-buy-d">
-              {after >= 0 && <><span>Después te quedan <b>{fmtEc(after)} ⚡</b></span>{' '}</>}
+              {after >= 0 && <><span>Después te quedan <b>{fmtEc(after)} <IcCoin className="ec-coin" aria-hidden="true" /></b></span>{' '}</>}
               <span>Va directo a tu guardarropas: te {pron} ponés cuando quieras.</span>
             </p>
             <div className="st-sheet-btns">

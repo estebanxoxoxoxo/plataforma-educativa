@@ -1,4 +1,5 @@
 import type { FamilyLeagueRow, FamilyWeekPrize } from '../../../api/types';
+import { IcCoin } from '../../../shared/components/icons';
 import { AVATAR_COLORS, Avatar, avatarHash } from '../../../shared/components/Avatar';
 import { beatLastWeek, upPrizeEmoji } from '../lib/familyWeek';
 import { MEDAL, fmt } from '../lib/format';
@@ -49,7 +50,7 @@ export function FamilyRanking({ rows, prize, coins }: { rows: FamilyLeagueRow[];
       <p className="lgf-foot">Un día cuenta cuando aprendés algo nuevo. Si un día no se pudo, no se pierde nada: la semana sigue.</p>
       <p className="lgf-foot lgf-foot--xp">
         {coins
-          ? <>Cuenta la XP que cada uno suma aprendiendo lo suyo esta semana (los <span role="img" aria-label="Energy Coins">⚡</span>{' '}que gana). Vuelve a cero el lunes.</>
+          ? <>Cuenta la XP que cada uno suma aprendiendo lo suyo esta semana (los <IcCoin className="ec-coin" role="img" aria-label="Energy Coins" />{' '}que gana). Vuelve a cero el lunes.</>
           : 'Cuenta la XP que cada uno suma aprendiendo lo suyo esta semana. Vuelve a cero el lunes.'}
       </p>
     </>

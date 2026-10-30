@@ -1,7 +1,9 @@
 import { useRef, type CSSProperties } from 'react';
+import { IcCoin } from '../../../shared/components/icons';
 import type { Friend, MarketItem } from '../../../api/types';
 import { Avatar, accessoryArticle, accessoryById, lookFor } from '../../../shared/components/Avatar';
-import { faltan, fmtEc, missingFor, tintFor } from '../lib/format';
+import { Faltan } from './CoinBits';
+import { fmtEc, missingFor, tintFor } from '../lib/format';
 import { useSheetKeys, useVeil } from '../lib/sheet';
 
 export type GiftState =
@@ -53,8 +55,8 @@ export function GiftSheet({ s, ec, friends, failed, onPick, onConfirm, onBack, o
             <h3 className="st-done-t" id="st-gift-t">🎁 ¡{f.nick} ya {lo} tiene {puesto}!</h3>
             <p className="st-done-p" id="st-gift-d">Te va a escribir para darte las gracias.</p>
             <p className="st-done-bal">
-              <span>Le regalaste {name} por {fmtEc(item.price)} ⚡</span>{' '}
-              <span>Te quedan <b>{fmtEc(s.ec)} ⚡</b></span>
+              <span>Le regalaste {name} por {fmtEc(item.price)} <IcCoin className="ec-coin" aria-hidden="true" /></span>{' '}
+              <span>Te quedan <b>{fmtEc(s.ec)} <IcCoin className="ec-coin" aria-hidden="true" /></b></span>
             </p>
             <div className="st-sheet-btns">
               <button type="button" className="st-btn st-btn--ghost" onClick={onClose}>¡Genial!</button>
@@ -93,7 +95,7 @@ export function GiftSheet({ s, ec, friends, failed, onPick, onConfirm, onBack, o
         <h3 className="st-sheet-q" id="st-gift-t">¿A quién le regalás {name}?</h3>
         <p className="st-sheet-sub" id="st-gift-d">
           <span>{picked ? `Así le quedaría a ${picked.nick}.` : `Se ${lo} pone al toque y te escribe para agradecerte.`}</span>{' '}
-          {missing === 0 && <span>Cuesta {fmtEc(item.price)} ⚡ · después te quedan <b>{fmtEc(ec - item.price)} ⚡</b></span>}
+          {missing === 0 && <span>Cuesta {fmtEc(item.price)} <IcCoin className="ec-coin" aria-hidden="true" /> · después te quedan <b>{fmtEc(ec - item.price)} <IcCoin className="ec-coin" aria-hidden="true" /></b></span>}
         </p>
 
         {failed && !friends ? (
@@ -127,10 +129,10 @@ export function GiftSheet({ s, ec, friends, failed, onPick, onConfirm, onBack, o
         <div className="st-sheet-btns">
           <button type="button" className="st-btn st-btn--ghost" data-autofocus={busy ? undefined : true} disabled={busy} onClick={onClose}>Cancelar</button>
           {missing > 0 ? (
-            <button type="button" className="st-btn" disabled>{faltan(missing)}</button>
+            <button type="button" className="st-btn" disabled><Faltan n={missing} /></button>
           ) : (
             <button type="button" className={`st-btn st-btn--gift${busy ? ' is-busy' : ''}`} disabled={busy || !picked} aria-busy={busy} onClick={onConfirm}>
-              {busy ? <><span className="st-spin" aria-hidden="true" />Regalando…</> : <>Regalar · {fmtEc(item.price)} ⚡</>}
+              {busy ? <><span className="st-spin" aria-hidden="true" />Regalando…</> : <>Regalar · {fmtEc(item.price)} <IcCoin className="ec-coin" aria-hidden="true" /></>}
             </button>
           )}
         </div>

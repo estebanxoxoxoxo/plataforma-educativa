@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, type CSSProperties } from 'react';
 import type { CloseWeekResult } from '../../../api/types';
-import { IcArrowRight, IcClose, IcDownSm, IcUpSm } from '../../../shared/components/icons';
+import { IcArrowRight, IcClose, IcCoin, IcDownSm, IcUpSm } from '../../../shared/components/icons';
 import { MEDAL_INFO, closeCopy, closesLabel } from '../lib/cycle';
 import { LeagueIcon } from './LeagueIcon';
 
@@ -37,7 +37,7 @@ export function CloseBanner({ r, coins, onDismiss, onFeed }: { r: CloseWeekResul
           {c.cheer && <span className="lwk-cheer">{c.cheer}</span>}
         </p>
         <p className="lwk-note">
-          Arrancó la semana nueva: tu XP vuelve a 0{coins && <> y tus <span aria-hidden>⚡</span>{'\u00A0'}Energy Coins siguen en tu billetera</>}. {closesLabel(days)}{days > 0 && '.'}
+          Arrancó la semana nueva: tu XP vuelve a 0{coins && <> y tus <IcCoin className="ec-coin" aria-hidden="true" />{'\u00A0'}Energy Coins siguen en tu billetera</>}. {closesLabel(days)}{days > 0 && '.'}
         </p>
         {r.feedAdded > 0 && <button className="lwk-go" onClick={onFeed}>Ver las novedades del cierre en el Feed<IcArrowRight /></button>}
       </div>

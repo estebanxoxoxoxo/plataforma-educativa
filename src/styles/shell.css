@@ -35,7 +35,7 @@
    sin las mayúsculas espaciadas de la etiqueta. En el rail de tablet no se ve (abajo); el aria-label del botón lo dice. */
 .nav-item .nav-ec{display:inline-flex;align-items:center;gap:3px;margin-left:calc(8px - var(--ni-tx));font-size:calc(var(--ni-fs) - .5px);
   letter-spacing:.01em;font-variant-numeric:tabular-nums;white-space:nowrap}
-.nav-item .nav-bolt{transform:translateY(-1px);font-size:1.05em;line-height:1}
+.nav-item .nav-bolt{width:15px;height:15px;flex:none}
 /* El circulito de destacados del menú (pedido de Esteban, 30-oct): cuántos ítems esperan en el menú contextual de la
    sección (solicitudes en Feed, premio de la familia en Tienda, próxima clase en Calendario). A la derecha del ítem. */
 .nav-item .nav-hl{flex:none;margin-left:auto;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#D63B41;color:#fff;font-size:11px;font-weight:800;display:inline-grid;place-items:center;line-height:1}

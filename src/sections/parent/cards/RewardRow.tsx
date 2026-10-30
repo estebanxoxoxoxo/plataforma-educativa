@@ -1,4 +1,5 @@
 import { fmtNum, stockLabel } from '../lib/format';
+import { IcCoin } from '../../../shared/components/icons';
 import type { ParentItemView } from '../lib/types';
 
 /** Fila de la tabla de premios del padre: emoji (chico), título y descripción, precio, stock, estado y
@@ -23,7 +24,7 @@ export function RewardRow({ it, busy, fresh, onEdit, onArchive, onRestore }: {
         <span className="pz-cell-title">{it.title}</span>
         {it.desc && <span className="pz-cell-sub" title={it.desc}>{it.desc}</span>}
       </td>
-      <td role="cell" className="pz-td-num" data-label="Precio"><span className="pz-price"><span aria-hidden="true">⚡</span> {fmtNum(it.price)}<span className="pz-sr"> Energy Coins</span></span></td>
+      <td role="cell" className="pz-td-num" data-label="Precio"><span className="pz-price"><IcCoin className="ec-coin" aria-hidden="true" /> {fmtNum(it.price)}<span className="pz-sr"> Energy Coins</span></span></td>
       <td role="cell" className={`pz-td-stock${out ? ' is-out' : ''}`} data-label="Stock">{stockLabel(it)}</td>
       <td role="cell" data-label="Estado"><span className={`pz-state ${it.archived ? 'is-archived' : 'is-live'}`}>{it.archived ? 'Archivado' : 'Publicado'}</span></td>
       <td role="cell" className="pz-td-act" data-label="Acciones">
