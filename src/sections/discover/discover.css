@@ -1,36 +1,134 @@
 /* Buscar › resultados (look Google). La carpeta "discover" agrupa buscar, lector, reproductor y chat.
-   Todas viven en la columna estándar que da .view (shell.css). Buscar usa el ANCHO COMPLETO de esa columna (pedido de
-   Esteban): input, solapas, nota de lista blanca y resultados van de punta a punta; el tipográfico Google no cambia. */
-#v-search{background:#fff;font-family:Arial,sans-serif}
-.sbar{height:46px;border-radius:12px;background:#fff;border:1px solid #DFE1E5;display:flex;align-items:center;gap:10px;padding:0 10px 0 20px;font:16px Arial,sans-serif;color:#202124;transition:box-shadow .25s,border-color .25s}
-.sbar:focus-within{border-color:transparent;box-shadow:0 1px 6px rgba(32,33,36,.28)}
-.sbar input{flex:1;min-width:0;border:0;outline:0;background:none;padding:0;font:16px Arial,sans-serif;color:#202124;caret-color:#202124}
-.sbar input::placeholder{color:#70757A}
-.sbar .si{width:24px;height:24px;color:#5F6368;flex:none}
-.sbar .sx{width:22px;height:22px;color:#70757A;flex:none}
-.sbar .sdiv{width:1px;height:24px;background:#DADCE0}
-.sbar button{display:grid;place-items:center}
+   Todas viven en la columna estándar que da .view (shell.css).
+   ════ Tanda BUSCARCHAT (30-oct): Buscar y Chat al nivel de limpieza del POC (smarty-poc Search.tsx / ChildChat.tsx) ════
+   Buscar: la home SIN búsqueda es una caja centrada estilo Google (sin solapas); con búsqueda, la caja sube a una cabecera
+   pegada arriba (fondo con blur) + solapas subrayadas, y el cuerpo va en una columna angosta de 680 (Imágenes, más ancha).
+   Los resultados conservan la tipografía Google de siempre; lo accionable usa UNA familia de color (el teal de la casa);
+   un solo trazo de borde suave; radios: píldora (caja, chips, botones) y 16 (grupos). Los vacíos y bloqueos, AL MEDIO.
+   Prefijos nuevos (libres en todo el css de src): sx- (Buscar), mg- (grupos de medios: Todo y Chat), cx- (Chat), chx-
+   (historial del Chat). Los cortes, los de base.css con @container app; ningún @media de layout. */
+#v-search{background:#fff;font-family:Arial,sans-serif;display:flex;flex-direction:column;padding-top:0}
+.sx-col{width:100%;max-width:680px;margin-inline:auto}
+.sx-col.sx-wide{max-width:1040px}
 
+/* la home: centrada en los dos ejes (un poco arriba del medio, como el POC) */
+.sx-home{flex:1 0 auto;display:flex;align-items:center;justify-content:center;padding:24px 0 9vh}
+.sx-home-in{width:100%;max-width:560px;display:grid;justify-items:center;text-align:center}
+.sx-home-ic{width:40px;height:40px;color:var(--teal);stroke-width:1.5}
+.sx-home-t{margin:12px 0 0;font:700 26px/1.2 Arial,sans-serif;color:#1F1F1F}
+.sx-home-sub{margin:6px 0 22px;font:14px/20px Arial,sans-serif;color:#70757A}
+.sx-home .sx-bar{width:100%}
+.sx-home .sx-chips{margin-top:18px}
+.sx-also{margin-top:14px;min-height:44px;padding:0 12px;font:14px Arial,sans-serif;color:var(--teal-d);text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(11,107,102,.35)}
+.sx-also:hover{text-decoration-color:currentColor}
+
+/* la caja píldora (home y cabecera) */
+.sx-bar{display:flex;align-items:center;gap:10px;height:48px;padding:0 4px 0 16px;border-radius:999px;background:#fff;border:1px solid #DADCE0;transition:border-color .2s,box-shadow .2s}
+.sx-bar:focus-within{border-color:var(--teal);box-shadow:0 0 0 3px rgba(19,163,154,.14)}
+.sx-bar-ic{flex:none;width:20px;height:20px;color:var(--teal)}
+.sx-bar input{flex:1;min-width:0;align-self:stretch;border:0;outline:0;background:none;padding:0;font:16px Arial,sans-serif;color:#202124;caret-color:var(--teal-d)}
+.sx-bar input::placeholder{color:#8A8F98}
+.sx-bar-x{flex:none;width:40px;height:40px;display:grid;place-items:center;border-radius:50%;color:#70757A;transition:background-color .15s}
+.sx-bar-x:hover{background:#F1F3F4;color:#202124}
+.sx-bar-x svg{width:18px;height:18px}
+
+/* chips de ideas (home, vacíos y el vacío del Chat) */
+.sx-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.sx-chip{min-height:40px;padding:0 16px;border-radius:999px;border:1px solid #E3E5E8;background:#fff;font:14px Arial,sans-serif;color:#3C4043;transition:background-color .15s,border-color .15s,transform .1s}
+.sx-chip:hover{background:#F4F8F7;border-color:#CFE6E3}
+.sx-chip:active{transform:scale(.96)}
+
+/* con búsqueda: cabecera pegada arriba, a todo el ancho de la vista (fondo con blur suave) */
+.sx-head{position:sticky;top:0;z-index:4;margin:0 calc(-1 * var(--view-pad-x));padding:14px var(--view-pad-x) 0;
+  background:rgba(255,255,255,.92);-webkit-backdrop-filter:saturate(1.4) blur(10px);backdrop-filter:saturate(1.4) blur(10px)}
 .tabs{position:relative;display:flex;gap:26px;margin-top:14px;padding-left:4px;border-bottom:1px solid #EBEBEB}
 .tab{padding:10px 2px 11px;font:14px Arial,sans-serif;color:#4D5156;transition:color .25s}
 .tab svg{display:none}
 .tab.on{color:#1F1F1F;font-weight:700}
 .ink{position:absolute;bottom:-1px;height:3px;border-radius:1.5px 1.5px 0 0;background:#1F1F1F;transition:left .35s,width .35s}
+/* las solapas con el look del POC: finas, gris → teal la activa, raya de 2 */
+.sx-tabs{margin-top:6px;gap:22px;border-bottom-color:#ECEEF1}
+.sx-tabs .tab{padding:12px 2px;color:#5F6368}
+.sx-tabs .tab:hover{color:#202124}
+.sx-tabs .tab.on{color:var(--teal-d);font-weight:700}
+.sx-tabs .ink{height:2px;border-radius:2px 2px 0 0;background:var(--teal)}
+.sx-body{flex:1 0 auto;display:flex;flex-direction:column}
 
-.wl{display:flex;align-items:center;gap:8px;margin-top:14px;font:13px Arial,sans-serif;color:#0B6B66;background:#E2F5F3;border-radius:4px;padding:8px 12px}
+/* notas (lista blanca / Personas / Mentores): una línea gris con su ícono, sin caja */
+.wl{display:flex;align-items:center;gap:8px;margin-top:16px;font:13px/18px Arial,sans-serif;color:#5F6368}
 /* el escudo no se encoge cuando el texto ocupa varios renglones (a 1024 quedaba aplastado a 13,5×16) */
-.wl svg{width:16px;height:16px;flex:none}
+.wl svg{width:16px;height:16px;flex:none;color:var(--teal)}
 .ichips{display:flex;gap:8px;margin-top:14px;overflow:hidden}
-.ichip{flex:none;display:flex;align-items:center;gap:10px;height:40px;border:1px solid #DADCE0;border-radius:4px;overflow:hidden;padding-right:14px;font:14px Arial,sans-serif;color:#1F1F1F}
+.ichip{flex:none;display:flex;align-items:center;gap:10px;height:40px;border:1px solid #E3E5E8;border-radius:999px;overflow:hidden;padding-right:16px;font:14px Arial,sans-serif;color:#1F1F1F}
 /* el anillo de foco va por dentro: afuera lo recortaba el overflow de .ichips (en todos los anchos) */
 .ichip:focus-visible{outline-offset:-3px}
 .ichip img{width:40px;height:40px;object-fit:cover}
-.ichip:hover{background:#F8F9FA}
+.ichip:hover{background:#F6F8F9}
 
 .results{margin-top:18px}
-.sempty{margin-top:28px;font:15px Arial,sans-serif;color:#4D5156}
-/* la búsqueda que el server NO hizo (SearchResponse.block): el texto va tal cual, con sus saltos de línea */
-.sblock{margin-top:28px;max-width:600px;padding:14px 16px;border-radius:8px;background:#F1F6FD;border:1px solid #D7E3F4;font:15px/1.55 Arial,sans-serif;color:#202124;white-space:pre-line;overflow-wrap:anywhere}
+/* los vacíos de Personas y Mentores: centrados y grises, como los de SearchState */
+.sempty{margin:56px auto 0;max-width:460px;text-align:center;font:15px/1.5 Arial,sans-serif;color:#5F6368}
+
+/* los estados AL MEDIO (SearchState): vacío con ideas, bloqueo del server (texto tal cual) y error */
+.sx-state{flex:1 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:56px 8px 64px;text-align:center}
+.sx-state-ic{width:32px;height:32px;color:#B3B8BF;stroke-width:1.5}
+.sx-state-t{margin:6px 0 0;max-width:480px;font:15px/1.55 Arial,sans-serif;color:#5F6368;overflow-wrap:anywhere}
+.sx-state-h{margin:0;font:13.5px/1.45 Arial,sans-serif;color:#80868B}
+.sx-state .sx-chips{margin-top:10px}
+.sx-state--block .sx-state-ic{color:var(--teal)}
+.sx-state--block .sx-state-t{white-space:pre-line;color:#3C4043}
+
+/* Todo: los grupos por tipo del POC (los 3 primeros aptos + «Ver los N …»). El marco .mg es el mismo del Chat. */
+.sx-all{display:grid;gap:14px;margin-top:16px}
+.mg{display:grid;gap:10px;min-width:0;padding:10px;border:1px solid #E6E8EC;border-radius:16px;background:#fff}
+.mg-h{display:flex;align-items:center;gap:6px;padding:2px 4px 0;font-size:12px;line-height:16px;font-weight:600;color:#70757A}
+.mg-ic{flex:none;width:15px;height:15px;color:var(--teal)}
+.mg-more{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;border-radius:10px;background:#EEF7F6;color:var(--teal-d);font-size:13.5px;font-weight:700;transition:background-color .15s,transform .1s}
+.mg-more:hover{background:#E1F1EF}
+.mg-more:active{transform:scale(.98)}
+/* la previa de Todo adentro de ModeratedResults (variant "grp"): grillas de 3 y esqueletos a su medida */
+.results.grp{margin-top:0}
+.grp.vids,.grp.imgs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-items:start}
+.grp.vids .it{margin:0;padding:0;border-radius:10px}
+.grp.vids .sk{height:auto;display:block}
+.grp.vids .sk .ph-a{width:100%;height:auto;aspect-ratio:16/9;border-radius:10px}
+.grp.vids .sk .ph-b{padding:8px 2px 2px;gap:6px}
+.grp.vids .ph-b i{height:8px}.grp.vids .ph-b i:nth-child(1){width:30%}.grp.vids .ph-b i:nth-child(2){width:90%}.grp.vids .ph-b i:nth-child(3){width:60%}
+.grp .flagged{margin-left:0;margin-right:0}
+.grp.vids .flagged{padding:0}
+.grp.vids .flag{left:50%;right:auto;top:32%;transform:translate(-50%,-50%) scale(.8);font-size:12px;padding:4px 9px}
+.grp.vids .flagged .flag{transform:translate(-50%,-50%) scale(1)}
+.grp.pages{display:grid;gap:2px}
+.grp.pages .it{margin:0;padding:8px 6px}
+.grp.pages .sk{height:100px}
+.grp .g-title{margin:4px 0 2px;font-size:17px;line-height:23px}
+.grp .g-snip{font-size:13px;line-height:19px}
+
+/* la tarjeta de video de un grupo (Todo y Chat: cards/ShareCard) */
+.mg-vids{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.mg-vid{display:grid;gap:6px;width:100%;min-width:0;text-align:left;border-radius:10px;transition:transform .1s}
+.mg-vid:active{transform:scale(.98)}
+.mg-vth{position:relative;display:block;aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:#EEF0F3}
+.mg-vid:hover .mg-vth img{opacity:.9}
+.mg-play{position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:rgba(255,255,255,.92);display:grid;place-items:center;color:var(--teal-d);box-shadow:0 1px 3px rgba(0,0,0,.14)}
+.mg-play svg{width:14px;height:14px;margin-left:2px}
+.mg-dur{position:absolute;right:5px;bottom:5px;padding:1px 5px;border-radius:4px;background:rgba(20,26,44,.8);color:#fff;font-size:10.5px;font-weight:700;line-height:15px}
+.mg-vtx{display:grid;gap:1px;min-width:0;padding:0 2px}
+.mg-vtx small{font-size:10.5px;line-height:14px;color:#80868B}
+.mg-vtx b{font-size:12.5px;line-height:1.3;font-weight:600;color:#202124;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+/* imágenes y artículos del Chat (components/ChatGallery, cards/ChatArticleCard) */
+.mg-imgs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mg-img{display:block;aspect-ratio:1;border-radius:10px;overflow:hidden;background:#EEF0F3;transition:transform .1s}
+.mg-img:active{transform:scale(.98)}
+.mg-img img{width:100%;height:100%;object-fit:cover;display:block}
+.mg-arts{display:grid;gap:6px}
+.mg-art{display:flex;align-items:flex-start;gap:10px;width:100%;padding:10px;border-radius:12px;border:1px solid #EEF0F3;text-align:left;transition:border-color .15s,background-color .15s}
+.mg-art:hover{border-color:#CFE6E3;background:#FAFDFC}
+.mg-fav{flex:none;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:#EEF7F6;color:var(--teal-d);font-size:13px;font-weight:800}
+.mg-atx{display:grid;gap:1px;min-width:0}
+.mg-atx small{font-size:11px;line-height:15px;color:#80868B}
+.mg-atx b{font-size:14px;line-height:1.35;font-weight:700;color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mg-atx span{font-size:12.5px;line-height:1.4;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 
 /* ---- Personas (tanda F2): chicos de Innerith por su nombre de usuario (containers/PeopleResults, cards/PersonCard).
    La tipografía Google del resto de Buscar; el violeta es lo social (el del dock de Mensajes y la zona pinneada del
@@ -67,7 +165,7 @@
    fila por mentor, como Personas); lo accionable usa el azul del adulto (#2843A8, el de Familia). El color de cada mentor
    aparece SOLO como fondo suave detrás de su emoji: es el que lo identifica también en el Calendario
    (CalendarEvent.color). color-mix con un fondo neutro antes, por si el navegador no lo entiende. ---- */
-.smn-note{color:#1F3487;background:#EEF2FD}
+.smn-note svg{color:#2843A8}
 .smn-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .smn-count{margin:14px 0 0;font:13px Arial,sans-serif;color:#70757A}
 .smn{list-style:none;margin:4px 0 0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);container:smn / inline-size}
@@ -375,13 +473,10 @@
 .yt-chip:hover{background:rgba(0,0,0,.05)}
 .yt-chip:active{background:rgba(0,0,0,.1)}
 .yt-actions{display:flex;align-items:center;gap:8px}
-.yt-seg{display:flex;align-items:center;height:36px;border-radius:18px;background:rgba(0,0,0,.05);overflow:hidden}
-.yt-seg .yt-btn{background:none;border-radius:0}
+/* (El segmento Me gusta / No me gusta se fue el 30-oct, pedido de Esteban; .yt-seg/.yt-div murieron con él.) */
 /* en la píldora de Me gusta / No me gusta (overflow:hidden) el anillo de foco va por dentro: afuera quedaba recortado */
-.yt-seg .yt-btn:focus-visible{outline-offset:-3px}
-.yt-div{width:1px;height:24px;background:rgba(0,0,0,.1)}
 .yt-btn{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 16px 0 12px;border-radius:18px;background:rgba(0,0,0,.05);font:500 14px/36px "Roboto","Arial",sans-serif;color:#0F0F0F;white-space:nowrap}
-.yt-btn:hover,.yt-seg .yt-btn:hover{background:rgba(0,0,0,.1)}
+.yt-btn:hover{background:rgba(0,0,0,.1)}
 .yt-btn.icon{width:36px;padding:0;justify-content:center}
 .yt-seg .yt-btn.icon{width:auto;padding:0 12px}
 .yt-btn svg{width:24px;height:24px;fill:currentColor;flex:none}
@@ -397,48 +492,116 @@
 .asave svg{width:16px;height:16px}
 /* chip "Lista · video N de M" cuando se reproduce una cola */
 .pqueue{grid-column:1/-1;margin:-6px 0 0;color:#6A7390;font-weight:800;font-size:13px}
-.yt-flip{display:grid;transform:rotate(180deg)}
 
-/* miniatura de video (chat) */
-.vthumb{position:relative;aspect-ratio:16/9;border-radius:5.5px;overflow:hidden;display:block}
-.vthumb .ph-img{position:absolute;inset:0}
-.play{position:absolute;left:50%;top:50%;width:42px;height:42px;margin:-21px 0 0 -21px;border-radius:50%;background:rgba(255,255,255,.95);display:grid;place-items:center}
-.play svg{width:16px;height:16px;margin-left:3px}
-.dur{position:absolute;right:7px;bottom:7px;background:rgba(20,26,44,.85);color:#fff;font-size:11.5px;font-weight:800;padding:2px 7px;border-radius:3px}
-.vtxt{padding:9px 4px 4px;min-width:0}
-.vtxt h4{margin:0;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.vtxt p{margin:2px 0 0;font-size:12.5px;color:#6A7390;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-
-/* Chat */
-#v-chat{display:flex;flex-direction:column;gap:14px;padding-bottom:24px;overflow:hidden}
-.msgs{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:14px;width:100%;scrollbar-width:thin}
-.msgs > :first-child{margin-top:auto}
-.m{font-size:16px;line-height:1.5;animation:popin .3s ease both}
-.m.kid{align-self:flex-end;max-width:70%;background:#3A5BD9;color:#fff;padding:12px 18px;border-radius:10px 10px 3px 10px;font-weight:700}
-.m.ai{align-self:flex-start;display:flex;gap:12px;max-width:78%}
-.m.ai .mark{flex:none;width:36px;height:36px;border-radius:6px}
-.bub{background:#fff;border:1.5px solid #E7EAF2;padding:14px 18px;border-radius:10px 10px 10px 3px;display:grid;gap:10px;font-weight:600}
+/* ════ Chat (tanda BUSCARCHAT): barra fina + conversación en columna angosta + composer píldora (POC ChildChat.tsx) ════
+   El de la IA va SIN burbuja con su marca chiquita arriba; el del chico, burbuja suave a la derecha. .send y .dots siguen
+   acá porque también los usa la ventana del dock de Mensajes (friends/ChatWindow). */
+#v-chat{display:flex;flex-direction:column;padding:0;overflow:hidden;background:#fff}
+.cx-bar{flex:none;display:flex;align-items:center;gap:4px;height:52px;padding:0 10px 0 20px;border-bottom:1px solid #EEF0F3;background:#fff}
+.cx-title{flex:1;min-width:0;margin:0;font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cx-hist{flex:none;width:44px;height:44px;display:grid;place-items:center;border-radius:50%;color:var(--ink-2);transition:background-color .15s,transform .1s}
+.cx-hist:hover{background:#F1F3F6}
+.cx-hist svg{width:20px;height:20px}
+.cx-new{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 14px 0 11px;border-radius:999px;border:1px solid #E3E6EB;font-size:13.5px;font-weight:700;color:var(--ink);transition:background-color .15s,transform .1s}
+.cx-new:hover{background:#F6F7F9}
+.cx-new svg{width:17px;height:17px}
+.cx-hist:active,.cx-new:active{transform:scale(.95)}
+.cx-scroll{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin;overscroll-behavior:contain}
+.cx-col{max-width:736px;min-height:100%;margin:0 auto;padding:24px 20px 16px;display:flex;flex-direction:column;gap:22px}
+.cx-col.is-empty{justify-content:center}
+.cx-msg{min-width:0;animation:popin .3s ease both}
+.cx-kid{display:flex;justify-content:flex-end}
+.cx-kb{max-width:80%;padding:10px 16px;border-radius:18px 18px 6px 18px;background:#E8F4F2;color:var(--ink);font-size:16px;line-height:1.5;font-weight:600;white-space:pre-wrap;overflow-wrap:anywhere}
+.cx-ai{display:grid;gap:10px;justify-items:start}
+.cx-ai > .mg{width:100%}
+.mark.cx-mark{width:22px;height:22px;border-radius:6px;grid-template-columns:repeat(3,4px);gap:2px}
+.mark.cx-mark i{width:4px;height:4px}
+.cx-md{max-width:100%;font-size:16px;line-height:1.65;font-weight:500;color:var(--ink);overflow-wrap:anywhere}
+.cx-md p{margin:0 0 10px}.cx-md p:last-child{margin-bottom:0}
+.cx-md ul,.cx-md ol{margin:4px 0 10px;padding-left:22px}
+.cx-md li{margin:3px 0}
+.cx-md strong{font-weight:800}
+.cx-md h3,.cx-md h4{margin:14px 0 6px;font-size:16.5px;font-weight:800}
+.cx-md blockquote{margin:0 0 10px;padding-left:12px;border-left:3px solid #E3E6EB;color:var(--ink-2)}
+.cx-think{display:inline-flex;padding:8px 16px;border-radius:999px;background:#EEF7F6;color:var(--teal-d);font-size:14.5px;font-weight:700;animation:cx-pulse 1.4s ease-in-out infinite}
+@keyframes cx-pulse{50%{opacity:.5}}
+/* el vacío, al medio, con su saludo y 3 ideas */
+.cx-empty{display:grid;justify-items:center;gap:6px;padding-bottom:6vh;text-align:center}
+.cx-empty h3{margin:0;font-family:var(--display);font-size:30px;font-weight:800;line-height:1.1;color:var(--ink)}
+.cx-empty p{margin:0;font-size:16px;font-weight:600;color:var(--muted)}
+.cx-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:440px;margin-top:16px}
+.cx-chips .sx-chip{font-family:var(--body);font-size:14.5px;font-weight:700;color:var(--ink)}
+/* el pie: composer píldora, contador desde 1800 y la nota; «↓ Nueva respuesta» flota encima */
+.cx-foot{position:relative;flex:none;padding:8px 16px 12px;background:#fff}
+/* con el dock de Mensajes (chicos con Amigos) el pie le deja lugar también en escritorio: su barra de 49 tapaba «Enviar»
+   (tablet y teléfono: las reglas de abajo, 56 y 76) */
+.app:has(.fdk:not([hidden])) #v-chat{padding-bottom:52px}
+.cx-comp{max-width:736px;margin:0 auto;display:flex;align-items:flex-end;gap:8px;padding:5px 5px 5px 18px;border-radius:26px;border:1px solid #DDE1E7;background:#fff;transition:border-color .2s,box-shadow .2s}
+.cx-comp:focus-within{border-color:var(--teal);box-shadow:0 0 0 3px rgba(19,163,154,.14)}
+.cx-comp textarea{flex:1;min-width:0;max-height:112px;resize:none;border:0;outline:0;background:none;padding:8px 0;font-size:16px;line-height:24px;font-weight:600;color:var(--ink);overflow-y:auto;scrollbar-width:thin}
+.cx-comp textarea::placeholder{color:#9AA1B0}
+.cx-send{flex:none;width:40px;height:40px;border-radius:50%;background:var(--teal);color:#fff;display:grid;place-items:center;transition:opacity .15s,transform .1s}
+.cx-send:disabled{opacity:.35;cursor:default}
+.cx-send:not(:disabled):active{transform:scale(.94)}
+.cx-send svg{width:20px;height:20px}
+.cx-count{max-width:736px;margin:4px auto 0;padding:0 12px;text-align:right;font-size:11.5px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+.cx-note{display:flex;justify-content:center;align-items:center;gap:6px;margin-top:8px;font-size:12px;font-weight:700;color:#8A93AD}
+.cx-note svg{width:13px;height:13px;color:var(--teal)}
+.cx-newpill{position:absolute;left:50%;bottom:calc(100% + 8px);z-index:2;transform:translateX(-50%);display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 16px;border-radius:999px;background:#fff;border:1px solid #E3E6EB;box-shadow:0 4px 14px rgba(27,34,56,.1);font-size:13.5px;font-weight:700;color:var(--teal-d);white-space:nowrap;animation:popin .2s ease both}
+.cx-newpill svg{width:15px;height:15px}
+/* los de la ventana del dock de Mensajes (friends/ChatWindow) */
 .dots{display:flex;gap:5px;padding:4px 0}
 .dots i{width:8px;height:8px;border-radius:50%;background:#B5BCCE;animation:dot 1s infinite}
 .dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
 @keyframes dot{50%{transform:translateY(-4px);background:#13A39A}}
-.share.it{display:flex;align-items:center;gap:12px;width:400px;height:88px;padding:8px;border-radius:7px}
-.share .ph-a{width:124px;height:70px;border-radius:5px;flex:none}
-.share .ph-b{flex:1;display:grid;gap:8px}.share .ph-b i:nth-child(1){width:85%}.share .ph-b i:nth-child(2){width:60%;height:8px}.share .ph-b i:nth-child(3){display:none}
-.share .flag{right:14px;top:50%;transform:translateY(-50%) scale(.8);background:#fff;padding:4px 10px;border-radius:999px;font-size:13px}
-.share.flagged .flag{transform:translateY(-50%) scale(1)}
-.share .vthumb{width:124px;flex:none}
-.share .play{width:30px;height:30px;margin:-15px 0 0 -15px}.share .play svg{width:12px;height:12px}
-.cin{width:100%;height:58px;flex:none;border-radius:29px;background:#fff;border:2px solid #DDE2EC;display:flex;align-items:center;padding:0 6px 0 24px;gap:10px;font-size:17px;font-weight:700;transition:border-color .25s}
-.cin:focus-within{border-color:#13A39A}
-.cin input,.fin input{flex:1;min-width:0;border:0;outline:0;background:none;padding:0;font-weight:700}
-.cin input{font-size:17px}
-.cin input::placeholder{color:#A3AABD}
+.fin input{flex:1;min-width:0;border:0;outline:0;background:none;padding:0;font-weight:700}
 .send{width:42px;height:42px;border-radius:50%;background:#13A39A;display:grid;place-items:center;color:#fff;flex:none}
 .send:disabled{cursor:default}
 .send svg{width:18px;height:18px}
-.note{text-align:center;font-size:13px;font-weight:800;color:#0B6B66;display:flex;justify-content:center;align-items:center;gap:6px}
-.note svg{width:15px;height:15px}
+
+/* el HISTORIAL (components/ChatHistory): cajón a la derecha sobre un velo, encima de todo (portal a <body>; capas de
+   shell.css: overlays 100+) */
+.chx-ov{position:fixed;inset:0;z-index:100;display:flex;justify-content:flex-end;background:rgba(27,34,56,.32);animation:fadein .18s ease both}
+.chx{width:320px;max-width:88%;height:100%;display:flex;flex-direction:column;background:#fff;box-shadow:-8px 0 24px rgba(27,34,56,.12);font-family:var(--body);color:var(--ink);outline:none;animation:chx-in .22s cubic-bezier(.2,.8,.2,1) both}
+@keyframes chx-in{from{transform:translateX(24px);opacity:.4}to{transform:none;opacity:1}}
+.chx-h{flex:none;display:flex;align-items:center;height:56px;padding:0 8px 0 18px;border-bottom:1px solid #EEF0F3}
+.chx-h h2{flex:1;margin:0;font-size:16px;font-weight:800}
+.chx-x{flex:none;width:44px;height:44px;display:grid;place-items:center;border-radius:50%;color:var(--muted);transition:background-color .15s}
+.chx-x:hover{background:#F1F3F6;color:var(--ink)}
+.chx-x svg{width:20px;height:20px}
+.chx-top{flex:none;display:grid;gap:8px;padding:12px}
+.chx-new{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;border-radius:12px;background:var(--teal);color:#fff;font-size:14.5px;font-weight:800;transition:background-color .15s,transform .1s}
+.chx-new:hover{background:#0F928A}
+.chx-new:active{transform:scale(.98)}
+.chx-new svg{width:18px;height:18px}
+.chx-find{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;border-radius:12px;border:1px solid #E3E6EB;cursor:text}
+.chx-find:focus-within{border-color:var(--teal);box-shadow:0 0 0 3px rgba(19,163,154,.12)}
+.chx-find svg{flex:none;width:16px;height:16px;color:#9AA1B0}
+.chx-find input{flex:1;min-width:0;align-self:stretch;border:0;outline:0;background:none;padding:0;font-size:14.5px;font-weight:600;color:var(--ink)}
+.chx-list{flex:1;min-height:0;overflow-y:auto;padding:0 8px 12px;scrollbar-width:thin}
+.chx-empty{margin:40px 0;text-align:center;font-size:14px;font-weight:600;color:#9AA1B0}
+.chx-g{margin-bottom:6px}
+.chx-gl{margin:0;padding:10px 10px 4px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#9AA1B0}
+.chx-row{display:flex;align-items:center;border-radius:12px;transition:background-color .15s}
+.chx-row:hover{background:#F6F7F9}
+.chx-row.on{background:#EEF7F6}
+.chx-pick{flex:1;min-width:0;display:flex;align-items:center;gap:10px;min-height:52px;padding:6px 4px 6px 10px;border-radius:12px;text-align:left}
+.chx-ic{flex:none;width:16px;height:16px;color:#9AA1B0}
+.chx-row.on .chx-ic{color:var(--teal)}
+.chx-tx{min-width:0;display:grid;gap:1px}
+.chx-tx b{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chx-tx small{font-size:11.5px;font-weight:600;color:#8A93AD}
+.chx-row.on .chx-tx small{color:var(--teal-d)}
+.chx-del{flex:none;width:44px;height:44px;display:grid;place-items:center;border-radius:10px;color:#B5BCCE;transition:color .15s,background-color .15s}
+.chx-del:hover{color:#D63B41;background:#FDF1F1}
+.chx-del svg{width:17px;height:17px}
+.chx-foot{flex:none;padding:12px;border-top:1px solid #EEF0F3}
+.chx-all{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;border-radius:12px;border:1px solid #F3C7C9;color:#C2373D;font-size:14px;font-weight:700;transition:background-color .15s}
+.chx-all:hover{background:#FDF1F1}
+.chx-all svg{width:16px;height:16px}
+@media (prefers-reduced-motion: reduce){
+  .cx-msg,.cx-newpill,.cx-think,.chx-ov,.chx{animation:none}
+}
 
 /* Cuerpo de artículos reales (HTML saneado del backend) */
 .wk-html{font:15px/1.6 Arial,sans-serif}
@@ -457,19 +620,6 @@
 .wk-html blockquote{margin:0 0 12px;padding-left:14px;border-left:3px solid #C8CCD1;color:#54595D}
 .wk-hero{width:300px}
 
-/* Chat: texto con formato, galería y artículos */
-.bub .md p{margin:0 0 8px}.bub .md p:last-child{margin-bottom:0}
-.bub .md ul,.bub .md ol{margin:4px 0 8px;padding-left:20px}
-.bub .md li{margin:2px 0}
-.chat-gallery{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;max-width:440px}
-.chat-img{display:block;aspect-ratio:1;border-radius:6px;overflow:hidden;background:#F1F3F4}
-.chat-img img{width:100%;height:100%;object-fit:cover;display:block}
-.chat-art{display:grid;gap:3px;text-align:left;max-width:420px;padding:10px 12px;border:1.5px solid #E7EAF2;border-radius:7px;background:#fff;cursor:pointer}
-.chat-art:hover{border-color:#13A39A}
-.chat-art b{font-size:14.5px;color:#1A0DAB}
-.chat-art span{font-size:12.5px;font-weight:600;color:#47506B;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.chat-art small{font-size:11.5px;color:#0B6B66;font-weight:700}
-
 /* Reproductor real: iframe de youtube-nocookie contenido (sin clics directos) + controles propios */
 .pframe iframe{position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none}
 .pclick{position:absolute;inset:0;z-index:1;cursor:pointer}
@@ -482,12 +632,10 @@
    Con @container app y los dos cortes de base.css (640 / 1024), no con @media: en escritorio (≥ 1024) no cambia nada.
    Las áreas táctiles crecen con padding o tamaño mínimo y un margen negativo igual las devuelve: tipografía, dibujo y
    lugar de cada cosa quedan como estaban (WCAG 2.5.8: nada por debajo de 24 px; 44 en las acciones principales).
-   OJO: .send y «.fin input» también los usa la ventana del dock (friends/ChatWindow): acá van siempre bajo .cin. */
+   OJO: .send y «.fin input» también los usa la ventana del dock (friends/ChatWindow): el Chat usa los suyos (.cx-). */
 @container app (max-width:1023.98px){
-  /* Buscar: el campo ocupa todo el alto de la barra (lo tocable medía 18 px); la × y la lupa crecen a 40 y 44 */
-  .sbar input{align-self:stretch}
-  .sbar button[type="button"]{min-width:40px;min-height:40px;margin:0 -9px}
-  .sbar button[type="submit"]{min-width:44px;min-height:44px;margin:0 -10px}
+  /* Buscar y Chat (tanda BUSCARCHAT): con el dedo, los chips y «+ Nuevo» llegan a 44 de alto */
+  .sx-chip,.cx-new{min-height:44px}
   /* (el escudo de las notas que no se encoge y el anillo por dentro de .ichip viven arriba, para todos los anchos) */
   /* las sugerencias de Imágenes se deslizan con el dedo (con overflow:hidden las de la derecha eran inalcanzables) */
   .ichips{overflow-x:auto;overflow-y:hidden;scrollbar-width:none;overscroll-behavior-x:contain}
@@ -505,10 +653,6 @@
   /* la fila de acciones envuelve cuando no entra (a 768 entraba justo; más angosto desbordaba). (El anillo por dentro de
      Me gusta / No me gusta vive arriba, para todos los anchos.) */
   .yt-actions{flex-wrap:wrap}
-  /* chat: el campo ocupa el alto de la píldora; la burbuja y sus tarjetas se achican a la columna */
-  .cin input{align-self:stretch}
-  .bub{min-width:0;grid-template-columns:minmax(0,1fr)}
-  .share.it{width:auto;max-width:400px}
   /* con el dock de Mensajes (chicos con Amigos) el pie del chat le deja lugar, como cualquier vista (.view: 76) */
   .app:has(.fdk:not([hidden])) #v-chat{padding-bottom:76px}
 }
@@ -546,13 +690,15 @@
   .yt-name{white-space:normal}
   .yt-actions{flex:1 1 100%}
   .yt-actions > .yt-btn{flex:1 1 0;justify-content:center}
-  /* chat: la respuesta usa todo el ancho, la tarjeta de video apila la miniatura arriba y la galería va de a 3 */
-  .m.kid{max-width:85%}
-  .m.ai{max-width:100%}
-  .share.it{flex-direction:column;align-items:stretch;gap:4px;height:auto}
-  .share .vthumb{width:auto}
-  .chat-gallery{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .cin .send{width:44px;height:44px}
+  /* Buscar: la home un poco más compacta */
+  .sx-home-t{font-size:24px}
+  /* chat: la barra y la columna con el aire del teléfono, la burbuja del chico un poco más ancha, enviar a 44 */
+  .cx-bar{padding:0 6px 0 16px}
+  .cx-col{padding:16px 16px 12px;gap:20px}
+  .cx-kb{max-width:85%}
+  .cx-foot{padding:6px 12px 10px}
+  .cx-send{width:44px;height:44px}
+  .cx-empty h3{font-size:26px}
 }
 /* tablet (640-1023, también el teléfono acostado): el dock es una BARRA de 49, no el botón redondo de 56+12 del teléfono;
    con 76 el chat de Ian acostado quedaba con 45-60 px de mensajes. 56 deja la nota libre (7 px de aire). */

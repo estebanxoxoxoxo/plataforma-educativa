@@ -7,8 +7,11 @@ const SKEL_COUNT: Record<Kind, number> = { page: 5, img: 18, vid: 10 };
 const REVEAL_GAP: Record<Kind, number> = { page: 260, img: 110, vid: 170 };
 /** Lista moderada con la secuencia del prototipo:
  *  cargando → esqueletos → se marcan "Filtrado" → desaparecen (FLIP) → se revelan los aptos. */
-export function ModeratedResults<T extends { id: string }>({ kind, items, animate, render }: {
+export function ModeratedResults<T extends { id: string }>({ kind, items, animate, render, skel, variant }: {
   kind: Kind; items: Moderated<T>[] | null; animate: boolean; render: (item: T, i: number) => ReactNode;
+  /** (tanda BUSCARCHAT) cuántos esqueletos mientras carga (por defecto, los de siempre por tipo) y una clase extra para el
+   *  grupo de 3 de Buscar → Todo (`grp`). La secuencia de moderación es la misma. */
+  skel?: number; variant?: string;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const [flagged, setFlagged] = useState(0);
@@ -60,9 +63,9 @@ export function ModeratedResults<T extends { id: string }>({ kind, items, animat
   const instant = !!items && !animate; // resultados ya listos (otra solapa / caché): sin animación
   const isRemoved = instant || removed;
   const nRevealed = instant ? okCount : revealed;
-  const cls = `results ${kind}s`;
+  const cls = `results ${kind}s${variant ? ` ${variant}` : ''}`;
   if (!items) {
-    return <div className={cls} ref={box}>{Array.from({ length: SKEL_COUNT[kind] }, (_, i) => (
+    return <div className={cls} ref={box}>{Array.from({ length: skel ?? SKEL_COUNT[kind] }, (_, i) => (
       <div key={i} className="it sk pop" style={{ animationDelay: `${i * 50}ms` }}><Skeleton /></div>
     ))}</div>;
   }
