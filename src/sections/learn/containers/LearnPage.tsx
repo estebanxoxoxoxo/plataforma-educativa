@@ -121,13 +121,17 @@ export function LearnPage() {
         </button>
       </div>
 
-      {/* El menú contextual de Aprender (pedidos de Esteban, 30-oct): PRIMERO Active recall, después la liga COMPLETA
-          (la tabla entera, no el resumen). Sin nada que mostrar, no hay columna y la vista usa todo el ancho (:has). */}
+      {/* El menú contextual de Aprender (Esteban, 30-oct, afinado en vivo): ARRIBA el Active recall como pieza propia
+          y abajo el contenedor AZUL con la liga COMPLETA (la tabla entera). Sin nada que mostrar no hay columna y la
+          vista usa todo el ancho (:has). */}
       {(reviewable.length > 0 || board) && (
         <aside className="lp-aside">
-          <p className="lp-aside-k">Destacado</p>
           {reviewable.length > 0 && <RecallRootButton count={reviewable.length} onOpen={openRecall} />}
-          {board && <LearnLeagueCard board={board} />}
+          {board && (
+            <div className="lp-hero">
+              <LearnLeagueCard board={board} />
+            </div>
+          )}
         </aside>
       )}
 

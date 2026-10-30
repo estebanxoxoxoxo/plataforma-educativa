@@ -8,10 +8,12 @@
 }
 /* ancho y alineación: la columna estándar de .view (shell.css) */
 .st-page{display:grid;grid-template-columns:minmax(0,1fr);gap:22px}
-/* Ícono + título, sin subtítulo, como Calendario y Aprender (Esteban, 30-oct): el ícono del menú en su teja verde. */
-.st-head{display:flex;align-items:center;gap:14px}
+/* Ícono + título, sin subtítulo, como Calendario y Aprender (Esteban, 30-oct): el ícono del menú en su teja. Solo la
+   cabecera PRINCIPAL (la que lleva la teja, :has): las de deseos/canjes/movimientos siguen apilando título y lede. */
+.st-head:has(.st-tico){display:flex;align-items:center;gap:14px}
 .st-head .h2{margin:0}
-.st-tico{flex:none;display:grid;place-items:center;width:52px;height:52px;border-radius:12px;background:#EAF7DC;border:1px solid #C9E6AB;color:#3B6E12}
+/* Dorada como el punto de menú y la billetera (Esteban, 30-oct; antes verde). */
+.st-tico{flex:none;display:grid;place-items:center;width:52px;height:52px;border-radius:12px;background:#FFF3D9;border:1px solid #F2D9A8;color:#7F5300}
 .st-tico svg{width:30px;height:30px}
 .st-head .lede{max-width:640px}
 .st-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}

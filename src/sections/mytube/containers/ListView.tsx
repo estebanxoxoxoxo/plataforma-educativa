@@ -3,8 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ApiError, api } from '../../../api';
 import type { PlaylistDetail, VideoResult } from '../../../api/types';
 import { playQueue, type BgTrack } from '../../../shared/audio/bgAudio';
-import { IcClose, IcDots, IcDownSm, IcHeadphones, IcPlay, IcUpSm } from '../../../shared/components/icons';
+import { IcClose, IcDots, IcHeadphones, IcPlay } from '../../../shared/components/icons';
 import { ConfirmSheet } from '../../create/components/ConfirmSheet';
+import { IcMtNext, IcMtPrev } from '../components/MtIcons';
 import { ListActionSheet, NameSheet } from '../components/Sheets';
 import { listPath, useMtBack, videoPath } from '../lib/nav';
 
@@ -74,21 +75,26 @@ export function ListView() {
           {videos.length === 0 ? (
             <p className="mt-none">Esta lista está vacía.<br />Agregá videos desde el reproductor con <b>＋ Lista</b>.</p>
           ) : (
+            // La tarjeta de video común (30-oct, pedido de Esteban: todas del mismo tamaño, imagen a sangre): miniatura y
+            // título tocan para reproducir; abajo, en el lugar de la línea de dato, antes / después y ✕. En grilla «antes»
+            // es a la izquierda, por eso las flechas son ‹ › (las etiquetas y el orden de la lista no cambian).
             <div className="mt-lrows" aria-busy={busy}>
               {videos.map((v, i) => (
-                <div key={v.id} className="mt-lrow">
+                <div key={v.id} className="mt-card mt-litem">
                   <button type="button" className="mt-lplay" onClick={() => play(v)}>
-                    <span className="mt-lth"><img src={v.img} alt="" loading="lazy" referrerPolicy="no-referrer" /></span>
-                    <b>{v.title}</b>
+                    <span className="mt-cmedia"><img className="mt-cimg" src={v.img} alt="" loading="lazy" referrerPolicy="no-referrer" /></span>
+                    <span className="mt-cbody"><b>{v.title}</b></span>
                   </button>
-                  <span className="mt-ord">
-                    <button type="button" className="mt-ib" aria-label="Subir" disabled={i === 0 || busy}
-                      onClick={() => void act(() => api.playlistSwap(lid, v.id, videos[i - 1].id))}><IcUpSm /></button>
-                    <button type="button" className="mt-ib" aria-label="Bajar" disabled={i === videos.length - 1 || busy}
-                      onClick={() => void act(() => api.playlistSwap(lid, v.id, videos[i + 1].id))}><IcDownSm /></button>
+                  <span className="mt-lctl">
+                    <span className="mt-ord">
+                      <button type="button" className="mt-ib" aria-label="Subir" disabled={i === 0 || busy}
+                        onClick={() => void act(() => api.playlistSwap(lid, v.id, videos[i - 1].id))}><IcMtPrev /></button>
+                      <button type="button" className="mt-ib" aria-label="Bajar" disabled={i === videos.length - 1 || busy}
+                        onClick={() => void act(() => api.playlistSwap(lid, v.id, videos[i + 1].id))}><IcMtNext /></button>
+                    </span>
+                    <button type="button" className="mt-ib del" aria-label="Quitar de la lista" disabled={busy}
+                      onClick={() => void act(() => api.playlistRemove(lid, v.id))}><IcClose /></button>
                   </span>
-                  <button type="button" className="mt-ib del" aria-label="Quitar de la lista" disabled={busy}
-                    onClick={() => void act(() => api.playlistRemove(lid, v.id))}><IcClose /></button>
                 </div>
               ))}
             </div>

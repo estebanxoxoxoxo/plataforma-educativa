@@ -3,6 +3,7 @@ import { api } from '../../../api';
 import { useAsync } from '../../../hooks/useAsync';
 import { ChannelCard } from '../cards/ChannelCard';
 import { IcMtTv } from '../components/MtIcons';
+import { CardSkeleton } from '../components/VideoList';
 import { channelPath, type MtDetailState } from '../lib/nav';
 
 /** Canales: SOLO los que el chico sigue y tienen contenido aprobado (followedChannels del POC), en el orden del server
@@ -12,7 +13,7 @@ export function ChannelsPane() {
   const { data, error } = useAsync(() => api.mtChannels(), []);
 
   if (error) return <p className="mt-empty">No pude cargar tus canales ahora.</p>;
-  if (!data) return <div className="mt-chgrid" aria-busy="true">{Array.from({ length: 6 }, (_, i) => <span key={i} className="mt-chcard is-sk"><span className="mt-chav mt-sk" /><i className="mt-sk" /></span>)}</div>;
+  if (!data) return <div className="mt-chgrid" aria-busy="true">{Array.from({ length: 6 }, (_, i) => <CardSkeleton key={i} />)}</div>;
   if (!data.channels.length) {
     return (
       <div className="mt-none">

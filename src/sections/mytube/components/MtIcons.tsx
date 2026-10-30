@@ -11,6 +11,14 @@ export const IcMtTv = (p: P) => (
 export const IcMtPlus = (p: P) => (
   <svg {...base} strokeWidth={2.6} {...p}><path d="M12 5v14M5 12h14" /></svg>
 );
+/** Antes / después en la lista (30-oct): los videos de una lista pasaron de filas a grilla, y en una grilla «antes» es a la
+ *  izquierda (o al final de la fila de arriba), no arriba. Mismo trazo que IcUpSm/IcDownSm de shared. */
+export const IcMtPrev = (p: P) => (
+  <svg {...base} strokeWidth={2.6} {...p}><path d="M14.5 6l-6 6 6 6" /></svg>
+);
+export const IcMtNext = (p: P) => (
+  <svg {...base} strokeWidth={2.6} {...p}><path d="M9.5 6l6 6-6 6" /></svg>
+);
 export const IcMtPencil = (p: P) => (
   <svg {...base} {...p}><path d="M4 20l4-1L19 8l-3-3L5 16z" /><path d="M14 7l3 3" /></svg>
 );

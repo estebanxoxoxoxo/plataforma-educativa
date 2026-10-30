@@ -3,7 +3,7 @@ import { pickBar } from '../navBar';
 
 // El orden del menú (docs/AGENTS.md regla 8; = NAV de Sidebar.tsx, reordenado por Esteban el 30-oct: después de MyTube van
 // Mi espacio, Calendario, Aprender y Tienda; After Day al fondo por decisión del coordinador) y las dos listas de la barra
-// (RESPONSIVE.md §2.2, D1/D2: no cambiaron).
+// (RESPONSIVE.md §2.2, D1/D2: no cambiaron). El Feed se fue y VOLVIÓ como punto de menú la misma noche del 30-oct.
 const MENU = ['home', 'search', 'chat', 'mytube', 'space', 'calendar', 'learn', 'store', 'afterday', 'family'];
 const KID = ['home', 'search', 'mytube', 'learn'];
 const ADULT = ['home', 'search', 'learn', 'family'];

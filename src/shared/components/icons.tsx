@@ -111,6 +111,16 @@ const NK = {
   fTab: '#E6A23C', fBody: '#FFC95C', fHi: '#FFD98A', // = IcFolderWin
 };
 /** Home (el feed de recomendaciones — el "descubrir" de la visión): brújula rosa con aguja coral. */
+/* El diario del Feed (30-oct, pedido de Esteban: «algo que referencie a noticia»): página rosa con titular y líneas. */
+export const IcNavNews = filled(<>
+  <path d="M25.5 9.5h1.7A2.3 2.3 0 0129.5 11.8V23.2a3.3 3.3 0 01-3.3 3.3H7.2z" fill={NK.ink} opacity=".35" />
+  <rect x="2.5" y="5.5" width="23" height="21" rx="3" fill={NK.pink} />
+  <rect x="6" y="9.5" width="8.5" height="6.5" rx="1.5" fill="#fff" />
+  <rect x="17" y="9.5" width="5" height="2.2" rx="1.1" fill={NK.pinkL} />
+  <rect x="17" y="13.8" width="5" height="2.2" rx="1.1" fill={NK.pinkL} />
+  <rect x="6" y="19" width="16" height="2.2" rx="1.1" fill={NK.pinkL} />
+  <rect x="6" y="22.8" width="12" height="2.2" rx="1.1" fill={NK.pinkL} />
+</>);
 export const IcNavDiscover = filled(<>
   <circle cx="16" cy="16" r="13.4" fill={NK.pink} />
   <circle cx="16" cy="16" r="9.4" fill={NK.pinkL} />

@@ -10,8 +10,8 @@ import { cycleAllows, useCycle } from '../../sections/parent/lib/cycle';
 import { BrandMark } from './BrandMark';
 import { ProfileCard } from './ProfileCard';
 import {
-  IcNavChat, IcNavDiscover, IcNavFamily, IcNavMoon, IcNavMyTube, IcNavLearn,
-  IcNavSearch, IcNavSpace, IcNavStore,
+  IcNavChat, IcNavFamily, IcNavMoon, IcNavMyTube, IcNavLearn,
+  IcNavNews, IcNavSearch, IcNavSpace, IcNavStore,
 } from './icons';
 
 /** El punto Calendario lleva el MISMO ícono-almanaque estilo Apple del título de la sección (pedido de Esteban,
@@ -40,8 +40,8 @@ export const NAV_ID = 'app-nav';
 // Familia), coherente con su tema «después del día». Familia sigue ABAJO DE TODO (solo adulto).
 // El orden de la barra inferior del teléfono sale de acá (BottomNav: MENU_ORDER = NAV); activeFrom no depende del orden.
 export const NAV: readonly NavItem[] = [
-  // Feed (pedido 12-oct: el nuevo nombre de Home) = el feed de recomendaciones; sec 'home', ruta /.
-  { sec: 'home', label: 'Feed', to: '/', Icon: IcNavDiscover },
+  // Feed, de vuelta como punto de menú (30-oct, fue y volvió en la misma noche) y con ícono de NOTICIA (el diario).
+  { sec: 'home', label: 'Feed', to: '/', Icon: IcNavNews },
   { sec: 'search', label: 'Buscar', to: '/buscar', Icon: IcNavSearch },
   // El chat es otra puerta para encontrar cosas, conversando. Sin submenús.
   { sec: 'chat', label: 'Chat', to: '/chat', Icon: IcNavChat },

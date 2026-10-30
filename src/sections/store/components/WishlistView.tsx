@@ -1,6 +1,5 @@
 import type { MarketItem } from '../../../api/types';
 import { RewardCard } from '../cards/RewardCard';
-import { fmtEc } from '../lib/format';
 import { Heart, HeartInline } from './Heart';
 
 /** "Tu lista de deseos" (/tienda?vista=deseos): los premios que el chico marcó con ❤, del más nuevo al
@@ -19,11 +18,8 @@ export function WishlistView({ items, ec, onBack, onRedeem, onWish }: {
       <a className="back st-back" href="/tienda" onClick={(e) => { e.preventDefault(); onBack(); }}>‹ Tienda</a>
       <header className="st-head">
         <h2 className="h2">Tu lista de deseos</h2>
-        <p className="lede">
-          {n > 0
-            ? <>{n === 1 ? '1 premio' : `${n} premios`} que marcaste con <HeartInline />, del más nuevo al más viejo. Tenés <b className="st-lede-ec">{fmtEc(ec)} ⚡</b></>
-            : 'Acá guardás los premios que más querés.'}
-        </p>
+        {/* Con premios, sin subtítulo (pedido de Esteban, 30-oct: quitar el «N premios que marcaste… Tenés N ⚡»). */}
+        {n === 0 && <p className="lede">Acá guardás los premios que más querés.</p>}
       </header>
       {n > 0 ? (
         <div className="st-grid" data-view="deseos">

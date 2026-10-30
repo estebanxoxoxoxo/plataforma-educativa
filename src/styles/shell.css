@@ -50,7 +50,8 @@
 :is(.nav-item,.bnav-item)[data-sec="search"]{--sec-bg:#E0F5F3;--sec-bd:#3DBDB3;--sec-fg:#0B6B66}
 :is(.nav-item,.bnav-item)[data-sec="chat"]{--sec-bg:#EEF1F8;--sec-bd:#9AA5C4;--sec-fg:#1B2238}
 :is(.nav-item,.bnav-item)[data-sec="space"]{--sec-bg:#E1F2FB;--sec-bd:#57B6E6;--sec-fg:#0E5F8A}
-:is(.nav-item,.bnav-item)[data-sec="store"]{--sec-bg:#EAF7DC;--sec-bd:#7DC447;--sec-fg:#3B6E12}
+/* Tienda DORADA como su menú contextual (la billetera; Esteban, 30-oct; antes verde #EAF7DC/#7DC447/#3B6E12). */
+:is(.nav-item,.bnav-item)[data-sec="store"]{--sec-bg:#FFF3D9;--sec-bd:#F4B740;--sec-fg:#7F5300}
 :is(.nav-item,.bnav-item)[data-sec="learn"]{--sec-bg:#E8EDFE;--sec-bd:#7B93F0;--sec-fg:#2843A8}
 :is(.nav-item,.bnav-item)[data-sec="mytube"]{--sec-bg:#FEEDE5;--sec-bd:#F58A5E;--sec-fg:#B03F18}
 :is(.nav-item,.bnav-item)[data-sec="afterday"]{--sec-bg:#F0ECFD;--sec-bd:#8A5CF5;--sec-fg:#5B36B8}

@@ -31,29 +31,51 @@ i.mt-sk{height:12px;border-radius:4px}
 .mt-sk-t{width:min(260px,70%);height:24px!important}
 .mt-sk-s{width:120px;margin-top:8px}
 
-/* ---- Canales: tarjeta = avatar, título y "N videos" ---- */
-.mt-chgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(172px,1fr));gap:14px}
-.mt-chcard{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0;padding:18px 12px 15px;text-align:center;background:#fff;border:1px solid var(--card-line);border-radius:9px;cursor:pointer;transition:box-shadow .25s,transform .25s}
-.mt-chcard:hover{box-shadow:0 12px 26px -14px rgba(27,34,56,.35);transform:translateY(-2px)}
-.mt-chcard b{max-width:100%;font-family:var(--display);font-weight:800;font-size:16px;line-height:1.2;color:#1B2238;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.mt-chcard small{color:#6A7390;font-weight:700;font-size:12.5px;font-variant-numeric:tabular-nums}
-.mt-chcard.is-sk{cursor:default}
-.mt-chcard.is-sk:hover{box-shadow:none;transform:none}
-.mt-chcard.is-sk i{width:70%}
+/* ---- LA tarjeta de video (pedido de Esteban, 30-oct: «todas las cards de video —canales, playlists, guardado— del
+   mismo tamaño, y en la parte de la imagen sin padding») ----
+   UNA tarjeta (.mt-card) para Canales, Mis listas, los videos de un canal (y de sus playlists) y los de una lista, en UNA
+   grilla: columnas iguales con el MISMO mínimo y el mismo hueco que Mi espacio (.spgrid de space.css: 208 px / 14, y 2
+   columnas / 12 en el teléfono), así una tarjeta mide lo mismo en las tres pantallas. Antes cada grilla tenía su mínimo
+   (172 / 204 / 208) y cada tarjeta su alto.
+   Previa 16:9 A SANGRE: el margen de -1 px la monta sobre el filete y su radio de arriba es el de la tarjeta. Sin
+   overflow:hidden en la tarjeta a propósito: recortaría el anillo de foco de los botones de adentro (la tarjeta de lista).
+   Cuerpo con alto mínimo fijo y el título reservando sus dos renglones: un nombre corto o la falta de dato no cambian el
+   alto. ESE alto (82 / 76 en el teléfono) es el mismo número de .spf-body en space.css: si cambia uno, cambian los dos. */
+.mt-chgrid,.mt-lgrid,.mt-vlist,.mt-lrows{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,208px),1fr));gap:14px}
+.mt-card{position:relative;min-width:0;display:grid;grid-template-rows:auto 1fr;text-align:left;background:#fff;border:1px solid var(--card-line);border-radius:12px;cursor:pointer;transition:box-shadow .25s,transform .25s}
+.mt-card:hover{box-shadow:0 12px 26px -16px rgba(27,34,56,.35);transform:translateY(-2px)}
+.mt-card.is-sk{cursor:default}
+.mt-card.is-sk:hover{box-shadow:none;transform:none}
+.mt-cmedia{position:relative;display:block;margin:-1px -1px 0;aspect-ratio:16/9;border-radius:12px 12px 0 0;overflow:hidden;background:#EDF0F7}
+.mt-cimg{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;transition:transform .35s ease}
+.mt-card:hover .mt-cimg{transform:scale(1.03)}
+.mt-cbody{min-width:0;min-height:82px;display:flex;flex-direction:column;gap:4px;padding:10px 12px 12px}
+.mt-cbody b{min-height:2.6em;font-weight:800;font-size:15px;line-height:1.3;color:#1B2238;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mt-cbody small{margin-top:auto;color:#6A7390;font-weight:700;font-size:12.5px;line-height:1.3;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mt-card.is-sk .mt-cbody i:first-child{width:80%;height:14px}
+.mt-card.is-sk .mt-cbody i:last-child{width:40%;margin-top:auto}
+/* video: la duración en la esquina de la miniatura */
+.mt-dur{position:absolute;right:6px;bottom:6px;padding:1px 6px;border-radius:5px;background:rgba(14,18,32,.85);color:#fff;font-size:11.5px;font-weight:800;font-style:normal;font-variant-numeric:tabular-nums}
+
+/* Canales: la franja es el MISMO avatar ampliado y desenfocado (llena a sangre sin recortar el logo: el avatar es
+   cuadrado y a 16:9 perdía casi la mitad) con el avatar redondo al medio. El avatar suelto (.mt-chav) es el de la
+   cabecera del canal (.big) y el de los esqueletos. */
 .mt-chav{flex:none;display:block;width:64px;height:64px;border-radius:50%;object-fit:cover;background:#FEEDE5}
 .mt-chav.big{width:76px;height:76px}
+.mt-chmedia{background:#FEEDE5}
+.mt-chmedia > .mt-chbg{inset:-14%;width:128%;height:128%;filter:blur(18px) saturate(1.25);opacity:.85}
+.mt-chmedia > .mt-chav{position:absolute;left:50%;top:50%;width:auto;height:58%;aspect-ratio:1;transform:translate(-50%,-50%);box-shadow:0 0 0 3px rgba(255,255,255,.92),0 8px 20px -8px rgba(14,18,32,.5)}
+.mt-chmedia > span.mt-chav{background:#F9D3C1}
 
-/* ---- Mis listas: «Nueva lista» primero, después las tarjetas con portada ---- */
-.mt-lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(204px,1fr));gap:14px}
-.mt-lnew{min-height:168px;display:grid;place-content:center;justify-items:center;gap:8px;border:2px dashed #F5B79C;border-radius:9px;background:#FFF8F4;color:#B03F18;font-weight:800;font-size:15px;cursor:pointer;transition:background-color .2s,border-color .2s}
-.mt-lnew:hover{background:#FEEDE5;border-color:#F58A5E}
+/* Mis listas: la portada (si la lista está vacía queda el durazno) y «Nueva lista» primero, del MISMO tamaño: el ＋ en el
+   lugar de la portada y el rótulo en el del nombre. El punteado de 2 px va como outline hacia ADENTRO sobre el filete
+   transparente: un border de 2 px la hacía 0,75 px más alta que las demás (y estiraba a la vecina de fila). */
+.mt-lcover{background:#FEEDE5}
+.mt-lnew{border-color:transparent;outline:2px dashed #F5B79C;outline-offset:-2px;background:#FFF8F4;color:#B03F18;transition:background-color .2s,outline-color .2s}
+.mt-lnew:hover{background:#FEEDE5;outline-color:#F58A5E;box-shadow:none;transform:none}
+.mt-lnew .mt-cmedia{display:grid;place-items:center;background:none}
 .mt-lnew svg{width:30px;height:30px}
-.mt-lcard{display:grid;align-content:start;gap:3px;min-width:0;padding-bottom:13px;text-align:left;background:#fff;border:1px solid var(--card-line);border-radius:9px;overflow:hidden;cursor:pointer;transition:box-shadow .25s,transform .25s}
-.mt-lcard:hover{box-shadow:0 12px 26px -14px rgba(27,34,56,.35);transform:translateY(-2px)}
-.mt-lcover{display:block;aspect-ratio:16/9;background:#FEEDE5;overflow:hidden}
-.mt-lcover img{display:block;width:100%;height:100%;object-fit:cover}
-.mt-lcard b{padding:9px 12px 0;font-family:var(--display);font-weight:800;font-size:16px;line-height:1.2;color:#1B2238;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.mt-lcard small{padding:0 12px;color:#6A7390;font-weight:700;font-size:12.5px}
+.mt-lnew .mt-cbody{justify-content:center;align-items:center;font-weight:800;font-size:15px}
 
 /* ---- vista de canal: cabecera ---- */
 .mt-chhead{display:flex;align-items:flex-start;gap:18px;min-width:0}
@@ -70,22 +92,8 @@ i.mt-sk{height:12px;border-radius:4px}
 .mt-desc.is-open{display:block;-webkit-line-clamp:unset}
 .mt-desc:hover{color:#1B2238}
 
-/* ---- filas de video (miniatura con duración, título, "agregado {fecha}") ---- */
-.mt-vlist{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}
-.mt-vrow{display:flex;align-items:flex-start;gap:14px;min-width:0;padding:6px;border-radius:9px;text-align:left;cursor:pointer;transition:background-color .2s}
-.mt-vrow:hover{background:#fff}
-.mt-vrow.is-sk{cursor:default}
-.mt-vrow.is-sk:hover{background:none}
-.mt-vth{position:relative;flex:none;display:block;width:172px;aspect-ratio:16/9;border-radius:7px;overflow:hidden;background:#EDF0F7}
-.mt-vth img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .3s}
-.mt-vrow:hover .mt-vth img{transform:scale(1.04)}
-.mt-vth i{position:absolute;right:5px;bottom:5px;padding:1px 5px;border-radius:4px;background:rgba(14,18,32,.85);color:#fff;font-size:11px;font-weight:800;font-style:normal;font-variant-numeric:tabular-nums}
-.mt-vmeta{flex:1;min-width:0;display:grid;align-content:start;gap:5px;padding-top:3px}
-.mt-vmeta b{font-size:15px;line-height:1.3;color:#1B2238;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.mt-vmeta small{color:#6A7390;font-weight:700;font-size:12.5px}
-.mt-vrow.is-sk .mt-vmeta i:first-child{width:80%;height:14px}
-.mt-vrow.is-sk .mt-vmeta i:last-child{width:34%}
-.mt-more{width:100%;margin-top:4px;padding:12px 16px;border-radius:9px;border:1px solid #F5C4AE;background:#FFF5F0;color:#B03F18;font-weight:800;font-size:14px;cursor:pointer;transition:background-color .2s}
+/* ---- «Ver más» de los videos de un canal: ocupa la fila entera de la grilla ---- */
+.mt-more{grid-column:1/-1;width:100%;margin-top:4px;padding:12px 16px;border-radius:9px;border:1px solid #F5C4AE;background:#FFF5F0;color:#B03F18;font-weight:800;font-size:14px;cursor:pointer;transition:background-color .2s}
 .mt-more:hover:not(:disabled){background:#FEEDE5}
 .mt-more:disabled{opacity:.6;cursor:default}
 
@@ -97,7 +105,13 @@ i.mt-sk{height:12px;border-radius:4px}
 .mt-pl-head svg{flex:none;width:19px;height:19px;color:#F26B3A}
 .mt-pl-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mt-pl-car{flex:none;color:#9AA3BC;font-size:12px}
-.mt-pl-body{padding:8px;border-top:1px solid #F1F3F8;background:#FBFBFD}
+/* Abierta, la playlist suelta su caja (30-oct): el encabezado queda como tarjeta propia (el mismo filete, así no se corre
+   nada al abrir) y sus videos van DEBAJO, a todo el ancho de la columna. Adentro de la caja (filete + 12 de aire) las
+   tarjetas medían 223 px contra 229,5 de las demás grillas; así miden lo mismo que en Videos, Canales y Mis listas. */
+.mt-pl.is-open{border:0;background:none;overflow:visible}
+.mt-pl.is-open > .mt-pl-head{border:1px solid var(--card-line);border-radius:9px;background:#fff}
+.mt-pl.is-open > .mt-pl-head:hover{background:#FFF8F4}
+.mt-pl-body{padding:12px 0 10px}
 .mt-pl-msg{margin:0;padding:14px;text-align:center;color:#6A7390;font-weight:700;font-size:13.5px}
 
 /* ---- vista de lista ---- */
@@ -115,20 +129,20 @@ i.mt-sk{height:12px;border-radius:4px}
 .mt-btn--soft:hover:not(:disabled){background:#FCDCCD}
 .mt-ghost{padding:10px 14px;border-radius:999px;color:#47506B;font-weight:800;font-size:14px;cursor:pointer}
 .mt-ghost:hover{background:#F1F3F8}
-.mt-lrows{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+/* los videos de la lista: la tarjeta común (grilla de arriba) con el botón de reproducir adentro —previa y título— y
+   abajo, en el lugar de la línea de dato, antes / después y ✕. Cuerpo + controles = el mismo alto que el cuerpo de las
+   otras tarjetas (48 + 34 = 82; en el teléfono 44 + 32 = 76). */
 .mt-lrows[aria-busy="true"]{opacity:.7}
-.mt-lrow{display:flex;align-items:center;gap:8px;min-width:0;padding:8px 8px 8px 10px;background:#fff;border:1px solid var(--card-line);border-radius:9px}
-.mt-lplay{flex:1;min-width:0;display:flex;align-items:center;gap:13px;text-align:left;cursor:pointer}
-.mt-lth{flex:none;display:block;width:124px;aspect-ratio:16/9;border-radius:6px;overflow:hidden;background:#EDF0F7}
-.mt-lth img{display:block;width:100%;height:100%;object-fit:cover}
-.mt-lplay b{flex:1;min-width:0;font-size:14.5px;line-height:1.3;color:#1B2238;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mt-litem{grid-template-rows:1fr auto;cursor:default}
+.mt-lplay{min-width:0;display:grid;grid-template-rows:auto 1fr;text-align:left;cursor:pointer;border-radius:12px 12px 0 0}
+.mt-litem .mt-cbody{min-height:48px;padding:9px 12px 0}
 .mt-lplay:hover b{color:#B03F18}
-.mt-ord{flex:none;display:grid}
+.mt-lctl{display:flex;align-items:center;justify-content:space-between;gap:4px;height:34px;padding:0 6px 2px}
+.mt-ord{flex:none;display:flex;gap:2px}
 .mt-ib{flex:none;width:34px;height:32px;display:grid;place-items:center;border-radius:7px;color:#6A7390;cursor:pointer;transition:background-color .15s,color .15s}
 .mt-ib svg{width:17px;height:17px}
 .mt-ib:hover:not(:disabled){background:#F1F3F8;color:#1B2238}
 .mt-ib:disabled{opacity:.28;cursor:default}
-.mt-ib.del{height:34px}
 .mt-ib.del:hover:not(:disabled){background:#FDECEC;color:#D63B41}
 
 /* ---- hojas (nombre de lista, menú ⋮) sobre .shov/.shcard ---- */
@@ -164,27 +178,29 @@ i.mt-sk{height:12px;border-radius:4px}
   .mt-tab{flex:none;white-space:nowrap}
   .mt-tab:focus-visible{outline-offset:-3px}
   .mt-ink{bottom:0}
-  /* Canales y Mis listas: 2 columnas (más si entra). Antes, a 375 la grilla de 172 px mínimo daba UNA tarjeta por fila de
-     165 px de alto. Nombre a 14.5 px: el más largo sin espacios («KhanAcademyEspañol», 147 px) entra en un renglón. */
-  .mt-chgrid,.mt-lgrid{grid-template-columns:repeat(auto-fill,minmax(136px,1fr));gap:12px}
-  .mt-chcard{gap:6px;padding:14px 6px 12px}
-  .mt-chcard b{font-size:14.5px}
-  .mt-chav{width:56px;height:56px}
-  .mt-lnew{min-height:132px}
-  .mt-lcard b{padding:8px 10px 0;font-size:15px}
-  .mt-lcard small{padding:0 10px}
+  /* Las grillas de tarjetas de video, de a dos como .spgrid de Mi espacio (30-oct: mismo tamaño en las tres pantallas;
+     antes Canales y Mis listas iban con auto-fill de 136 y a 600 px daban 4 tarjetas chicas). Cuerpo de 76 (el mismo
+     número que .spf-body en space.css). Título a 13,5 con 8 de aire: a 375 el nombre más largo sin espacios
+     («KhanAcademyEspañol», 143 px) entra en un renglón; con 14 px y 10 de aire pedía 148,5 y había 144, y se partía. */
+  .mt-chgrid,.mt-lgrid,.mt-vlist,.mt-lrows{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .mt-cbody{min-height:76px;gap:3px;padding:8px 8px 10px}
+  .mt-cbody b{font-size:13.5px}
+  /* el dato a 11,5: «agregado 23 de jul de 2026» pide 160 px a 12,5 y a 375 hay 148 (perdía el año); a 11,5 son 147.
+     Con «sept» o a 320 px sigue el corte con «…» de respaldo. */
+  .mt-cbody small{font-size:11.5px}
+  .mt-pl-body{padding:10px 0 8px}
+  .mt-litem .mt-cbody{min-height:44px;padding:7px 8px 0}
+  .mt-lctl{height:32px;padding:0 4px 2px}
+  .mt-litem .mt-ib{width:32px;height:30px}
   /* cabecera del canal: el nombre puede ir en dos renglones en vez de cortarse */
   .mt-chmeta h2{font-size:24px;white-space:normal;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
   .mt-lhead h2{font-size:24px}
   .mt-follow{min-height:40px}
-  /* filas de video y de lista: la miniatura sigue al ancho de la fila (a 320 el título conserva su lugar) */
-  .mt-vrow{gap:12px}
-  .mt-vth{width:clamp(112px,42%,172px)}
-  .mt-lth{width:clamp(72px,36%,124px)}
   .mt-acts .mt-btn{flex:1 1 auto}
 }
 @media (prefers-reduced-motion: reduce){
-  .mt-chcard,.mt-lcard,.mt-vth img,.mt-ink,.mt-ov{transition:none;animation:none}
+  .mt-card,.mt-cimg,.mt-ink,.mt-ov{transition:none;animation:none}
+  .mt-card:hover,.mt-card:hover .mt-cimg{transform:none}
   .mt-sk{animation:none}
 }
 
