@@ -4,6 +4,7 @@ import { ensureAudio } from '../../../learn/audio/service';
 import { definitionsForTarget } from '../../../learn/definitions';
 import { recallableTargets } from '../../../learn/recallActivity';
 import { RouteCard, RouteCardSkeleton } from '../cards/RouteCard';
+import { IcNavLearn } from '../../../shared/components/icons';
 import { IcPlus } from '../components/LearnIcons';
 import { RecallRootButton } from '../components/RecallRootButton';
 import { bindLearnBgAudio } from '../lib/bgAudioBinding';
@@ -102,14 +103,17 @@ export function LearnPage() {
   return (
     <section className="view" id="v-learn">
       <div className="lp-head">
-        <h2 className="h2">Aprender</h2>
+        {/* Ícono + título, sin subtítulo, como Calendario (pedido de Esteban, 30-oct). */}
+        <div className="lp-title">
+          <span className="lp-tico" aria-hidden="true"><IcNavLearn /></span>
+          <h2 className="h2">Aprender</h2>
+        </div>
         {/* Crear vive DENTRO de Aprender (pedido 12-oct): botón a la altura del título, va a /crear. «+ Crear» con el azul
             de Active recall (pedido de Esteban, 30-oct): el + dice «hacé una ruta nueva» mejor que el ícono del menú. */}
         <button className="lp-create" onClick={() => go('/crear')}>
           <IcPlus />Crear
         </button>
       </div>
-      <p className="lede">Elegí una ruta y arrancá.</p>
 
       {reviewable.length > 0 && <RecallRootButton count={reviewable.length} onOpen={openRecall} />}
 

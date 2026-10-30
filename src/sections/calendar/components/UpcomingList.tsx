@@ -10,13 +10,12 @@ export function UpcomingList({ groups, nextId, now, tz }: {
   now: number;
   /** La zona de la familia: las horas de cada fila se leen en su pared (null = la del navegador). */ tz: Tz;
 }) {
-  const total = groups.reduce((n, g) => n + g.events.length, 0);
   const tagOf = (e: CalendarEvent) => (isLive(e, now) ? 'live' : e.id === nextId ? 'next' : null);
   return (
     <section className="cal-sec" aria-labelledby="cal-up-t">
       <div className="cal-sechead">
+        {/* Sin el «Tenés N clases por delante» (pedido de Esteban, 30-oct). */}
         <h3 id="cal-up-t">Próximas clases</h3>
-        <small>{total === 1 ? 'Tenés 1 clase por delante' : `Tenés ${total} clases por delante`}</small>
       </div>
       <div className="cal-days">
         {groups.map((g) => (

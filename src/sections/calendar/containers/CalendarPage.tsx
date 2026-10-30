@@ -87,10 +87,8 @@ export function CalendarPage() {
     <section className="view cal-view" id="v-calendar">
       <header className="cal-head">
         {leaf && <span className="cal-tleaf" aria-hidden="true"><small>{leaf.w}</small><b>{leaf.d}</b></span>}
-        <div>
-          <h2 className="h2">Calendario</h2>
-          <p className="lede">Tus clases con los mentores, día por día: así sabés qué te toca y cuándo.</p>
-        </div>
+        {/* Sin lede (pedido de Esteban, 30-oct: quitar «Tus clases con los mentores…»). */}
+        <h2 className="h2">Calendario</h2>
       </header>
 
       {!view ? (failed ? <CalendarFail onRetry={() => void load()} /> : <CalendarSkeleton />)

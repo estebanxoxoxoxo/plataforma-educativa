@@ -10,9 +10,26 @@ import { cycleAllows, useCycle } from '../../sections/parent/lib/cycle';
 import { BrandMark } from './BrandMark';
 import { ProfileCard } from './ProfileCard';
 import {
-  IcNavCalendar, IcNavChat, IcNavDiscover, IcNavFamily, IcNavMoon, IcNavMyTube, IcNavLearn,
+  IcNavChat, IcNavDiscover, IcNavFamily, IcNavMoon, IcNavMyTube, IcNavLearn,
   IcNavSearch, IcNavSpace, IcNavStore,
 } from './icons';
+
+/** El punto Calendario lleva el MISMO ícono-almanaque estilo Apple del título de la sección (pedido de Esteban,
+ *  30-oct): banda roja con el día de la semana en español y el número de HOY, en la zona horaria de la familia
+ *  (tz inválida o sin leer → la del navegador, como wallClock). Decorativo: el nombre accesible lo pone la etiqueta. */
+function IcNavCalLeaf() {
+  const tz = useCycle().tz;
+  const d = new Date();
+  let w: string, day: string;
+  try {
+    w = d.toLocaleDateString('es-AR', { weekday: 'short', timeZone: tz || undefined });
+    day = d.toLocaleDateString('es-AR', { day: 'numeric', timeZone: tz || undefined });
+  } catch {
+    w = d.toLocaleDateString('es-AR', { weekday: 'short' });
+    day = String(d.getDate());
+  }
+  return <span className="nav-cal" aria-hidden="true"><small>{w.replace('.', '')}</small><b>{day}</b></span>;
+}
 
 export type Sec = 'home' | 'search' | 'chat' | 'space' | 'store' | 'learn' | 'mytube' | 'afterday' | 'calendar' | 'family';
 export type NavItem = { sec: Sec; label: string; to: string; Icon: ComponentType; adultOnly?: true };
@@ -33,7 +50,8 @@ export const NAV: readonly NavItem[] = [
   // Mi espacio va directo a sus carpetas (sin submenú, pedido 12-oct).
   { sec: 'space', label: 'Mi espacio', to: '/espacio/carpetas', Icon: IcNavSpace },
   // Calendario: las clases del usuario activo con sus mentores (los contrata el adulto en Buscar → Mentores).
-  { sec: 'calendar', label: 'Calendario', to: '/calendario', Icon: IcNavCalendar },
+  // Su ícono es el almanaque vivo estilo Apple con el día de HOY (IcNavCalLeaf, pedido 30-oct).
+  { sec: 'calendar', label: 'Calendario', to: '/calendario', Icon: IcNavCalLeaf },
   // Aprender = Learn (W3 del porte: aprender+practicar COLAPSADOS). Practicar y Repasar ya salieron del menú
   // (decisiones 12-oct): sus rutas redirigen a /aprender.
   { sec: 'learn', label: 'Aprender', to: '/aprender', Icon: IcNavLearn },

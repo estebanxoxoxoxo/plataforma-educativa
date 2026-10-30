@@ -22,12 +22,9 @@ export function WardrobeSection({ items, ec, me, stateOf, wearing, giftOn, giftF
   onGift: (item: MarketItem, btn: HTMLButtonElement) => void;
   onClearGiftFor: () => void;
 }) {
+  // Sin cabecera de categoría (pedido de Esteban, 30-oct): la grilla habla sola; el nombre, para lectores de pantalla.
   return (
-    <section className="st-sec st-wsec" id="st-ropa" ref={ref} tabIndex={-1} aria-labelledby="st-ropa-h">
-      <div className="st-sec-head">
-        <h3 id="st-ropa-h">Ropa para tu avatar</h3>
-        <p>Es de Innerith: la comprás con tus ⚡ y te la ponés al toque.{giftOn ? ' ¡También la podés regalar!' : ''}</p>
-      </div>
+    <section className="st-sec st-wsec" id="st-ropa" ref={ref} tabIndex={-1} aria-label="Ropa para tu avatar">
       {giftOn && giftFor && (
         <div className="st-wfor" role="status">
           <Avatar name={giftFor.nick} color={giftFor.color} look={lookFor(giftFor.nick)} accessory={giftFor.accessory} size={36} />

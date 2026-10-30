@@ -6,6 +6,10 @@
 /* ---- encabezado de Aprender con el botón Crear a la altura del título (pedido 12-oct) ---- */
 .lp-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .lp-head .h2{margin:0}
+/* Ícono + título, sin subtítulo, como Calendario (Esteban, 30-oct): el ícono del menú en una teja de la familia azul. */
+.lp-title{display:flex;align-items:center;gap:14px;min-width:0}
+.lp-tico{flex:none;display:grid;place-items:center;width:52px;height:52px;border-radius:12px;background:#E8EDFE;border:1px solid #CBD6F6;color:#2843A8}
+.lp-tico svg{width:30px;height:30px}
 /* «+ Crear» (pedido de Esteban, 30-oct): el MISMO azul que la entrada de Active recall (.ln-recall: #3A5BD9, hover #2F4FCB,
    sombra/active #2843A8) en lugar del violeta de antes; alto y forma de siempre. El + con trazo 2.6: a 18 px el de 2 se
    veía flaco al lado del texto en display. */

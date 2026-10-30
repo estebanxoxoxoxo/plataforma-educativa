@@ -107,8 +107,8 @@
    acomoda al ancho angosto con las mismas reglas que el teléfono (el hero apila su ícono; la solicitud baja los botones
    a su fila). ---- */
 @container app (min-width:1024px){
-  /* 360: «los menús contextuales tienen que ser más anchos» (Esteban, 30-oct; antes 300). */
-  .hf-col.has-aside{--hf-aside-w:360px;max-width:none;display:grid;grid-template-columns:minmax(0,780px) var(--hf-aside-w);grid-template-rows:auto 1fr;column-gap:28px;justify-content:center;align-items:start}
+  /* 380: afinado en vivo con Esteban (30-oct; 300→360→420→«todos los contextuales, más angostos»→380). */
+  .hf-col.has-aside{--hf-aside-w:380px;max-width:none;display:grid;grid-template-columns:minmax(0,780px) var(--hf-aside-w);grid-template-rows:auto 1fr;column-gap:28px;justify-content:center;align-items:start}
   .hf-col.has-aside > .hf-head{grid-column:1;grid-row:1}
   .hf-col.has-aside > .hf-main{grid-column:1;grid-row:2}
   .hf-col.has-aside > .fpin{grid-column:2;grid-row:1 / 3;position:sticky;top:-12px;margin-bottom:0}

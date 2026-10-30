@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../../../api';
-import type { AssignedLeague, EcTx, FamilyWeekPrize, Friend, MarketItem, Redemption } from '../../../api/types';
+import type { EcTx, FamilyWeekPrize, Friend, MarketItem, Redemption } from '../../../api/types';
 import { useUser } from '../../../hooks/user';
+import { IcNavStore } from '../../../shared/components/icons';
 import { openAvatarPicker, saveMyLook, useMyIdentity } from '../../../shared/components/ProfileCard';
 import { chatFriendsChanged, openChat } from '../../friends/lib/chatDock';
 import { useSocial } from '../../friends/lib/social';
@@ -13,7 +14,6 @@ import { RewardCard } from '../cards/RewardCard';
 import type { WearState } from '../cards/WardrobeCard';
 import { BuySheet, type BuyState } from '../components/BuySheet';
 import { GiftSheet, type GiftState } from '../components/GiftSheet';
-import { HeartInline } from '../components/Heart';
 import { MovesView } from '../components/MovesView';
 import { RedeemSheet, type SheetState } from '../components/RedeemSheet';
 import { RedemptionsView } from '../components/RedemptionsView';
@@ -346,11 +346,10 @@ export function StorePage() {
     <section className="view" id="v-store" ref={viewEl} data-vista={view}>
       <div className="st-page">
         {view === 'tienda' && (
+          /* Ícono + título, sin subtítulo, como Calendario y Aprender (pedido de Esteban, 30-oct). */
           <header className="st-head">
+            <span className="st-tico" aria-hidden="true"><IcNavStore /></span>
             <h2 className="h2">Tienda</h2>
-            <p className="lede">{user?.kind === 'adult'
-              ? 'La ropa del avatar se canjea con Energy Coins; los premios viven en la cuenta de cada integrante.'
-              : 'Canjeá tus Energy Coins por los premios que te preparan papá y mamá, o vestí a tu avatar.'}</p>
           </header>
         )}
 
@@ -382,20 +381,9 @@ export function StorePage() {
             </div>
 
             <div className="st-main">
-              <section className="st-sec" aria-labelledby="st-premios-h">
-                <div className="st-sec-head">
-                  <h3 id="st-premios-h">Premios</h3>
-                  {user?.kind === 'adult' ? (
-                    <p>Cada integrante canjea los suyos; vos los administrás en Familia → Premios.</p>
-                  ) : (
-                    /* El hint de la lista de deseos al NIVEL del título, y abajo la línea de la liga como subtítulo
-                       (pedido de Esteban, 30-oct; reemplaza al «Los publican papá y mamá…»). */
-                    <>
-                      <span className="st-sec-hint">Tocá el <HeartInline /> para guardar los que más querés</span>
-                      <PremiosLeagueLine />
-                    </>
-                  )}
-                </div>
+              {/* Sin cabecera de categoría (pedido de Esteban, 30-oct: «quitá las categorías de la tienda, premios y
+                  ropa con sus subtítulos»): la grilla habla sola; el nombre queda para los lectores de pantalla. */}
+              <section className="st-sec" aria-label="Premios">
                 {premios.length > 0 ? (
                   <div className="st-grid">
                     {byPrice(premios).map((it) => (
@@ -438,21 +426,4 @@ export function StorePage() {
       )}
     </section>
   );
-}
-
-/** La línea de la liga como subtítulo de «Premios» (pedido de Esteban, 30-oct, su wording verbatim con los números
- *  vivos): puesto y XP de la semana. Solo un CHICO con Ligas prendidas y la liga ya leída; si no llega (403, red), no
- *  hay línea y la cabecera queda como está. */
-function PremiosLeagueLine() {
-  const kid = useUser()?.kind === 'child';
-  const ligasOn = useFeatures()?.ligas === true;
-  const [l, setL] = useState<AssignedLeague | null>(null);
-  useEffect(() => {
-    if (!kid || !ligasOn) { setL(null); return; }
-    let alive = true;
-    api.myLeague().then((r) => { if (alive) setL(r); }, () => { if (alive) setL(null); });
-    return () => { alive = false; };
-  }, [kid, ligasOn]);
-  if (!l) return null;
-  return <p className="st-sec-sub">Asignada por tus resultados · Tu puesto {l.pos} de {l.total} · {l.xp.toLocaleString('es-AR')} XP esta semana</p>;
 }

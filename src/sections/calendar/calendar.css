@@ -13,10 +13,11 @@
 .cal-view{display:grid;grid-template-columns:minmax(0,1fr);grid-auto-rows:max-content;gap:22px;align-content:start}
 .cal-head{display:flex;align-items:center;gap:14px}
 .cal-head .lede{max-width:640px}
-/* La hojita del título estilo Apple (pedido de Esteban, 30-oct): tira roja con el día de la semana y el número de HOY. */
-.cal-tleaf{flex:none;display:grid;width:48px;border-radius:12px;background:#fff;border:1px solid #F5CFC9;text-align:center;overflow:hidden;box-shadow:0 2px 0 #F5CFC9}
-.cal-tleaf small{padding:4px 0 3px;background:var(--cal-strong);color:#fff;font-size:9px;font-weight:800;line-height:1;letter-spacing:.14em;text-transform:uppercase}
-.cal-tleaf b{padding:3px 0 5px;font-family:var(--display);font-weight:800;font-size:22px;line-height:1;color:#1B2238;font-variant-numeric:tabular-nums}
+/* La hojita del título, FIEL al ícono del Calendario de Apple que pasó Esteban (30-oct): cuadrado redondeado blanco,
+   banda roja plena arriba con el día de la semana en español (VIE) y el número de HOY grande en trazo FINO abajo. */
+.cal-tleaf{flex:none;display:grid;grid-template-rows:17px 1fr;width:52px;height:52px;border-radius:12px;background:#fff;border:1px solid #E3E6EE;box-shadow:0 1px 3px rgba(27,34,56,.14);text-align:center;overflow:hidden}
+.cal-tleaf small{display:grid;place-items:center;background:#E8402F;color:#fff;font-family:-apple-system,'Segoe UI',Arial,sans-serif;font-size:10px;font-weight:800;line-height:1;letter-spacing:.1em;text-transform:uppercase}
+.cal-tleaf b{display:grid;place-items:center;font-family:-apple-system,'Helvetica Neue','Segoe UI',Arial,sans-serif;font-weight:300;font-size:27px;line-height:1;color:#1B2238;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 .cal-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 
 /* ---- armado: listado + columna lateral con la próxima clase (pedido de Esteban, 30-oct) ----
@@ -157,7 +158,8 @@
      la Tienda, y la VISTA entera es la grilla con .cal-layout disuelta (display:contents) — la próxima clase arranca
      A LA PAR del título (con su hojita) y se pega a 12 del borde al scrollear. Solo con el hero presente (:has):
      esqueleto, vacío y error usan todo el ancho. */
-  .cal-view:has(.cal-aside){grid-template-columns:minmax(0,1fr) 360px;grid-template-rows:auto 1fr;column-gap:24px;align-items:start}
+  /* 380: afinado en vivo con Esteban (30-oct; 312→360→420→«más angostos»→380). */
+  .cal-view:has(.cal-aside){grid-template-columns:minmax(0,1fr) 380px;grid-template-rows:auto 1fr;column-gap:24px;align-items:start}
   .cal-view:has(.cal-aside) > *{grid-column:1}
   .cal-view:has(.cal-aside) > .cal-layout{display:contents}
   /* top -12: el sticky mide desde la caja de contenido de .view (32 de padding), como el aside del feed — en reposo
