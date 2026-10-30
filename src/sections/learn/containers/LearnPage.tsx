@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { api } from '../../../api';
+import type { AssignedLeague, LeagueStanding } from '../../../api/types';
+import { useUser } from '../../../hooks/user';
+import { useFeatures } from '../../parent/lib/features';
+import { LeagueIcon } from '../../leagues/components/LeagueIcon';
 import { ensureAudio } from '../../../learn/audio/service';
 import { definitionsForTarget } from '../../../learn/definitions';
 import { recallableTargets } from '../../../learn/recallActivity';
@@ -40,6 +45,7 @@ export function LearnPage() {
   const { routes, rows: rowsRaw, hydrated, defsRev, failed } = useLearnData();
   const [routeId, setRouteId] = useState<string | null>(null);
   const [recall, setRecall] = useState<string[] | null>(null);
+  const board = useLeagueBoard();
 
   // Al ENTRAR a la sección: rutas + hidratación del motor (todas las definiciones) + resultados.
   useEffect(() => { void loadLearn(); }, []);
@@ -115,7 +121,17 @@ export function LearnPage() {
         </button>
       </div>
 
-      {reviewable.length > 0 && <RecallRootButton count={reviewable.length} onOpen={openRecall} />}
+      {/* El menú contextual de Aprender (pedidos de Esteban, 30-oct): PRIMERO Active recall, después la liga COMPLETA
+          (la tabla entera, no el resumen). Sin nada que mostrar, no hay columna y la vista usa todo el ancho (:has). */}
+      {(reviewable.length > 0 || board) && (
+        <aside className="lp-aside">
+          <p className="lp-aside-k">Destacado</p>
+          {reviewable.length > 0 && <RecallRootButton count={reviewable.length} onOpen={openRecall} />}
+          {board && <LearnLeagueCard board={board} />}
+        </aside>
+      )}
+
+      <div className="lp-main">
 
       {!routes ? (
         failed ? (
@@ -138,6 +154,7 @@ export function LearnPage() {
           </section>
         ))
       )}
+      </div>
 
       {recall && (
         <ActivityOverlay
@@ -149,5 +166,56 @@ export function LearnPage() {
         />
       )}
     </section>
+  );
+}
+
+/** La liga de Aprender para el menú contextual (pedidos de Esteban, 30-oct: «como contextual de aprender que esté la
+ *  liga» y «luego la liga completa»): el resumen y, apenas llega, la TABLA entera (leagueStanding). Solo un CHICO con
+ *  Ligas prendidas; si nada llega (403, red), null y no hay tarjeta. */
+type LeagueBoard = { l: AssignedLeague; rows: LeagueStanding['rows'] | null };
+function useLeagueBoard(): LeagueBoard | null {
+  const kid = useUser()?.kind === 'child';
+  const ligasOn = useFeatures()?.ligas === true;
+  const [b, setB] = useState<LeagueBoard | null>(null);
+  useEffect(() => {
+    if (!kid || !ligasOn) { setB(null); return; }
+    let alive = true;
+    api.myLeague().then(async (l) => {
+      if (!alive) return;
+      setB({ l, rows: null });
+      try {
+        const s = await api.leagueStanding(l.id);
+        if (alive) setB({ l, rows: s.rows });
+      } catch { /* sin tabla queda el resumen */ }
+    }, () => { if (alive) setB(null); });
+    return () => { alive = false; };
+  }, [kid, ligasOn]);
+  return b;
+}
+
+function LearnLeagueCard({ board }: { board: LeagueBoard }) {
+  const { l, rows } = board;
+  return (
+    <Link className="lp-league" to="/ligas" aria-label={`${l.name}: puesto ${l.pos} de ${l.total}. Ver las ligas`}>
+      <span className="lp-lg-head">
+        <LeagueIcon color={l.color} />
+        <span className="lp-lg-tx">
+          <b>{l.name}</b>
+          <small>Tu puesto {l.pos} de {l.total} · {l.xp.toLocaleString('es-AR')} XP esta semana</small>
+        </span>
+      </span>
+      {rows && (
+        <span className="lp-lg-rows">
+          {rows.map((r) => (
+            <span key={r.pos} className={`lp-lg-row${r.me ? ' is-me' : ''}`}>
+              <b>{r.pos}º</b>
+              <span className="lp-lg-nick">{r.me ? 'Vos' : r.nick}</span>
+              <small>{r.xp.toLocaleString('es-AR')} XP</small>
+            </span>
+          ))}
+        </span>
+      )}
+      <span className="lp-lg-cta">Ver las ligas ▸</span>
+    </Link>
   );
 }

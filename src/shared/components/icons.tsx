@@ -68,11 +68,12 @@ export const IcShare = svg(<><circle cx="6" cy="12" r="2.6" /><circle cx="17.5" 
 
 // Mi espacio (Drive, canales, listas) + audio de fondo
 /** Carpeta "estilo Windows": la MISMA para todas (amarilla, solapa atrás + cuerpo adelante). */
+/* Carpeta moderna de una pieza (estilo macOS, pedido de Esteban 30-oct: «un mejor ícono para las carpetas en sí»):
+   atrás con la solapa en una sola curva y el frente redondeado a dos tonos, sin la tira de brillo noventosa. */
 export const IcFolderWin = (props: P) => (
   <svg viewBox="0 0 48 38" {...props}>
-    <path d="M4 7a3 3 0 013-3h9.6a3 3 0 012.2 1L21.6 8H41a3 3 0 013 3v4H4z" fill="#E6A23C" />
-    <rect x="4" y="10.5" width="40" height="23.5" rx="3" fill="#FFC95C" />
-    <path d="M4 13.5a3 3 0 013-3h34a3 3 0 013 3v1.8H4z" fill="#FFD98A" />
+    <path d="M4 9.5A3.5 3.5 0 017.5 6h9.4a3.5 3.5 0 012.6 1.15L21.9 9.8h18.6A3.5 3.5 0 0144 13.3V30.5a3.5 3.5 0 01-3.5 3.5h-33A3.5 3.5 0 014 30.5z" fill="#E8A83C" />
+    <path d="M4 17.3a3.5 3.5 0 013.5-3.5h33a3.5 3.5 0 013.5 3.5v13.2a3.5 3.5 0 01-3.5 3.5h-33A3.5 3.5 0 014 30.5z" fill="#FFCF60" />
   </svg>
 );
 export const IcListMusic = svg(<><path d="M4 6h10M4 11h10M4 16h6" strokeLinecap="round" /><circle cx="16.5" cy="17" r="2.5" /><path d="M19 17V8l3-1" strokeLinecap="round" strokeLinejoin="round" /></>, stroke(2.2));
@@ -133,10 +134,12 @@ export const IcNavChat = filled(<>
   <circle cx="10" cy="14.5" r="2.1" fill="#fff" /><circle cx="16" cy="14.5" r="2.1" fill="#fff" /><circle cx="22" cy="14.5" r="2.1" fill="#fff" />
 </>);
 /** Mi espacio: la carpeta amarilla de siempre, SOLA (colores de IcFolderWin; pedido 9-oct: sin corazón). */
+/* Carpeta moderna de una pieza (estilo macOS, pedido de Esteban 30-oct: «un mejor ícono»): atrás con la solapa en una
+   sola curva, frente a dos tonos y una chispa blanca que la hace «Mi espacio» (tu biblioteca). */
 export const IcNavSpace = filled(<>
-  <path d="M3 9a2.6 2.6 0 012.6-2.6h6.6a2.6 2.6 0 011.9.8L16.3 9.6H26.4A2.6 2.6 0 0129 12.2v2H3z" fill={NK.fTab} />
-  <rect x="3" y="12" width="26" height="15.6" rx="2.8" fill={NK.fBody} />
-  <path d="M3 14.8A2.8 2.8 0 015.8 12h20.4a2.8 2.8 0 012.8 2.8v1.2H3z" fill={NK.fHi} />
+  <path d="M3 10.6A3 3 0 016 7.6h6.3a3 3 0 012.2.95l1.75 1.85H26a3 3 0 013 3V24.6a3 3 0 01-3 3H6a3 3 0 01-3-3z" fill={NK.fTab} />
+  <path d="M3 16.4A3 3 0 016 13.4h20a3 3 0 013 3v8.2a3 3 0 01-3 3H6a3 3 0 01-3-3z" fill={NK.fBody} />
+  <path d="M16 16.9l1.05 2.55 2.55 1.05-2.55 1.05L16 24.1l-1.05-2.55-2.55-1.05 2.55-1.05z" fill="#fff" opacity=".92" />
 </>);
 /** Tienda: tiendita con toldo a rayas coral, vidriera y puerta dorada. */
 export const IcNavStore = filled(<>

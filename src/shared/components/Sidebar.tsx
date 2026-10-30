@@ -136,7 +136,7 @@ function useEnergyCoins(): number | null {
  *  no cuenta); Calendario → la próxima clase (0/1) — y cada sección la pisa con su cuenta real al armar su menú (el
  *  Feed suma el hero). Candados de siempre: sin Amigos no se piden solicitudes, sin Ligas no se pide el premio. Se lee
  *  al montar y al volver el foco o la pestaña; con 0 no hay círculo. */
-function useHighlights(): NavHighlights {
+function useHighlights(kid: boolean): NavHighlights {
   const amigosOn = useSocial() === true;
   const ligasOn = useFeatures()?.ligas === true;
   useEffect(() => {
@@ -146,12 +146,15 @@ function useHighlights(): NavHighlights {
         amigosOn ? api.requests() : Promise.reject(new Error('off')),
         api.calendar(),
         ligasOn ? api.familyLeague() : Promise.reject(new Error('off')),
-      ]).then(([rq, cal, fam]) => {
+        // Aprender → su liga en el menú contextual (30-oct): solo del chico, como el aside de LearnPage.
+        kid && ligasOn ? api.myLeague() : Promise.reject(new Error('off')),
+      ]).then(([rq, cal, fam, lg]) => {
         if (!alive) return;
         seedNavHighlights({
           home: rq.status === 'fulfilled' ? rq.value.requests.length : 0,
           calendar: cal.status === 'fulfilled' && cal.value.events.length > 0 ? 1 : 0,
           store: fam.status === 'fulfilled' && storePrizeFor(fam.value) ? 1 : 0,
+          learn: lg.status === 'fulfilled' ? 1 : 0,
         });
       });
     };
@@ -164,7 +167,7 @@ function useHighlights(): NavHighlights {
       window.removeEventListener('focus', wake);
       document.removeEventListener('visibilitychange', wake);
     };
-  }, [amigosOn, ligasOn]);
+  }, [amigosOn, ligasOn, kid]);
   return useNavHighlights();
 }
 
@@ -184,7 +187,7 @@ export function Sidebar({ user, covered = false }: { user?: User; /** tapada por
   const items = useNavItems(user);
 
   const ec = useEnergyCoins();
-  const highlights = useHighlights();
+  const highlights = useHighlights(user?.kind === 'child');
 
   const item = (n: NavItem) => {
     if (!items.includes(n)) return null;

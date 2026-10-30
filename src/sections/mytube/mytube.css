@@ -187,3 +187,9 @@ i.mt-sk{height:12px;border-radius:4px}
   .mt-chcard,.mt-lcard,.mt-vth img,.mt-ink,.mt-ov{transition:none;animation:none}
   .mt-sk{animation:none}
 }
+
+/* Ícono + título, sin subtítulo (Esteban, 30-oct): el ícono del menú en su teja naranja. */
+.mt-title{display:flex;align-items:center;gap:14px;min-width:0;margin-bottom:14px}
+.mt-title .h2{margin:0}
+.mt-tico{flex:none;display:grid;place-items:center;width:52px;height:52px;border-radius:12px;background:#FEEDE5;border:1px solid #F6CBB4;color:#B03F18}
+.mt-tico svg{width:30px;height:30px}

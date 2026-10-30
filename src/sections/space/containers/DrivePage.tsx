@@ -4,7 +4,7 @@ import { api } from '../../../api';
 import type { DriveFolder, DriveItem } from '../../../api/types';
 import { useAsync } from '../../../hooks/useAsync';
 import { FolderSheet } from '../../../shared/components/FolderSheet';
-import { IcFolderWin, IcTrash } from '../../../shared/components/icons';
+import { IcFolderWin, IcNavSpace, IcTrash } from '../../../shared/components/icons';
 import { DriveItemCard } from '../cards/DriveItemCard';
 import { FolderCard } from '../cards/FolderCard';
 import { FolderForm } from '../components/FolderForm';
@@ -37,9 +37,10 @@ export function DrivePage() {
   return (
     <section className="view" id="v-space">
       <div className="sphead">
-        <div>
-          <h2 className="h2">Carpetas</h2>
-          <p className="lede">Guardá lo que encontrás y organizalo a tu manera, como en una biblioteca tuya.</p>
+        {/* Ícono + título, sin subtítulo, como el resto de las secciones (pedido de Esteban, 30-oct). */}
+        <div className="sp-title">
+          <span className="sp-tico" aria-hidden="true"><IcNavSpace /></span>
+          <h2 className="h2">Mi espacio</h2>
         </div>
         <div className="sphead-acts">
           <button className="sbtn ghost sp-trash" onClick={() => go('/espacio/papelera')}><IcTrash />Papelera</button>

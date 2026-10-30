@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { UnderlineTabs } from '../../../shared/components/UnderlineTabs';
+import { IcNavMyTube } from '../../../shared/components/icons';
 import type { MtHomeState, MtTab } from '../lib/nav';
 import { ChannelsPane } from './ChannelsPane';
 import { ListsPane } from './ListsPane';
@@ -25,7 +26,11 @@ export function MyTubePage() {
   return (
     <section className="view mt-view" id="v-mytube">
       {/* «Mis videos» (pedido de Esteban, 30-oct): es el nombre VISIBLE; la ruta /mytube, la sec y los archivos quedan. */}
-      <h2 className="h2">Mis videos</h2>
+      {/* Ícono + título, sin subtítulo, como el resto de las secciones (pedido de Esteban, 30-oct). */}
+      <div className="mt-title">
+        <span className="mt-tico" aria-hidden="true"><IcNavMyTube /></span>
+        <h2 className="h2">Mis videos</h2>
+      </div>
       <UnderlineTabs tabs={TABS} value={tab} onChange={change} className="mt-tabs" tabClass="mt-tab" inkClass="mt-ink" />
       {tab === 'listas' ? <ListsPane /> : <ChannelsPane />}
     </section>

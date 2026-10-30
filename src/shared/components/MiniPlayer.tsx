@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   cycleRepeat, nextTrack, pauseMusic, prevTrack, restartMusic, resumeMusic,
@@ -86,7 +86,9 @@ export function MiniPlayer() {
               </div>
               {bg.duration > 0 && (
                 <div className="mp-seek">
+                  {/* --p: el avance para pintar la pista (el carrito de avance es distinto al de volumen; shell.css). */}
                   <input type="range" min={0} max={Math.floor(bg.duration)} value={Math.floor(Math.min(scrub ?? shown, bg.duration))}
+                    style={{ '--p': `${bg.duration > 0 ? (Math.min(scrub ?? shown, bg.duration) / bg.duration) * 100 : 0}%` } as CSSProperties}
                     onChange={(e) => setScrub(Number(e.target.value))}
                     onPointerUp={() => { if (scrub != null) { seekMusic(scrub); setScrub(null); } }}
                     onPointerCancel={() => setScrub(null)} aria-label="Posición del audio" />

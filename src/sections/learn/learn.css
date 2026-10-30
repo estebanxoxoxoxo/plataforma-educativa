@@ -240,3 +240,35 @@
   .ln-pulse{animation:none}
   .ln-card,.ln-card .ln-go,.ln-bar i{transition:none}
 }
+
+/* ════ La liga como menú contextual (Esteban, 30-oct): columna derecha sticky de 380 arrancando a la par del título,
+   el mismo patrón que Tienda/Calendario (la vista entera es la grilla; acá el aside ya es hijo directo). Solo con la
+   columna presente (:has): sin liga, todo el ancho. En tablet/teléfono queda apilada arriba del contenido. ════ */
+.lp-aside{display:grid;gap:10px;align-content:start}
+.lp-aside-k{margin:0;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8A93AD}
+.lp-aside .ln-recall{margin-top:0}
+.lp-league{display:grid;gap:12px;padding:16px;background:#fff;border:1px solid #E4E8F1;border-radius:14px;text-decoration:none;color:inherit}
+.lp-lg-head{display:flex;align-items:center;gap:14px;min-width:0}
+.lp-league .lic{flex:none;width:46px;height:46px;display:grid;place-items:center;border-radius:12px}
+.lp-league .lic svg{width:28px;height:28px}
+/* la tabla COMPLETA, compacta: puesto · apodo · XP; tu fila resaltada */
+.lp-lg-rows{display:grid;gap:2px}
+.lp-lg-row{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:8px;padding:4px 8px;border-radius:8px;font-size:13px}
+.lp-lg-row > b{font-weight:800;color:#6A7390;font-variant-numeric:tabular-nums}
+.lp-lg-nick{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.lp-lg-row > small{font-weight:700;color:#6A7390;font-variant-numeric:tabular-nums}
+.lp-lg-row.is-me{background:#FFF8E6;box-shadow:inset 0 0 0 1px #F2D9A8}
+.lp-lg-row.is-me .lp-lg-nick{color:#7F5300}
+.lp-lg-tx{display:grid;gap:3px;min-width:0}
+.lp-lg-tx b{font-family:var(--display);font-weight:800;font-size:19px;line-height:1.1}
+.lp-lg-tx small{font-size:13px;font-weight:700;color:#6A7390}
+.lp-lg-cta{justify-self:start;display:inline-flex;align-items:center;height:36px;padding:0 16px;border-radius:999px;
+  background:#FFF3D9;border:1.5px solid #F2D9A8;color:#7F5300;font-weight:800;font-size:14px}
+.lp-league:hover .lp-lg-cta{background:#FFEFC7;border-color:#E8B94A}
+@container app (min-width:1024px){
+  #v-learn:has(.lp-aside){display:grid;grid-template-columns:minmax(0,1fr) 380px;grid-template-rows:auto 1fr;column-gap:24px;align-items:start;align-content:start}
+  #v-learn:has(.lp-aside) > .lp-head{grid-column:1;grid-row:1}
+  #v-learn:has(.lp-aside) > .lp-main{grid-column:1;grid-row:2;min-width:0}
+  /* top -12: el sticky mide desde la caja de contenido de .view (32 de padding), como los demás contextuales. */
+  #v-learn:has(.lp-aside) > .lp-aside{grid-column:2;grid-row:1 / 3;position:sticky;top:-12px}
+}

@@ -32,8 +32,8 @@ input,textarea{font:inherit;color:inherit}
 .ph-img{width:100%;height:100%;display:block;object-fit:cover}
 
 /* marca de 3 puntos */
-.mark{width:34px;height:34px;border-radius:5.5px;background:#1B2238;display:grid;grid-template-columns:repeat(3,6px);gap:3px;place-content:center}
-.mark i{width:6px;height:6px;border-radius:50%}
+/* La marca es un SVG desde el 30-oct (BrandMark: puntos subiendo); acá solo el tamaño. */
+.mark{width:34px;height:34px;flex:none}
 
 /* item genérico de resultado + esqueleto + sello de filtrado */
 .it{position:relative;background:#fff;border:1.5px solid #E7EAF2;overflow:hidden;transition:height .45s,padding .45s,margin .45s,opacity .4s,transform .4s,background .25s,border-color .25s}

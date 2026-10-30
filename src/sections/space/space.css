@@ -5,7 +5,11 @@
 /* minmax(0,1fr): una fila con un título largo en nowrap no ensancha la columna (grid blowout). El ancho y la alineación
    de la columna los da .view (shell.css). La lista de la papelera (.tlist) lleva el mismo minmax(0,1fr). */
 #v-space{display:grid;grid-template-columns:minmax(0,1fr);align-content:start;gap:18px}
-.sphead{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.sphead{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+/* Ícono + título, sin subtítulo (Esteban, 30-oct): el ícono del menú en su teja celeste. */
+.sp-title{display:flex;align-items:center;gap:14px;min-width:0}
+.sp-tico{flex:none;display:grid;place-items:center;width:52px;height:52px;border-radius:12px;background:#E1F2FB;border:1px solid #B8DFF3;color:#0E5F8A}
+.sp-tico svg{width:30px;height:30px}
 .sphead-acts{display:flex;align-items:center;gap:10px}
 .spempty{margin:8px 0;color:#6A7390;font-weight:700;background:#fff;border:1px dashed #D3D9E6;border-radius:9px;padding:18px 20px}
 
