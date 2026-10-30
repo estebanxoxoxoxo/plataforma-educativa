@@ -33,8 +33,11 @@
 /* Tienda: los Energy Coins a la derecha de la PALABRA (SHELL-2, 30-oct: eran de la barra superior, que desapareció). El ⚡ es
    el mismo emoji naranja de la billetera de la Tienda; el número hereda el color del ítem (gris o el de la píldora activa),
    sin las mayúsculas espaciadas de la etiqueta. En el rail de tablet no se ve (abajo); el aria-label del botón lo dice. */
-.nav-item .nav-ec{display:inline-flex;align-items:center;gap:3px;margin-left:calc(8px - var(--ni-tx));font-size:calc(var(--ni-fs) - .5px);
+/* margin-left:auto: la moneda y el número ALINEADOS A LA DERECHA del ítem (Esteban, 30-oct; antes pegados a la palabra). */
+.nav-item .nav-ec{display:inline-flex;align-items:center;gap:3px;margin-left:auto;font-size:calc(var(--ni-fs) - .5px);
   letter-spacing:.01em;font-variant-numeric:tabular-nums;white-space:nowrap}
+/* con el circulito de destacados al lado (el premio de la familia), los coins ceden el auto y quedan juntos */
+.nav-item .nav-ec ~ .nav-hl{margin-left:6px}
 .nav-item .nav-bolt{width:15px;height:15px;flex:none}
 /* El circulito de destacados del menú (pedido de Esteban, 30-oct): cuántos ítems esperan en el menú contextual de la
    sección (solicitudes en Feed, premio de la familia en Tienda, próxima clase en Calendario). A la derecha del ítem. */
