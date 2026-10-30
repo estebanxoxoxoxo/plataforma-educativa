@@ -6,22 +6,21 @@ import { CycleDemoPicker } from '../components/CycleDemoPicker';
 import { adoptCycle, refreshCycle, useCycle, useMemberCycle } from '../lib/cycle';
 import { pickMember, useFamilyMembers } from '../lib/member';
 
-/** El selector "Ciclo (demo)" del Sidebar (tanda F2, docs/USUARIOS.md §11): para la demo, en qué rango del día está el
+/** El selector "Ciclo (demo)" de la página de Configuración (antes vivía en el Sidebar; pedido de Esteban, 30-oct:
+ *  «pasá lo de ciclo demo al perfil del usuario»). Tanda F2, docs/USUARIOS.md §11: para la demo, en qué rango del día está el
  *  usuario. Solo dispara POST /api/demo/cycle {rangeId} y ADOPTA la respuesta del server (adoptCycle: el menú y la ruta
  *  cambian al instante, sin recargar); nada de lógica simulada en el cliente (regla 9). RAM del server: cada F5 del chico
  *  vuelve al reloj real.
  *  CUÁNDO APARECE (decisión F2):
  *  · CHICO activo → con SU ciclo (el store del usuario activo), si tiene al menos un rango (sin rangos no hay nada que
  *    simular: todo está disponible siempre).
- *  · ADULTO activo → SOLO dentro de Familia (/familia/*), con el ciclo del integrante que está mirando (`?m=`, la misma
- *    regla de Familia: ausente o ajeno = el primero) y con su nombre ("Ciclo de Luna (demo)"); manda `?member=`. Así el
- *    adulto arma el ciclo en Familia → Ciclo del día, elige "Tarde" para Luna y, al cambiar a Luna con el switch (que no
- *    resetea la demo), la encuentra en ese rango. Fuera de Familia no aparece: al adulto no lo gatea el ciclo y no hay un
- *    integrante a la vista (un "Reloj real" suelto no diría nada). */
+ *  · ADULTO activo → con el ciclo del integrante de `?m=` si la URL lo trae (viniendo de Familia) o, si no, el PRIMERO,
+ *    y con su nombre ("Ciclo de Luna (demo)"); manda `?member=`. Así el adulto arma el ciclo en Familia → Ciclo del
+ *    día, elige "Tarde" para Luna y, al cambiar a Luna con el switch (que no resetea la demo), la encuentra en ese
+ *    rango. (El portón por ruta /familia* murió con la mudanza a Configuración: acá siempre hay lugar para decirlo.) */
 export function CycleDemoControl({ user }: { user?: User }) {
-  const { pathname } = useLocation();
   if (!user) return null;
-  if (user.kind === 'adult') return pathname === '/familia' || pathname.startsWith('/familia/') ? <AdultCycleDemo adultId={user.id} /> : null;
+  if (user.kind === 'adult') return <AdultCycleDemo adultId={user.id} />;
   return <KidCycleDemo />;
 }
 

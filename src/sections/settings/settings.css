@@ -1,0 +1,86 @@
+/* Configuración (/configuracion) — tanda CONFIG, 30-oct (pedido de Esteban; alcance «lo nuestro, estilo POC»).
+   Se porta el PATRÓN de los Ajustes del POC (smarty-poc index.css + zones/admin/pages.tsx), no su Tailwind: columna angosta
+   centrada (~700), títulos de sección claros, ayuda en gris abajo de cada campo, bordes de UN trazo suave (1px) y una escala
+   tipográfica corta (22 / 20 / 15 / 13). Tokens de la casa (base.css). Targets táctiles de 44 en lo primario.
+   Responsive: SOLO @container app con los dos cortes de base.css (640 / 1024), jamás @media para el layout. */
+
+.cfg-col{max-width:700px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.cfg-head{margin-bottom:6px}
+.cfg-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ── sección: tarjeta blanca de un trazo ── */
+.cfg-sec{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px 24px}
+.cfg-sec-t{margin:0;font-family:var(--display);font-weight:800;font-size:20px;line-height:1.2;color:var(--ink)}
+.cfg-sec-d{margin:4px 0 0;color:var(--muted);font-size:13.5px;font-weight:600;line-height:1.45}
+.cfg-sec-d a,.cfg-help a{color:var(--blue-d);font-weight:800;text-decoration:underline;text-underline-offset:2px}
+
+/* ── campos: título + ayuda en gris abajo; separados por una línea suave ── */
+.cfg-row{display:flex;align-items:center;gap:16px;padding:14px 0 2px;border-top:1px solid #EEF1F6;margin-top:14px}
+.cfg-row-tx{flex:1;min-width:0}
+.cfg-row-t{display:block;font-weight:800;font-size:15px;color:var(--ink)}
+.cfg-help{margin:3px 0 0;color:var(--muted);font-size:13px;font-weight:600;line-height:1.45}
+
+.cfg-btn{flex:none;min-height:44px;padding:0 20px;border-radius:999px;background:var(--ink);color:#fff;font-weight:800;font-size:14px;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background .15s}
+.cfg-btn:hover{background:#2E3756}
+.cfg-btn--ghost{background:#fff;color:var(--ink);border:1px solid #D5DAE6}
+.cfg-btn--ghost:hover{background:#F6F7FB}
+
+/* ── Perfil: el avatar grande + nombre (solo lectura) ── */
+.cfg-me{display:flex;align-items:center;gap:16px;margin-top:14px}
+.cfg-me-av{flex:none;display:grid;place-items:center;border-radius:50%;box-shadow:0 0 0 1px var(--line),0 6px 18px -10px rgba(27,34,56,.45)}
+.cfg-me-tx{min-width:0}
+.cfg-me-n{display:block;font-family:var(--display);font-weight:800;font-size:22px;line-height:1.15;overflow-wrap:anywhere}
+.cfg-me-tx small{display:block;margin-top:2px;color:var(--muted);font-weight:700;font-size:13px}
+
+/* ── Sonido: los sliders del MiniPlayer, con aire y targets de 44 ── */
+.cfg-vol{padding-top:14px;margin-top:14px;border-top:1px solid #EEF1F6}
+.cfg-vol-h{display:flex;align-items:baseline;gap:8px;min-height:22px}
+.cfg-vol-h .cfg-row-t{flex:0 1 auto}
+.cfg-vol-h .cfg-vol-n{margin-left:auto}
+.cfg-vol-n{flex:none;min-width:2.2em;text-align:right;font-variant-numeric:tabular-nums;font-weight:800;font-size:14px;color:var(--ink-2)}
+.cfg-range{flex:1;min-width:0;width:100%;height:44px;margin:0;accent-color:var(--teal);cursor:pointer}
+.cfg-range.off{opacity:.45}
+.cfg-range:focus-visible{outline:3px solid var(--blue);outline-offset:2px;border-radius:6px}
+.cfg-amb{display:flex;align-items:center;gap:12px;margin-top:6px}
+.cfg-chip{flex:none;width:132px;min-height:44px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:10px;
+  border:1px solid var(--line);background:#F6F7FB;color:var(--muted);font-weight:800;font-size:13.5px;transition:background .15s,color .15s,border-color .15s}
+.cfg-chip:hover{border-color:#C9D0E0}
+.cfg-chip[aria-pressed="true"]{background:#E2F5F3;border-color:#9FDCD6;color:var(--teal-d)}
+.cfg-amb + .cfg-help{margin-top:8px}
+
+/* ── Cambiar de usuario ── */
+.cfg-users{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.cfg-urow{width:100%;min-height:60px;display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:12px;border:1px solid transparent;text-align:left}
+button.cfg-urow{transition:background .15s,border-color .15s}
+button.cfg-urow:hover:not(:disabled){background:#F6F7FB;border-color:var(--line)}
+button.cfg-urow:disabled{cursor:default;opacity:.6}
+button.cfg-urow[aria-busy="true"]{opacity:1}
+.cfg-urow.is-on{background:#EEF3FE;border-color:#CBD6F6}
+.cfg-utx{flex:1;min-width:0}
+.cfg-utx b{display:block;font-weight:800;font-size:15px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cfg-utx small{display:block;margin-top:1px;color:var(--muted);font-weight:700;font-size:12.5px}
+.cfg-ucheck{flex:none;width:20px;height:20px;color:var(--blue)}
+.cfg-ugo{flex:none;width:18px;height:18px;color:#9AA5C4}
+button.cfg-urow:hover:not(:disabled) .cfg-ugo{color:var(--ink-2)}
+.cfg-note{margin:12px 0 0;font-size:12px;font-weight:700;color:var(--muted)}
+
+/* carga (esqueleto) y error con reintento */
+.cfg-sk i{display:block;background:linear-gradient(90deg,#E6E9F1 0%,#F1F3F8 50%,#E6E9F1 100%);background-size:200% 100%;animation:shim 1.3s linear infinite}
+.cfg-sk-av{flex:none;width:40px;height:40px;border-radius:50%}
+.cfg-sk-tx{width:140px;height:12px;border-radius:4px}
+.cfg-fail{margin-top:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;border:1px solid #F4D2D4;background:#FFF6F6;border-radius:12px}
+.cfg-fail p{flex:1 1 220px;margin:0;font-size:13.5px;font-weight:700;color:#8A2A2F}
+@media (prefers-reduced-motion: reduce){ .cfg-sk i{animation:none} }
+
+/* ── teléfono (< 640): menos aire, misma columna ── */
+@container app (max-width:639.98px){
+  .cfg-col{gap:14px}
+  .cfg-sec{padding:16px}
+  .cfg-me{gap:14px}
+  .cfg-me-n{font-size:20px}
+  .cfg-row{gap:12px}
+  .cfg-btn{padding:0 16px}
+  .cfg-chip{width:112px;padding:0 10px;font-size:13px}
+  .cfg-amb{gap:10px}
+}

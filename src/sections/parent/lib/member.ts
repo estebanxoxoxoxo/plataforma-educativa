@@ -12,7 +12,7 @@ import type { FamilyMember, UserInfo } from '../../../api/types';
 export const FAMILY_WIDE: ReadonlySet<string> = new Set(['/familia/mytube', '/familia/afterday', '/familia/mentorias']);
 /** Nota del selector en cada solapa de familia. */
 export const FAMILY_NOTE: Record<string, string> = {
-  '/familia/mytube': 'MyTube vale para toda la familia: lo que aprobás acá lo puede ver cada integrante.',
+  '/familia/mytube': 'Mis videos vale para toda la familia: lo que aprobás acá lo puede ver cada integrante.',
   '/familia/afterday': 'After Day vale para toda la familia: la misma lista suena en el After Day de cada integrante.',
   '/familia/mentorias': 'Las mentorías son de toda la familia: cada una dice para quién es (también las tuyas).',
 };

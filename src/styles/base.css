@@ -25,7 +25,8 @@ a{color:inherit;text-decoration:none}
 input,textarea{font:inherit;color:inherit}
 
 .h2{font-family:var(--display);font-weight:800;font-size:32px;line-height:1;margin:0}
-.lede{color:var(--muted);font-weight:700;margin:6px 0 0;font-size:15px}
+/* Subtítulo de sección: menos aire arriba y un gris más claro (pedido de Esteban, 30-oct). */
+.lede{color:#8A93AD;font-weight:700;margin:2px 0 0;font-size:15px}
 .lbl{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .back{display:inline-flex;align-items:center;gap:6px;font-weight:800;color:#2843A8;font-size:14px;cursor:pointer}
 .ph-img{width:100%;height:100%;display:block;object-fit:cover}

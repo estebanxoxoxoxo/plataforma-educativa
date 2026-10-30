@@ -1,45 +1,6 @@
 /* Medallas de la plataforma (U5-D; spec docs/U5-LIGA-FAMILIAR-Y-MEDALLAS.md §5.5) — prefijo: mdl- (grepeado: libre).
-   Dos piezas: el chip "🏅 N" de la tarjeta del perfil (ProfileCard, pie de la barra) y la hoja "Tus medallas" (MedalsSheet,
-   sobre el patrón global .shov/.shcard de space.css). Se importa en main.tsx DESPUÉS de avatar.css. Nada de tocar shell.css:
-   lo que la tarjeta necesita por haber dejado de ser UN botón vive acá. */
-
-/* ---- la tarjeta del perfil: el div .profile de shell.css (borde, padding y densidad: siguen siendo de allá) con dos
-   botones hermanos adentro: el del avatar (idav-prof, el de siempre) y el chip de medallas. El botón del avatar se estira a
-   TODA la tarjeta con un ::after (se toca en cualquier lado, como cuando la tarjeta era el botón) y el chip y el avatar
-   quedan por encima (el title de la medallita de liga se sigue viendo). El hover y el anillo de foco pintan la tarjeta
-   entera, como antes; con el puntero sobre el chip, solo el chip. ---- */
-.mdl-prof{position:relative;gap:8px;transition:background-color .2s ease,border-color .2s ease}
-.mdl-prof:has(.mdl-me:hover){background:#F6F7FB;border-color:#D3D9E6}
-.mdl-prof:has(.mdl-me:focus-visible){outline:3px solid var(--blue);outline-offset:2px}
-.mdl-me{flex:1 1 0%;min-width:0;display:flex;align-items:center;gap:12px;border-radius:12px}
-.mdl-me:hover{background:transparent}
-.mdl-me:focus-visible{outline:none}
-.mdl-me::after{content:"";position:absolute;inset:-2px;border-radius:14px}
-.mdl-me .idav-pav{z-index:1}
-/* lo que shell.css le daba al hijo directo de la tarjeta (.profile > div): ahora el nombre vive dentro del botón */
-.mdl-me > div{min-width:0}
-
-/* el chip: la cantidad de medallas ganadas (nunca un total ni un "0": sin medallas el chip no existe) + un puntito si hay
-   alguna sin ver. Ojo: nada de <b>/<small> adentro (shell.css estiliza .profile b y .profile small). */
-.mdl-chip{position:relative;z-index:1;flex:none;display:inline-flex;align-items:center;gap:4px;height:30px;padding:0 9px 0 7px;border-radius:999px;
-  border:1.5px solid #F2D9A8;background:#FFF8E6;color:#6B4600;font-family:var(--display);font-weight:800;font-size:14px;line-height:1;
-  font-variant-numeric:tabular-nums;white-space:nowrap;cursor:pointer;transition:background-color .2s ease,border-color .2s ease}
-.mdl-chip:hover{background:#FFEFC7;border-color:#E8B94A}
-.mdl-chip-em{font-size:15px;line-height:1}
-.mdl-chip-n{transform:translateY(1px)}
-.mdl-dot{position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#E5487A;box-shadow:0 0 0 2px #fff}
-/* misma densidad que la barra (shell.css: @container side) */
-@container side (max-height:783px){ .mdl-chip{height:28px;font-size:13.5px} }
-@container side (max-height:677px){ .mdl-chip{height:26px;padding:0 8px 0 6px} }
-/* tablet (rail de 80 px, mismos cortes que shell.css): el nombre queda oculto visualmente (como el .profile > div de allá)
-   y el chip va DEBAJO del avatar, que en 56 px no entran juntos */
-@container app (min-width:640px) and (max-width:1023.98px){
-  .mdl-prof{flex-direction:column;gap:5px}
-  .mdl-me{flex:none;justify-content:center}
-  .mdl-me > div{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
-  .mdl-chip{height:24px;gap:2px;padding:0 6px 0 5px;font-size:12.5px}
-  .mdl-chip-em{font-size:13px}
-}
+   La hoja "Tus medallas" (MedalsSheet, sobre el patrón global .shov/.shcard de space.css). Se importa en main.tsx DESPUÉS de
+   avatar.css. El chip "🏅 N" de la tarjeta del perfil se fue con SHELL-2 (30-oct): la hoja la abre openMedalsSheet(). */
 
 /* ---- la hoja "Tus medallas": la pila "como un diploma" (audio 1016) ---- */
 .mdl-ov{animation:fadein .2s both}

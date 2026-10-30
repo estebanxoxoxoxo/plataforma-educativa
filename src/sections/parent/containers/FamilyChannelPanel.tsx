@@ -121,7 +121,7 @@ export function FamilyChannelPanel({ member }: { member: string }) {
 
   return (
     <div className="pz-mt-ch">
-      <Link className="back" to={back}>‹ MyTube</Link>
+      <Link className="back" to={back}>‹ Mis videos</Link>
       {failed ? <section className="pz-panel"><PanelState failed onRetry={() => setRound((n) => n + 1)} /></section> : !detail ? <PanelState failed={false} onRetry={() => {}} /> : !detail.channel ? (
         <p className="mt-empty">Este canal ya no tiene videos aprobados en Innerith.</p>
       ) : (
@@ -131,7 +131,7 @@ export function FamilyChannelPanel({ member }: { member: string }) {
           <section className="pz-panel" aria-labelledby="pz-mt-ch-h">
             <header className="pz-panel-head">
               <h3 id="pz-mt-ch-h">Cómo lo ve tu familia <span className="pz-mem-fam">Vale para toda la familia</span></h3>
-              <p>La descripción que acompaña a «{title}» en el MyTube de cada integrante. Se generó automática (limpia + resumen IA) al ingerir o la primera vez que alguien abrió el canal; ajustala como quieras.</p>
+              <p>La descripción que acompaña a «{title}» en Mis videos de cada integrante. Se generó automática (limpia + resumen IA) al ingerir o la primera vez que alguien abrió el canal; ajustala como quieras.</p>
             </header>
             <textarea className="pz-input pz-yt-desc" rows={3} value={desc.text} aria-label={`Descripción de ${title}`}
               placeholder={detail.pending ? 'Preparando la descripción del canal…' : 'Sin descripción'}

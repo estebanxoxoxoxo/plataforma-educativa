@@ -6,8 +6,8 @@ import { NAV, NAV_ID, activeFrom, useNavItems, type Sec } from './Sidebar';
 
 /* Navegación del TELÉFONO (RESPONSIVE.md §2.2; decisiones D1/D2 del dueño, 28-oct). Debajo de 640 px de contenedor
    (@container app, shell.css) la barra lateral pasa a ser un CAJÓN y aparece esta barra inferior: 4 secciones + «Menú»,
-   que abre el cajón con el menú COMPLETO (la misma .side: todas las secciones, «Ciclo (demo)», «Sonido de fondo» y el
-   perfil). Desde 640 la barra inferior y el velo no se dibujan (display:none) y la clase is-nav-open no hace nada.
+   que abre el cajón con el menú COMPLETO (la misma .side: todas las secciones —Tienda con sus Energy Coins—, «Ciclo (demo)»
+   y el perfil con el 🎧 del Sonido de fondo). Desde 640 la barra inferior y el velo no se dibujan (display:none) y la clase is-nav-open no hace nada.
    Estilos: prefijo bnav- y .nav-scrim en shell.css. */
 
 /** Las 4 de la barra, en orden de preferencia: las de consumo y aprendizaje para el chico (D1); para el adulto Familia

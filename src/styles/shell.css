@@ -25,6 +25,15 @@
    del ícono (pedido 9-oct). El span (Sidebar) permite bajar SOLO la etiqueta, sin mover el ícono. */
 .nav-item span{transform:translateY(2px)}
 .nav-item:hover{background:#F1F3F8;color:#47506B}
+/* Tienda: los Energy Coins a la derecha de la PALABRA (SHELL-2, 30-oct: eran de la barra superior, que desapareció). El ⚡ es
+   el mismo emoji naranja de la billetera de la Tienda; el número hereda el color del ítem (gris o el de la píldora activa),
+   sin las mayúsculas espaciadas de la etiqueta. En el rail de tablet no se ve (abajo); el aria-label del botón lo dice. */
+.nav-item .nav-ec{display:inline-flex;align-items:center;gap:3px;margin-left:calc(8px - var(--ni-tx));font-size:calc(var(--ni-fs) - .5px);
+  letter-spacing:.01em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.nav-item .nav-bolt{transform:translateY(-1px);font-size:1.05em;line-height:1}
+/* El circulito de destacados del menú (pedido de Esteban, 30-oct): cuántos ítems esperan en el menú contextual de la
+   sección (solicitudes en Feed, premio de la familia en Tienda, próxima clase en Calendario). A la derecha del ítem. */
+.nav-item .nav-hl{flex:none;margin-left:auto;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#D63B41;color:#fff;font-size:11px;font-weight:800;display:inline-grid;place-items:center;line-height:1}
 .nav-item.on{background:var(--sec-bg);border-color:var(--sec-bd);color:var(--sec-fg)}
 /* Por sección: relleno suave · borde · etiqueta (etiqueta ≥4.5:1 sobre su relleno; la inactiva #6A7390 da 4.7:1
    sobre blanco y en hover pasa a #47506B porque sobre el gris bajaría a 4.2:1). Contraste etiqueta/relleno:
@@ -45,31 +54,34 @@
 :is(.nav-item,.bnav-item)[data-sec="leagues"]{--sec-bg:#FFF3D9;--sec-bd:#F4B740;--sec-fg:#7F5300}
 :is(.nav-item,.bnav-item)[data-sec="family"]{--sec-bg:#F2EFF9;--sec-bd:#A596D6;--sec-fg:#4A3A86}
 
-/* Selector de DEMO del Ciclo del día (tanda F2, sections/parent/components/CycleDemoPicker): abajo del menú, arriba del
-   mini-reproductor; el lenguaje de los chips de demo (borde punteado, gris, discreto: regla 9 de docs/AGENTS.md). Toma el
-   margin-top:auto del pie cuando está (el .mp que sigue ya no lo necesita). Prefijo cyd- (grepeado: libre). */
-.cyd{flex:none;display:grid;gap:5px;margin-top:auto;padding:7px 8px 8px;border:1.5px dashed #C9D0DE;border-radius:12px;background:#fff}
-.cyd + .mp{margin-top:8px}
+/* Selector de DEMO del Ciclo del día (tanda F2, sections/parent/components/CycleDemoPicker): el lenguaje de los chips
+   de demo (borde punteado, gris, discreto: regla 9 de docs/AGENTS.md). Desde el 30-oct vive en la página de
+   Configuración (pedido de Esteban; antes, al pie del Sidebar). Prefijo cyd- (grepeado: libre). */
+.cyd{flex:none;display:grid;gap:5px;padding:7px 8px 8px;border:1.5px dashed #C9D0DE;border-radius:12px;background:#fff}
 .cyd-lbl{padding:0 3px;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#6A7390;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cyd-sel{width:100%;min-width:0;height:32px;padding:0 8px;border:1.5px solid #E4E8F1;border-radius:9px;background:#F6F7FB;color:#47506B;font:800 12.5px var(--body);cursor:pointer}
 .cyd-sel:hover:not(:disabled){border-color:#C9D0DE;color:#1B2238}
 .cyd-sel:focus-visible{outline:3px solid var(--blue);outline-offset:1px}
 .cyd-sel:disabled{cursor:progress;opacity:.7}
 .cyd-err{padding:0 3px;font-size:11px;font-weight:800;line-height:1.3;color:#B32D33}
-@container side (max-height:677px){ .cyd{padding:5px 7px 6px;gap:3px} .cyd-sel{height:28px} }
 
-/* Mini-reproductor de sonido de fondo (música + ruidos), arriba del perfil. Mismo lenguaje que el menú
-   (etiqueta en mayúsculas, radio 14) pero como tarjeta con borde gris: se lee como control, no como sección. */
-.mp{position:relative;flex:none;margin-top:auto}
-.mp-toggle{width:100%;display:flex;align-items:center;gap:12px;height:var(--ft-h);padding:0 12px;border:2px solid #E4E8F1;border-radius:14px;
-  font-family:var(--display);font-weight:800;font-size:12.5px;line-height:1;letter-spacing:.06em;text-transform:uppercase;color:#6A7390;
-  transition:background-color .2s ease,border-color .2s ease,color .2s ease;cursor:pointer}
-.mp-toggle:hover{background:#F6F7FB;color:#47506B}
-.mp-toggle.on{background:#E1F2FB;border-color:#57B6E6;color:#0E5F8A}
-.mp-toggle svg{width:24px;height:24px;flex:none}
-.mp-lbl{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mp-dot{margin-left:auto;width:8px;height:8px;border-radius:50%;background:#13A39A;animation:mpulse 1.4s infinite}
+/* Sonido de fondo: desde SHELL-2 (30-oct) su disparador es el 🎧 de la tarjeta de perfil, SIN texto visible (pedido: «sin
+   indicar con palabras qué es»; el aria-label lo nombra). .mp no se posiciona: el panel se ancla a .profile (relative) y se
+   abre ENCIMA de la tarjeta. Estados (data-state, MiniPlayer): «on» coloreado como el .on de antes + el puntito que late;
+   «paused» (música cargada en pausa) celeste sin relleno + una marca de pausa; «idle» neutro. */
+.mp{flex:none}
+.mp-hp{position:relative;width:34px;height:34px;display:grid;place-items:center;border:2px solid transparent;border-radius:10px;color:#8A93AD;cursor:pointer;
+  transition:background-color .2s ease,border-color .2s ease,color .2s ease}
+.mp-hp svg{width:22px;height:22px}
+.mp-hp:hover{background:#F1F3F8;color:#47506B}
+.mp-hp[data-state="on"]{background:#E1F2FB;border-color:#57B6E6;color:#1E8BC6}
+.mp-hp[data-state="paused"]{border-color:#A9D8F0;color:#38A8E0}
+.mp-hp[data-state="paused"]:hover{background:#F1F9FD}
+.mp-dot{position:absolute;top:2px;right:2px;width:8px;height:8px;border-radius:50%;background:#13A39A;box-shadow:0 0 0 2px #fff;animation:mpulse 1.4s infinite}
 @keyframes mpulse{0%,100%{opacity:1}50%{opacity:.35}}
+/* la marca de pausa: dos barritas en un círculo blanco, abajo a la derecha */
+.mp-pz{position:absolute;right:0;bottom:0;width:12px;height:12px;border-radius:50%;box-shadow:0 0 0 1.5px #57B6E6;
+  background:linear-gradient(#0E5F8A,#0E5F8A) 3.5px 3px / 1.6px 6px no-repeat,linear-gradient(#0E5F8A,#0E5F8A) 6.9px 3px / 1.6px 6px no-repeat,#fff}
 .mp-panel{position:absolute;bottom:calc(100% + 10px);left:0;width:286px;background:#fff;border:1px solid #E4E8F1;border-radius:9px;box-shadow:0 18px 44px -14px rgba(27,34,56,.35);padding:14px;z-index:60;display:grid;gap:12px}
 .mp-title{margin:0;font-size:13px;font-weight:800;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .mp-queue{margin:-8px 0 0;font-size:11px;font-weight:700;color:#6A7390}
@@ -95,12 +107,21 @@
 .mp-achip.on{background:#E2F5F3;color:#0B6B66}
 .mp-arow input.off{opacity:.45}
 
-/* Tarjeta de perfil (antes .kid — renombrado: chocaba con la burbuja .m.kid del chat). */
-.profile{flex:none;display:flex;align-items:center;gap:12px;margin-top:8px;padding:8px 10px;border:2px solid #E4E8F1;border-radius:14px}
-.profile .av{flex:none;width:36px;height:36px;border-radius:50%;background:#FFC23D;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:18px;line-height:1;color:#5A3D00}
-.profile > div{min-width:0}
-.profile b{display:block;font-family:var(--display);font-weight:800;font-size:16px;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.profile small{display:block;margin-top:1px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#6A7390}
+/* Espacio de usuario (ProfileCard; SHELL-2, pedido 30-oct): EXACTAMENTE avatar · nombre · 🎧 · posición de liga, en una fila
+   (escritorio y cajón del teléfono). El avatar es el botón a Configuración; el nombre, solo texto en negrita; la liga, el
+   link a /ligas con el escudo. Toma el margin-top:auto del pie (el «Ciclo (demo)» ya no vive arriba: pasó a
+   Configuración el 30-oct). Targets: avatar 36, 🎧 34, liga 30 de alto (≥ 24 en todas las densidades). */
+.profile{position:relative;flex:none;display:flex;align-items:center;gap:8px;margin-top:auto;padding:6px 8px;border:2px solid #E4E8F1;border-radius:14px}
+.prof-av{flex:none;display:grid;border-radius:50%;cursor:pointer}
+.prof-av .av3{width:36px;height:36px;font-size:18px;line-height:1;transition:box-shadow .2s ease}
+.prof-av:hover .av3{box-shadow:0 0 0 3px #D3D9E6}
+.prof-name{flex:1 1 auto;min-width:0;font-family:var(--display);font-weight:800;font-size:16px;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prof-lg{flex:none;display:inline-flex;align-items:center;gap:3px;height:30px;padding:0 8px 0 5px;border-radius:999px;border:1.5px solid #F2D9A8;background:#FFF8E6;
+  color:#7F5300;font-family:var(--display);font-weight:800;font-size:14px;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap;text-decoration:none;
+  transition:background-color .2s ease,border-color .2s ease}
+.prof-lg:hover{background:#FFEFC7;border-color:#E8B94A}
+.prof-lg svg{width:18px;height:18px;flex:none}
+.prof-lg span{transform:translateY(1px)}
 
 /* Densidad según el alto de la barra. Cómoda (arriba): necesita ~816px con el submenú abierto.
    Compacta (barra < 816px, p. ej. ?stage 720: entra con ~13px de aire) y apretada (barra < 710px, laptops
@@ -108,89 +129,29 @@
 @container side (max-height:783px){
   .side > *{--ni-h:46px;--ni-gap:4px;--ni-ic:28px;--ni-tx:14px;--ft-h:40px;--ft-gap:8px}
   .brand{height:36px;margin-bottom:12px}
-  .profile{margin-top:6px;padding:6px 10px}
-  .profile .av{width:32px;height:32px;font-size:16px}
+  .profile{padding:5px 8px}
+  .prof-av .av3{width:32px;height:32px;font-size:16px}
+  .mp-hp{width:32px;height:32px}
+  .prof-lg{height:28px}
 }
 @container side (max-height:677px){
   .side > *{--ni-h:40px;--ni-gap:2px;--ni-ic:26px;--ni-tx:12px;--ni-fs:13px;--ft-h:36px}
   .brand{height:34px;margin-bottom:10px;font-size:20px}
-  .profile{padding:4px 10px}
+  .profile{padding:4px 8px}
   /* Último recurso (barra < ~620px): el menú scrollea y el pie queda a la vista. El padding compensado deja
      lugar al anillo de foco dentro del área que recorta el scroll. */
   .side nav{min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;margin:-5px -6px calc(var(--ft-gap) - 5px);padding:5px 6px}
 }
 
 @media (prefers-reduced-motion: reduce){
-  .nav-item,.mp-toggle{transition:none}
+  .nav-item,.mp-hp,.prof-av .av3{transition:none}
   .mp-dot{animation:none}
 }
 
-/* La barra superior (GT7, pedido 12-oct) vive arriba del contenido: .main pasa a columna y .main-body
-   es el nuevo ancla de las vistas (.view sigue con position:absolute inset:0, ahora contra .main-body). */
+/* .main en columna y .main-body como ancla de las vistas (.view es position:absolute inset:0 contra .main-body). La barra
+   superior que vivía arriba se fue (SHELL-2, 30-oct): .main-body ocupa todo el alto solo (flex:1). */
 .main{position:relative;overflow:hidden;min-width:0;display:flex;flex-direction:column}
 .main-body{position:relative;flex:1;min-height:0}
-
-/* ── Barra superior estilo GT7: tira oscura con segmentos (liga · ⚡) a la izquierda y reloj + campana a la
-   derecha. Chips legibles sobre tinta; la liga es un LINK a /ligas (que ya no está en el menú). ── */
-/* Gris de la barra: #3A3A3A (afinado por Esteban, 12-oct noche). */
-.topbar{flex:none;display:flex;align-items:center;gap:10px;height:46px;padding:0 14px 0 18px;background:#3A3A3A;color:#fff}
-/* Chips con MÁS contraste contra la tinta (pedido 12-oct noche): fondo más claro + borde fino. */
-.tb-seg{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.15);
-  border:1px solid rgba(255,255,255,.22);color:#fff;font-size:13.5px;font-weight:700;line-height:1;text-decoration:none;white-space:nowrap}
-.tb-seg b{font-family:var(--display);font-weight:800;font-size:15px}
-.tb-seg svg{width:17px;height:17px;flex:none}
-.tb-dim{color:#C3CADC;font-weight:700}
-.tb-name{color:#E6EAF4;font-weight:800;font-size:12.5px;letter-spacing:.04em;text-transform:uppercase}
-a.tb-league{transition:background-color .15s}
-a.tb-league:hover{background:rgba(255,255,255,.24)}
-/* Energy Coins: link a la Tienda con el MISMO ⚡ naranja de su billetera (pedido 12-oct) */
-a.tb-ec{transition:background-color .15s}
-a.tb-ec:hover{background:rgba(255,255,255,.24)}
-.tb-bolt{font-size:15px;line-height:1}
-.tb-spacer{flex:1}
-.tb-clock{display:inline-flex;align-items:baseline;gap:8px;font-variant-numeric:tabular-nums;white-space:nowrap}
-.tb-clock b{font-family:var(--display);font-weight:800;font-size:17px;letter-spacing:.02em}
-.tb-date{color:#AEB6CC;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
-.tb-bellwrap{position:relative;display:grid}
-.tb-bell{position:relative;width:34px;height:34px;display:grid;place-items:center;border-radius:9px;color:#fff;cursor:pointer;transition:background-color .15s}
-.tb-bell:hover{background:rgba(255,255,255,.14)}
-.tb-badge{position:absolute;top:1px;right:1px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#E5487A;
-  color:#fff;font-size:10.5px;font-weight:800;line-height:16px;text-align:center}
-.tb-pop{position:absolute;right:0;top:calc(100% + 8px);z-index:70;width:min(360px,86vw);max-height:60vh;overflow:auto;display:grid;gap:4px;
-  padding:10px;background:#fff;color:#1B2238;border:1px solid #E4E8F1;border-radius:14px;box-shadow:0 24px 48px -24px rgba(27,34,56,.45)}
-.tb-empty{margin:4px 2px;font-size:14px;font-weight:700;color:#6A7390}
-.tb-noti{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;text-align:left}
-.tb-noti .av3{width:34px;height:34px;flex:none;font-size:16px}
-.tb-noti--msg{cursor:pointer;transition:background-color .15s}
-.tb-noti--msg:hover{background:#F1F3F8}
-.tb-ntx{flex:1;min-width:0;font-size:13.5px;font-weight:700;color:#2E3650;line-height:1.3}
-.tb-ntx small{display:block;margin-top:2px;color:#6A7390;font-weight:600}
-.tb-nact{display:grid;gap:4px}
-.tb-ok{padding:6px 12px;border-radius:8px;background:#3A5BD9;color:#fff;font-weight:800;font-size:12.5px;cursor:pointer}
-.tb-ok:hover{background:#2F4FCB}
-.tb-no{padding:5px 12px;border-radius:8px;background:#fff;border:1.5px solid #D3D9E6;color:#47506B;font-weight:800;font-size:12.5px;cursor:pointer}
-.tb-no:hover{background:#F6F7FB}
-/* ── Switch de usuario (línea 14-oct, docs/USUARIOS.md §2; DEMO): chip con el avatar + el nombre del usuario activo + el
-   ícono de cambio, entre el reloj y la campana. Mismo lenguaje que los chips de la barra (píldora clara sobre la tinta) y
-   el MISMO popover de la campana (.tb-pop): la lista de usuarios, el activo marcado y la nota de demo al pie. ── */
-.tb-userwrap{position:relative;display:grid}
-.tb-user{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 10px 0 4px;border-radius:999px;background:rgba(255,255,255,.15);
-  border:1px solid rgba(255,255,255,.22);color:#fff;font-size:13.5px;font-weight:800;line-height:1;white-space:nowrap;cursor:pointer;transition:background-color .15s}
-.tb-user:hover,.tb-user[aria-expanded="true"]{background:rgba(255,255,255,.24)}
-.tb-user .av3{width:24px;height:24px;font-size:12px}
-.tb-uname{max-width:120px;overflow:hidden;text-overflow:ellipsis}
-.tb-uswap{width:14px;height:14px;flex:none;color:#C3CADC}
-.tb-upop{width:min(280px,86vw)}
-.tb-urow{display:flex;align-items:center;gap:10px;width:100%;padding:8px;border-radius:10px;text-align:left;cursor:pointer;transition:background-color .15s}
-.tb-urow:hover{background:#F1F3F8}
-.tb-urow.is-on{background:#EEF2FF;cursor:default}
-.tb-urow .av3{width:34px;height:34px;flex:none;font-size:16px}
-.tb-utx{flex:1;min-width:0;display:grid;gap:2px}
-.tb-utx b{font-size:14.5px;font-weight:800;color:#1B2238;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tb-utx small{font-size:12px;font-weight:700;color:#6A7390}
-.tb-ucheck{width:18px;height:18px;flex:none;color:#3A5BD9}
-.tb-unote{margin:2px 2px 0;padding-top:8px;border-top:1px solid #EDF0F5;font-size:12px;font-weight:700;color:#8A93AD}
-@media (max-width:980px){ .tb-name{display:none} }
 
 /* ── Columna de contenido: el MISMO ancho y la MISMA alineación en todas las secciones ──
    Estándar = el Feed (/): un bloque de hasta --content-w (1040px) CENTRADO en el área principal, con al menos
@@ -229,7 +190,7 @@ body.stage-mode{background:#ECEFF6;padding:0 16px}
    las hojas del perfil no viven en .side (ProfileCard las monta en .app con un portal) y la barra sube mientras el panel del
    mini-reproductor está abierto (rail, abajo). Regla gemela de la 5 para las secciones: nada de @media de layout nuevas;
    @container app con estos mismos cortes. Capas (RESPONSIVE.md §2.6): la barra inferior va en el flujo, SIN z (debajo de
-   todo lo posicionado, hojas incluidas) · dock 55 · mini-reproductor 60 · popovers de la TopBar 70 · .shov 80 · velo del
+   todo lo posicionado, hojas incluidas) · dock 55 · mini-reproductor 60 · .shov 80 · velo del
    cajón 85 · cajón 90 · hojas del perfil con el cajón abierto 91 · overlays 100+. */
 
 /* La barra inferior y el velo del cajón solo se dibujan en el teléfono. */
@@ -239,7 +200,7 @@ body.stage-mode{background:#ECEFF6;padding:0 16px}
 @container app (max-width:1023.98px){
   /* R3: con overflow:hidden lo que no entraba se cortaba sin scroll, y además el shell seguía siendo un scroller oculto:
      un focus() o un scrollIntoView lo corrían de costado sin vuelta. clip corta igual pero no scrollea nunca (donde no
-     existe clip queda el hidden de arriba). Lo de adentro ya entra: columna, TopBar compacta y rail. */
+     existe clip queda el hidden de arriba). Lo de adentro ya entra: columna y rail. */
   .app,.main{overflow:clip}
   /* viewport-fit=cover (index.html): el área segura lateral (la muesca con el teléfono en horizontal) la absorbe el shell. */
   .app{padding-inline:env(safe-area-inset-left,0px) env(safe-area-inset-right,0px)}
@@ -255,20 +216,17 @@ body.stage-mode{background:#ECEFF6;padding:0 16px}
   .brand{justify-content:center;gap:0;padding-left:0;font-size:0}
   /* position:relative: las etiquetas ocultas son absolutas y, si no, se escapan del scroller del menú (la falla del
      .pz-sr de Premios, RESPONSIVE.md §1.3). */
-  .nav-item,.mp-toggle,.profile,.cyd{position:relative}
+  .nav-item,.profile{position:relative}
   .nav-item{justify-content:center;padding:0}
-  .nav-item span,.mp-lbl,.cyd-lbl,.profile > div{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
-  .mp-toggle{justify-content:center;padding:0}
-  .mp-dot{position:absolute;top:5px;right:5px;margin:0}
-  .profile{justify-content:center;padding:6px 0}
-  /* «Ciclo (demo)» compacto: el <select> nativo sigue abriéndose al tocarlo; el rótulo queda oculto visualmente, el reloj
-     dice qué es y el title del .cyd lo explica. Con un rango de demo elegido se tiñe (el texto no se ve en 80 px). */
-  .cyd{padding:4px;gap:0}
-  .cyd-sel{appearance:none;-webkit-appearance:none;height:34px;padding:0;color:transparent;text-align:center;
-    background:#F6F7FB url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2347506B' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='8.5'/%3E%3Cpath d='M12 7.5V12l3 2'/%3E%3C/svg%3E") center / 18px 18px no-repeat}
-  .cyd-sel option{color:#1B2238}
-  .cyd-sel:has(option:checked:not([value=""])){background-color:#E8EDFE;border-color:#7B93F0}
-  .cyd-err{padding:0;font-size:10px}
+  .nav-item span,.prof-name{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
+  /* el circulito de destacados, como puntito sobre el ícono (la fila está centrada y sin etiqueta) */
+  .nav-item .nav-hl{position:absolute;top:4px;right:9px;margin-left:0;min-width:16px;height:16px;padding:0 4px;font-size:10px}
+  /* sin palabra no hay coins (pedido 30-oct): el aria-label/title del ítem Tienda los sigue diciendo */
+  .nav-item .nav-ec{display:none}
+  /* espacio de usuario en columna compacta centrada: avatar, 🎧 y liga (el nombre queda oculto visualmente) */
+  .profile{flex-direction:column;justify-content:center;gap:6px;padding:6px 0}
+  .prof-lg{height:26px;gap:2px;padding:0 6px 0 4px;font-size:12.5px}
+  .prof-lg svg{width:15px;height:15px}
   /* el panel del mini-reproductor (286 px, z 60) se abre hacia la derecha, encima del contenido: ya es left:0. En WebKit .side
      es contexto de apilamiento (su container-type) y el contenido, que viene después, tapaba lo que el panel saca del rail
      (se veía el 10 %): mientras está abierto, la barra entera sube a 60. Solo entonces, y nunca con una hoja .shov de una
@@ -296,7 +254,7 @@ body.stage-mode{background:#ECEFF6;padding:0 16px}
   .app.is-nav-open .side{left:0;visibility:visible;box-shadow:0 0 44px -10px rgba(27,34,56,.45);transition:left .22s ease,box-shadow .22s ease}
   /* abiertas desde el pie del cajón, las hojas del perfil (hijas de .app por el portal) van arriba del cajón y de su velo */
   .app.is-nav-open > .shov{z-index:91}
-  /* el panel del mini-reproductor, al ancho del cajón */
+  /* el panel del mini-reproductor, al ancho de la tarjeta de perfil (su ancla) */
   .mp-panel{right:0;width:auto}
   .nav-scrim{display:block;position:fixed;inset:0;z-index:85;background:rgba(27,34,56,.45);opacity:0;visibility:hidden;cursor:default;
     transition:opacity .22s ease,visibility 0s linear .22s}
@@ -319,18 +277,9 @@ body.stage-mode{background:#ECEFF6;padding:0 16px}
      letras (shell-fix H4-bis: «CALENDARIO» medía 65,7 y a 375 la caja 64,6 → «CALENDAR…»; «MI ESPACIO» se cortaba entre
      340 y 344). Sin .04em: 61,5 y 54,1. «CALENDARIO» además achica la letra con el ancho (la caja mide ≈ 0,2 × ancho − 10):
      10,5 px desde 375, 9,5 a 340 (sin cqi, 9,5 siempre). Los textos del producto no cambian. */
-  .bnav-item:is([data-sec="calendar"],[data-sec="space"]){letter-spacing:0}
+  /* «MIS VIDEOS» (el label de MyTube desde el 30-oct) es tan largo como «MI ESPACIO»: mismo trato */
+  .bnav-item:is([data-sec="calendar"],[data-sec="space"],[data-sec="mytube"]){letter-spacing:0}
   .bnav-item[data-sec="calendar"]{font-size:9.5px;font-size:clamp(9.5px,2.8cqi,10.5px)}
-
-  /* TopBar compacta (RESPONSIVE.md §2.3, presupuesto ≈ 325 px): liga sin el «/12», ⚡, solo hh:mm, el usuario solo con su
-     avatar (el aria-label ya existe) y la campana. Lo funcional va flex:none; la liga es la válvula (se achica primero). */
-  .topbar{gap:6px;padding:0 12px}
-  .tb-date,.tb-uname,.tb-uswap,.tb-dim{display:none}
-  .tb-league{min-width:0;overflow:hidden}
-  .tb-ec,.tb-clock,.tb-userwrap,.tb-bellwrap{flex:none}
-  .tb-user{padding:0 4px}
-  /* popovers (campana y usuarios): colgados de la barra, a todo el ancho; colgados del chip se salían de pantalla */
-  .tb-pop{position:fixed;top:calc(46px + 8px);left:8px;right:8px;width:auto;max-height:70vh;max-height:70dvh}
 
   @media (prefers-reduced-motion: reduce){
     .side,.app.is-nav-open .side,.nav-scrim,.app.is-nav-open .nav-scrim,.bnav-item{transition:none}
@@ -340,7 +289,8 @@ body.stage-mode{background:#ECEFF6;padding:0 16px}
 /* ── Teléfono angosto (< 340: iPhone SE de 1ª generación, Android de 320) ── Única excepción a los dos cortes y solo para la
    barra inferior (H4 del QA de T0): a 320 la caja de cada botón mide 53,6 px y «APRENDER» 54,5 (salía «APREND…»). La barra
    pierde aire a los costados (8 → 4) y entre botones (4 → 2) y las letras se juntan apenas (.04em → .02em): «APRENDER» queda
-   con 4 px de holgura y «AFTER DAY» (la que entra cuando el ciclo cierra MyTube) con 3,5. Desde 340 entra sin esto. */
+   con 4 px de holgura y «AFTER DAY» con 3,5. Desde 340 entra sin esto. (Con el orden del 30-oct, si el ciclo cierra MyTube
+   entra «MI ESPACIO», la siguiente del menú.) */
 @container app (max-width:339.98px){
   .bnav{gap:2px;padding-inline:4px}
   .bnav-item{letter-spacing:.02em}

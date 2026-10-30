@@ -12,27 +12,10 @@
 .idav-ini{position:relative;overflow:hidden}
 .idav-acc{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 
-/* ---- perfil del pie de la barra (Sidebar → ProfileCard): la tarjeta .profile de shell.css, ahora es un botón ---- */
-.idav-prof{width:100%;text-align:left;transition:background-color .2s ease,border-color .2s ease}
-.idav-prof:hover{background:#F6F7FB;border-color:#D3D9E6}
+/* ---- el avatar de la tarjeta de perfil (Sidebar → ProfileCard): el tamaño y el botón viven en shell.css (.prof-av); acá solo
+   el saltito al guardar un look nuevo. SHELL-2 (30-oct): sin lapicera ni medallita (la tarjeta ya no abre "Tu avatar"). ---- */
 .idav-pav{position:relative;flex:none;display:grid}
-.idav-prof .av3{width:36px;height:36px;font-size:18px;line-height:1}
-.idav-pen{position:absolute;right:-5px;bottom:-4px;width:18px;height:18px;border-radius:50%;background:#fff;border:1.5px solid #E4E8F1;
-  display:grid;place-items:center;color:#47506B;transition:color .2s ease,border-color .2s ease}
-.idav-pen svg{width:10px;height:10px}
-.idav-prof:hover .idav-pen{color:#2843A8;border-color:#A9BBF6}
 .idav-pav[data-pop] .av3{animation:idav-pop .5s cubic-bezier(.2,1.5,.4,1) both}
-/* la medallita de la semana pasada (visión, audio 26: "tu prestigio se nota"): abajo a la IZQUIERDA del avatar —la
-   lapicera vive abajo a la derecha—; el anillo es el color de la medalla (los mismos del aside del feed y de Ligas) */
-.idav-medal{position:absolute;left:-6px;bottom:-5px;width:19px;height:19px;border-radius:50%;background:#fff;display:grid;place-items:center;
-  font-size:11.5px;line-height:1;box-shadow:0 0 0 1.5px var(--idav-md,#E8A317),0 2px 4px -1px rgba(27,34,56,.28);cursor:default}
-.idav-medal[data-medal="plata"]{--idav-md:#9AA3B5}
-.idav-medal[data-medal="bronce"]{--idav-md:#C07A43}
-/* misma densidad que la barra (shell.css: .profile .av pasaba a 32px con la barra compacta) */
-@container side (max-height:783px){
-  .idav-prof .av3{width:32px;height:32px;font-size:16px}
-  .idav-medal{width:17px;height:17px;font-size:10.5px;left:-5px}
-}
 
 /* ---- hoja "Tu avatar" (sobre el patrón global .shov/.shcard de space.css) ---- */
 .idav-ov{animation:fadein .2s both}

@@ -46,7 +46,7 @@ export interface CycleRange { id: string; name: string; from: string; to: string
 /** Las 8 secciones que el ciclo puede gatear, en el orden del menú (el Feed no está: nunca se cierra). */
 export const SECTION_KEYS: readonly SectionKey[] = ['chat', 'buscar', 'mytube', 'aprender', 'tienda', 'calendario', 'espacio', 'afterday']
 export const SECTION_LABEL: Record<SectionKey, string> = {
-  chat: 'Chat', buscar: 'Buscar', mytube: 'MyTube', aprender: 'Aprender', tienda: 'Tienda', calendario: 'Calendario', espacio: 'Mi espacio', afterday: 'After Day',
+  chat: 'Chat', buscar: 'Buscar', mytube: 'Mis videos', aprender: 'Aprender', tienda: 'Tienda', calendario: 'Calendario', espacio: 'Mi espacio', afterday: 'After Day',
 }
 export const isSectionKey = (k: unknown): k is SectionKey => typeof k === 'string' && (SECTION_KEYS as readonly string[]).includes(k)
 

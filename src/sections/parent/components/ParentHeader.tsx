@@ -39,7 +39,8 @@ const TABS = [
   { to: '/familia/protecciones', label: 'Protecciones', end: false },
   // MyTube (F2, 28-oct; ex «YouTube», /familia/youtube redirige): la MISMA grilla de canales que ve el chico + el agregar por
   // URL (porte W5: videos, playlists y canales de YouTube que se suman al catálogo). De toda la familia.
-  { to: '/familia/mytube', label: 'MyTube', end: false },
+  // «Mis videos» (30-oct, pedido de Esteban: MyTube pasa a llamarse así en todo lo visible; la ruta queda).
+  { to: '/familia/mytube', label: 'Mis videos', end: false },
   // Ciclo del día (F2, docs/USUARIOS.md §11): rangos horarios y qué secciones hay en cada uno, por integrante.
   // Orden MyTube · Ciclo · After Day · Límites: pedido de Esteban, 29-oct.
   { to: '/familia/ciclo', label: 'Ciclo del día', end: false },

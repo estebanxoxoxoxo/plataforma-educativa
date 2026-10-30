@@ -8,7 +8,7 @@ import { CYCLE_SECTIONS, sectionForPath } from '../cycleSections';
 describe('CYCLE_SECTIONS', () => {
   it('las 8 del ciclo, en el orden del menú (el de las reglas compartidas con el server), con su ruta', () => {
     expect(CYCLE_SECTIONS.map((s) => s.key)).toEqual([...SECTION_KEYS]);
-    expect(CYCLE_SECTIONS.map((s) => s.label)).toEqual(['Chat', 'Buscar', 'MyTube', 'Aprender', 'Tienda', 'Calendario', 'Mi espacio', 'After Day']);
+    expect(CYCLE_SECTIONS.map((s) => s.label)).toEqual(['Chat', 'Buscar', 'Mis videos', 'Aprender', 'Tienda', 'Calendario', 'Mi espacio', 'After Day']);
     for (const s of CYCLE_SECTIONS) expect(sectionForPath(s.route)).toBe(s.key); // la ruta del menú cae en su sección
   });
 });

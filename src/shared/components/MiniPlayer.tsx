@@ -6,13 +6,16 @@ import {
 } from '../audio/bgAudio';
 import { AMBIENTS } from '../audio/ambientNoise';
 import { refreshLimits, useLimits } from '../../sections/parent/lib/limits';
-import { IcClose, IcNavHeadphones, IcPause, IcPlay, IcRepeat, IcSkipNext, IcSkipPrev } from './icons';
+import { IcBgHeadphones, IcClose, IcPause, IcPlay, IcRepeat, IcSkipNext, IcSkipPrev } from './icons';
 
 const fmtT = (s: number) => { const m = Math.floor(s / 60); const sec = Math.floor(s % 60); return `${m}:${String(sec).padStart(2, '0')}`; };
 
-/** Mini-control de SONIDO DE FONDO (port del MiniPlayer de Smarty): botón siempre visible en la barra
- *  lateral — se resalta cuando algo suena. El panel controla la música (cola) y los ruidos de ambiente,
- *  cada uno con su propio volumen. Lee/controla el singleton bgAudio. */
+/** Mini-control de SONIDO DE FONDO (port del MiniPlayer de Smarty). Desde SHELL-2 (pedido 30-oct) el disparador es el 🎧
+ *  de la tarjeta de perfil (ProfileCard lo embebe entre el nombre y la liga): ícono SIN texto visible («sin indicar con
+ *  palabras qué es»), con el nombre accesible de siempre. Tres estados visuales (data-state, shell.css): «on» coloreado con
+ *  el puntito que late (algo suena: música o un ruido), «paused» con una marca de pausa (hay música cargada en pausa) e
+ *  «idle» neutro (nada cargado). El panel se abre ENCIMA de la tarjeta (.profile es su ancla: .mp no se posiciona) y su
+ *  lógica no cambió: música (cola) y ruidos de ambiente, cada uno con su volumen. Lee/controla el singleton bgAudio. */
 export function MiniPlayer() {
   const bg = useBgAudio();
   const caps = useLimits(); // topes de volumen de la familia (Familia → Límites): los sliders no pasan de ahí
@@ -46,12 +49,13 @@ export function MiniPlayer() {
 
   return (
     <div className="mp" ref={panel}>
-      <button className={`mp-toggle${activo ? ' on' : ''}${bg.video || anyAmbient ? '' : ' idle'}`} aria-label={bg.video ? `Sonido de fondo: ${bg.playing ? 'sonando' : 'en pausa'}` : 'Sonido de fondo'} onClick={() => setOpen((o) => !o)}>
-        <IcNavHeadphones />
-        {/* Con el play/pausa en la tarjeta de After Day (29-oct) el fondo puede quedar EN PAUSA un rato largo: decir
-            «Sonando» ahí mentía. */}
-        <span className="mp-lbl">{bg.video ? (bg.playing ? 'Sonando' : 'En pausa') : 'Sonido de fondo'}</span>
+      <button type="button" className="mp-hp" data-state={activo ? 'on' : bg.video ? 'paused' : 'idle'} aria-expanded={open}
+        aria-label={bg.video ? `Sonido de fondo: ${bg.playing ? 'sonando' : 'en pausa'}` : 'Sonido de fondo'} onClick={() => setOpen((o) => !o)}>
+        <IcBgHeadphones />
+        {/* Con el play/pausa en la tarjeta de After Day (29-oct) el fondo puede quedar EN PAUSA un rato largo: la marca de
+            pausa lo distingue de «sonando» (puntito que late) y de «nada» (neutro). */}
         {activo && <i className="mp-dot" />}
+        {!activo && bg.video && <i className="mp-pz" />}
       </button>
 
       {open && (

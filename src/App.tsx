@@ -16,12 +16,12 @@ import { DrivePage } from './sections/space/containers/DrivePage';
 import { ListView } from './sections/mytube/containers/ListView';
 import { TrashPage } from './sections/space/containers/TrashPage';
 import { StorePage } from './sections/store/containers/StorePage';
+import { SettingsPage } from './sections/settings/containers/SettingsPage';
 import { FeatureGate } from './sections/parent/containers/FeatureGate';
 import { ParentPage } from './sections/parent/containers/ParentPage';
 import { BgAudioHost } from './shared/audio/BgAudioHost';
 import { BottomNav, NavScrim, useNavDrawer } from './shared/components/BottomNav';
 import { Sidebar } from './shared/components/Sidebar';
-import { TopBar } from './shared/components/TopBar';
 import { UserProvider, useUser } from './hooks/user';
 
 /* Rutas viejas /descubrir/{articulo,video}/:id → /buscar/… (conservan el :id). */
@@ -55,8 +55,6 @@ function Layout() {
       {/* FeatureGate: las secciones que el padre apagó (Tienda, Ligas, Amigos, Chat) no se abren ni por URL — al chico:
           los candados son del dependiente; con un adulto activo pasa todo (docs/USUARIOS.md §4) */}
       <main className="main" inert={drawer.open || dockFull} aria-hidden={dockFull || undefined}>
-        {/* Barra superior GT7 (pedido 12-oct): liga (link a /ligas) · ⚡ · reloj · campana */}
-        <TopBar />
         <div className="main-body"><FeatureGate><Outlet /></FeatureGate></div>
       </main>
       <BottomNav user={user} drawer={drawer} covered={dockFull} />
@@ -118,6 +116,8 @@ export default function App() {
           <Route path="amigos/*" element={<Navigate to="/" replace />} />
           {/* Calendario: las clases del usuario activo con sus mentores (tanda U2: los contrata el adulto en Buscar → Mentores) */}
           <Route path="calendario" element={<CalendarPage />} />
+          {/* Configuración del usuario activo (tanda SHELL-2, 30-oct): llega desde el avatar de la tarjeta de perfil. */}
+          <Route path="configuracion" element={<SettingsPage />} />
           {/* Crear: el creador de rutas del porte Smarty (zona del chico, como el POC) */}
           <Route path="crear" element={<CreatePage />} />
           <Route path="ligas" element={<LeaguesPage />} />

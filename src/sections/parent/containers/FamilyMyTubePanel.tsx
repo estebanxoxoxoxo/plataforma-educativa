@@ -96,7 +96,7 @@ export function FamilyMyTubePanel({ member }: { member: string }) {
     setBackfilling(true); setMaintMsg('');
     try {
       const r = await parentCall(api.mtBackfill());
-      setMaintMsg(r.ok ? `✓ MyTube actualizado: ${r.completados} video(s) completados · ${r.canales} canal(es).` : `Error al completar canales: ${explainYtError(r.error)}`);
+      setMaintMsg(r.ok ? `✓ Mis videos actualizado: ${r.completados} video(s) completados · ${r.canales} canal(es).` : `Error al completar canales: ${explainYtError(r.error)}`);
     } catch {
       setMaintMsg(`Error al completar canales: ${NET}`);
     } finally {
@@ -154,8 +154,8 @@ export function FamilyMyTubePanel({ member }: { member: string }) {
     <>
       <section className="pz-panel" aria-labelledby="pz-mt-h">
         <header className="pz-panel-head">
-          <h3 id="pz-mt-h">MyTube <span className="pz-mem-fam">Vale para toda la familia</span></h3>
-          <p>Videos, playlists y canales de YouTube que aprobás para tu familia. Se suman al catálogo aprobado de Innerith y cada integrante los puede seguir en su MyTube. Abajo, los canales como los ve tu familia.</p>
+          <h3 id="pz-mt-h">Mis videos <span className="pz-mem-fam">Vale para toda la familia</span></h3>
+          <p>Videos, playlists y canales de YouTube que aprobás para tu familia. Se suman al catálogo aprobado de Innerith y cada integrante los puede seguir en Mis videos. Abajo, los canales como los ve tu familia.</p>
         </header>
         <div className="pz-block">
           <h4 className="pz-block-h">Agregar</h4>
@@ -190,7 +190,7 @@ export function FamilyMyTubePanel({ member }: { member: string }) {
               ? <p className="pz-form-err" role="alert">{ops.note.text}</p>
               : <p className="pz-yt-msg" role="status">{ops.note.text}</p>)}
             {famCount === 0 ? (
-              <p className="pz-muted">Todavía no sumaste nada. Además del catálogo de Innerith, tu familia solo puede ver en MyTube lo que agregues arriba.</p>
+              <p className="pz-muted">Todavía no sumaste nada. Además del catálogo de Innerith, tu familia solo puede ver en Mis videos lo que agregues arriba.</p>
             ) : familyShown.length + orphansShown.length === 0 ? (
               <p className="pz-muted">Ningún canal sumado coincide con «{q.trim()}».</p>
             ) : (
@@ -225,9 +225,9 @@ export function FamilyMyTubePanel({ member }: { member: string }) {
             <summary className="pz-mt-maint-s">Mantenimiento</summary>
             <div className="pz-yt-maint">
               <button type="button" className="pz-btn pz-btn--ghost pz-btn--sm" disabled={backfilling} onClick={() => void backfill()}>
-                {backfilling ? 'Completando…' : '↻ Completar canales (MyTube)'}
+                {backfilling ? 'Completando…' : '↻ Completar canales (Mis videos)'}
               </button>
-              <span className="pz-yt-hint">Rellena el canal y la duración de los videos que les falte (para encender listas viejas en MyTube). Necesita la API key de YouTube.</span>
+              <span className="pz-yt-hint">Rellena el canal y la duración de los videos que les falte (para encender listas viejas en Mis videos). Necesita la API key de YouTube.</span>
               <button type="button" className="pz-btn pz-btn--ghost pz-btn--sm" disabled={dedup} onClick={() => void quitarDuplicados()}
                 title="Quita entradas repetidas (mismo canal/playlist/video), conservando la más vieja y sus videos">
                 {dedup ? 'Limpiando…' : '⧉ Quitar duplicados'}
