@@ -8,14 +8,20 @@
 > eligen el/los día/s (la cantidad depende de cuánto pagó). Usuarios demo: un niño y su padre, con
 > un botón en la barra superior para switchear (a efectos de demo).
 
+> **Shell nuevo (SHELL-2, 30-oct).** Este documento es también el REGISTRO de cada tanda, y las secciones 8 a 12 nombran
+> el shell de SU momento: la barra superior (`TopBar`) con el reloj, la campana y el chip del switch; «MyTube» como nombre
+> visible; la solapa «Páginas» de Buscar; el selector «Ciclo (demo)» abajo del menú; el chip «🏅 N» y la medallita de la
+> semana sobre el avatar. Todo eso es HISTÓRICO: la barra superior ya no existe y el switch vive en Configuración. Lo
+> VIGENTE de cómo se ve y se navega, usuario por usuario, está en §1, §2 y §13.
+
 ## 1. Modelo
 
-- **Todo usuario usa las mismas secciones** (Feed, Buscar, Chat, MyTube, Aprender, After Day,
-  Tienda, Calendario, Mi espacio). Un **adulto** además tiene dependientes y un punto de menú
-  propio al fondo: **Familia** (la ex Zona de padres, sin portón de PIN: es SU menú).
+- **Todo usuario usa las mismas secciones** (en el orden del menú desde el 30-oct: Feed, Buscar, Chat, Mis videos —la
+  sección MyTube, ruta `/mytube`—, Mi espacio, Calendario, Aprender, Tienda, After Day). Un **adulto** además tiene
+  dependientes y un punto de menú propio al fondo: **Familia** (la ex Zona de padres, sin portón de PIN: es SU menú).
 - **Los candados son del dependiente, no del adulto**: apagados de funcionalidades (Tienda/Chat/
-  Amigos/Ligas) y horarios por sección rigen SOLO cuando el usuario activo es un chico. El adulto
-  nunca queda afuera de su propia plataforma.
+  Amigos/Ligas) y el Ciclo del día (§11; antes, los horarios por sección) rigen SOLO cuando el usuario activo es un chico.
+  El adulto nunca queda afuera de su propia plataforma.
 - Usuarios seed (server, en código — no es config editable):
   - `ian` — Ian, 9, `kind:'child'`, dependiente de `andres`.
   - `luna` — Luna, 12, `kind:'child'`, dependiente de `andres` (U3, 27-oct: §9).
@@ -28,10 +34,11 @@
   (src/api/index.ts lee localStorage UNA vez, al cargar la página —`PAGE_USER`—, y la pone en cada llamada: cada pestaña
   conserva su usuario hasta su próxima recarga). El server la valida contra el
   seed (`actingUser(req)`; desconocida/ausente → `ian`).
-- **Switch**: chip en la TopBar (avatar + nombre del usuario activo + ícono de cambio), a la
-  izquierda de la campana. Click → popover (mismo patrón que la campana) con los usuarios de
-  `GET /api/users` (avatar `lookFor(nick)` para el que no es el activo), el activo marcado, y la
-  nota "Cambiar de usuario (demo)". Elegir otro → setear localStorage + `location.assign('/')`
+- **Switch** (desde SHELL-2, 30-oct): **Configuración → Cambiar de usuario** (`/configuracion`, adonde lleva el avatar de la
+  tarjeta de perfil del pie de la barra lateral; `src/sections/settings/components/SwitchUserSection.tsx`). Hasta el 30-oct
+  era un chip en la TopBar, a la izquierda de la campana, con un popover: la barra superior ya no existe. La lista es la de
+  `GET /api/users`: el activo con su avatar elegido, «N años» o «Adulto» y "· usuario activo"; los demás con el avatar
+  `lookFor(nick)`; abajo, la nota "Cambiar de usuario (demo)". Elegir otro → setear localStorage + `location.assign('/')`
   (recarga completa SIN resetear la demo de nadie —U4-C, §10: `setActingUser` marca
   `sessionStorage['innerith.keepDemo']` y la carga que sigue la consume—; el F5 resetea SOLO al usuario activo). A futuro
   Esteban lo arma mejor; esto es demo.
@@ -112,8 +119,9 @@ Reglas de negocio de mentores (server, teachersFake.ts — el archivo conserva e
     Cubre /api/parent/* y /api/mytube/admin/*. Los /api/mentors* son directamente SOLO-adulto
     (`isAdultReq`: el token dormido no los abre — un chico no ve precios ni contrata).
 - Cliente: `FeatureGate` y `ScheduleGate` devuelven `children` directo si `useUser().kind==='adult'`;
-  `Sidebar` solo filtra secciones para el chico; `TopBar` trata ligas/tienda/amigos como prendidos
-  para el adulto. (Desde U3 el feedFake arma el contenido con la config del CHICO ACTIVO —y con un
+  `Sidebar` solo filtra secciones para el chico; lo que mostraba la `TopBar` (que ya no existe desde SHELL-2) —los ⚡,
+  ahora junto a «Tienda» en el menú, y la posición de liga, ahora en la tarjeta de perfil— lee `useFeatures()`, que con el
+  adulto da todo prendido. (Desde U3 el feedFake arma el contenido con la config del CHICO ACTIVO —y con un
   adulto, solo con la protección de fábrica y todo prendido—: §9.)
 
 ## 5. Familia (la ex Zona de padres)
@@ -121,7 +129,8 @@ Reglas de negocio de mentores (server, teachersFake.ts — el archivo conserva e
 - Ruta **`/familia/*`** = los MISMOS paneles, SIN portón (ni AdultGate ni "Cerrar zona de padres").
   Solo adulto: con usuario chico la ruta navega a `/` (y el server responde 401 igual).
   `/padres/*` redirige a `/familia/*` preservando la subruta.
-- Menú del adulto: punto **"Familia"** al fondo (debajo de Mi espacio), ícono nuevo `IcNavFamily`
+- Menú del adulto: punto **"Familia"** al fondo (debajo de Mi espacio en el menú del 14-oct; desde el 30-oct, debajo de
+  After Day), ícono nuevo `IcNavFamily`
   (estilo filled de icons.tsx). El link discreto `pz-access` del Sidebar se elimina para todos.
 - Header: kicker "Familia", título "Cuenta de {dependiente}" — desde U3 · M2 el dependiente es el que el adulto
   ELIGE en el selector de integrante (`?m=<id>`; sin él, el PRIMERO de `GET /api/users`): ver §9. Tabs → `/familia/...`;
@@ -134,7 +143,8 @@ Reglas de negocio de mentores (server, teachersFake.ts — el archivo conserva e
 ## 6. Mentores en Buscar (solo adulto)
 
 - Solapa **"Mentores"** en /buscar (patrón de la solapa Personas; con usuario chico no existe y
-  `?tab=mentors` cae en Páginas). Query vacía → el catálogo entero (8); con query → filtro por
+  `?tab=mentors` cae en Todo —hasta el 30-oct caía en «Páginas»—). En la home de Buscar, sin solapas desde el 30-oct, el
+  adulto ve el link «Ver los mentores». Query vacía → el catálogo entero (8); con query → filtro por
   nombre/materia/bio (sin red extra: filtra `GET /api/mentors`).
 - Card: emoji+color, nombre, materia, bio, rating, "USD X la hora", y el estado por beneficiario
   ("Da clases a Ian · los miércoles 17:00", "Pagado para vos · falta elegir los días → Completar").
@@ -166,7 +176,9 @@ amigos, Drive, MyTube, Learn, lo social del Feed). **Desde U4 cada integrante ti
 - **GLOBAL** (el mundo del demo, igual para todos): el catálogo aprobado de videos, la lista blanca de sitios, la caché de
   artículos y sus veredictos (por huella de temas: U3), el mundo NPC (sus personas y noticias) y las anclas de zona y país.
 - **Del DISPOSITIVO** (`localStorage`, no del usuario): volumen del MiniPlayer, repetir, ruidos, URL de route-lab.
-- El historial del chat vive en la RAM del cliente: cada carga empieza vacía (ya era "de cada uno").
+- **Los chats del Chat** (desde el 30-oct, tanda BUSCARCHAT): de CADA USUARIO pero en el NAVEGADOR —`localStorage`
+  `innerith.chat.v1.<uid>`, hasta 30 conversaciones × 60 mensajes; sin almacenamiento, RAM—. El server sigue sin estado y
+  el padre NO los ve (antes vivían en la RAM del cliente y cada carga empezaba vacía).
 
 ## 8. Tandas — HECHAS Y COMMITEADAS (14-oct)
 
@@ -184,7 +196,8 @@ amigos, Drive, MyTube, Learn, lo social del Feed). **Desde U4 cada integrante ti
 Bordes conocidos del demo (anotados por los implementadores): no se pueden cambiar los días sin
 cancelar y recontratar; el adulto no ve el calendario
 del dependiente desde la UI (en Mentorías ve los días, no las fechas); en el popover del switch los
-otros usuarios salen con el avatar derivado del nick, no el elegido. SALDADOS con U3/M1 (28-oct): la
+otros usuarios salen con el avatar derivado del nick, no el elegido (sigue igual en Configuración → Cambiar de usuario,
+su lugar desde el 30-oct). SALDADOS con U3/M1 (28-oct): la
 respuesta en vuelo de un NPC ya conoce al usuario que escribió (contexto por pedido), así que al
 adulto le contestan siempre; los 401 de Familia a un chico dicen "Solo para un adulto de la familia."
 (ya no nombran el PIN).
@@ -297,7 +310,8 @@ integrante desde Familia.
   etiqueta "Vale para toda la familia"; nota del selector: "YouTube y la música de After Day valen para toda la familia.");
   la **zona horaria** (vive en Límites, arriba de los horarios del integrante: etiqueta "Toda la familia" y "Vale para toda
   la familia, no solo para el integrante elegido…"; al guardar se parchea en la config de todos y se adopta con
-  `adoptFamilyTz`, también en la pestaña del adulto —el reloj de su barra superior—).
+  `adoptFamilyTz`, también en la pestaña del adulto —el reloj de su barra superior; desde SHELL-2, 30-oct, sin barra ni
+  reloj, la usan el almanaque del punto Calendario, el Calendario, Mentores y las fechas de Familia—).
 - **Mentorías** (decisión M2): no se tocó el panel; su solapa es de TODA la familia porque la lista mezcla contratos de
   cada chico y "para vos" del adulto: el título dice "Toda la familia" (nunca "Cuenta de Ian" arriba de una mentoría del
   adulto) y la nota del selector "Las mentorías son de toda la familia: cada una dice para quién es (también las tuyas).".
@@ -514,9 +528,10 @@ cambio a propósito; los intereses reales por usuario llegan con el algoritmo de
   con tests) / `useSocial()` → `true` con un chico y Amigos prendido, `false` con Amigos apagado O con un ADULTO activo
   (aunque `useFeatures()` le dé todo prendido), `undefined` mientras no se sabe (fail-closed). La usan: el dock de Mensajes
   (`ChatDock`: con un adulto no se monta, y con él su "Buscar personas"), Buscar → Personas (`SearchPage`: con un adulto la
-  solapa no existe y `?tab=people` cae en Páginas, como Mentores con un chico), la campana de la TopBar (es solo social:
-  solicitudes + no leídos del dock; con un adulto no se piden ni cuentan y no hay campana), la zona pinneada del Feed (las
-  solicitudes no se piden) y "Regalar" en la ropa de la Tienda (la hoja le diría "cuando aceptes una solicitud…", algo
+  solapa no existe y `?tab=people` cae en Páginas —desde el 30-oct, en Todo—, como Mentores con un chico), la campana de la
+  TopBar (es solo social: solicitudes + no leídos del dock; con un adulto no se piden ni cuentan y no hay campana —HISTÓRICO:
+  la campana se fue con SHELL-2 para todos, §13—), la zona pinneada del Feed (las solicitudes no se piden; hoy la zona
+  Destacado, que al adulto le muestra solo el hero; tampoco las cuenta el circulito del Feed) y "Regalar" en la ropa de la Tienda (la hoja le diría "cuando aceptes una solicitud…", algo
   que el adulto nunca puede hacer). Queda para el adulto el chip de demo "Simular NPCs" del Feed (le trae la carrera de SU
   liga de grandes).
 - **Solapa Familia en `/ligas` (D2).** `?tab=familia`; `api.familyLeague()` va en la MISMA carga que liga/zona/país pero
@@ -533,12 +548,12 @@ cambio a propósito; los intereses reales por usuario llegan con el algoritmo de
 - **Familia.** Actividad: se fue la nota de U3 ("…son compartidos entre los integrantes"); la nueva dice "Todo lo de acá
   es de {integrante}: su XP, sus ⚡ y su racha, lo que está practicando y lo que guardó en su Mi espacio. Lo que sigue
   siendo de toda la familia es el catálogo: las rutas de Aprender y el YouTube que aprobás." YouTube: "…y cada integrante
-  los puede seguir en su MyTube." (cada uno sigue lo suyo).
+  los puede seguir en su MyTube." (cada uno sigue lo suyo; desde el 30-oct el panel dice «Mis videos»).
 - **Mi espacio.** `FolderSheet`: la "última carpeta usada" es por usuario (`innerith.lastFolder:<id>`; la clave vieja sin
   usuario se ignora).
 - **Bordes (U4-C).** La campana desaparece para el adulto (hoy su único contenido es social: si un día tiene avisos propios,
-  vuelve con ellos). `?tab=people` con un adulto deja la URL como está y muestra Páginas (igual que `?tab=mentors` con un
-  chico). El aviso "Resultados solo de fuentes verificadas para chicos" de Buscar también lo ve el adulto: es cierto (lo
+  vuelve con ellos; HISTÓRICO: desde SHELL-2 no hay campana para nadie). `?tab=people` con un adulto deja la URL como está y
+  muestra Páginas (igual que `?tab=mentors` con un chico; desde el 30-oct, Todo). El aviso "Resultados solo de fuentes verificadas para chicos" de Buscar también lo ve el adulto: es cierto (lo
   protege la lista de fábrica). La app no tiene diseño de teléfono (la barra lateral fija aprieta todo a 375 px): no es
   de esta tanda.
 
@@ -719,12 +734,15 @@ una pestaña nueva "Ciclo del día"; y, para la demo, un selector en la barra de
   UX "descansando… se abre a las HH:MM"; con override, sin "se abre"), `adoptCycle`, `adoptFamilyTz`, `onMemberCycle` (oyentes
   por integrante) y `useMemberCycle` (el ciclo de un integrante visto por el adulto). El mapa ruta → sección y la ruta de cada
   sección: `lib/cycleSections.ts` (tests). TopBar, Feed, Calendario, Mentores y ProfileCard pasaron a `useCycle` (solo usan
-  tz/delta y, ProfileCard, `isSectionOpen('tienda')`).
+  tz/delta y, ProfileCard, `isSectionOpen('tienda')`). (La TopBar ya no existe desde SHELL-2; el almanaque del punto
+  Calendario del Sidebar también lee la `tz` de `useCycle`.)
 - **Retirado**: `SchedulesPanel.tsx`, `lib/schedules.ts`, `api.parentSchedules`, `normalizeSchedule`/`defaultSchedule`/
   `DEFAULT_DAY`/`SCHEDULABLE`, su test y los estilos `pz-sch-*`. Después, con la retirada de la compat, también
   `lib/scheduleRules.ts` entero (`isOpenAt`/`nextOpenLabelAt`, que solo los usaba el bloque «compat» del test, retirado junto).
 - **Selector de demo** «Ciclo (demo)» (`containers/CycleDemoControl.tsx` + `components/CycleDemoPicker.tsx`, CSS `cyd-` en
-  shell.css): abajo del menú, arriba del MiniPlayer, un `<select>` con borde punteado (lenguaje de los chips de demo): "Reloj
+  shell.css). HISTÓRICO lo de dónde vive: desde el 30-oct está en **Configuración** (`/configuracion`) y, con el adulto,
+  aparece siempre ahí (sobre el integrante del `?m=` o, sin él, el primero; solo si tiene rangos) — ver §13. En F2 vivía
+  abajo del menú, arriba del MiniPlayer: un `<select>` con borde punteado (lenguaje de los chips de demo): "Reloj
   real" + "Tarde · 14:00–18:00"… Elegir → `api.demoCycle(rangeId[, member])` y `adoptCycle` de la respuesta (menú y ruta cambian
   al instante, sin recargar). **Decisión F2 (con el adulto)**: el selector aparece SOLO dentro de Familia y opera sobre el
   integrante del `?m=` ("Ciclo de Luna (demo)", con `?member=`; misma regla de Familia: ausente o ajeno = el primero, así nunca
@@ -1136,6 +1154,12 @@ correr el E2E de U5 con el server solo para el QA.
 **Hecho.** Las medallas de U5-B en pantalla, con las cinco reglas de la spec §5.1 (solo las ganadas: sin total, sin "faltan",
 sin siluetas; nada se pierde; texto informativo; cada uno ve las suyas). Lo puro vive en `src/shared/lib/medals.ts` (textos
 del chip, "Desde el…", "×N", la nota de los candados, el evento; con `__tests__/medals.test.ts`).
+
+> **HISTÓRICO (SHELL-2, 30-oct).** El chip «🏅 N» y la medallita de liga sobre el avatar se SACARON de la tarjeta del
+> perfil, que quedó en avatar (→ Configuración) · nombre · 🎧 · puesto de liga. La hoja «Tus medallas» sigue montada en la
+> tarjeta y hoy la abre SOLO «Ver tus medallas» de la noticia de una medalla en el Feed (`openMedalsSheet`); ya no hay
+> lectura periódica de `/api/medals`: se pide al abrirla. Lo de abajo sobre el chip es el registro de U5-D. Ver §13.
+
 - **Tarjeta del perfil** (`src/shared/components/ProfileCard.tsx`): de UN botón a un `div.profile` con dos botones hermanos:
   el de siempre (avatar + nombre + edad → "Tu avatar", con la medallita de liga y la lapicera) y el chip **`mdl-chip` "🏅 N"**
   con un puntito si hay alguna sin ver (`aria-label="Tus medallas: 7, 1 nueva"`). Sin medallas el chip NO existe (Andrés al
@@ -1224,3 +1248,90 @@ real de un lunes.
 
 **Para U5-E.** Correr el E2E con el server solo para el QA (las corridas en vivo de esta tanda se cortaron por resets ajenos
 de Ian y de Andrés).
+
+## 13. Shell nuevo — SHELL-2 (30-oct)
+
+> Pedidos de Esteban del 30-oct, en una ola de tandas (SHELL-2, CONFIG, BUSCARCHAT, FEED-3 y afinados en vivo; commits
+> `4c16110` · `4cf23fe` · `cb832e3` · `19b7f1e` · `3fd8555`): menú reordenado, adiós a la barra superior, una página de
+> Configuración a la que lleva el avatar, menús contextuales a la derecha con su circulito en el menú, y Buscar y Chat al
+> nivel del POC. Ningún contrato del server cambió: todo es cliente.
+
+**El menú** (`NAV` de `src/shared/components/Sidebar.tsx`, la fuente también de la barra inferior del teléfono): Feed ·
+Buscar · Chat · **Mis videos** (la sección MyTube: cambió el nombre visible, no la ruta `/mytube` ni el código) · Mi
+espacio · Calendario · Aprender · Tienda · After Day · Familia (solo el adulto, abajo de todo). Junto a la palabra
+«Tienda», los ⚡ del usuario activo (solo con la Tienda prendida; se refrescan al moverse la moneda, al volver el foco o la
+pestaña). El punto Calendario lleva de ícono el almanaque con el día de HOY en la zona de la familia. Ligas sigue sin ser
+punto del menú y Configuración tampoco lo es.
+
+**Sin barra superior.** `TopBar.tsx` no existe más. Dónde quedó cada cosa: el reloj y la campana se retiraron (las
+solicitudes llegan a la zona Destacado del Feed y a Buscar → Personas; los no leídos, al dock de Mensajes); los ⚡, junto a
+«Tienda»; la posición de liga y el 🎧 Sonido de fondo, a la tarjeta de perfil; el switch de usuario, a Configuración.
+
+**La tarjeta de perfil** (pie de la barra lateral, `src/shared/components/ProfileCard.tsx`): EXACTAMENTE avatar · nombre ·
+🎧 · puesto de liga. El avatar (con la ropa puesta) navega a `/configuracion`; el nombre va solo, sin la edad; el 🎧 es el
+MiniPlayer (su panel se abre encima de la tarjeta); el escudo con «N.º» lleva a `/ligas` (solo con Ligas prendida y si
+llegó la liga: se relee al montar, cada 60 s, al cerrar una semana y al volver el foco). Sin medallita de la semana, sin
+lapicera y sin chip de medallas. Las dos hojas del perfil siguen montadas acá: «Tu avatar» la abren Configuración y el
+«Ponérsela» de la Tienda; «Tus medallas», solo el «Ver tus medallas» de la noticia de una medalla en el Feed.
+
+**Configuración** (`/configuracion`, `src/sections/settings/`): «Configuración» + «Cuenta de {nombre}», en una columna
+angosta con secciones de título claro y ayuda en gris (el patrón de los Ajustes del POC).
+- **Perfil**: el avatar grande, el nombre (solo lectura) y «N años» o «Adulto»; «Tu avatar» → «Cambiar» abre la MISMA
+  hoja de siempre, con la prenda puesta preseleccionada (sin la Tienda prendida, la ayuda no la nombra).
+- **Sonido**: «Música de fondo» y «Ruidos para concentrarte» (blanco, marrón, rosa: prender, apagar y volumen), sobre los
+  MISMOS stores del MiniPlayer y con los MISMOS topes de Familia → Límites («máx. N»; se releen al entrar). Al chico le dice
+  que el máximo lo pone su familia; al adulto, con el link a Familia → Límites.
+- **Ciclo (demo)**: el selector que antes vivía abajo del menú (§11). Con un chico, SU ciclo, solo si tiene rangos. Con el
+  adulto, el del integrante del `?m=` de la URL o, sin él, el PRIMERO («Ciclo de Ian (demo)»), solo si ese integrante tiene
+  rangos; como el avatar lleva a `/configuracion` sin `?m=`, sin tocar la URL es el primer integrante.
+- **Cambiar de usuario** (demo): §2.
+
+**Circulitos de destacados** (`src/shared/lib/navHighlights.ts`): el punto de una sección con menú contextual lleva un
+círculo con cuántos ítems destacados esperan ahí (con 0 no hay; más de 9, «9+»). El Sidebar los SIEMBRA al montar y al
+volver el foco o la pestaña, y la sección los PISA con su cuenta real (hoy, el Feed).
+
+**Menús contextuales** (en escritorio, ≥ 1024 de contenedor: columna derecha de 380, sticky, a la par del título; por
+debajo, apilados arriba del contenido; sin nada destacado no hay columna):
+- **Feed**: la zona Destacado (📌) = el hero «tu siguiente paso» + las solicitudes de amistad. El «por qué» de cada card
+  va siempre abajo a la derecha.
+- **Tienda**: la billetera (saldo y accesos a deseos, canjes y movimientos) + el premio de la semana de la familia. La
+  Tienda ya no tiene las categorías «Premios» / «Ropa»: las grillas solas.
+- **Calendario**: la próxima clase. El título lleva el almanaque; sin lede ni «Tenés N clases por delante».
+- **Aprender**: PRIMERO la tarjeta de Active recall y después la liga COMPLETA (el resumen y la tabla entera con tu fila
+  resaltada, → `/ligas`).
+
+**Cabeceras**: Tienda, Calendario, Aprender, Mi espacio y Mis videos van con ícono + título, sin subtítulo; Ligas arranca
+directo en la cabecera de su liga (sin título, lede ni «Asignada por tus resultados») con las solapas Mi liga · Familia ·
+Tu zona · País. Los subtítulos (`.lede`) que quedan, con menos aire y un gris más claro. Mi espacio quedó tipo Google
+Drive (grilla de columnas iguales, vista previa en los archivos, migas SIEMPRE —también en la raíz—, la Papelera con
+sombra). La solapa de Familia de la sección es «Mis videos» (`/familia/mytube`).
+
+**Buscar y Chat** (tanda BUSCARCHAT): la home de Buscar, centrada y SIN solapas; con búsqueda, Todo (de entrada) ·
+Videos · Imágenes · Artículos (ex «Páginas», `?tab=pages` por compat) · Personas / Mentores. El Chat con varias
+conversaciones guardadas en el navegador e historial a la derecha (README, `/chat`). El reproductor ya no tiene
+Me gusta / No me gusta.
+
+**Usuario por usuario.**
+
+| | Chico (Ian, Luna) | Adulto (Andrés) |
+|---|---|---|
+| Menú | Sin Familia; los apagados y el Ciclo del día de ESE chico sacan puntos | Con Familia al fondo; nada lo saca |
+| ⚡ junto a «Tienda» | Con SU Tienda prendida | Siempre (los candados son del chico) |
+| Tarjeta de perfil | El puesto de SU liga, con Ligas prendida | El puesto de su liga de grandes (Liga Chispa) |
+| Circulito del Feed | Hero + solicitudes (con Amigos) | Solo el hero: lo social es de los chicos (§10) |
+| Circulito del Calendario | 1 si `GET /api/calendar` le trae alguna clase | Igual, con sus clases |
+| Circulito de la Tienda | 1 si hay premio de la familia que puede ganar (con Ligas) | Nunca: el premio lo cobran solo los chicos |
+| Circulito de Aprender | 1 con su liga (con Ligas) | Nunca: la liga del contextual es del chico |
+| Contextual de la Tienda | Billetera + premio de la familia | Billetera (su Tienda es solo la ropa) |
+| Contextual de Aprender | Active recall + su liga completa | Active recall (si tiene qué repasar) |
+| Home de Buscar | «Buscar a otros chicos de Innerith» (con Amigos) | «Ver los mentores» |
+| Configuración → Sonido | «El volumen máximo lo pone tu familia…» | Link a Familia → Límites (sin topes) |
+| Configuración → Ciclo (demo) | Su ciclo, si tiene rangos | El del primer integrante (o el del `?m=`), si tiene rangos |
+
+**Teléfono** (< 640 de contenedor): la barra inferior lleva 4 puntos + «Menú» —al chico, Feed · Buscar · Mis videos ·
+Aprender; al adulto, Feed · Buscar · Aprender · Familia; si un candado saca uno, entra el siguiente del menú— y SIN
+circulitos ni ⚡; «Menú» abre la barra lateral entera como cajón, con los circulitos, los ⚡ y la tarjeta de perfil.
+
+**NO verificado en este pase de docs** (solo se leyó el código): el comportamiento en pantalla de cada ancho, Safari y
+Firefox, y lo que esté cambiando la tanda en vuelo del 30-oct sobre las tarjetas de video de Mis videos y Mi espacio y
+sobre la marca de la app.

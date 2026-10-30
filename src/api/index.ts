@@ -36,8 +36,8 @@ async function errorReason(r: Response): Promise<string | null> {
   }
 }
 
-/** Evento global: la Energy Coin se movió (compra, canje, regalo, premio de Learn). Lo escucha la
- *  barra superior para refrescar el ⚡ al instante (pedido tras la tanda F2). */
+/** Evento global: la Energy Coin se movió (compra, canje, regalo, premio de Learn). Lo escuchan los ⚡ del punto Tienda del
+ *  menú (Sidebar; hasta SHELL-2, 30-oct, los de la barra superior) para refrescarse al instante (pedido tras la tanda F2). */
 export const EC_CHANGED_EVT = 'innerith:ec-changed';
 function ecBump<T>(p: Promise<T>): Promise<T> {
   return p.then((r) => {
@@ -47,7 +47,7 @@ function ecBump<T>(p: Promise<T>): Promise<T> {
 }
 
 /* ---------- Usuario ACTIVO (línea 14-oct, docs/USUARIOS.md §2) ----------
-   DEMO: el switch de la barra superior guarda el id en localStorage['innerith.user'] (ÚNICO dueño de la clave: este
+   DEMO: el switch de Configuración → Cambiar de usuario (hasta SHELL-2, 30-oct, de la barra superior) guarda el id en localStorage['innerith.user'] (ÚNICO dueño de la clave: este
    archivo) y TODA llamada a la API manda como cabecera X-Innerith-User el que se leyó AL CARGAR la página (fijo por
    pestaña: el switch de otra pestaña no cambia el de esta hasta su próxima recarga); el server lo valida contra su seed
    (server/src/users.ts; desconocido o ausente → ian). Sin dato, o sin localStorage (modo privado, tests): 'ian', la app de
@@ -71,7 +71,7 @@ const PAGE_USER: string = (() => {
 export function actingUserId(): string {
   return PAGE_USER;
 }
-/** Cambia el usuario activo y recarga la app desde el Feed (el switch de demo de la barra superior). U4: marca que la carga
+/** Cambia el usuario activo y recarga la app desde el Feed (el switch de demo de Configuración → Cambiar de usuario). U4: marca que la carga
  *  que sigue viene del switch, así NO resetea a nadie (la demo de la familia sigue donde estaba). */
 export function setActingUser(id: string) {
   try { localStorage.setItem(USER_KEY, id); } catch { /* sin almacenamiento: la recarga vuelve al de siempre */ }
@@ -117,7 +117,7 @@ const withMember = (path: string, member?: string) =>
 export const api = {
   /** El usuario ACTIVO (el de la cabecera X-Innerith-User). */
   me: () => http<User>('/api/me'),
-  /** Los usuarios del demo (para el switch de la barra superior y los dependientes del adulto en Familia). */
+  /** Los usuarios del demo (para el switch de Configuración → Cambiar de usuario y los dependientes del adulto en Familia). */
   users: () => http<{ users: UserInfo[] }>('/api/users'),
 
   /* ---- Identidad (avatar propio; server/src/identity.ts, persiste en server/data/identity.json) ---- */
@@ -312,7 +312,8 @@ export const api = {
   /* ---- After Day (W6) + Ciclo del día (F1/F2, docs/USUARIOS.md §11): server/src/{afterday,schedule}.ts ---- */
   afterDay: () => http<{ tracks: AfterDayTrack[] }>('/api/afterday'),
   /** PÚBLICO: el ciclo del día (`cycle` + `demoRange`, con `serverNow` y la `tz` de la familia). Chico → el suyo (member
-   *  ignorado); adulto → el del integrante `member` (sin member, el primero; lo lee también el reloj de la TopBar). (El
+   *  ignorado); adulto → el del integrante `member` (sin member, el primero; de ahí sale también la `tz` que usan el almanaque
+   *  del menú y el Calendario del adulto). (El
    *  campo `schedules` de compat de F1 ya no existe: se retiró cuando el cliente dejó de leerlo.) */
   schedules: (member?: string) => http<SchedulesResponse>(withMember('/api/schedules', member)),
   parentMusic: () => http<{ tracks: AfterDayTrack[] }>('/api/parent/music'),

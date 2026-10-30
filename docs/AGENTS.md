@@ -13,8 +13,10 @@ la config de cada chico es POR INTEGRANTE y Familia la elige con `?member=<id>`:
 (U4, USUARIOS.md §10)**: XP/⚡/racha, canjes y guardarropas, wishlist, Learn, Mi espacio, liga, amigos y feed en vivo son POR
 USUARIO; de la familia quedan el catálogo aprobado, After Day, la config del padre y las mentorías. El usuario ACTIVO viaja en
 la cabecera `X-Innerith-User` (la pone `src/api/index.ts` desde `localStorage['innerith.user']`, leído UNA vez por carga
-de página: cada pestaña conserva su usuario hasta recargar; server: `actingUser()` de `server/src/users.ts`); se cambia con el chip de la barra superior
-(switch de demo: recarga la app SIN resetear la demo; el F5 resetea solo al activo — U4-C). **Los candados son del chico**: apagados de funcionalidades y
+de página: cada pestaña conserva su usuario hasta recargar; server: `actingUser()` de `server/src/users.ts`); se cambia en
+**Configuración → Cambiar de usuario** (`/configuracion`, adonde lleva el avatar de la tarjeta de perfil; switch de demo: recarga
+la app SIN resetear la demo; el F5 resetea solo al activo — U4-C). **No hay barra superior** desde SHELL-2 (30-oct; regla 8).
+**Los candados son del chico**: apagados de funcionalidades y
 el CICLO DEL DÍA (rangos horarios con las secciones de cada uno; reemplazó a los horarios por sección: USUARIOS.md §11) NO rigen
 para un adulto (server y cliente; `useFeatures()` ya devuelve todo prendido para él). La sesión de Familia es la del adulto activo (implícita; el PIN del server
 quedó dormido y NUNCA se imprime).
@@ -40,29 +42,54 @@ quedó dormido y NUNCA se imprime).
    angostas SIEMPRE centradas en el mismo eje (video 760, lector 900, feed 780; los overlays de Learn van a pantalla
    completa en un portal sobre `<body>`). Una vista con
    `padding:0` alinea sus barras con `var(--view-pad-x)`. Listas de filas en grid: `minmax(0,1fr)`.
+   **Menús contextuales** (SHELL-2, 30-oct: Feed, Tienda, Calendario y Aprender): en escritorio (`@container app`
+   ≥ 1024) van en una columna DERECHA de 380 px, `position:sticky; top:-12px`, que arranca A LA PAR del título (la vista
+   —en el Feed, su columna `.hf-col`— se vuelve una grilla `minmax(0,1fr) 380px` y la capa intermedia se disuelve con
+   `display:contents`); sin nada destacado no hay columna y la vista usa todo el ancho; por debajo de 1024 se apilan arriba
+   del contenido (en el Feed, debajo del saludo). Siguen DENTRO de la columna de 1040. Si una sección suma uno, copiá ese
+   patrón y dale su circulito en el menú (regla 8).
 6. Drive: en la RAÍZ viven solo carpetas (lógica Windows/nube); los archivos siempre adentro de
    una carpeta; "General" es el destino por defecto. Carpetas todas con el MISMO ícono
-   (`IcFolderWin`). Papelera restaurable: nada se borra de verdad sin "borrar definitivo".
+   (`IcFolderWin`; redibujado el 30-oct como carpeta de una pieza estilo macOS). Papelera restaurable: nada se borra de
+   verdad sin "borrar definitivo".
 7. Ligas: se ASIGNAN por resultados (nunca se eligen/buscan), 12 participantes, y el puntaje
    semanal es UNO solo (mismo número en liga, zona y país). El ciclo semanal (closesInDays real +
    lastWeek/medalla) tiene UNA sola fuente: server/src/leaguesFake.ts — no lo dupliques.
-8. Menú actual (EN ESTE ORDEN, 14-oct-2026, SIN submenús): Feed (= el feed de
+8. Menú actual (EN ESTE ORDEN desde SHELL-2, 30-oct-2026, pedido de Esteban; SIN submenús; la fuente es `NAV` de
+   `src/shared/components/Sidebar.tsx`, que también ordena la barra inferior del teléfono): Feed (= el feed de
    recomendaciones, la home en `/`; antes se llamó Home y Descubrir) · Buscar (`/buscar/*`) ·
-   Chat (`/chat`) · MyTube (`/mytube`; las rutas viejas `/espacio/videos*` redirigen acá) · Aprender (`/aprender` = Learn desde W3+W4: aprender + practicar + Active Recall
-   colapsados; la ruta abierta es estado de la vista y `?ruta=<id>` la abre directo; su encabezado lleva el botón "Crear" → `/crear`, que marca Aprender
-   como sección activa) · After Day (`/afterday`) · Tienda (`/tienda`) · Calendario (`/calendario`; muestra las clases del USUARIO ACTIVO) · Mi espacio (`/espacio/carpetas` directo)
+   Chat (`/chat`) · **Mis videos** (`/mytube`: desde el 30-oct es el nombre VISIBLE de MyTube —en el menú, el título, las
+   fichas del Ciclo del día y la solapa de Familia—; la ruta, la `sec 'mytube'`, los archivos y la API siguen siendo «mytube»;
+   las rutas viejas `/espacio/videos*` redirigen acá) · Mi espacio (`/espacio/carpetas` directo) · Calendario (`/calendario`;
+   muestra las clases del USUARIO ACTIVO; su ícono es el almanaque con el día de HOY en la zona de la familia) · Aprender
+   (`/aprender` = Learn desde W3+W4: aprender + practicar + Active Recall colapsados; la ruta abierta es estado de la vista y
+   `?ruta=<id>` la abre directo; su encabezado lleva el botón «+ Crear» → `/crear`, que marca Aprender como sección activa) ·
+   Tienda (`/tienda`; a la derecha de la palabra, los ⚡ Energy Coins del usuario activo, solo con la Tienda prendida) ·
+   After Day (`/afterday`; al fondo, decisión del coordinador)
    · **Familia (`/familia/*`) AL FONDO, SOLO PARA EL ADULTO** (línea 14-oct: la ex Zona de padres,
    sin portón de PIN; con un chico activo la ruta navega al Feed y el link discreto del Sidebar ya
-   no existe; `/padres/*` redirige conservando subruta; la tab "Profesores" es ahora "Mentorías"; F2, 28-oct: la solapa "YouTube" es
-   "MyTube" —`/familia/youtube` redirige— y After Day y Ciclo del día tienen solapa propia; orden desde el 29-oct, pedido de Esteban: Funcionalidades · Temas y
-   palabras · Protecciones · MyTube · Ciclo del día · After Day · Límites · Avisos · Premios · Mentorías · Actividad).
-   LIGAS TAMPOCO ES PUNTO DE MENÚ (12-oct): la posición vive SIEMPRE en la BARRA SUPERIOR estilo
-   GT7 (src/shared/components/TopBar.tsx: liga → link a /ligas · ⚡ Energy Coins · fecha/hora
-   compacta · CHIP DEL USUARIO ACTIVO con el switch de demo (14-oct) · campana de notificaciones con las solicitudes y los no-leídos del dock; respeta los
-   apagados del padre cuando mira un chico). AMIGOS YA NO ES SECCIÓN (12-oct): los amigos siguen existiendo — viven en el dock de Mensajes,
-   se BUSCAN por nombre de usuario en Buscar y las solicitudes llegan como notificación destacada
-   en la zona PINNEADA de arriba del Feed (tanda F2). BUSCAR tiene la solapa **Mentores SOLO con
-   un adulto activo** (U2, 14-oct: catálogo + contratación con plan/beneficiario + post-compra de
+   no existe; `/padres/*` redirige conservando subruta; la tab "Profesores" es ahora "Mentorías"; F2, 28-oct: la solapa "YouTube" pasó a
+   "MyTube" —`/familia/youtube` redirige— y After Day y Ciclo del día tienen solapa propia; desde el 30-oct esa solapa se ve como
+   «Mis videos» (la ruta sigue `/familia/mytube`); orden desde el 29-oct, pedido de Esteban: Funcionalidades · Temas y
+   palabras · Protecciones · Mis videos · Ciclo del día · After Day · Límites · Avisos · Premios · Mentorías · Actividad).
+   **Circulitos de destacados** (30-oct): el punto de una sección CON menú contextual lleva un círculo con la cantidad de
+   ítems destacados (`src/shared/lib/navHighlights.ts`, store de dos niveles: el Sidebar SIEMBRA con lecturas livianas —Feed:
+   solicitudes; Calendario: 1 si hay alguna clase; Tienda: el premio de la familia en juego, 0/1; Aprender: la liga del chico,
+   0/1— y la sección PISA con su cuenta real vía `publishNavHighlight`: hoy solo el Feed, que suma su hero). Con 0 no hay
+   círculo; más de 9 = «9+». Si armás un contextual nuevo, sembrá o publicá su cuenta ahí.
+   **NO HAY BARRA SUPERIOR** (SHELL-2, 30-oct: `TopBar.tsx` ya no existe; no la revivas). El reloj y la campana se fueron
+   (las solicitudes llegan al Feed y a Buscar → Personas; los no leídos, al dock); los ⚡ están junto a «Tienda»; la posición
+   de liga y el 🎧 Sonido de fondo (MiniPlayer) viven en la **tarjeta de perfil** del pie de la barra lateral
+   (`src/shared/components/ProfileCard.tsx`: avatar → `/configuracion` · nombre, sin edad · 🎧 · escudo con el puesto →
+   `/ligas`; respetan los apagados del padre cuando mira un chico), y el switch de usuario y el selector «Ciclo (demo)» en
+   **Configuración** (`/configuracion`, `src/sections/settings/`: Perfil con «Tu avatar» · Sonido · Ciclo (demo) · Cambiar
+   de usuario; no es punto del menú ni marca ninguno). LIGAS TAMPOCO ES PUNTO DE MENÚ (12-oct): se llega por el puesto de la
+   tarjeta de perfil, por la liga completa del contextual de Aprender (solo un chico) y por el premio de la familia de la
+   Tienda (`/ligas?tab=familia`). AMIGOS YA NO ES SECCIÓN (12-oct): los amigos siguen existiendo — viven en el dock de Mensajes,
+   se BUSCAN por nombre de usuario en Buscar → Personas y las solicitudes llegan como destacado en la zona Destacado del
+   Feed (tanda F2; en escritorio, su columna derecha). BUSCAR: sin búsqueda, la home centrada SIN solapas; con búsqueda,
+   Todo (default) · Videos · Imágenes · Artículos (`?tab=pages`, por compat) · Personas (solo un chico con Amigos prendido) /
+   **Mentores (SOLO con un adulto activo**; U2, 14-oct: catálogo + contratación con plan/beneficiario + post-compra de
    días; la administración vive en Familia → Mentorías). PRACTICAR YA NO EXISTE (W3, 12-oct: los cursos viejos y su
    práctica se borraron): `/practicar*` y `/aprender/:id` redirigen a /aprender, y el hero del Feed ("Seguí con <ruta>")
    lleva a `/aprender?ruta=<id>`; `/repasar*` no existe (redirige a /aprender). "Feed" es el feed, NO el
@@ -74,7 +101,10 @@ quedó dormido y NUNCA se imprime).
    económico o de demo: hacelo con `perUser(seed)`, exponé `reset(userId?)` y registralo en ese endpoint. SÍ persisten, POR
    USUARIO: `space.json` v2, `wishlist.json` v2, `learn-results.json` v2, `identity.json` v2; y la config de la familia
    (`parent.json` v3 por integrante, `schedules.json` v3 —el Ciclo del día—, `teachers.json` v2, `music.json`, `mytube.json`). Los AVISOS al
-   padre PERSISTEN (FS-BASE-A: `alerts.json`, de la familia, 0600, ids que nunca se reusan) y no entran en el reset. La SEMANA DE LA LIGA DE LA FAMILIA (U5-A, `docs/USUARIOS.md` §12: historial,
+   padre PERSISTEN (FS-BASE-A: `alerts.json`, de la familia, 0600, ids que nunca se reusan) y no entran en el reset. Los
+   CHATS del Chat NO van al server (`/api/chat` sigue sin estado: recibe el contexto en cada turno): desde el 30-oct viven en
+   el NAVEGADOR, por usuario, en `localStorage['innerith.chat.v1.<uid>']` (`src/sections/discover/lib/chatStore.ts`: hasta 30
+   conversaciones × 60 mensajes; sin almacenamiento, RAM); el reset del demo no los toca y el padre NO los ve. La SEMANA DE LA LIGA DE LA FAMILIA (U5-A, `docs/USUARIOS.md` §12: historial,
    premio del adulto, copas) también es RAM de la FAMILIA: el reset por usuario no la toca; solo `{scope:'all'}`
    (`resetFamilyWeeks`) y reiniciar el server. Las MEDALLAS (U5-B, `server/src/medals.ts`) son RAM POR USUARIO sin archivo
    (D3), DERIVADAS de hechos que cada módulo dueño registra (`registerMedalFacts`): si tu módulo mueve un hecho de una
@@ -86,7 +116,8 @@ quedó dormido y NUNCA se imprime).
    de cada integrante `{version: 3, members: {[id]: {ranges}}}` —rangos horarios `{id, name, from, to, sections}`; reemplazó a los
    horarios por sección (v2), que NO se convierten: el v2 queda en `.pre-v3` (o `.pre-v3-<ms>`: nunca se saltea) y cada integrante arranca sin rangos; las
    reglas puras en `src/shared/lib/cycleRules.ts` —el MISMO código en server y cliente desde F2, como `zonedClock.ts`—; el editor es
-   Familia → Ciclo del día y el selector «Ciclo (demo)» vive abajo del menú—; su override de demo ("estás en este rango", `POST /api/demo/cycle`) es RAM por
+   Familia → Ciclo del día y el selector «Ciclo (demo)» vive en Configuración (`/configuracion`; hasta el 30-oct, abajo del
+   menú)—; su override de demo ("estás en este rango", `POST /api/demo/cycle`) es RAM por
    usuario y SÍ entra en `/api/demo/reset`;
    `teachers.json` v2: CONTRATOS de mentorías —mentor + beneficiario + plan + días, más `seq` (contador de ids que solo
    crece: un id cancelado no se reusa; tanda B1); migra solo del v1— y las clases NO se guardan: se derivan al leer por

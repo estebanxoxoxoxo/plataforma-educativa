@@ -188,7 +188,8 @@
   .fdk-list:not(.open) .fdk-tot{position:absolute;top:-6px;right:-6px;display:grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:#E5487A;color:#fff;font-size:12px;font-weight:800;line-height:1;box-shadow:0 0 0 2px #fff}
 
   /* algo abierto: el .fdk ENTERO sube a 95 (sus piezas no pueden salir de su contexto de apilamiento con un z-index
-     propio): queda arriba de la barra inferior, la TopBar y sus popovers, el velo y el cajón, y debajo de los overlays de
+     propio): queda arriba de la barra inferior, el velo y el cajón (la barra superior y sus popovers ya no existen desde
+     SHELL-2, 30-oct), y debajo de los overlays de
      Learn (100+). --fdk-full avisa a ChatDock.tsx que está a pantalla completa (Tab no se escapa, Esc pliega, cambiar de
      sección pliega): así el JS no repite cortes de ancho. */
   .fdk:has(.fdk-list.open, .fdk-win:not(.min):not([hidden])){z-index:95;--fdk-full:1}
