@@ -40,11 +40,14 @@ export function CalendarFail({ onRetry }: { onRetry: () => void }) {
 /** Esqueleto mientras llega el calendario: hero y tres filas del listado. */
 export function CalendarSkeleton() {
   return (
-    <div className="cal-sk" aria-busy="true" aria-label="Cargando tu calendario">
-      <div className="cal-sk-hero"><i /><i /><i /></div>
-      <div className="cal-sk-row"><i /><i /></div>
-      <div className="cal-sk-row"><i /><i /></div>
-      <div className="cal-sk-row"><i /><i /></div>
+    // El mismo armado que lo real (30-oct): el hero en la columna lateral (derecha en el escritorio), las filas en la principal.
+    <div className="cal-sk cal-layout" aria-busy="true" aria-label="Cargando tu calendario">
+      <div className="cal-aside"><div className="cal-sk-hero"><i /><i /><i /></div></div>
+      <div className="cal-sk-rows">
+        <div className="cal-sk-row"><i /><i /></div>
+        <div className="cal-sk-row"><i /><i /></div>
+        <div className="cal-sk-row"><i /><i /></div>
+      </div>
     </div>
   );
 }

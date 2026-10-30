@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../../../api';
 import { useAsync } from '../../../hooks/useAsync';
 import { IcFolderWin, IcRestore } from '../../../shared/components/icons';
+import { titleIfCut } from '../lib/drive';
 
 /** Papelera: lo borrado se puede restaurar (con todo su contenido) o borrar definitivo.
  *  Nada se pierde sin querer — regla del Drive de Smarty. */
@@ -16,7 +17,7 @@ export function TrashPage() {
     return (
       <div key={key} className="trow">
         <span className="tico">{icon}</span>
-        <div className="tmeta"><b>{title}</b>{sub && <small>{sub}</small>}</div>
+        <div className="tmeta"><b onMouseEnter={titleIfCut(title)}>{title}</b>{sub && <small>{sub}</small>}</div>
         <button className="sbtn ghost" onClick={async () => { await api.restore(kind, id); reload(); }}><IcRestore />Restaurar</button>
         {confirm === key
           ? <button className="sbtn danger" onClick={async () => { setConfirm(null); await api.purge(kind, id); reload(); }}>¿Seguro? Sí, borrar</button>

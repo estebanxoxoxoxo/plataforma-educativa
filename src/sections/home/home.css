@@ -43,6 +43,9 @@
 /* UN SOLO HILO central, sin columna lateral: más angosto que la columna estándar de .view y centrado en su mismo eje
    (excepción permitida de docs/AGENTS.md regla 5, como el ejercicio: 780). */
 .hf-col{max-width:780px;margin:0 auto;display:flex;flex-direction:column}
+/* lo de debajo del saludo y de Destacado: la píldora, el hilo y su pie (FEED-3: una caja propia para que, en escritorio,
+   sea UNA celda de la grilla; la píldora sigue pegada mientras se scrollea, porque su contenedor es todo el hilo) */
+.hf-main{display:flex;flex-direction:column;min-width:0;container:hf-main / inline-size}
 .hf-sp{flex:1}
 .hf-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 
@@ -93,6 +96,39 @@
   .fpin,.fpin-item{transition:none}
   .fpin,.fpin-done{animation:none}
 }
+/* ---- FEED-3 (pedido de Esteban, 30-oct): en ESCRITORIO (≥ 1024, container app como todo el responsive) la zona
+   Destacado deja de ir arriba del hilo y pasa a ser una COLUMNA LATERAL DERECHA sticky. .hf-col.has-aside (el
+   contenedor la marca solo si hay hero o solicitudes: sin destacados no hay aside y el hilo es la columna de siempre) se
+   vuelve una grilla: el saludo (fila 1) y el hilo (.hf-main, fila 2) a la izquierda — hasta 780, como siempre — y
+   Destacado a la derecha ocupando las dos filas, pegado a 20 px del borde de arriba mientras se scrollea (el sticky se
+   mide desde la caja de contenido de .view, como la píldora: 32 de padding − 12). La fila del hilo es 1fr: si el aside
+   midiera más que el hilo (un error, el feed vacío), el sobrante va debajo del hilo y no entre el saludo y la píldora.
+   Mismo DOM y mismo orden que por debajo de 1024 (saludo → Destacado → hilo): el Tab no cambia. Adentro, lo de la zona se
+   acomoda al ancho angosto con las mismas reglas que el teléfono (el hero apila su ícono; la solicitud baja los botones
+   a su fila). ---- */
+@container app (min-width:1024px){
+  /* 360: «los menús contextuales tienen que ser más anchos» (Esteban, 30-oct; antes 300). */
+  .hf-col.has-aside{--hf-aside-w:360px;max-width:none;display:grid;grid-template-columns:minmax(0,780px) var(--hf-aside-w);grid-template-rows:auto 1fr;column-gap:28px;justify-content:center;align-items:start}
+  .hf-col.has-aside > .hf-head{grid-column:1;grid-row:1}
+  .hf-col.has-aside > .hf-main{grid-column:1;grid-row:2}
+  .hf-col.has-aside > .fpin{grid-column:2;grid-row:1 / 3;position:sticky;top:-12px;margin-bottom:0}
+  .hf-col.has-aside > .fpin .fpin-box{padding:12px}
+  /* el hero, apilado: el ícono en su azulejo arriba y el texto a todo el ancho de la caja */
+  .hf-col.has-aside .hf-next{flex-direction:column;gap:10px;padding:14px}
+  .hf-col.has-aside .hf-next-ic{width:40px;height:40px;border-radius:12px}
+  .hf-col.has-aside .hf-next-ic svg{width:20px;height:20px}
+  .hf-col.has-aside .hf-next-t{font-size:19px}
+  .hf-col.has-aside .hf-next-mt{margin-bottom:12px}
+  /* la solicitud: el texto al lado del avatar y Aceptar / Ahora no parejos en su fila (como en el teléfono, 40 de alto) */
+  .hf-col.has-aside .fpin-card{gap:10px 12px;padding:12px}
+  .hf-col.has-aside .fpin-card .av3{width:40px;height:40px;font-size:18px;align-self:flex-start}
+  .hf-col.has-aside .fpin-body{flex-basis:0}
+  .hf-col.has-aside .fpin-line{font-size:14.5px}
+  .hf-col.has-aside .fpin-note{font-size:13.5px}
+  .hf-col.has-aside .fpin-acts{flex:1 1 100%;margin-left:0}
+  .hf-col.has-aside .fpin-ok,.hf-col.has-aside .fpin-no{flex:1 1 0;padding:0 12px;text-align:center}
+  .hf-col.has-aside .fpin-done{flex:1 1 100%;margin-left:0}
+}
 
 /* ---- píldora "N novedades ↑": pegada arriba del hilo mientras se scrollea (el scroll es de .view). Lo fresco NO entra
    solo: entra arriba cuando el chico la toca. Un empujoncito suave en normal/vivo; quieta en calmo. El sticky se mide
@@ -135,12 +171,15 @@
 .hf-why{position:relative;z-index:2;display:inline-flex;align-items:center;gap:5px;margin:-3px -7px;padding:3px 7px;border-radius:var(--hf-r-sm);font-size:12px;font-weight:700;color:var(--hf-faint);cursor:help;transition:color .15s,background-color .15s}
 .hf-why svg{width:12px;height:12px}
 .hf-why:hover,.hf-why:focus-visible{color:var(--hf-muted);background:var(--hf-sunk)}
-/* en un pie con una acción más alta (las píldoras de 36/40, las reacciones), el «por qué» va al FONDO de la fila, no
-   centrado (criterio de Esteban, 29-oct: «el por qué alinealo al final, o sea abajo»): la card estándar (.hf-ft), la
-   noticia (.hf-act) y el hero (.hf-row). Con su margen negativo, el que termina en el fondo es el renglón del texto, no el
-   área táctil agrandada. El globito no cambia: se mide contra el chip (o contra la fila, en Destacados). La cabecera del
-   estante no entra: ahí el «por qué» convive con «Ver todos», que es de su mismo alto. */
-.hf-ft > .hf-why,.hf-act > .hf-why,.hf-row > .hf-why{align-self:flex-end}
+/* EL «POR QUÉ» VA SIEMPRE EN LA ESQUINA INFERIOR DERECHA, en TODOS los tipos (FEED-3, pedido de Esteban 30-oct: «todos
+   los por qué tienen que estar siempre ubicados en el mismo lugar»): es el ÚLTIMO del pie de cada uno — la card estándar
+   (.hf-ft), la noticia y la medalla (.hf-act), el hero (.hf-row) y el pie propio del estante (.hf-shelf-f) — y
+   margin-left:auto lo empuja a la derecha. Con un spacer flex:1 delante, si el pie no entraba en un renglón el spacer se
+   quedaba arriba y el chip bajaba a la IZQUIERDA; con el margen auto baja solo y sigue a la derecha (por eso ya no hace
+   falta el wrap-reverse de la card de amigo). El margen derecho negativo se queda: el renglón del texto termina en el
+   borde, no el área táctil agrandada. Y va al FONDO de su fila, no centrado (criterio de Esteban, 29-oct: «el por qué
+   alinealo al final, o sea abajo»). El globito se abre siempre hacia la izquierda (.is-end). */
+.hf-ft > .hf-why,.hf-act > .hf-why,.hf-row > .hf-why,.hf-shelf-f > .hf-why{align-self:flex-end;margin-left:auto}
 .hf-why.is-end:focus::after{left:auto;right:0}
 .hf-why:focus::after{content:attr(data-why);position:absolute;left:0;bottom:calc(100% + 6px);z-index:8;width:max-content;max-width:min(280px,70vw);padding:7px 10px;border-radius:var(--hf-r-sm);background:var(--hf-ink);color:#fff;font-size:12.5px;font-weight:700;line-height:1.35;letter-spacing:0;text-transform:none;white-space:normal;box-shadow:0 10px 24px -14px rgba(27,34,56,.6);pointer-events:none}
 /* ✕ "ver menos" */
@@ -280,19 +319,22 @@
 .hf-big{position:relative;flex:none;width:64px;height:64px;border-radius:18px;display:grid;place-items:center;background:var(--hf-surface);border:1px solid var(--hf-tint-line)}
 .hf-big-em{font-size:34px;line-height:1}
 .hf-big .av3{position:absolute;right:-9px;bottom:-9px;box-shadow:0 0 0 2.5px var(--hf-surface)}
-.hf-nx{flex:1;min-width:0;padding-right:22px}
+/* el texto le deja lugar al ✕ de arriba a la derecha (--hf-nx-pr); la fila de acciones lo recupera con un margen negativo
+   igual, así el «por qué» termina en la esquina de la card como en todas (FEED-3) y no 22 px antes */
+.hf-news{--hf-nx-pr:22px}
+.hf-nx{flex:1;min-width:0;padding-right:var(--hf-nx-pr)}
 .hf-news .hf-k{color:var(--hf-tint)}
 .hf-k-time{font-weight:700;opacity:.85}
 .hf-nt{margin:5px 0 3px;font-family:var(--hf-serif);font-size:21px;font-weight:600;line-height:1.25;letter-spacing:-.01em;color:var(--hf-ink);text-wrap:balance}
 .hf-nt b{font-weight:700}
 .hf-you{display:inline-block;margin-left:7px;padding:2px 7px;border-radius:999px;background:var(--hf-learn-2);color:#fff;font-family:var(--body);font-size:11px;font-weight:800;line-height:1.3;letter-spacing:0;vertical-align:3px}
 .hf-np{margin:0;font-size:13px;font-weight:600;line-height:1.45;color:var(--hf-muted)}
-.hf-act{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:12px}
+.hf-act{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:12px;margin-right:calc(var(--hf-nx-pr,0px) * -1)}
 .hf-news .rchip{background:rgba(255,255,255,.85)}
 /* U5-D · la noticia de una medalla PROPIA (FeedMedalCard): el emoji en un disco dorado, como en la pila "Tus medallas"
    (medals.css); sin el ✕ de "ver menos", así que el texto no le reserva lugar */
 .hf-medal .hf-big{border-radius:50%;border-color:#E8B94A;background:radial-gradient(circle at 34% 28%,#FFF8E0 0,#FCE6A6 55%,#F0C25A 100%)}
-.hf-medal .hf-nx{padding-right:0}
+.hf-news.hf-medal{--hf-nx-pr:0px}
 
 /* ===== D · BLOQUE DE VIDEOS (grilla inline) ===== */
 /* Contenedor CON NOMBRE: desde que #root es el contenedor app (docs/RESPONSIVE.md §2.1), una consulta sin nombre podría
@@ -306,7 +348,8 @@
 .hf-shelf-h > svg{flex:none;width:16px;height:16px;color:var(--hf-muted)}
 .hf-shelf-h h3{margin:0;font-size:14px;font-weight:800;color:var(--hf-ink)}
 .hf-co{font-size:12px;font-weight:700;color:var(--hf-faint);font-variant-numeric:tabular-nums}
-.hf-shelf-h .hf-why{margin-right:2px}
+/* el pie propio del estante (FEED-3): solo el «por qué», abajo a la derecha como en todas las cards */
+.hf-shelf-f{display:flex;margin-top:12px}
 .hf-tl{display:inline-flex;align-items:center;gap:4px;padding:2px 4px;margin:-2px -4px;border-radius:var(--hf-r-sm);font-size:12.5px;font-weight:800;color:var(--hf-learn)}
 .hf-tl svg{width:12px;height:12px;transition:transform .15s}
 .hf-tl:hover svg{transform:translateX(2px)}
@@ -359,7 +402,8 @@
 .hf-sk-card .hf-sk-tx i:nth-child(1){width:72%;height:13px}
 .hf-sk-card .hf-sk-tx i:nth-child(2){width:34%;height:10px}
 .hf-sk-card .hf-sk-tx i:nth-child(3){display:none}
-.hf-sk-card .hf-sk-ft{grid-column:1 / -1;display:flex;justify-content:flex-end;margin-top:10px}
+/* la píldora de la acción a la IZQUIERDA del pie, como en la card de verdad desde FEED-3 (el «por qué» va a la derecha) */
+.hf-sk-card .hf-sk-ft{grid-column:1 / -1;display:flex;justify-content:flex-start;margin-top:10px}
 .hf-sk-card .hf-sk-ft i{width:132px;height:32px;border-radius:999px}
 .hf-sk-card[data-sk="media"]{grid-template-columns:var(--hf-th-w) minmax(0,1fr);grid-template-rows:auto 1fr auto;gap:0 18px;align-items:start}
 .hf-sk-card[data-sk="media"] .hf-sk-eb{margin-bottom:12px}
@@ -402,15 +446,16 @@
    margen negativo igual la devuelve: la tipografía, el dibujo y el lugar que ocupa cada cosa quedan como estaban. */
 @container app (max-width:1023.98px){
   .hf-why{padding:5px 8px;margin:-5px -8px}          /* «por qué»: 74×22 → 76×26 */
-  .hf-shelf-h .hf-why{margin-right:1px}              /* el mismo lugar de antes en la cabecera del estante */
   .hf-tl{padding:5px 6px;margin:-5px -6px}           /* «Ver todos»: 81×21 → 85×27 */
   .hf-less{width:32px;height:32px;margin:-4px}       /* ✕ «ver menos»: 24 → 32 (también el de las noticias) */
 }
 /* < 640 (teléfono) */
 @container app (max-width:639.98px){
   /* la noticia apila el emoji arriba del texto; el estante va de a 2 (antes: @media max-width 560) */
-  .hf-news{flex-direction:column;align-items:flex-start;padding:16px}
-  .hf-nx{padding-right:0}
+  .hf-news{flex-direction:column;align-items:flex-start;padding:16px;--hf-nx-pr:0px}
+  /* apilada, el texto ocupa todo el ancho (con align-items:flex-start medía lo que su contenido): así la fila de acciones
+     llega al borde y el «por qué» queda en la esquina inferior derecha (FEED-3) */
+  .hf-nx{align-self:stretch}
   .hf-vgrid{grid-template-columns:1fr 1fr;gap:10px}
   /* el título serif de la noticia y del hero, un escalón abajo (21 → 19) */
   .hf-nt,.hf-next-t{font-size:19px}
@@ -434,11 +479,8 @@
   .hf-card[data-fam="lectura"] .hf-sn{margin-top:2px}
   /* el avance de la ruta acompaña el ancho de la media de arriba */
   .hf-prog{max-width:none}
-  /* la card de amigo, angosta (≤ ~390): el pie no entra en un renglón y el «por qué» subía ARRIBA de las reacciones.
-     wrap-reverse deja la primera línea (el «por qué») al FONDO (criterio de Esteban: «el por qué alinealo al final, o sea
-     abajo»); con el cross-axis invertido, flex-start es ese fondo (el flex-end global lo mandaría arriba). */
-  .hf-card[data-fam="amigos"] > .hf-ft{flex-wrap:wrap-reverse}
-  .hf-card[data-fam="amigos"] > .hf-ft > .hf-why{align-self:flex-start}
+  /* (FEED-3: el wrap-reverse de la card de amigo ya no hace falta — el «por qué» es el último del pie y, si no entra al
+     lado de las reacciones, baja solo a la derecha: ver .hf-ft > .hf-why) */
   /* acciones principales a 44 de alto: el paso siguiente del hero, «Reintentar», la píldora y «Ver más de antes» */
   .hf-cta:not(.is-quiet),.hf-more,.hf-pill{min-height:44px}
   /* la píldora pegada a 12 px del borde, como en escritorio: el shell del teléfono baja el padding-top de .view a 20
@@ -463,4 +505,33 @@
   .hf-sk-card[data-sk="media"] .ph-a{grid-row:auto;width:100%}
   .hf-sk-card[data-sk="media"] .hf-sk-tx{grid-column:1;grid-row:auto;margin-top:10px}
   .hf-sk-card[data-sk="media"] .hf-sk-ft{grid-column:1;grid-row:auto;margin-top:10px}
+}
+/* FEED-3 · el hilo ANGOSTO de escritorio. Con el aside, entre 1024 y ~1207 de ventana el hilo mide menos de 560 (a 1024:
+   376) y la card con la media en columna dejaba el texto en ~100 px. Ahí la card con media se apila COMO EN EL TELÉFONO
+   (las mismas reglas del bloque < 640 de arriba). Se mide el ancho del hilo (.hf-main, contenedor con nombre como
+   .hf-shelf) DENTRO del corte de escritorio, así tablet y teléfono no cambian. Va al final del archivo: le tiene que ganar
+   a la grilla de la card con media (misma especificidad). */
+@container app (min-width:1024px){
+  @container hf-main (max-width:559.98px){
+    .hf-card:is([data-fam="video"],[data-fam="ruta"],[data-fam="lectura"]){display:flex}
+    .hf-card:is([data-fam="video"],[data-fam="ruta"],[data-fam="lectura"]) > .hf-eb{margin-bottom:0}
+    .hf-card:is([data-fam="video"],[data-fam="ruta"],[data-fam="lectura"]) > .hf-bd{display:flex}
+    .hf-card:is([data-fam="video"],[data-fam="ruta"],[data-fam="lectura"]) .hf-th{align-self:auto;min-height:0;aspect-ratio:16/9}
+    .hf-card:is([data-fam="video"],[data-fam="ruta"],[data-fam="lectura"]) .hf-txt{align-self:auto;padding-bottom:0}
+    .hf-card:is([data-fam="video"],[data-fam="ruta"],[data-fam="lectura"]) .hf-ti{font-size:15.5px}
+    .hf-card:is([data-fam="video"],[data-fam="ruta"]) > .hf-bd{flex-direction:column;align-items:stretch;gap:10px}
+    .hf-card:is([data-fam="video"],[data-fam="ruta"]) .hf-th{width:100%}
+    .hf-card[data-fam="lectura"] > .hf-bd{align-items:flex-start}
+    .hf-card[data-fam="lectura"] .hf-th{width:var(--hf-tile);aspect-ratio:1}
+    .hf-card[data-fam="lectura"] .hf-th > svg{width:28px;height:28px}
+    .hf-card[data-fam="lectura"] .hf-th-src{display:none}
+    .hf-card[data-fam="lectura"] .hf-mt{display:block}
+    .hf-card[data-fam="lectura"] .hf-sn{margin-top:2px}
+    .hf-prog{max-width:none}
+    .hf-sk-card[data-sk="media"]{grid-template-columns:minmax(0,1fr);grid-template-rows:none}
+    .hf-sk-card[data-sk="media"] .hf-sk-eb{margin-bottom:10px}
+    .hf-sk-card[data-sk="media"] .ph-a{grid-row:auto;width:100%}
+    .hf-sk-card[data-sk="media"] .hf-sk-tx{grid-column:1;grid-row:auto;margin-top:10px}
+    .hf-sk-card[data-sk="media"] .hf-sk-ft{grid-column:1;grid-row:auto;margin-top:10px}
+  }
 }

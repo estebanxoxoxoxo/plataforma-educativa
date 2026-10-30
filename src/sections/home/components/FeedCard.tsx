@@ -5,7 +5,7 @@ import { LessButton, WhyChip } from './FeedBits';
 export type Family = 'video' | 'lectura' | 'ruta' | 'amigos';
 
 /** Card ESTÁNDAR del hilo (estilo A del mock v6): eyebrow (CHIP de la familia con su ícono y su color + "hace X" + ✕ "ver
- *  menos") → cuerpo (media + título + meta) → pie ("por qué" + UNA acción). `link` = la acción se estira a toda la card (se
+ *  menos") → cuerpo (media + título + meta) → pie (UNA acción + el "por qué" abajo a la derecha, FEED-3). `link` = la acción se estira a toda la card (se
  *  toca en cualquier lado; el ✕, el "por qué" y las reacciones quedan por encima). Borde fino, radio generoso y una sombra
  *  apenas (tanda V2 "la media manda"). `extra` = lo que la card suma debajo del meta (el copete de una lectura, el avance de
  *  una ruta): la card estándar no sabe de cada tipo. El DOM es el mismo para todas: cómo se acomoda (la media en columna
@@ -35,10 +35,11 @@ export function FeedCard({ family, icon, label, time, reason, whyIcon, thumb, ti
           {extra}
         </div>
       </div>
+      {/* FEED-3: la acción a la izquierda y el «por qué» SIEMPRE abajo a la derecha (home.css lo empuja con margin-left
+          auto: si el pie no entra en un renglón, baja solo y sigue a la derecha) */}
       <div className="hf-ft">
-        {reason && <WhyChip reason={reason} icon={whyIcon} />}
-        <span className="hf-sp" />
         {action}
+        {reason && <WhyChip reason={reason} icon={whyIcon} />}
       </div>
     </article>
   );

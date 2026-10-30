@@ -3,8 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ensureAudio } from '../../../learn/audio/service';
 import { definitionsForTarget } from '../../../learn/definitions';
 import { recallableTargets } from '../../../learn/recallActivity';
-import { IcNavCreate } from '../../../shared/components/icons';
 import { RouteCard, RouteCardSkeleton } from '../cards/RouteCard';
+import { IcPlus } from '../components/LearnIcons';
 import { RecallRootButton } from '../components/RecallRootButton';
 import { bindLearnBgAudio } from '../lib/bgAudioBinding';
 import { LEARN_CATEGORIES, progressByTarget, routeProgress, type LearnRoute } from '../lib/learn';
@@ -103,9 +103,10 @@ export function LearnPage() {
     <section className="view" id="v-learn">
       <div className="lp-head">
         <h2 className="h2">Aprender</h2>
-        {/* Crear vive DENTRO de Aprender (pedido 12-oct): botón a la altura del título, va a /crear */}
+        {/* Crear vive DENTRO de Aprender (pedido 12-oct): botón a la altura del título, va a /crear. «+ Crear» con el azul
+            de Active recall (pedido de Esteban, 30-oct): el + dice «hacé una ruta nueva» mejor que el ícono del menú. */}
         <button className="lp-create" onClick={() => go('/crear')}>
-          <IcNavCreate />Crear
+          <IcPlus />Crear
         </button>
       </div>
       <p className="lede">Elegí una ruta y arrancá.</p>

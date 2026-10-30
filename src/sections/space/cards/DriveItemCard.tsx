@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import type { DriveItem } from '../../../api/types';
-import { IcResImg, IcResLect, IcResVideo } from '../../../shared/components/icons';
+import { IcPlay, IcResImg, IcResLect, IcResVideo } from '../../../shared/components/icons';
 import { DotMenu } from '../components/DotMenu';
+import { readingSource, titleIfCut } from '../lib/drive';
 
 const KIND = {
   video: { label: 'Video', Icon: IcResVideo },
@@ -8,23 +10,38 @@ const KIND = {
   imagen: { label: 'Imagen', Icon: IcResImg },
 } as const;
 
-/** Tarjeta de un contenido guardado en Drive (video / lectura / imagen). */
+/** Tarjeta de un contenido guardado (video / lectura / imagen), como los «Archivos sugeridos» de Google Drive (pedido de
+ *  Esteban, 30-oct): VISTA PREVIA arriba —el video, su miniatura; la imagen, la imagen; la lectura, su imagen si la tiene
+ *  o un bloque editorial con el libro y el sitio (la lectura no trae foto y robarla sería mentir, como en el feed V2)— y
+ *  abajo la fila con el ícono chico del tipo, el nombre en UN renglón (cortado con «…» y, si no entra, el nombre completo
+ *  en el tooltip nativo) y el menú ⋯. Mismo contenido y mismas acciones que antes: abrir, Mover a…, papelera. Pura. */
 export function DriveItemCard({ it, onOpen, onMove, onTrash }: {
   it: DriveItem; onOpen: () => void; onMove: () => void; onTrash?: () => void;
 }) {
   const k = KIND[it.type];
+  // Si la miniatura no carga (video borrado, imagen caída), la previa pasa al bloque del tipo en lugar de un hueco roto.
+  const [broken, setBroken] = useState(false);
+  const img = it.img && !broken ? it.img : null;
+  const src = it.type === 'articulo' ? readingSource(it) : null;
   return (
-    <div className="spcard" role="button" tabIndex={0} onClick={onOpen} onKeyDown={(e) => e.key === 'Enter' && onOpen()}>
-      <span className={`sthumb t-${it.type}`}>
-        {it.img ? <img src={it.img} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <k.Icon />}
-        <i className="skind"><k.Icon />{k.label}</i>
+    <div className={`spf t-${it.type}`} role="button" tabIndex={0} onClick={onOpen} onKeyDown={(e) => e.key === 'Enter' && onOpen()}>
+      <span className="spf-prev" aria-hidden="true">
+        {img ? <img src={img} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setBroken(true)} />
+          : it.type === 'articulo' ? (
+            <span className="spf-read"><IcResLect />{src && <small>{src}</small>}</span>
+          ) : <span className="spf-ph"><k.Icon /></span>}
+        {it.type === 'video' && img && <i className="spf-play"><IcPlay /></i>}
       </span>
-      <b className="stitle">{it.title}</b>
-      {it.subtitle && <small className="ssub">{it.subtitle}</small>}
-      {onTrash && <DotMenu actions={[
-        { label: 'Mover a…', onClick: onMove },
-        { label: 'Mandar a la papelera', danger: true, onClick: onTrash },
-      ]} />}
+      <span className="spf-row">
+        <span className="spf-ico" title={k.label}><k.Icon /></span>
+        <span className="sp-sr">{k.label}: </span>
+        <b className="spf-name" onMouseEnter={titleIfCut(it.title)}>{it.title}</b>
+        {onTrash && <DotMenu actions={[
+          { label: 'Mover a…', onClick: onMove },
+          { label: 'Mandar a la papelera', danger: true, onClick: onTrash },
+        ]} />}
+      </span>
+      {it.subtitle && <small className="spf-sub" onMouseEnter={titleIfCut(it.subtitle)}>{it.subtitle}</small>}
     </div>
   );
 }

@@ -85,7 +85,8 @@ export function LeaguesPage() {
 
   const family = data?.family ?? null;
   const familyOn = familyTabOn(family);
-  const tabs = familyOn ? [...BASE_TABS, FAMILY_TAB] : BASE_TABS;
+  // Familia SEGUNDA, justo después de Mi liga (pedido de Esteban, 30-oct; antes iba última).
+  const tabs = familyOn ? [BASE_TABS[0], FAMILY_TAB, ...BASE_TABS.slice(1)] : BASE_TABS;
   const tab = resolveTab(params.get('tab'), familyOn);
   const meId = family?.rows.find((r) => r.me)?.id;
   const coins = features?.tienda === true;
@@ -207,8 +208,8 @@ export function LeaguesPage() {
 
   return (
     <section className="view" id="v-leagues" ref={view}>
-      <h2 className="h2">Ligas</h2>
-      <p className="lede">Tu liga se asigna según tus resultados. Con tu puntaje también tenés un puesto en tu zona y en el país.</p>
+      {/* Sin título «Ligas», sin lede y sin la línea «Asignada por tus resultados…» (pedidos de Esteban, 30-oct):
+          la página arranca directo en la cabecera de la liga (ícono + nombre + chips del ciclo). */}
       {closed?.kind === 'mine' && (
         <CloseBanner key={closed.n} r={closed.r} coins={coins} onDismiss={() => setClosed(null)} onFeed={() => go('/')} />
       )}
@@ -226,7 +227,6 @@ export function LeaguesPage() {
               <h3 className="ltitle">{data.league.name}</h3>
               <LeagueCycle key={closed?.n ?? 0} league={data.league} fresh={!!closed} />
             </div>
-            <p className="lede">Asignada por tus resultados · Tu puesto {data.league.pos} de {data.league.total} · {data.league.xp.toLocaleString('es-AR')} XP esta semana{data.league.closesInDays === undefined && ` · cierra ${data.league.closes}`}</p>
           </div>
         </div>
         {/* key: la tinta se vuelve a medir con la fuente real y cuando aparece la solapa Familia */}

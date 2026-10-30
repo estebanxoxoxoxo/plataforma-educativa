@@ -24,7 +24,8 @@ export function MyTubePage() {
   };
   return (
     <section className="view mt-view" id="v-mytube">
-      <h2 className="h2">MyTube</h2>
+      {/* «Mis videos» (pedido de Esteban, 30-oct): es el nombre VISIBLE; la ruta /mytube, la sec y los archivos quedan. */}
+      <h2 className="h2">Mis videos</h2>
       <UnderlineTabs tabs={TABS} value={tab} onChange={change} className="mt-tabs" tabClass="mt-tab" inkClass="mt-ink" />
       {tab === 'listas' ? <ListsPane /> : <ChannelsPane />}
     </section>

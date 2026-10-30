@@ -42,14 +42,15 @@ export function DrivePage() {
           <p className="lede">Guardá lo que encontrás y organizalo a tu manera, como en una biblioteca tuya.</p>
         </div>
         <div className="sphead-acts">
-          <button className="sbtn ghost" onClick={() => go('/espacio/papelera')}><IcTrash />Papelera</button>
+          <button className="sbtn ghost sp-trash" onClick={() => go('/espacio/papelera')}><IcTrash />Papelera</button>
           <button className="sbtn" onClick={() => setForm('create')}>＋ Carpeta nueva</button>
         </div>
       </div>
 
-      {data && data.path.length > 0 && (
+      {/* Las migas están SIEMPRE, también en la raíz (pedido de Esteban, 30-oct): ahí «Mis carpetas» es la actual. */}
+      {data && (
         <div className="shcrumb page">
-          <button className="crumb" onClick={() => go('/espacio/carpetas')}><IcFolderWin className="cfold" />Mis carpetas</button>
+          <button className={`crumb${data.path.length === 0 ? ' on' : ''}`} onClick={() => go('/espacio/carpetas')}><IcFolderWin className="cfold" />Mis carpetas</button>
           {data.path.map((p) => (
             <button key={p.id} className={`crumb${p.id === at ? ' on' : ''}`} onClick={() => go(`/espacio/carpetas/${p.id}`)}>
               {p.name}
@@ -59,9 +60,13 @@ export function DrivePage() {
       )}
 
       {error && <p className="spempty">No pude cargar tus carpetas ahora. Probemos de nuevo en un ratito.</p>}
+      {/* Como Google Drive (pedido de Esteban, 30-oct): carpetas y archivos en la MISMA grilla de columnas iguales (.spgrid),
+          así una carpeta y un archivo miden lo mismo y nada baila según el nombre. Adentro de una carpeta, cada bloque con
+          su rótulo («Carpetas» / «Archivos»); en la raíz solo hay carpetas y el título ya lo dice. */}
       {data && <>
+        {at !== 0 && data.folders.length > 0 && <h3 className="splbl">Carpetas</h3>}
         {data.folders.length > 0 && (
-          <div className="fgrid">
+          <div className="spgrid">
             {data.folders.map((f) => (
               <FolderCard key={f.id} f={f}
                 onOpen={() => go(`/espacio/carpetas/${f.id}`)}
@@ -71,8 +76,9 @@ export function DrivePage() {
             ))}
           </div>
         )}
+        {at !== 0 && data.items.length > 0 && <h3 className="splbl">Archivos</h3>}
         {at !== 0 && data.items.length > 0 && (
-          <div className="sgrid">
+          <div className="spgrid">
             {data.items.map((it) => (
               <DriveItemCard key={it.id} it={it} onOpen={() => openItem(it)}
                 onMove={() => setMoving({ kind: 'item', id: it.id, name: it.title })}

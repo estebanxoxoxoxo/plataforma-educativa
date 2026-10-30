@@ -14,35 +14,59 @@
 .sbtn:disabled{opacity:.45;cursor:default;box-shadow:none}
 .sbtn svg{width:16px;height:16px}
 .sbtn.ghost{background:#fff;color:#47506B;border:1px solid #D3D9E6;box-shadow:none}
+/* Papelera con sombra (pedido de Esteban, 30-oct): la dura de la casa, en el tono del borde del botón fantasma. */
+.sbtn.ghost.sp-trash{box-shadow:0 3px 0 #D3D9E6}
 .sbtn.ghost:hover{background:#F1F3F8}
 .sbtn.danger{background:#D63B41;box-shadow:0 3px 0 #A32227}
 .sbtn.ghost.danger{background:#fff;color:#D63B41;border-color:#F3C2C4}
 
-/* ---- carpetas ---- */
-.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
-/* Contenedor compacto (pedido 11-oct: "más chico el contenedor blanco"): abraza ícono + nombre,
-   sin el aire del cuadrado 1/1 de antes. */
-.fcard-folder{position:relative;background:#fff;border:1px solid var(--card-line);border-radius:9px;padding:20px 16px 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:box-shadow .25s,transform .25s}
-.fcard-folder:hover{box-shadow:0 12px 26px -14px rgba(27,34,56,.35);transform:translateY(-2px)}
-/* mismo ícono para TODAS las carpetas, como en Windows */
-.fico{width:clamp(64px,42%,124px)}
-.fico svg{width:100%;height:auto;aspect-ratio:48/38;display:block}
-.fname{max-width:100%;text-align:center;font-family:var(--display);font-weight:800;font-size:17px;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.fcard-folder .dmenu{position:absolute;right:8px;top:12px}
+/* ---- carpetas y archivos, como Google Drive (pedido de Esteban, 30-oct) ----
+   UNA grilla para los dos (.spgrid): columnas iguales que llenan la fila, así una carpeta y un archivo miden siempre lo
+   mismo y ningún nombre largo ensancha su tarjeta (min-width:0 en las tarjetas y el nombre en un renglón con «…»; el
+   completo, en el tooltip nativo: lib/drive.ts). Carpeta = fila compacta (ícono, nombre, ⋯), sin previa. Archivo = vista
+   previa arriba + fila con ícono chico del tipo, nombre y ⋯ (+ la fuente debajo, como antes). */
+.sp-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.splbl{margin:6px 0 -6px;font-size:13px;font-weight:800;letter-spacing:.02em;color:#47506B}
+.spgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,208px),1fr));gap:14px}
+/* la tarjeta con su menú abierto va arriba de las vecinas (el menú baja sobre la fila de abajo, y el :hover le pone
+   transform: sin esto la tarjeta siguiente lo tapaba) */
+.spd:has(.dm-pop),.spf:has(.dm-pop){z-index:3}
 
-/* ---- ítems guardados ---- */
-.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
-.spcard{position:relative;background:#fff;border:1px solid var(--card-line);border-radius:9px;overflow:hidden;cursor:pointer;display:grid;gap:4px;padding-bottom:12px;transition:box-shadow .25s,transform .25s}
-.spcard:hover{box-shadow:0 12px 26px -14px rgba(27,34,56,.35);transform:translateY(-2px)}
-.sthumb{position:relative;aspect-ratio:16/9;background:#EDF0F7;display:grid;place-items:center;color:#9AA3BC}
-.sthumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.sthumb svg{width:34px;height:34px}
-.sthumb.t-articulo{background:#E7ECFD;color:#2843A8}
-.skind{position:absolute;left:8px;bottom:8px;display:inline-flex;align-items:center;gap:5px;background:rgba(14,18,32,.78);color:#fff;font-size:11px;font-weight:800;padding:3px 8px;border-radius:5px}
-.skind svg{width:12px;height:12px;fill:#fff}
-.stitle{padding:6px 12px 0;font-weight:800;font-size:14.5px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.ssub{padding:0 12px;color:#6A7390;font-weight:700;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.spcard .dmenu{position:absolute;right:6px;top:6px}
+/* carpeta: la fila de Drive, con la carpeta amarilla de siempre (la misma para TODAS, como en Windows) */
+.spd{position:relative;min-width:0;display:flex;align-items:center;gap:10px;min-height:54px;padding:6px 6px 6px 12px;background:#fff;border:1px solid var(--card-line);border-radius:12px;cursor:pointer;transition:box-shadow .25s,transform .25s,background .2s}
+.spd:hover{background:#FBFCFE;box-shadow:0 12px 26px -16px rgba(27,34,56,.35);transform:translateY(-2px)}
+.spd-ico{flex:none;width:28px}
+.spd-ico svg{display:block;width:100%;height:auto;aspect-ratio:48/38}
+.spd-name{flex:1;min-width:0;font-family:var(--display);font-weight:800;font-size:15px;line-height:1.25;color:#1B2238;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spd .dmenu{flex:none}
+
+/* archivo: previa arriba (recuadro redondeado dentro de la tarjeta, como Drive) y la fila de abajo */
+.spf{position:relative;min-width:0;display:grid;align-content:start;gap:2px;padding:8px 8px 10px;background:#fff;border:1px solid var(--card-line);border-radius:12px;cursor:pointer;transition:box-shadow .25s,transform .25s}
+.spf:hover{box-shadow:0 12px 26px -16px rgba(27,34,56,.35);transform:translateY(-2px)}
+.spf-prev{position:relative;display:grid;place-items:center;aspect-ratio:16/10;border-radius:8px;overflow:hidden;background:#EDF0F7;color:#9AA3BC}
+.spf-prev img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .35s ease}
+.spf:hover .spf-prev img{transform:scale(1.03)}
+.spf-ph svg{display:block;width:34px;height:34px}
+/* video: el triángulo de play sobre la miniatura (dice «se mira» de un vistazo) */
+.spf-play{position:absolute;left:50%;top:50%;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;display:grid;place-items:center;background:rgba(14,18,32,.62);color:#fff}
+.spf-play svg{width:18px;height:18px;margin-left:2px}
+/* lectura sin imagen: bloque editorial (azul de lectura, el libro grande y el sitio en chiquito, como el feed V2) */
+.spf-read{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:8px;padding:10px;background:linear-gradient(140deg,#EEF2FF 0%,#DDE5FD 100%);color:#2843A8}
+.spf-read svg{width:36px;height:36px}
+.spf-read small{max-width:100%;padding:2px 9px;border-radius:999px;background:rgba(255,255,255,.75);font-size:11.5px;font-weight:800;color:#2843A8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spf.t-imagen .spf-prev{background:#E6F6F4;color:#0B6B66}
+.spf-row{display:flex;align-items:center;gap:8px;min-width:0;padding:8px 0 0 4px}
+.spf-ico{flex:none;width:22px;height:22px;border-radius:6px;display:grid;place-items:center;background:#FDECEC;color:#D63B41}
+.spf-ico svg{width:12px;height:12px}
+.spf.t-articulo .spf-ico{background:#E7ECFD;color:#2843A8}
+.spf.t-imagen .spf-ico{background:#E2F5F3;color:#0B6B66}
+.spf-name{flex:1;min-width:0;font-weight:800;font-size:14.5px;line-height:1.3;color:#1B2238;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spf-row .dmenu{flex:none;margin:-4px -2px -4px 0}
+.spf-sub{min-width:0;padding:0 4px 0 34px;color:#6A7390;font-weight:700;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (prefers-reduced-motion: reduce){
+  .spd,.spf,.spf-prev img{transition:none}
+  .spd:hover,.spf:hover,.spf:hover .spf-prev img{transform:none}
+}
 .szoom{margin:0;max-width:min(860px,92vw);display:grid;gap:10px;justify-items:center}
 .szoom img{max-width:100%;max-height:72vh;max-height:72dvh;border-radius:9px;box-shadow:0 24px 60px -20px rgba(0,0,0,.5)}
 .szoom figcaption{color:#fff;font-weight:700}
@@ -120,13 +144,18 @@
   .sphead-acts .sbtn{flex:1 1 auto;justify-content:center}
   #v-space .sbtn{min-height:44px}
 
-  /* Carpetas de a dos (el ícono baja solo con su clamp); el menú ⋯ de la columna izquierda se abre hacia la derecha
-     (colgado del borde derecho de la tarjeta, sus 190 px se salían por la izquierda de la pantalla) */
-  .fgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-  .fgrid > :nth-child(odd) .dm-pop{right:auto;left:0}
-  /* la tarjeta con su menú abierto va arriba de las vecinas: el :hover (que en el teléfono queda pegado tras el toque) le
-     pone transform, eso la vuelve contexto de apilamiento y la tarjeta de al lado tapaba el menú */
-  .fcard-folder:has(.dm-pop),.spcard:has(.dm-pop){z-index:3}
+  /* Carpetas y archivos de a dos (Drive en el teléfono: la grilla baja de columnas, el patrón queda); el menú ⋯ de la
+     columna izquierda se abre hacia la derecha (colgado del borde derecho de la tarjeta, sus 190 px se salían por la
+     izquierda de la pantalla). La tarjeta con el menú abierto ya va arriba de las vecinas (regla de arriba, todos los anchos). */
+  .spgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .spgrid > :nth-child(odd) .dm-pop{right:auto;left:0}
+  /* la carpeta, con menos aire: a ~165 px el nombre necesita el lugar */
+  .spd{gap:8px;padding-left:10px}
+  .spd-ico{width:24px}
+  .spd-name{font-size:14.5px}
+  .spf{padding:6px 6px 8px}
+  .spf-row{gap:6px;padding-left:2px}
+  .spf-sub{padding-left:30px}
 
   /* Papelera: ícono y nombre arriba (hasta dos renglones), Restaurar / Borrar definitivo abajo llenando la fila: en una
      sola línea los botones se salían de la tarjeta y el nombre quedaba a una palabra por renglón */

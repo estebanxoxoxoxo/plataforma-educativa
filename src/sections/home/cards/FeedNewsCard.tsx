@@ -39,8 +39,7 @@ export function FeedNewsCard({ it, mine, fresh, onReact, onLeague, onLess }: {
         <div className="hf-act">
           {friend && <ReactionBar reactions={friend.reactions} onReact={(e) => onReact(friend.id, e)} />}
           <button type="button" className="hf-cta is-quiet" onClick={onLeague}>{friend ? 'Ver la liga' : 'Ver mi liga'}</button>
-          <span className="hf-sp" />
-          {it.reason && <WhyChip reason={it.reason} icon={friend && !mine ? <IcUsersLine /> : undefined} end />}
+          {it.reason && <WhyChip reason={it.reason} icon={friend && !mine ? <IcUsersLine /> : undefined} />}
         </div>
       </div>
     </section>

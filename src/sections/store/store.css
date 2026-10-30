@@ -11,6 +11,38 @@
 .st-head .lede{max-width:640px}
 .st-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 
+/* ---- armado de la vista principal: columna principal + columna de destacados (pedido de Esteban, 30-oct) ----
+   La billetera y el premio de la liga de la familia van en .st-aside, que está PRIMERO en el DOM: en tablet y teléfono
+   (< 1024) todo es una columna y los destacados quedan apilados arriba, como antes. En el escritorio (≥ 1024, abajo) la
+   columna de destacados pasa a la DERECHA y es sticky: el saldo y sus accesos siguen a la vista mientras se baja. */
+.st-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:22px;min-width:0}
+.st-aside{display:grid;gap:14px;min-width:0}
+.st-main{display:grid;gap:22px;min-width:0;align-content:start}
+@container app (min-width:1024px){
+  /* 360 px: «los menús contextuales tienen que ser más anchos» (Esteban, 30-oct; antes 312: el saldo de cinco cifras
+     y las tres píldoras ya entraban — con 360 sobran). */
+  /* «Los menús contextuales, lo más arriba dentro de su sección» (Esteban, 30-oct): la PÁGINA entera es la grilla y
+     .st-layout se disuelve (display:contents, como el .hf-bd del feed) — la columna lateral arranca A LA PAR del título
+     y se pega a 12 del borde al scrollear. Solo con lateral presente (:has; el esqueleto también la tiene): en
+     canjes/deseos/movimientos no hay columna y la vista usa todo el ancho. */
+  .st-page:has(.st-aside){grid-template-columns:minmax(0,1fr) 360px;grid-template-rows:auto 1fr;column-gap:24px;align-items:start}
+  .st-page:has(.st-aside) > *{grid-column:1}
+  .st-page:has(.st-aside) > .st-layout{display:contents}
+  /* top -12: el sticky mide desde la caja de contenido de .view (32 de padding), como el aside del feed — en reposo
+     queda a la par del título y scrolleando se pega a 20 del borde visual. */
+  .st-aside{grid-column:2;grid-row:1 / 3;position:sticky;top:-12px}
+  .st-main{grid-column:1;grid-row:2}
+  /* billetera angosta: saldo arriba y accesos abajo, las píldoras a todo el ancho de la columna */
+  .st-aside .st-hero{padding:20px 20px 22px;gap:16px}
+  .st-aside .st-hero-side{max-width:none;justify-items:stretch;gap:8px}
+  .st-aside .st-pill{justify-content:flex-start}
+  .st-aside .st-bal-num{font-size:54px}
+  .st-aside .st-bal-bolt{font-size:38px}
+  .st-aside .st-sk-hero{height:330px}
+  /* premios y ropa con la columna al lado: de a tres (con el mínimo de 214 quedaban de a dos y enormes) */
+  .st-main .st-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,188px),1fr))}
+}
+
 /* ---- billetera (hero) ---- */
 .st-hero{position:relative;overflow:hidden;display:flex;flex-wrap:wrap;gap:18px 34px;padding:22px 26px 24px;border-radius:14px;border:1px solid #F1DDB0;
   background:radial-gradient(440px 230px at 100% 0,rgba(255,204,84,.36),transparent 70%),linear-gradient(135deg,#FFFCF3 0%,#FFF2D6 100%);
@@ -41,6 +73,8 @@
 .st-sec-head h3{margin:0;font-family:var(--display);font-weight:800;font-size:23px;line-height:1.1}
 .st-sec-head p{margin:0;font-size:14px;font-weight:700;color:#6A7390}
 .st-sec-hint{margin-left:auto;font-size:12.5px;font-weight:700;color:#9AA3BC}
+/* El subtítulo de Premios (la línea de la liga) en su propio renglón, debajo del título (Esteban, 30-oct). */
+.st-sec-sub{flex-basis:100%;margin:0}
 .st-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,214px),1fr));gap:16px}
 .st-card{position:relative;display:grid;grid-template-rows:auto 1fr auto auto;gap:10px;min-width:0;background:#fff;border:1px solid var(--card-line);border-radius:12px;padding:10px 10px 12px;transition:box-shadow .25s,transform .25s,border-color .25s}
 .st-card:hover{border-color:#D9DEEA;box-shadow:0 14px 28px -18px rgba(27,34,56,.4);transform:translateY(-2px)}

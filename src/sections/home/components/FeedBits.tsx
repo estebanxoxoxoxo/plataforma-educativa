@@ -2,10 +2,11 @@ import type { ReactNode } from 'react';
 import { IcClock, IcClose } from '../../../shared/components/icons';
 
 /** Chip "por qué" (mock v6): el algoritmo se muestra. `title` = el motivo (tooltip nativo) y, al tocarlo o enfocarlo, la
- *  misma frase en un globito (en una tablet no hay hover). `end` = el chip va al final de su fila: el globito se abre
- *  hacia la izquierda (si no, se saldría del borde). No navega a ningún lado. Puro. */
-export const WhyChip = ({ reason, icon, end }: { reason: string; icon?: ReactNode; end?: boolean }) => (
-  <button type="button" className={`hf-why${end ? ' is-end' : ''}`} title={reason} data-why={reason} aria-label={`Por qué te lo muestro: ${reason}`}
+ *  misma frase en un globito (en una tablet no hay hover). FEED-3 (30-oct): va SIEMPRE en la esquina INFERIOR DERECHA de
+ *  su card, en todos los tipos — el último del pie, empujado a la derecha por home.css —, así que el globito se abre
+ *  SIEMPRE hacia la izquierda (`is-end`; si no, se saldría del borde). No navega a ningún lado. Puro. */
+export const WhyChip = ({ reason, icon }: { reason: string; icon?: ReactNode }) => (
+  <button type="button" className="hf-why is-end" title={reason} data-why={reason} aria-label={`Por qué te lo muestro: ${reason}`}
     onClick={(e) => e.currentTarget.focus()} onKeyDown={(e) => { if (e.key === 'Escape') e.currentTarget.blur(); }}>
     {icon ?? <IcClock aria-hidden="true" />}por qué
   </button>

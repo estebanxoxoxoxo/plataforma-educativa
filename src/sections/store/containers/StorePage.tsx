@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../../../api';
-import type { EcTx, FamilyWeekPrize, Friend, MarketItem, Redemption } from '../../../api/types';
+import type { AssignedLeague, EcTx, FamilyWeekPrize, Friend, MarketItem, Redemption } from '../../../api/types';
 import { useUser } from '../../../hooks/user';
 import { openAvatarPicker, saveMyLook, useMyIdentity } from '../../../shared/components/ProfileCard';
 import { chatFriendsChanged, openChat } from '../../friends/lib/chatDock';
@@ -369,49 +369,59 @@ export function StorePage() {
         {data && view === 'canjes' && <RedemptionsView list={data.redemptions} fresh={fresh} onBack={() => setParams({})} />}
         {data && view === 'movimientos' && <MovesView tx={data.tx} onBack={() => setParams({})} />}
 
+        {/* Los destacados (la billetera y el premio de la liga de la familia) van en una columna lateral DERECHA y sticky en el
+            escritorio (pedido de Esteban, 30-oct): mientras el chico baja por los premios y la ropa, el saldo y sus accesos
+            siguen a la vista. Va PRIMERO en el DOM: en tablet y teléfono queda apilada arriba, como antes (store.css). */}
         {data && view === 'tienda' && (
-          <>
-            <WalletHero ec={data.ec} wishCount={data.wishOrder.length} pending={pending}
-              onPractice={() => go('/aprender')} onWishes={() => setParams({ vista: 'deseos' })}
-              onRedemptions={() => setParams({ vista: 'canjes' })} onMoves={() => setParams({ vista: 'movimientos' })} />
-
-            <section className="st-sec" aria-labelledby="st-premios-h">
-              <div className="st-sec-head">
-                <h3 id="st-premios-h">Premios</h3>
-                {user?.kind === 'adult' ? (
-                  <p>Cada integrante canjea los suyos; vos los administrás en Familia → Premios.</p>
-                ) : (
-                  <>
-                    <p>Los publican papá y mamá. Canjeá uno y avisales para que te lo den.</p>
-                    <span className="st-sec-hint">Tocá el <HeartInline /> para guardar los que más querés</span>
-                  </>
-                )}
-              </div>
+          <div className="st-layout">
+            <div className="st-aside">
+              <WalletHero ec={data.ec} wishCount={data.wishOrder.length} pending={pending}
+                onPractice={() => go('/aprender')} onWishes={() => setParams({ vista: 'deseos' })}
+                onRedemptions={() => setParams({ vista: 'canjes' })} onMoves={() => setParams({ vista: 'movimientos' })} />
               {famPrize && <FamilyPrizeBanner prize={famPrize} onGo={() => go('/ligas?tab=familia')} />}
-              {premios.length > 0 ? (
-                <div className="st-grid">
-                  {byPrice(premios).map((it) => (
-                    <RewardCard key={it.id} item={it} ec={data.ec} wished={wished.has(it.id)}
-                      onRedeem={(btn) => openRedeem(it, btn)} onWish={() => void toggleWish(it)} />
-                  ))}
-                </div>
-              ) : user?.kind === 'adult' ? (
-                /* U3-D1: el adulto no ve premios de los chicos; los suyos no existen. */
-                <p className="st-empty">Los premios viven en la cuenta de cada integrante: publicalos en Familia → Premios.</p>
-              ) : famPrize ? (
-                /* con el premio de la liga de la familia arriba, "todavía no publicaron premios" se contradecía */
-                <p className="st-empty">Todavía no hay premios para canjear con ⚡. El de arriba se gana en la liga de tu familia.</p>
-              ) : (
-                <p className="st-empty">Papá y mamá todavía no publicaron premios. ¡Seguí juntando ⚡ mientras tanto!</p>
-              )}
-            </section>
+            </div>
 
-            {ropa.length > 0 && (
-              <WardrobeSection ref={ropaEl} items={ropa} ec={data.ec} me={myName} stateOf={stateOf} wearing={wearing}
-                giftOn={giftOn} giftFor={giftFor} onBuy={openBuy} onWear={(it) => void wear(it)} onGift={openGift}
-                onClearGiftFor={() => setParams({})} />
-            )}
-          </>
+            <div className="st-main">
+              <section className="st-sec" aria-labelledby="st-premios-h">
+                <div className="st-sec-head">
+                  <h3 id="st-premios-h">Premios</h3>
+                  {user?.kind === 'adult' ? (
+                    <p>Cada integrante canjea los suyos; vos los administrás en Familia → Premios.</p>
+                  ) : (
+                    /* El hint de la lista de deseos al NIVEL del título, y abajo la línea de la liga como subtítulo
+                       (pedido de Esteban, 30-oct; reemplaza al «Los publican papá y mamá…»). */
+                    <>
+                      <span className="st-sec-hint">Tocá el <HeartInline /> para guardar los que más querés</span>
+                      <PremiosLeagueLine />
+                    </>
+                  )}
+                </div>
+                {premios.length > 0 ? (
+                  <div className="st-grid">
+                    {byPrice(premios).map((it) => (
+                      <RewardCard key={it.id} item={it} ec={data.ec} wished={wished.has(it.id)}
+                        onRedeem={(btn) => openRedeem(it, btn)} onWish={() => void toggleWish(it)} />
+                    ))}
+                  </div>
+                ) : user?.kind === 'adult' ? (
+                  /* U3-D1: el adulto no ve premios de los chicos; los suyos no existen. */
+                  <p className="st-empty">Los premios viven en la cuenta de cada integrante: publicalos en Familia → Premios.</p>
+                ) : famPrize ? (
+                  /* con el premio de la liga de la familia a la vista, "todavía no publicaron premios" se contradecía. Sin «el de
+                     arriba»: en el escritorio la tarjeta va en la columna de la derecha (30-oct). */
+                  <p className="st-empty">Todavía no hay premios para canjear con ⚡. El premio de la semana de tu familia se gana en la liga.</p>
+                ) : (
+                  <p className="st-empty">Papá y mamá todavía no publicaron premios. ¡Seguí juntando ⚡ mientras tanto!</p>
+                )}
+              </section>
+
+              {ropa.length > 0 && (
+                <WardrobeSection ref={ropaEl} items={ropa} ec={data.ec} me={myName} stateOf={stateOf} wearing={wearing}
+                  giftOn={giftOn} giftFor={giftFor} onBuy={openBuy} onWear={(it) => void wear(it)} onGift={openGift}
+                  onClearGiftFor={() => setParams({})} />
+              )}
+            </div>
+          </div>
         )}
       </div>
 
@@ -428,4 +438,21 @@ export function StorePage() {
       )}
     </section>
   );
+}
+
+/** La línea de la liga como subtítulo de «Premios» (pedido de Esteban, 30-oct, su wording verbatim con los números
+ *  vivos): puesto y XP de la semana. Solo un CHICO con Ligas prendidas y la liga ya leída; si no llega (403, red), no
+ *  hay línea y la cabecera queda como está. */
+function PremiosLeagueLine() {
+  const kid = useUser()?.kind === 'child';
+  const ligasOn = useFeatures()?.ligas === true;
+  const [l, setL] = useState<AssignedLeague | null>(null);
+  useEffect(() => {
+    if (!kid || !ligasOn) { setL(null); return; }
+    let alive = true;
+    api.myLeague().then((r) => { if (alive) setL(r); }, () => { if (alive) setL(null); });
+    return () => { alive = false; };
+  }, [kid, ligasOn]);
+  if (!l) return null;
+  return <p className="st-sec-sub">Asignada por tus resultados · Tu puesto {l.pos} de {l.total} · {l.xp.toLocaleString('es-AR')} XP esta semana</p>;
 }

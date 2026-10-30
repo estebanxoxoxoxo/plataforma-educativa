@@ -9,6 +9,7 @@ import { LEAGUE_WEEK_CLOSED } from '../../leagues/lib/cycle';
 import { useFeatures } from '../../parent/lib/features';
 import { openMedalsSheet } from '../../../shared/components/ProfileCard';
 import { hasMedalNews, medalsChanged } from '../../../shared/lib/medals';
+import { publishNavHighlight } from '../../../shared/lib/navHighlights';
 import { FeedArticleCard } from '../cards/FeedArticleCard';
 import { FeedMedalCard } from '../cards/FeedMedalCard';
 import { FeedNewsCard } from '../cards/FeedNewsCard';
@@ -62,7 +63,7 @@ type LessState = 'leaving' | 'gone' | 'undoing' | 'failed';
  *  entra POR ARRIBA solo cuando el chico toca la píldora "N novedades ↑". "Ver menos" es reversible (api.feedLess).
  *  El dial de animación (calmo/normal/vivo) lo fija el padre y llega en cada respuesta (data-motion en la raíz).
  *  Contenedor puro: los bloques son componentes por props. Respeta los on-off del padre (el server ya no manda lo apagado;
- *  lib/visibility es la red de seguridad visual). ARRIBA del hilo, la zona PINNEADA de destacados (tanda F2,
+ *  lib/visibility es la red de seguridad visual). ARRIBA del hilo (en escritorio, columna sticky a la DERECHA: FEED-3) la zona PINNEADA de destacados (tanda F2,
  *  lib/highlights.ts): hoy, "X quiere contactarse con vos" (api.requests(), Aceptar / "Ahora no" ahí mismo). Junto al
  *  saludo, el botón de DEMO "Simular NPCs" (regla 9; solo con Amigos prendido): el server prepara una ráfaga de noticias
  *  y aparece la píldora. */
@@ -344,44 +345,59 @@ export function FeedPage() {
     }
   };
 
+  // La zona Destacado se dibuja si hay hero o solicitudes; en escritorio es el ASIDE sticky de la derecha (FEED-3).
+  const zone = !!heroIt || (socialOn && pins.length > 0);
+  // El circulito del menú (30-oct): la cuenta REAL de la zona Destacado — el hero cuenta — pisa la siembra del Sidebar,
+  // que solo conoce las solicitudes (QA de Esteban: decía 1 con el hero y una solicitud a la vista). Recién con el feed
+  // cargado: hasta ahí vale la siembra.
+  const fed = visible !== null, hero = !!heroIt, pinned = socialOn ? pins.length : 0;
+  useEffect(() => {
+    if (fed) publishNavHighlight('home', (hero ? 1 : 0) + pinned);
+  }, [fed, hero, pinned]);
   return (
     <section className="view" id="v-feed" ref={view} data-motion={eff}>
-      <div className="hf-col">
+      {/* FEED-3 (30-oct): en escritorio (≥ 1024, container app) .hf-col.has-aside es una grilla de dos columnas — el saludo
+          y el hilo (.hf-main) a la izquierda, la zona Destacado como columna STICKY a la derecha —; por debajo de 1024 es
+          la columna de siempre (saludo → Destacado → píldora → hilo). Un solo DOM, en el mismo orden que antes: el orden
+          del Tab no cambia en ningún ancho. */}
+      <div className={`hf-col${zone ? ' has-aside' : ''}`}>
         <FeedHead name={user?.name ?? ''} day={daypartLine(serverDate(sched), sched.tz)} streak={streak}
           demo={amigosOn ? <SimulateNpcsChip busy={npc.busy} note={npc.note} failed={npc.failed} onClick={() => void simulateNpcs()} /> : undefined} />
         {/* La zona Destacado (pedido 14-oct): el hero "tu siguiente paso" + las solicitudes. La píldora y lo que
             entra con Simular NPCs van DEBAJO de esta zona (el hero ya no está en el hilo). */}
-        {(heroIt || (socialOn && pins.length > 0)) && (
+        {zone && (
           <PinnedZone hero={heroIt && <FeedNextCard it={heroIt} onGo={(to) => go(to)} />}
             items={socialOn ? pins : []} onAccept={(p) => void acceptPin(p)} onDecline={(p) => void declinePin(p)} />
         )}
-        {/* la píldora: pegada arriba del hilo mientras se scrollea; región viva (anuncia que hay novedades) */}
-        <div className="hf-pillbar" aria-live="polite">
-          {pill && <NewsPill count={pill.count} busy={pillBusy} onClick={() => void takePill()} />}
+        <div className="hf-main">
+          {/* la píldora: pegada arriba del hilo mientras se scrollea; región viva (anuncia que hay novedades) */}
+          <div className="hf-pillbar" aria-live="polite">
+            {pill && <NewsPill count={pill.count} busy={pillBusy} onClick={() => void takePill()} />}
+          </div>
+          {error && (
+            <div className="hf-empty">
+              <p>No pude cargar las novedades ahora mismo.</p>
+              <button type="button" className="hf-cta" onClick={load}>Reintentar</button>
+            </div>
+          )}
+          {!items && !error && <FeedSkeleton />}
+          {shown && (
+            <div className="hf-thread">
+              {shown.length === 0 && (more === 'busy' || next) ? <FeedSkeleton /> : shown.map((it) => {
+                const e = entries.current.get(it.id);
+                const st = less.get(it.id);
+                return (
+                  <div key={`${it.id}:${gens.current.get(it.id) ?? 0}`} data-id={it.id} data-kind={it.kind}
+                    className={`hf-slot ${e?.mode === 'slide' ? 'hf-in' : 'hf-anim'}${st === 'leaving' ? ' is-leaving' : ''}`}
+                    style={e?.delay ? { animationDelay: `${e.delay}ms` } : undefined}>
+                    {st && st !== 'leaving' ? <FeedLessCard state={st} onUndo={() => void undo(it.id)} /> : block(it)}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {shown && <FeedEndCap more={!!next} state={more} onMore={() => void loadMore()} />}
         </div>
-        {error && (
-          <div className="hf-empty">
-            <p>No pude cargar las novedades ahora mismo.</p>
-            <button type="button" className="hf-cta" onClick={load}>Reintentar</button>
-          </div>
-        )}
-        {!items && !error && <FeedSkeleton />}
-        {shown && (
-          <div className="hf-thread">
-            {shown.length === 0 && (more === 'busy' || next) ? <FeedSkeleton /> : shown.map((it) => {
-              const e = entries.current.get(it.id);
-              const st = less.get(it.id);
-              return (
-                <div key={`${it.id}:${gens.current.get(it.id) ?? 0}`} data-id={it.id} data-kind={it.kind}
-                  className={`hf-slot ${e?.mode === 'slide' ? 'hf-in' : 'hf-anim'}${st === 'leaving' ? ' is-leaving' : ''}`}
-                  style={e?.delay ? { animationDelay: `${e.delay}ms` } : undefined}>
-                  {st && st !== 'leaving' ? <FeedLessCard state={st} onUndo={() => void undo(it.id)} /> : block(it)}
-                </div>
-              );
-            })}
-          </div>
-        )}
-        {shown && <FeedEndCap more={!!next} state={more} onMore={() => void loadMore()} />}
       </div>
     </section>
   );

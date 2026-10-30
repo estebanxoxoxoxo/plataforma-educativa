@@ -26,8 +26,7 @@ export function FeedMedalCard({ it, name, onOpen }: { it: MedalNewsItem; name: s
         <p className="hf-np">{it.medal.text}</p>
         <div className="hf-act">
           <button type="button" className="hf-cta is-quiet" aria-haspopup="dialog" onClick={onOpen}>Ver tus medallas</button>
-          <span className="hf-sp" />
-          {it.reason && <WhyChip reason={it.reason} end />}
+          {it.reason && <WhyChip reason={it.reason} />}
         </div>
       </div>
     </section>

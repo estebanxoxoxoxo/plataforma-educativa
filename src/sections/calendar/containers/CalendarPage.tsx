@@ -69,19 +69,38 @@ export function CalendarPage() {
 
   const view = useMemo(() => (events && tzReady ? buildCalendar(events, now, tz) : null), [events, now, tz, tzReady]);
 
+  // La hojita del título (pedido de Esteban, 30-oct: el título con un ícono «de esos que incluyen la fecha del mes, como
+  // el de Apple»): el DÍA DE HOY en la zona de la familia. Recién cuando la tz llegó (tzReady), como el resto: nada se
+  // pinta un instante con la hora del navegador. tz inválida → la del navegador, como wallClock.
+  const leaf = useMemo(() => {
+    if (!tzReady) return null;
+    const d = new Date(now);
+    const opts = { timeZone: tz || undefined } as const;
+    try {
+      return { w: d.toLocaleDateString('es-AR', { weekday: 'short', ...opts }).replace('.', ''), d: d.toLocaleDateString('es-AR', { day: 'numeric', ...opts }) };
+    } catch {
+      return { w: d.toLocaleDateString('es-AR', { weekday: 'short' }).replace('.', ''), d: String(d.getDate()) };
+    }
+  }, [now, tz, tzReady]);
+
   return (
     <section className="view cal-view" id="v-calendar">
       <header className="cal-head">
-        <h2 className="h2">Calendario</h2>
-        <p className="lede">Tus clases con los mentores, día por día: así sabés qué te toca y cuándo.</p>
+        {leaf && <span className="cal-tleaf" aria-hidden="true"><small>{leaf.w}</small><b>{leaf.d}</b></span>}
+        <div>
+          <h2 className="h2">Calendario</h2>
+          <p className="lede">Tus clases con los mentores, día por día: así sabés qué te toca y cuándo.</p>
+        </div>
       </header>
 
       {!view ? (failed ? <CalendarFail onRetry={() => void load()} /> : <CalendarSkeleton />)
         : !view.hero ? <CalendarEmpty adult={adult} /> : (
-          <>
-            <NextClassHero hero={view.hero} />
+          /* La próxima clase va en una columna lateral DERECHA y sticky en el escritorio (pedido de Esteban, 30-oct): se
+             sigue viendo mientras se baja por el listado. Primero en el DOM: en tablet y teléfono queda arriba, como antes. */
+          <div className="cal-layout">
+            <div className="cal-aside"><NextClassHero hero={view.hero} /></div>
             <UpcomingList groups={view.groups} nextId={view.hero.event.id} now={now} tz={tz} />
-          </>
+          </div>
         )}
     </section>
   );

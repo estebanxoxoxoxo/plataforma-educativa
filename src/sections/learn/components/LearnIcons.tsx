@@ -23,6 +23,8 @@ export const IcRefreshCw = mk(<>
 export const IcStar = mk(<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />);
 export const IcX = mk(<><path d="M18 6 6 18" /><path d="m6 6 12 12" /></>);
 export const IcChevronRight = mk(<path d="m9 18 6-6-6-6" />);
+/* «+ Crear» del encabezado de Aprender (pedido de Esteban, 30-oct): un más, no el ícono de Crear del menú. */
+export const IcPlus = mk(<><path d="M12 5v14" /><path d="M5 12h14" /></>);
 export const IcRotateCcw = mk(<><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></>);
 export const IcPause = mk(<><rect x="14" y="4" width="4" height="16" rx="1" /><rect x="6" y="4" width="4" height="16" rx="1" /></>);
 export const IcPlay = mk(<polygon points="6 3 20 12 6 21 6 3" />);

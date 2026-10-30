@@ -6,12 +6,15 @@
 /* ---- encabezado de Aprender con el botón Crear a la altura del título (pedido 12-oct) ---- */
 .lp-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .lp-head .h2{margin:0}
-.lp-create{display:inline-flex;align-items:center;gap:8px;min-height:42px;padding:9px 18px;border-radius:11px;
-  background:#8A2B7E;color:#fff;font-family:var(--display);font-weight:800;font-size:15.5px;line-height:1;
-  box-shadow:0 3px 0 #5E1A55;transition:background .2s,transform .12s,box-shadow .12s;cursor:pointer}
-.lp-create svg{width:18px;height:18px}
-.lp-create:hover{background:#6E1F64}
-.lp-create:active{transform:translateY(2px);box-shadow:0 1px 0 #5E1A55}
+/* «+ Crear» (pedido de Esteban, 30-oct): el MISMO azul que la entrada de Active recall (.ln-recall: #3A5BD9, hover #2F4FCB,
+   sombra/active #2843A8) en lugar del violeta de antes; alto y forma de siempre. El + con trazo 2.6: a 18 px el de 2 se
+   veía flaco al lado del texto en display. */
+.lp-create{display:inline-flex;align-items:center;gap:8px;min-height:42px;padding:9px 18px 9px 14px;border-radius:11px;
+  background:#3A5BD9;color:#fff;font-family:var(--display);font-weight:800;font-size:15.5px;line-height:1;
+  box-shadow:0 3px 0 #2843A8;transition:background .2s,transform .12s,box-shadow .12s;cursor:pointer}
+.lp-create svg{width:18px;height:18px;stroke-width:2.6}
+.lp-create:hover{background:#2F4FCB}
+.lp-create:active{transform:translateY(2px);box-shadow:0 1px 0 #2843A8;background:#2843A8}
 
 /* ---- mosaico ---- */
 /* Entrada raíz de Active recall (aparece con algo ya jugado). */

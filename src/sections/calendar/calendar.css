@@ -11,8 +11,21 @@
 }
 /* filas a su alto de contenido (con filas auto, un hijo overflow:hidden —el hero— se achicaba si la vista desbordaba) */
 .cal-view{display:grid;grid-template-columns:minmax(0,1fr);grid-auto-rows:max-content;gap:22px;align-content:start}
+.cal-head{display:flex;align-items:center;gap:14px}
 .cal-head .lede{max-width:640px}
+/* La hojita del título estilo Apple (pedido de Esteban, 30-oct): tira roja con el día de la semana y el número de HOY. */
+.cal-tleaf{flex:none;display:grid;width:48px;border-radius:12px;background:#fff;border:1px solid #F5CFC9;text-align:center;overflow:hidden;box-shadow:0 2px 0 #F5CFC9}
+.cal-tleaf small{padding:4px 0 3px;background:var(--cal-strong);color:#fff;font-size:9px;font-weight:800;line-height:1;letter-spacing:.14em;text-transform:uppercase}
+.cal-tleaf b{padding:3px 0 5px;font-family:var(--display);font-weight:800;font-size:22px;line-height:1;color:#1B2238;font-variant-numeric:tabular-nums}
 .cal-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- armado: listado + columna lateral con la próxima clase (pedido de Esteban, 30-oct) ----
+   .cal-aside va PRIMERO en el DOM: en tablet y teléfono (< 1024) es una columna y el hero queda arriba del listado, como
+   antes. En el escritorio (≥ 1024, más abajo) pasa a la DERECHA y es sticky, con el hero COMPLETO (emoji, título, cuándo,
+   cuánto falta y la hoja de almanaque) reacomodado en vertical para su ancho. */
+.cal-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:22px;min-width:0}
+.cal-aside{display:grid;min-width:0}
+.cal-sk-rows{display:grid;gap:22px;min-width:0}
 
 /* =================== la próxima clase (hero) =================== */
 .cal-hero{position:relative;overflow:hidden;display:flex;align-items:center;gap:20px 28px;padding:26px 30px 28px;border-radius:16px;border:1px solid var(--cal-line);
@@ -134,4 +147,33 @@
   .cal-fail .cal-more{flex:1 1 100%}
   /* filas: un poco menos de aire a los costados para que el título tenga más lugar */
   .cal-row{grid-template-columns:52px 40px minmax(0,1fr);column-gap:12px;padding:10px 12px}
+}
+
+/* ════ Escritorio (≥ 1024): la próxima clase en la columna lateral sticky (pedido de Esteban, 30-oct) ════
+   Al final del archivo a propósito: tiene que ganarle a la @media de 1100 (que escondía la hoja de almanaque por falta de
+   lugar a lo ancho; acá la hoja va en su propio renglón y entra siempre). */
+@container app (min-width:1024px){
+  /* «Los menús contextuales, lo más anchos y lo más arriba dentro de su sección» (Esteban, 30-oct): 360 de ancho como
+     la Tienda, y la VISTA entera es la grilla con .cal-layout disuelta (display:contents) — la próxima clase arranca
+     A LA PAR del título (con su hojita) y se pega a 12 del borde al scrollear. Solo con el hero presente (:has):
+     esqueleto, vacío y error usan todo el ancho. */
+  .cal-view:has(.cal-aside){grid-template-columns:minmax(0,1fr) 360px;grid-template-rows:auto 1fr;column-gap:24px;align-items:start}
+  .cal-view:has(.cal-aside) > *{grid-column:1}
+  .cal-view:has(.cal-aside) > .cal-layout{display:contents}
+  /* top -12: el sticky mide desde la caja de contenido de .view (32 de padding), como el aside del feed — en reposo
+     queda a la par del título y scrolleando se pega a 20 del borde visual. */
+  .cal-aside{grid-column:2;grid-row:1 / 3;position:sticky;top:-12px}
+  .cal-view:has(.cal-aside) .cal-layout > :not(.cal-aside){grid-column:1;grid-row:2}
+  /* el hero en vertical: emoji y hoja de almanaque arriba, el texto a todo el ancho abajo */
+  .cal-aside .cal-hero{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-areas:"emo leaf" "main main";
+    align-items:start;gap:18px 12px;padding:22px 22px 24px}
+  .cal-aside .cal-hero-emo{grid-area:emo;width:84px;height:84px;border-radius:22px;font-size:46px}
+  .cal-aside .cal-leaf{grid-area:leaf;justify-self:end;display:grid;width:96px;margin:10px 4px 0 0}
+  .cal-aside .cal-leaf::before{left:24px}
+  .cal-aside .cal-leaf::after{right:24px}
+  .cal-aside .cal-leaf-d{font-size:44px}
+  .cal-aside .cal-hero-main{grid-area:main}
+  .cal-aside .cal-hero-title{font-size:25px}
+  .cal-aside .cal-hero-when{font-size:16px}
+  .cal-aside .cal-sk-hero{height:300px;padding:0 22px}
 }
