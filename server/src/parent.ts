@@ -256,7 +256,7 @@ const PRESETS: readonly PresetDef[] = [
   },
   {
     id: 'explorador-completo', name: 'Explorador completo',
-    desc: 'Todo prendido y sin filtros extra de la familia: queda la protección de fábrica de Innerith.',
+    desc: 'Todo prendido y sin filtros extra de la familia: queda la protección de fábrica de Smarty.',
     features: allFeatures(true), topics: noTopics(), words: [], volume: fullVolume(),
   },
 ]
@@ -650,7 +650,7 @@ function sanitizeAlert(r: unknown, ids: Set<number>): Alert | null {
   const text = strOf(r.text, 2000), source = strOf(r.source, 80)
   if (!kind || !text || typeof r.ts !== 'number' || !Number.isFinite(r.ts)) return null
   ids.add(id)
-  const a: Alert = { id, ts: Math.round(r.ts), kind, text, source: source || 'Innerith', seen: r.seen === true } // sin dato: SIN VER (lo seguro)
+  const a: Alert = { id, ts: Math.round(r.ts), kind, text, source: source || 'Smarty', seen: r.seen === true } // sin dato: SIN VER (lo seguro)
   if (typeof r.childId === 'string' && MEMBER_ID.test(r.childId)) a.childId = r.childId
   if (isObject(r.agg) && typeof r.agg.n === 'number' && r.agg.n > 0 && Array.isArray(r.agg.quotes)) {
     a.agg = { n: Math.min(Math.round(r.agg.n), 9999), quotes: r.agg.quotes.map(q => strOf(q, 160)).filter(Boolean).slice(-3) }
@@ -722,7 +722,7 @@ const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s)
  *  queda PERSISTIDO (alerts.json) apenas nace. */
 export function notifyParent(kind: AlertKind, text: string, source: string, opts?: { unclassified?: boolean }): void {
   try {
-    const src = quote(String(source ?? ''), 80) || 'Innerith'
+    const src = quote(String(source ?? ''), 80) || 'Smarty'
     const u = currentUser()
     if (u?.kind === 'adult') { console.log(`[parent] ${kind} con un adulto activo en ${src}: sin aviso (los avisos son sobre los integrantes)`); return }
     const child = u?.kind === 'child' ? u : undefined
@@ -736,7 +736,7 @@ export function notifyParent(kind: AlertKind, text: string, source: string, opts
       body = `Hubo un mensaje de crisis en ${src}.${said ? ` ${Kid} escribió: «${said}».` : ''} Se le mostró el mensaje de contención de la familia, que lo invita a hablarlo con un adulto de confianza. Hablalo con ${kid} con calma cuanto antes.`
     } else if (kind === 'contacto') {
       const said = quote(String(text ?? ''), 140)
-      body = `${Kid} quiso pasar un dato de contacto o seguir la charla fuera de Innerith en ${src}${said ? `: «${said}»` : ''}. El Moderador lo frenó y el mensaje no llegó.`
+      body = `${Kid} quiso pasar un dato de contacto o seguir la charla fuera de Smarty en ${src}${said ? `: «${said}»` : ''}. El Moderador lo frenó y el mensaje no llegó.`
     } else {
       const now = Date.now(), key = `${child?.id ?? '-'}|${src}`
       const recent = (blockTimes.get(key) ?? []).filter(t => now - t < BLOCK_WINDOW_MS)
@@ -758,7 +758,7 @@ export function notifyParent(kind: AlertKind, text: string, source: string, opts
  *  cuenta y los últimos 3 textos. Con un adulto activo, nada (como notifyParent). Nunca tira. */
 export function notifyUnreviewed(text: string, source: string): void {
   try {
-    const src = quote(String(source ?? ''), 80) || 'Innerith'
+    const src = quote(String(source ?? ''), 80) || 'Smarty'
     const u = currentUser()
     if (u?.kind === 'adult') { console.log(`[parent] mensaje sin revisar de un adulto en ${src}: sin aviso`); return }
     const child = u?.kind === 'child' ? u : undefined

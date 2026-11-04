@@ -12,8 +12,8 @@ import { useOverlay } from '../lib/overlayNav';
 
 /* PORTE INNERITH (W3): port de smarty-poc app/src/zones/child/VideoReadingView.tsx — componente PROPIO de la sección (no
    el VideoPlayer del catálogo: este video NO pasa por la lista aprobada de MyTube, trampa 28 del informe 02, fiel), con el
-   puente ytBridge de Innerith (mismas firmas). Tope de volumen: el POC aplica `settings.maxVolVideo` (default 100 = sin
-   tope); en Innerith no existe un tope para videos en primer plano (el de Límites es SOLO de la música de fondo, y el
+   puente ytBridge de Smarty (mismas firmas). Tope de volumen: el POC aplica `settings.maxVolVideo` (default 100 = sin
+   tope); en Smarty no existe un tope para videos en primer plano (el de Límites es SOLO de la música de fondo, y el
    reproductor del catálogo tampoco lo aplica) → queda en 100, el default del POC. Lo usan la fase video de una posta
    ("Empezar preguntas →") y el guidebook del módulo ("✕ Cerrar"). */
 export function VideoReadingView({ videoId, title, onClose, ctaLabel, onCta }: {
@@ -42,7 +42,7 @@ export function VideoReadingView({ videoId, title, onClose, ctaLabel, onCta }: {
         const d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
         if (d?.event === 'onReady') {
           ytCommand(iframeRef.current, 'unMute');
-          ytCommand(iframeRef.current, 'setVolume', [100]); // sin tope de video en Innerith (ver la cabecera)
+          ytCommand(iframeRef.current, 'setVolume', [100]); // sin tope de video en Smarty (ver la cabecera)
           ytCommand(iframeRef.current, 'playVideo');
         }
       } catch { /* mensaje ajeno */ }

@@ -207,7 +207,7 @@ export function SearchPage() {
             <div className="sx-chips">
               {SUGGESTED_TOPICS.map((t) => <button key={t} type="button" className="sx-chip" onClick={() => pickTopic(t)}>{t}</button>)}
             </div>
-            {peopleOn && <button type="button" className="sx-also" onClick={() => setTab('people')}>Buscar a otras personas de Innerith</button>}
+            {peopleOn && <button type="button" className="sx-also" onClick={() => setTab('people')}>Buscar a otras personas de Smarty</button>}
             {adult && <button type="button" className="sx-also" onClick={() => setTab('mentors')}>Ver los mentores</button>}
           </div>
         </div>

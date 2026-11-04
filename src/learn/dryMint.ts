@@ -6,7 +6,7 @@ import { registerImportedDefinitions, clearImportedDefinition, buildDefinition }
    acuña cada una con seed 1 (generador + PORTERO del Tipo, con el MISMO motor que juega el chico) y, si alguna falla,
    deshace el registro y devuelve el error del POC con TODAS las causas juntas.
 
-   PORTE INNERITH (tanda "Deudas técnicas", 14-oct; deuda de W1): en el POC esto corre en el navegador; en Innerith el
+   PORTE INNERITH (tanda "Deudas técnicas", 14-oct; deuda de W1): en el POC esto corre en el navegador; en Smarty el
    import vive en el SERVER (server/src/learnRoutes.ts: desvío forzado (b) del mapa §4), que llama a esta función. Solo
    carga TS puro (definitions.ts → registryCore.ts → activities/*), nunca los Boards. En el proceso del server el catálogo
    en memoria NO se hidrata al arrancar: no hace falta, porque el acuñado seco solo acuña definiciones del propio bundle

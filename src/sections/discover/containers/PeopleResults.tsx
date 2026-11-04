@@ -51,7 +51,7 @@ export function PeopleResults({ q }: { q: string }) {
       else if (r.relation === 'friend' && r.ok) { chatFriendsChanged(); openChat(p.id); }
       if (!r.ok && r.error) setNote(r.error);
     } catch (e) {
-      setNote(e instanceof ApiError && e.status === 404 ? 'Ese chico ya no está en Innerith.' : 'No pude mandar tu solicitud ahora. Probá de nuevo en un ratito.');
+      setNote(e instanceof ApiError && e.status === 404 ? 'Ese chico ya no está en Smarty.' : 'No pude mandar tu solicitud ahora. Probá de nuevo en un ratito.');
     } finally {
       setBusy(null);
     }
@@ -72,7 +72,7 @@ export function PeopleResults({ q }: { q: string }) {
     }
   };
 
-  if (!q) return <p className="sempty ppl-empty">Escribí el nombre de usuario de otra persona de Innerith para encontrarla.</p>;
+  if (!q) return <p className="sempty ppl-empty">Escribí el nombre de usuario de otra persona de Smarty para encontrarla.</p>;
   if (short) return <p className="sempty ppl-empty">Escribí al menos {PEOPLE_MIN} letras de su nombre de usuario.</p>;
   const people = res?.q === q ? res.people : null;
   if (failed && !people) return <p className="sempty ppl-empty">No pude buscar ahora mismo. Probemos de nuevo en un ratito.</p>;

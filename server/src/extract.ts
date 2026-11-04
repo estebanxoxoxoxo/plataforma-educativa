@@ -16,7 +16,7 @@ export interface Extracted {
 const purify = createDOMPurify(new JSDOM('').window as unknown as Window & typeof globalThis)
 const ALLOWED_TAGS = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote', 'strong', 'em', 'b', 'i', 'a', 'img', 'figure', 'figcaption', 'table', 'thead', 'tbody', 'tr', 'td', 'th', 'br', 'hr', 'code', 'pre', 'sub', 'sup', 'span', 'div', 'section', 'mark']
 const ALLOWED_ATTR = ['href', 'src', 'alt', 'title', 'referrerpolicy', 'loading', 'decoding', 'data-figure']
-const UA = 'InnerithBot/0.1 (educational; contact andres@innerith.com)'
+const UA = 'SmartyBot/0.1 (educational; contact andres@innerith.com)'
 const maxText = () => ov.num('const.maxTextoArticulo')
 /* FS-BASE-B (hallazgos search.ts:13 y extract.ts:155): timeouts de cada fetch (antes ninguno: un sitio colgado esperaba los
    300 s de undici por pedido, y un artículo encadena hasta 4). Wikipedia REST (summary y HTML) responde en < 1 s: 15 s. Jina

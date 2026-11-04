@@ -8,7 +8,7 @@ import { WikiArticle } from '../../discover/components/WikiArticle';
 import { useOverlay } from '../lib/overlayNav';
 
 /* Lectura de una posta (fase 'reading' del overlay) y guidebook de un módulo de artículo: port del ReadingView del POC
-   (smarty-poc app/src/zones/child/ReadingView.tsx) sobre el LECTOR REAL de Innerith.
+   (smarty-poc app/src/zones/child/ReadingView.tsx) sobre el LECTOR REAL de Smarty.
 
    Por qué un ReadingView propio y no la página /buscar/articulo: ArticlePage está atada a su ruta (useParams, "‹
    Resultados", navega para seguir links) y abrirla sacaría al chico de Learn y le haría perder la partida. Acá se usa el
@@ -23,10 +23,10 @@ import { useOverlay } from '../lib/overlayNav';
    X ›", que lleva a Mi espacio y deja la partida: trampa 30) y "✓ Página revisada", y los links del cuerpo abren un lector
    ANIDADO no confiable (trampa 26).
    DESVÍOS (documentados): (1) `trusted` (en el POC saltea el juez y los resúmenes por sección) no tiene equivalente: el
-   lector de Innerith SIEMPRE modera en el server (más estricto; la lectura de una ruta ya aprobada sale de la caché);
-   (2) el POC pre-clasifica cada link con la lista blanca del navegador (no aprobado → texto plano + aviso); en Innerith la
+   lector de Smarty SIEMPRE modera en el server (más estricto; la lectura de una ruta ya aprobada sale de la caché);
+   (2) el POC pre-clasifica cada link con la lista blanca del navegador (no aprobado → texto plano + aviso); en Smarty la
    lista vive en el server: el link abre el lector anidado y, si el sitio no está aprobado, ese lector lo dice; (3) el
-   cuerpo usa el formato del lector de Innerith (artículo completo con la tipografía de Wikipedia) en vez del modo zen
+   cuerpo usa el formato del lector de Smarty (artículo completo con la tipografía de Wikipedia) en vez del modo zen
    por secciones del POC (estética); (4) al abrirse no se sabe si el artículo ya estaba guardado (no hay consulta por URL
    en la API de Mi espacio): el botón arranca en "Guardar artículo" y, si ya estaba, la hoja lo avisa ("Ya estaba en X"). */
 export function ReadingView({ url, title, onClose, ctaLabel, onCta }: {
@@ -35,7 +35,7 @@ export function ReadingView({ url, title, onClose, ctaLabel, onCta }: {
   onClose: () => void;
   ctaLabel?: string;
   onCta?: () => void;
-  /** Del POC (lectura de una ruta = contenido ya curado). En Innerith el server modera siempre: ver DESVÍO (1). */
+  /** Del POC (lectura de una ruta = contenido ya curado). En Smarty el server modera siempre: ver DESVÍO (1). */
   trusted?: boolean;
 }) {
   const { close, z } = useOverlay(onClose);
@@ -108,7 +108,7 @@ export function ReadingView({ url, title, onClose, ctaLabel, onCta }: {
               ) : (
                 <button type="button" className="ln-read-save" onClick={() => setPicking(true)}>☆ Guardar artículo</button>
               )}
-              <span className="ln-read-ok">✓ Página revisada por Innerith</span>
+              <span className="ln-read-ok">✓ Página revisada por Smarty</span>
             </footer>
           )}
 

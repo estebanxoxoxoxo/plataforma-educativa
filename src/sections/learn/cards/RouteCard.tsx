@@ -5,7 +5,7 @@ import { IcChevronRight, IcStar } from '../components/LearnIcons';
 
 /** Tarjeta de una ruta en el mosaico (RouteCard del POC): portada 16:9 (la subida en /crear, o la miniatura del primer
  *  contenido si es un video; si no, el emoji), título, descripción si tiene, barra de progreso y "★ N/M postas".
- *  Estética de Innerith: el patrón de la tarjeta de Aprender (borde, radio, sombra suave, título centrado en el alto de
+ *  Estética de Smarty: el patrón de la tarjeta de Aprender (borde, radio, sombra suave, título centrado en el alto de
  *  dos líneas). Pura: el avance llega calculado. */
 export function RouteCard({ route, done, total, index, onOpen }: { route: LearnRoute; done: number; total: number; index: number; onOpen: () => void }) {
   const pct = total ? Math.round((done / total) * 100) : 0;

@@ -2,7 +2,7 @@
 // POC (smarty-poc app/src/lib/routeCover.ts → useRouteCover): portada = 1. la MANUAL (route.cover, data URL que sube el
 // creador) · 2. la miniatura del video si el PRIMER contenido es un video de YouTube · 3. la imagen principal del ARTÍCULO
 // (API summary de Wikipedia, `thumbnail.source`, pedida DESDE EL NAVEGADOR y cacheada en localStorage) · 4. null → emoji.
-// En Innerith el paso 3 no se portó al cliente (W3: la UI no sale a la red fuera de `api`); acá lo hace el server y la URL
+// En Smarty el paso 3 no se portó al cliente (W3: la UI no sale a la red fuera de `api`); acá lo hace el server y la URL
 // (http, no data URL) queda guardada como `route.cover` en la fila del catálogo (learnRoutes.ts: al importar y, para las
 // existentes, lazy al listar). Este módulo es PURO (sin estado ni disco): qué pedir y el pedido en sí.
 //   firstContent / wikiTitle = los del POC TAL CUAL (el source del 1er módulo si trae url o videoId; si no, la lectura de la
@@ -10,7 +10,7 @@
 //   POC: un artículo de es.wikipedia → es.wikipedia.org/api/rest_v1/page/summary/<título>), con el User-Agent de los demás
 //   pedidos a Wikimedia del server y un timeout corto. Sin thumbnail, con error o vencido → null (la ruta sigue con emoji).
 
-const UA = 'InnerithBot/0.1 (educational; contact andres@innerith.com)'
+const UA = 'SmartyBot/0.1 (educational; contact andres@innerith.com)'
 export const COVER_TIMEOUT_MS = 4000
 
 type Content = { url?: unknown; title?: unknown; kind?: unknown; videoId?: unknown }

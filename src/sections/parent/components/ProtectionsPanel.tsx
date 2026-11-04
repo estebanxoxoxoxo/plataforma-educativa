@@ -25,7 +25,7 @@ export function ProtectionsPanel({ kid, member, dash, failed, onRetry }: { kid: 
     <section className="pz-panel" aria-labelledby="pz-prot-h">
       <header className="pz-panel-head">
         <h3 id="pz-prot-h">Protecciones</h3>
-        <p>Lo que Innerith filtra para {kid} todo el tiempo. Está siempre activo y no depende de los interruptores.</p>
+        <p>Lo que Smarty filtra para {kid} todo el tiempo. Está siempre activo y no depende de los interruptores.</p>
       </header>
       {!dash ? <PanelState failed={failed} onRetry={onRetry} /> : !p ? (
         <p className="pz-muted">No pude leer las protecciones ahora.</p>

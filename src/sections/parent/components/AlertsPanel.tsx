@@ -6,7 +6,7 @@ import { PanelState } from './PanelState';
 
 type Filter = 'member' | 'all';
 
-/** "Avisos": lo que Innerith le avisa al adulto sobre la seguridad de cada integrante (un mensaje de crisis —CON lo que
+/** "Avisos": lo que Smarty le avisa al adulto sobre la seguridad de cada integrante (un mensaje de crisis —CON lo que
  *  escribió, textual, para que pueda actuar: decisión 11-oct—, un intento de pasar datos de contacto o de salir de la
  *  plataforma, y mensajes frenados una y otra vez), del más nuevo al más viejo.
  *  U3 · M2: `alerts` son los de TODA la familia (cada uno dice sobre quién: childId/childName). Filtro "Solo {integrante}" /

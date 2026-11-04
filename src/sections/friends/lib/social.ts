@@ -1,4 +1,4 @@
-// U4 · D4 (docs/USUARIOS.md §10): lo SOCIAL de Innerith es de los CHICOS. Amigos, el dock de Mensajes (y su "Buscar
+// U4 · D4 (docs/USUARIOS.md §10): lo SOCIAL de Smarty es de los CHICOS. Amigos, el dock de Mensajes (y su "Buscar
 // personas"), Buscar → Personas, las solicitudes de la campana y de la zona pinneada del Feed y los regalos de ropa a un
 // amigo existen solo con un chico activo y con Amigos prendido por su familia. Un ADULTO no tiene amigos chicos: su grafo
 // nace vacío y el server ya le responde vacío (`search` → `people: []`, `requests/send` → ok:false); la UI no le muestra

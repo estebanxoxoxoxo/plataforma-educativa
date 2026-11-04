@@ -52,7 +52,7 @@ export function FeaturesPanel({ kid, member }: { kid: string; member: string }) 
     <section className="pz-panel" aria-labelledby="pz-feat-h">
       <header className="pz-panel-head">
         <h3 id="pz-feat-h">Funcionalidades</h3>
-        <p>Prendé o apagá partes enteras de Innerith. Lo que está apagado no existe para {kid}: desaparece de su menú y no se puede abrir.</p>
+        <p>Prendé o apagá partes enteras de Smarty. Lo que está apagado no existe para {kid}: desaparece de su menú y no se puede abrir.</p>
       </header>
       {!features && failed && (
         <div className="pz-fail" role="alert">

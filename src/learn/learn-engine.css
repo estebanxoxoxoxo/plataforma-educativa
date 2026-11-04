@@ -1,7 +1,7 @@
 /* Motor de actividades de Learn (porte Smarty, tanda W2): estilos MÍNIMOS para que los Boards y el
    VisualStage rindan y se jueguen YA. Prefijo propio lrn- (grepeado: sin choques). Usa los tokens de
    base.css (--ink, --muted, --blue, --blue-d, --gold, --display, --body). La estética fina sobre el
-   sistema de Innerith la ajusta W3. Ojo: Innerith resetea los botones (sin fondo/borde/padding y
+   sistema de Smarty la ajusta W3. Ojo: Smarty resetea los botones (sin fondo/borde/padding y
    text-align heredado) → acá cada botón declara lo suyo. Lo importa cada Board (y el VisualStage);
    W3 puede moverlo a main.tsx según la convención de secciones. */
 

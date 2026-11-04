@@ -108,7 +108,7 @@ export function GiftSheet({ s, ec, friends, failed, onPick, onConfirm, onBack, o
             {[0, 1, 2].map((i) => <span key={i} className="st-gfr st-gfr--sk"><i /><b /></span>)}
           </div>
         ) : friends.length === 0 ? (
-          <p className="st-gempty">Todavía no tenés amigos en Innerith. Cuando aceptes una solicitud, vas a poder regalarles ropa.</p>
+          <p className="st-gempty">Todavía no tenés amigos en Smarty. Cuando aceptes una solicitud, vas a poder regalarles ropa.</p>
         ) : (
           <fieldset className="st-glist" disabled={busy}>
             <legend className="st-sr">Elegí a qué amigo</legend>

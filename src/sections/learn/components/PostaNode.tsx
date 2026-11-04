@@ -7,7 +7,7 @@ import {
   type LearnIcon,
 } from './LearnIcons';
 
-/* Nodo del camino de una ruta (PostaNode + Stars de RutaView del POC, mismas reglas y textos; estética de Innerith).
+/* Nodo del camino de una ruta (PostaNode + Stars de RutaView del POC, mismas reglas y textos; estética de Smarty).
    El estado —lograda/disponible/bloqueada— se comunica por color y titileo, no por el ícono. */
 
 /* Ícono por TIPO de actividad (el estado —lograda/disponible/bloqueada— se comunica por color y

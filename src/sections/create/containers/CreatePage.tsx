@@ -25,7 +25,7 @@ import { parseYtUrl } from '../lib/youtube';
    - Desvíos forzados (mapa §4): (a) la auditoría de facts corre en NUESTRO server (api.auditFacts; las claves jamás llegan
      acá); (b) el catálogo de rutas vive en el server (api.learnRoutes/learnRoute/importRouteBundle/deleteLearnRoute) en
      lugar de Dexie: la lista de rutas editables se relee al guardar/borrar y al volver a la pestaña (el useLiveQuery del POC).
-   - Los confirm() del POC son una hoja de Innerith (ConfirmSheet) con el MISMO texto: la acción sigue solo con "sí".
+   - Los confirm() del POC son una hoja de Smarty (ConfirmSheet) con el MISMO texto: la acción sigue solo con "sí".
    - Quirks portados tal cual (decisión 12-oct): reabrir una ruta fija types ['flashcards'] y size 'auto' (33/F1); regenerar
      borra también la profundización manual y el inventario (F2); curar manda las manuales al final (F2); tras curar,
      `selected` no ve la comprensión y el aviso de contradichos deja de verlos (F3); el borrador no persiste y "Nueva"/otra

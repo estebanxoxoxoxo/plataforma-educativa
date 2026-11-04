@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { LessButton, WhyChip } from './FeedBits';
 
-/** La familia de la card: da el acento del ícono del eyebrow y de la miniatura (paleta de secciones de Innerith). */
+/** La familia de la card: da el acento del ícono del eyebrow y de la miniatura (paleta de secciones de Smarty). */
 export type Family = 'video' | 'lectura' | 'ruta' | 'amigos';
 
 /** Card ESTÁNDAR del hilo (estilo A del mock v6): eyebrow (CHIP de la familia con su ícono y su color + "hace X" + ✕ "ver

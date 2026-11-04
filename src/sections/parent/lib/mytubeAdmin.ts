@@ -25,8 +25,8 @@ export const NET = 'no hubo respuesta del servidor';
  *  se van sus videos del catálogo aprobado y, si su canal se queda sin videos, el canal sale de MyTube). */
 export function removeText(e: Pick<MtEntry, 'title' | 'videos'>): string {
   const vids = e.videos === 0 ? 'No tiene videos aprobados.'
-    : e.videos === 1 ? 'Se borra su video de Innerith: nadie de tu familia lo va a poder ver.'
-      : `Se borran sus ${e.videos} videos de Innerith: nadie de tu familia los va a poder ver.`;
+    : e.videos === 1 ? 'Se borra su video de Smarty: nadie de tu familia lo va a poder ver.'
+      : `Se borran sus ${e.videos} videos de Smarty: nadie de tu familia los va a poder ver.`;
   return `¿Eliminar «${e.title}»? ${vids} Si su canal no tiene otros videos aprobados, también sale de MyTube. No se puede deshacer.`;
 }
 
@@ -38,7 +38,7 @@ export type ChannelGroups = {
   family: FamilyChannel[];
   /** entradas cuyo canal no se conoce (sin channelId, o un canal que ya no está en la lista), de la más nueva a la más vieja */
   orphans: MtEntry[];
-  /** el resto: los canales del catálogo de Innerith, en el orden del server (por channelId, como el MyTube del chico) */
+  /** el resto: los canales del catálogo de Smarty, en el orden del server (por channelId, como el MyTube del chico) */
   catalog: MtAdminChannel[];
 };
 const newer = (a: MtEntry, b: MtEntry) => b.createdAt - a.createdAt || b.id - a.id;

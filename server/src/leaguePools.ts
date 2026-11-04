@@ -9,7 +9,7 @@
 // Ian conserva el MISMO pool por lugar (mudado desde leaguesFake.ts SIN cambiar el orden ni el largo: sus semanas simuladas
 // salen con la misma forma). TEEN (4-nov, pedido de Esteban: «que parezca para un chico de 13»): los nicks de chicos se
 // re-envejecieron a alias de 12-14 (fuera los animalitos y los diminutivos de juguete: «LolaKoala», «FeliTrex»), uno por uno
-// en el mismo lugar; los de zona/país y los de Luna, apenas armonizados. Los de Andrés (GRANDES que aprenden en Innerith,
+// en el mismo lugar; los de zona/país y los de Luna, apenas armonizados. Los de Andrés (GRANDES que aprenden en Smarty,
 // D4 de U4) quedan.
 // Sumar un usuario al seed = sumar acá su pool nuevo y disjunto (y su LeagueSeed en leaguesFake.ts, que falla fuerte al
 // arrancar si falta).
@@ -52,7 +52,7 @@ export const LUNA_LEAGUE: LeaguePool = {
 }
 
 const ADULT_TABLE = ['MarceloViajero', 'GabiPilates', 'FerGuitarra', 'PaulaMasaMadre', 'DiegoAjedrecista', 'VeroItaliano', 'SergioMaraton', 'LauraFotografa', 'AndreaHuerta', 'GustavoPython', 'SilviCeramica']
-/** GRANDES que aprenden en Innerith (D4 de U4: el adulto compite con otros adultos, nunca con chicos): la tabla de Andrés
+/** GRANDES que aprenden en Smarty (D4 de U4: el adulto compite con otros adultos, nunca con chicos): la tabla de Andrés
  *  (Liga Chispa en el seed). */
 export const ADULT_LEAGUE: LeaguePool = {
   table: ADULT_TABLE,

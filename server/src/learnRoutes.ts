@@ -82,7 +82,7 @@ interface PostaData { id?: unknown; kind?: unknown; definitionId?: unknown; [k: 
 interface RouteData { id: Key; title?: unknown; emoji?: unknown; postas: PostaData[]; modules?: unknown; cover?: unknown; category?: unknown; [k: string]: unknown }
 interface DefData { id: Key; typeId?: unknown; generatorId?: unknown; target?: unknown; params?: unknown; [k: string]: unknown }
 interface Bundle { kind: unknown; schemaVersion: unknown; route: RouteData; definitions: DefData[]; requires?: unknown; meta?: unknown; review?: unknown; editorial?: unknown }
-/** `createdBy` (U5-B, ADITIVO de Innerith: el POC no tiene usuarios): el id de quien importó la ruta POR PRIMERA VEZ (el
+/** `createdBy` (U5-B, ADITIVO de Smarty: el POC no tiene usuarios): el id de quien importó la ruta POR PRIMERA VEZ (el
  *  hecho de la medalla «Tu primera ruta»). Metadato puro: no se sirve en ninguna respuesta ni cambia ninguna conducta del
  *  importador (validación, mensajes, reemplazo transaccional y orden quedan EXACTOS: regla suprema del porte). La seed
  *  poc-solar y las filas de antes de U5 quedan sin autor; una reimportación de la misma ruta (editarla en /crear) CONSERVA

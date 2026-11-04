@@ -6,7 +6,7 @@ import type { DefinitionRecipe } from '../../../learn/registry';
 import { resultRowOf, type LearnRoute } from './learn';
 
 /* Datos de Learn del lado del cliente: lo que en el POC son las lecturas EN VIVO de Dexie (useLiveQuery sobre
-   activityResults y learnRoutes) y el único escritor recordResult. En Innerith viven en NUESTRO server (desvío forzado (b)
+   activityResults y learnRoutes) y el único escritor recordResult. En Smarty viven en NUESTRO server (desvío forzado (b)
    del mapa: IndexedDB → server, mismas formas) y acá queda un store de módulo (useSyncExternalStore, patrón de
    shared/audio/bgAudio): cualquier vista suscripta se re-dibuja cuando se graba un resultado, como el liveQuery del POC.
      · loadLearn(): al ENTRAR a la sección — las rutas del catálogo (lista + cada ruta completa: el mosaico necesita sus
@@ -152,7 +152,7 @@ async function drain(): Promise<void> {
 }
 
 /** El recordResult del POC: graba UNA partida terminada atribuida a su target. Fire-and-forget (`void`): nunca tira;
- *  devuelve los ⚡/XP acreditados si los hubo (economía Innerith: la primera vez que ese target se completa) — si hubo que
+ *  devuelve los ⚡/XP acreditados si los hubo (economía Smarty: la primera vez que ese target se completa) — si hubo que
  *  reintentar, cuando por fin se guardó (o undefined si no se pudo). */
 export function recordResult(input: Parameters<typeof resultRowOf>[0]): Promise<Awarded | undefined> {
   const payload = resultRowOf(input);

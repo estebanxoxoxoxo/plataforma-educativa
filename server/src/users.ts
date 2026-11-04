@@ -1,4 +1,4 @@
-// Usuarios de la plataforma (línea 14-oct-2026, docs/USUARIOS.md): Innerith es para grandes y chicos. Todos usan las
+// Usuarios de la plataforma (línea 14-oct-2026, docs/USUARIOS.md): Smarty es para grandes y chicos. Todos usan las
 // MISMAS secciones; un ADULTO además tiene dependientes y su punto de menú "Familia" (la ex Zona de padres, sin portón de
 // PIN: es SU menú) donde configura lo de ellos. Los CANDADOS son del dependiente: los apagados de funcionalidades y los
 // horarios por sección rigen SOLO cuando el usuario activo es un chico; el adulto nunca queda afuera de su plataforma.

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useVeil } from '../../store/lib/sheet';
 
-/** Confirmación de /crear (patrón global .shov/.shcard): el confirm() del POC con el sistema visual de Innerith. Muestra el
+/** Confirmación de /crear (patrón global .shov/.shcard): el confirm() del POC con el sistema visual de Smarty. Muestra el
  *  MISMO texto y devuelve sí/no; la acción sigue solo con "sí". Teclado: Esc = no, Tab queda adentro. En lo destructivo
  *  (borrar la ruta) el foco arranca en "Cancelar". Pura: la respuesta la resuelve el contenedor. */
 export function ConfirmSheet({ text, confirmLabel = 'Aceptar', danger = false, onAnswer }: {

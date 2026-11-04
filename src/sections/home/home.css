@@ -1,6 +1,6 @@
 /* =================== Feed (la home, ruta /; antes se llamó Home y Descubrir) — MODELO v6 =================== */
 /* "Un hilo, muchos estilos" (mock smarty-poc/docs/feed-mocks/v6-hilo-unico.html): se copian la estructura, los tipos de
-   bloque, los radios, las medidas y el comportamiento; los COLORES son los de Innerith (pedido de Esteban, 12-oct).
+   bloque, los radios, las medidas y el comportamiento; los COLORES son los de Smarty (pedido de Esteban, 12-oct).
    Prefijo hf- (grepeado en todos los .css de src: libre). La zona pinneada (fpin-, tanda F2), el chip de demo (fdemo-) y
    las reacciones (rbar/rchip) conservan los suyos. Sin sombras ruidosas: bordes finos, radios generosos y una sombra
    apenas (V2); la SERIF solo en los momentos editoriales (hero, noticia, resumen y el "Estás al día"). */
@@ -51,7 +51,7 @@
 .hf-sp{flex:1}
 .hf-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 
-/* ---- cabecera: el saludo de Innerith + la franja del día + racha sin presión + chip de demo ---- */
+/* ---- cabecera: el saludo de Smarty + la franja del día + racha sin presión + chip de demo ---- */
 .hf-head{display:flex;align-items:flex-start;flex-wrap:wrap;gap:10px 14px;margin-bottom:16px}
 .hf-head-txt{flex:1 1 260px;min-width:0}
 .hf-day{margin:7px 0 0;font-size:13.5px;font-weight:700;color:var(--hf-faint)}

@@ -21,7 +21,7 @@ import { VideoReadingView } from './VideoReadingView';
    zig-zag por índice GLOBAL, estados de resolveRoute, la posta de REPASO (alcance = targets de las postas previas que no
    son de repaso —con moduleId, solo las de su módulo—, filtrados a lo ya jugado y ordenados por urgencia EN EL GESTO;
    K = min(5, n); sin nada jugado el click no hace nada: trampa 14), el placeholder de una posta sin definición y la escena
-   de audio 'ruta' mientras el camino está montado. Estética de Innerith; la ruta abierta es ESTADO de Aprender (no URL),
+   de audio 'ruta' mientras el camino está montado. Estética de Smarty; la ruta abierta es ESTADO de Aprender (no URL),
    como en el POC. Las filas salen del store de la sección (el useLiveQuery del POC). */
 
 export function RouteView({ route, onBack }: { route: LearnRoute; onBack: () => void }) {

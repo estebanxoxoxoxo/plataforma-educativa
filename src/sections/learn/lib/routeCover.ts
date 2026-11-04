@@ -11,7 +11,7 @@ import type { LearnRoute } from './learn';
 /* PORTE INNERITH (W3): port de smarty-poc app/src/lib/routeCover.ts (lo que usa el mosaico; `mqThumb`/`cropToCover` ya
    los portó /crear en sections/create/lib/routeCover.ts). RECORTE (alcance fijado por el brief de la tanda, documentado):
    el paso 3 —la imagen del artículo vía la API summary de Wikipedia, pedida DESDE EL NAVEGADOR y cacheada en
-   localStorage— no se porta: en Innerith la UI no sale a la red fuera de `api` y esa imagen no pasa por ninguna
+   localStorage— no se porta: en Smarty la UI no sale a la red fuera de `api` y esa imagen no pasa por ninguna
    moderación. Una ruta cuyo primer contenido es un artículo cae al emoji (paso 4). */
 
 /** Miniatura del video. maxresdefault (1280×720, 16:9 nítida) — NO usar hqdefault (480×360,

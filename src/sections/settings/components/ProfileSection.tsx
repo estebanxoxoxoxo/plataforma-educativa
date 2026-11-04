@@ -30,8 +30,8 @@ export function ProfileSection({ user }: { user?: User }) {
           <span className="cfg-row-t">Tu avatar</span>
           <p className="cfg-help" id={helpId}>
             {tienda
-              ? 'Tu personaje, su color y la ropa que conseguiste en la Tienda. Así te ven los demás en Innerith.'
-              : 'Tu personaje y su color. Así te ven los demás en Innerith.'}
+              ? 'Tu personaje, su color y la ropa que conseguiste en la Tienda. Así te ven los demás en Smarty.'
+              : 'Tu personaje y su color. Así te ven los demás en Smarty.'}
           </p>
         </div>
         {/* Con la prenda PUESTA como preset: openAvatarPicker() a secas manda `null` = «Nada» y la hoja abría sin la ropa

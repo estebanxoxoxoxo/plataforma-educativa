@@ -247,7 +247,7 @@ const ARTICLES: { title: string; url: string; source: string; snippet: string; t
   { title: 'Las fases de la Luna', url: 'https://es.wikipedia.org/wiki/Fase_lunar', source: 'es.wikipedia.org', snippet: 'Por qué la Luna se ve llena, en cuarto o nueva a lo largo del mes.', topic: 'la luna' },
 ]
 /* Rutas: el CATÁLOGO real de Learn (ver la cabecera). El catálogo no trae colores: el fondo de la card sale de un par fijo
-   de la paleta de Innerith según el id (estable). */
+   de la paleta de Smarty según el id (estable). */
 const ROUTE_BG: [string, string][] = [
   ['#3A5BD9', '#1E2F7A'], ['#13A39A', '#0B6B66'], ['#F26B3A', '#B8431C'], ['#8A5CF5', '#5431B3'], ['#E5487A', '#9E2350'], ['#1C9BD6', '#0E5F8A'],
 ]

@@ -28,8 +28,8 @@ import { RouteView } from './RouteView';
    raíz de ACTIVE RECALL (≥1 objetivo jugado con Definición hoja; "· N temas" = esos objetivos; el orden por urgencia se
    calcula UNA vez en el gesto y el repaso no termina: cicla hasta Rendirse o cerrar) y la ruta abierta como ESTADO del
    componente (no URL; "Atrás" con una ruta abierta sale de Aprender, como en el POC). Abrir una ruta o el recall es el
-   GESTO que desbloquea el audio. Estética de Innerith (encabezado con el botón Crear de siempre).
-   No se porta: el panel TEMP "Probar YouTube" (trampa 37) ni el gate `learnActivo` (en Innerith Aprender está siempre).
+   GESTO que desbloquea el audio. Estética de Smarty (encabezado con el botón Crear de siempre).
+   No se porta: el panel TEMP "Probar YouTube" (trampa 37) ni el gate `learnActivo` (en Smarty Aprender está siempre).
    Desvíos de integración (aprobados): `?ruta=<id>` abre esa ruta directo (lo usa el hero del Feed) y se limpia al abrirla;
    el botón raíz espera la HIDRATACIÓN del motor antes de decidir si aparece (trampa 16: en el POC, en frío, podía no
    aparecer). */

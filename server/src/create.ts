@@ -50,7 +50,7 @@ const isChild = () => currentUser()?.kind === 'child'
 
 /** Modelo del auditor = `auditModel()` del POC (settings.ts, clave `smarty.auditModel`, default 'gpt-5.5': "el más capaz
  *  disponible", desacoplado del preset del chat; allá el padre lo cambia en Ajustes entre gpt-5.5, gpt-5.4 y gpt-5.4-mini).
- *  Innerith todavía no tiene ese ajuste: queda el default como constante. */
+ *  Smarty todavía no tiene ese ajuste: queda el default como constante. */
 const AUDIT_MODEL = 'gpt-5.5'
 
 /** Valor de fábrica del knob 'audit.prompt' (smarty-poc app/src/lib/overrides.ts), TAL CUAL. Vars: statement, kind, quote. */
@@ -74,8 +74,8 @@ status: confirmado (las fuentes lo respaldan), parcial (parcialmente cierto o im
 /** ov.text('audit.prompt') del POC: el override de la familia gana sobre el de fábrica. */
 const auditPrompt = () => config.overrides?.['audit.prompt'] ?? AUDIT_PROMPT_DEFAULT
 
-/** Las búsquedas a Wikipedia salen del server: van con la identificación de Innerith (extract.ts / images.ts). */
-const UA = 'InnerithBot/0.1 (educational; contact andres@innerith.com)'
+/** Las búsquedas a Wikipedia salen del server: van con la identificación de Smarty (extract.ts / images.ts). */
+const UA = 'SmartyBot/0.1 (educational; contact andres@innerith.com)'
 
 /* ---------- formas (espejo de routeDraft.ts / factAudit.ts del POC) ---------- */
 export interface AuditFactInput { statement: string; front: string; back: string; quote: string; kind: string }

@@ -130,7 +130,7 @@
 .mg-atx b{font-size:14px;line-height:1.35;font-weight:700;color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .mg-atx span{font-size:12.5px;line-height:1.4;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 
-/* ---- Personas (tanda F2): chicos de Innerith por su nombre de usuario (containers/PeopleResults, cards/PersonCard).
+/* ---- Personas (tanda F2): chicos de Smarty por su nombre de usuario (containers/PeopleResults, cards/PersonCard).
    La tipografía Google del resto de Buscar; el violeta es lo social (el del dock de Mensajes y la zona pinneada del
    Feed). De cada chico, solo su avatar, su nick y su línea de estado. ---- */
 .ppl{margin-top:14px;display:grid}

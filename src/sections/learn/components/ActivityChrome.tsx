@@ -8,7 +8,7 @@ import { IcFlag, IcPause, IcPlay, IcRotateCcw, IcX } from './LearnIcons';
 /* El MARCO (chrome) del overlay de una actividad — piezas de ActivityOverlay.tsx del POC con sus MISMOS textos, tiempos y
    reglas: Lobby ("Arrancá cuando quieras." + "▶ Empezar", que desbloquea el audio) → cuenta 3-2-1-"¡Ya!" (700 ms por número
    + 450 ms del "¡Ya!", con la animación de escala) → Runner (✕, título, puntaje, Pausar/Reanudar, Rendirse) → Resultado
-   ("Lo lograste"/"Terminó", aciertos/errores/mejor racha/duración, "Jugar de nuevo", "Cerrar"). Estética de Innerith.
+   ("Lo lograste"/"Terminó", aciertos/errores/mejor racha/duración, "Jugar de nuevo", "Cerrar"). Estética de Smarty.
    Leen la INSTANCIA del motor (su store), no la API.
    TEEN-COPY (4-nov): los textos del lobby y del resultado se DESVÍAN del POC («¡Cuando estés, dale!», «▶ ¡Empezar!»,
    «🎉 ¡Lo lograste!»): el usuario modelo tiene 13 y eso sonaba a jardín. Sin 🎉 ni dobles signos; el «¡Ya!» de la cuenta
@@ -71,7 +71,7 @@ function Lobby({ title, onStart }: { title: string; onStart: () => void }) {
 
 function Result({ instance, awardedEc, onPlayAgain, onClose }: {
   instance: ActivityInstance<CommonSnapshot>;
-  /** ⚡ acreditados en ESTA partida (economía Innerith); 0 = nada. */ awardedEc: number;
+  /** ⚡ acreditados en ESTA partida (economía Smarty); 0 = nada. */ awardedEc: number;
   onPlayAgain: () => void; onClose: () => void;
 }) {
   const r = instance.getResult();

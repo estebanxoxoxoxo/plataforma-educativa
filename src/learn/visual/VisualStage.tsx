@@ -7,7 +7,7 @@ import '../learn-engine.css'
    + partículas (canvas) + textos flotantes. Expone el sink por ref.
    PORTE INNERITH (W2): lógica, intensidades, duraciones y reduced-motion IDÉNTICOS al POC; solo las
    clases Tailwind pasan a clases lrn- (learn-engine.css, traducción literal de lo que computaba
-   Tailwind v4) y el color del flotante 'good' usa el token de Innerith. */
+   Tailwind v4) y el color del flotante 'good' usa el token de Smarty. */
 
 // --- partículas (canvas). A nivel de módulo: Math.random / performance.now / rAF OK. ---
 interface Particle {

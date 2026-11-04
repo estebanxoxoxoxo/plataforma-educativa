@@ -62,7 +62,7 @@ export function clearImportedDefinition(id: string): void {
 /* PORTE INNERITH (W2): en el POC acá vive `hydrateImportedDefinitions()`, que lee
    `db.learnDefinitions.toArray()` (Dexie) y llama
    `registerImportedDefinitions(rows.map((r) => r.def as DefinitionRecipe))` UNA vez al arrancar.
-   En Innerith las definiciones importadas viven en NUESTRO server (desvío forzado (b) del mapa
+   En Smarty las definiciones importadas viven en NUESTRO server (desvío forzado (b) del mapa
    00 §4: IndexedDB→server; las persiste el importador de W1 con la forma {id, routeId, target,
    importedAt, def}). La hidratación desde `api` la cableó W3 con EXACTAMENTE esa llamada
    (sections/learn/lib/learnData.ts → loadLearn(): GET /api/learn-routes/definitions →

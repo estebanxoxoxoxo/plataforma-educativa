@@ -6,7 +6,7 @@ import { ytCommand, ytSubscribe } from '../../../shared/lib/ytBridge';
 import { useReturnFocus } from '../../store/lib/sheet';
 import { resumeAfterWatch } from '../lib/trackAudio';
 
-/** "Ver" un track de After Day (extensión Innerith, pedido 14-oct: "pueden ser audios o videos" — el POC
+/** "Ver" un track de After Day (extensión Smarty, pedido 14-oct: "pueden ser audios o videos" — el POC
  *  era SOLO audio en todas sus superficies). Overlay contenido con la MISMA jaula que los videos de Learn:
  *  youtube-nocookie + sandbox sin popups/navegación + desmute por jsapi en onReady. Si el fondo estaba
  *  sonando, se PAUSA al abrir. Al cerrar (29-oct, pedido de Esteban: «no lo puedo frenar»): si lo que sonaba era ESTE

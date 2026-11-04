@@ -37,7 +37,7 @@ export const MEDALS: Record<MedalId, MedalDef> = {
   'primer-repaso': { emoji: '🔁', title: 'Primer repaso', text: 'Hiciste tu primer repaso con Active recall.', domain: null, repeatable: false },
   'primer-guardado': { emoji: '📁', title: 'Tu primer guardado', text: 'Guardaste algo en Mi espacio por primera vez.', domain: null, repeatable: false },
   'ruta-creada': { emoji: '✏️', title: 'Tu primera ruta', text: 'Armaste tu primera ruta en Crear.', domain: null, repeatable: false },
-  'primer-amigo': { emoji: '🤝', title: 'Primer amigo', text: 'Sumaste tu primer amigo en Innerith.', domain: 'amigos', repeatable: false },
+  'primer-amigo': { emoji: '🤝', title: 'Primer amigo', text: 'Sumaste tu primer amigo en Smarty.', domain: 'amigos', repeatable: false },
   'tres-dias': { emoji: '🗓️', title: 'Tres días seguidos', text: 'Aprendiste algo nuevo tres días seguidos.', domain: null, repeatable: false },
   'de-vuelta': { emoji: '🌱', title: 'De vuelta', text: 'Volviste a aprender algo nuevo después de unos días sin hacerlo.', domain: null, repeatable: false },
   'semana-completa': { emoji: '✨', title: 'Semana completa', text: 'Aprendiste algo nuevo los 7 días de una semana.', domain: null, repeatable: true },

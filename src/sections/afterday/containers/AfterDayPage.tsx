@@ -20,7 +20,7 @@ import { trackAudio } from '../lib/trackAudio';
 export function AfterDayPage() {
   const [tracks, setTracks] = useState<AfterDayTrack[] | null>(null);
   const [failed, setFailed] = useState(false);
-  // «Ver» (extensión Innerith 14-oct): el track que se está MIRANDO en el overlay contenido.
+  // «Ver» (extensión Smarty 14-oct): el track que se está MIRANDO en el overlay contenido.
   const [watch, setWatch] = useState<AfterDayTrack | null>(null);
   const bg = useBgAudio();
   const seq = useRef(0);

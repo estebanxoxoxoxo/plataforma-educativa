@@ -1,4 +1,4 @@
-// Backend de Innerith. Expone sobre HTTP la lógica de Smarty (búsqueda en lista blanca, lector moderado).
+// Backend de Smarty. Expone sobre HTTP la lógica de Smarty (búsqueda en lista blanca, lector moderado).
 //   GET /api/health
 //   GET /api/search/pages?q=...   → PageResult[] (formato de src/api/types.ts)
 //   GET /api/article?url=...      → ArticleResult (ok | blocked | error)
@@ -338,7 +338,7 @@ process.on('unhandledRejection', (e) => { console.error('[unhandled] una promesa
 // Cada pedido corre con SU usuario activo como contexto (requestContext.ts): la "política vigente" de parent.ts lo lee.
 createServer((req, res) => { void runWithRequest(req, () => handle(req, res)) }).listen(PORT, HOST, () => {
   setImmediate(() => { searchVideos('precalentar') }) // índice de videos (~5 s), al arrancar
-  console.log(`Innerith API en http://127.0.0.1:${PORT}${LAN ? ' y en la RED LOCAL (INNERITH_LAN=1: todas las interfaces)' : ' (solo esta máquina; INNERITH_LAN=1 la abre a la red)'} · policyVersion ${config.policyVersion} · ${config.sites.length} sitios`)
+  console.log(`Smarty API en http://127.0.0.1:${PORT}${LAN ? ' y en la RED LOCAL (INNERITH_LAN=1: todas las interfaces)' : ' (solo esta máquina; INNERITH_LAN=1 la abre a la red)'} · policyVersion ${config.policyVersion} · ${config.sites.length} sitios`)
   if (LAN) console.warn('[red] INNERITH_LAN=1: cualquiera en tu red puede usar la API como cualquier usuario (no hay login). Cerralo al terminar la prueba.')
   if (!process.env.OPENAI_API_KEY || !process.env.SERPER_API_KEY) console.warn('Faltan claves en server/.env (correr el import de Smarty)')
 })

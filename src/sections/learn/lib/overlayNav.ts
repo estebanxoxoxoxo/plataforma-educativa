@@ -30,7 +30,7 @@ import { useEffect, useRef, useState } from 'react';
    2. StrictMode (dev) monta/desmonta/monta los efectos: el pushState se hace UNA vez por overlay (ref), si no el dev dejaba
       dos entradas por overlay (producción no cambia: ahí el efecto corre una sola vez);
    3. el z-index arranca en 100 (no en 50 como el POC): los overlays de Learn van a pantalla completa por ENCIMA del dock de
-      Mensajes (55), los popovers de la barra (70) y las hojas (80) de Innerith. */
+      Mensajes (55), los popovers de la barra (70) y las hojas (80) de Smarty. */
 
 type Entry = { close: () => void };
 const stack: Entry[] = [];

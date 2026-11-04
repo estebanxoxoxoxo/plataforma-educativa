@@ -27,8 +27,8 @@ import { VideoReadingView } from './VideoReadingView';
    ACTIVE RECALL (acotado a K en una posta de repaso, sin fin en la raíz), PERSISTENCIA PRIMERO (el hijo de un multi a SU
    target; el resultado externo al target de la posta salvo en el recall; el agregado de un multi con rollup:true),
    VisualStage + puentes visual/audio y las escenas del SceneDirector por fase (gano/perdio al terminar). Cambios:
-   · se dibuja en un portal sobre <body> (pantalla completa por encima del menú, la barra y el dock de Innerith);
-   · economía Innerith (desvío aprobado): si el server acreditó ⚡ por una fila de esta partida, el resultado lo muestra
+   · se dibuja en un portal sobre <body> (pantalla completa por encima del menú, la barra y el dock de Smarty);
+   · economía Smarty (desvío aprobado): si el server acreditó ⚡ por una fila de esta partida, el resultado lo muestra
      chiquito ("+30 ⚡"; con la Tienda apagada no se nombra la moneda);
    · si una definición rompe al acuñarse (generador/portero: el import del server todavía no hace el acuñado seco
      completo, pendiente de W1), se muestra el MISMO error del POC en vez de tumbar la página (en el POC el import ya
@@ -90,7 +90,7 @@ export function ActivityOverlay({
   const [phase, setPhase] = useState<'reading' | 'video' | 'activity'>(
     reading && !recallTargets ? (reading.kind === 'video' ? 'video' : 'reading') : 'activity',
   );
-  // Economía Innerith: ⚡ acreditados en la partida en curso (se suman los de cada fila que pagó).
+  // Economía Smarty: ⚡ acreditados en la partida en curso (se suman los de cada fila que pagó).
   const [awarded, setAwarded] = useState<{ game: number; ec: number }>({ game: 0, ec: 0 });
   const showCoins = useFeatures()?.tienda === true;
   const gameRef = useRef(gameNo);

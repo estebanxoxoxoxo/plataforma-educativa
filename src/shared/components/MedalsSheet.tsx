@@ -28,7 +28,7 @@ export function MedalsSheet({ medals, failed, onRetry, onClose }: {
         <div className="mdl-top">
           <div className="mdl-head">
             <h3 className="mdl-title" id={`${uid}-t`}>Tus medallas</h3>
-            <p className="mdl-sub" id={`${uid}-d`}>Las que fuiste ganando en Innerith.</p>
+            <p className="mdl-sub" id={`${uid}-d`}>Las que fuiste ganando en Smarty.</p>
           </div>
           <button type="button" className="mdl-x" aria-label="Cerrar" onClick={onClose}><IcClose /></button>
         </div>

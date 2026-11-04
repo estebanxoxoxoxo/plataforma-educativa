@@ -1,7 +1,7 @@
 import type { ReactNode, SVGProps } from 'react';
 
 /* Íconos de Learn: los que el POC toma de lucide-react (Learn.tsx, RutaView.tsx, ActivityOverlay.tsx), dibujados acá
-   como SVG locales de la sección (Innerith no usa lucide y shared/icons.tsx no se toca): misma geometría (viewBox 24,
+   como SVG locales de la sección (Smarty no usa lucide y shared/icons.tsx no se toca): misma geometría (viewBox 24,
    trazo currentColor 2, puntas redondeadas) y mismos nombres, así el ícono de cada nodo/botón es el del POC. */
 
 type P = SVGProps<SVGSVGElement>;

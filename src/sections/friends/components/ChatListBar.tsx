@@ -96,7 +96,7 @@ export function ChatListBar({ me, friends, failed, open, wins, hidden, modal, ba
           ) : !friends ? (
             <div className="fdk-sk" role="status" aria-label="Cargando tus conversaciones">{[0, 1, 2].map((i) => <span key={i}><i /><b /></span>)}</div>
           ) : friends.length === 0 ? (
-            <p className="fdk-empty">Todavía no tenés amigos en Innerith. Buscá a otras personas por su nombre de usuario: cuando acepten, les vas a poder escribir desde acá.</p>
+            <p className="fdk-empty">Todavía no tenés amigos en Smarty. Buscá a otras personas por su nombre de usuario: cuando acepten, les vas a poder escribir desde acá.</p>
           ) : (
             <ul className="fdk-items">
               {friends.map((f) => {

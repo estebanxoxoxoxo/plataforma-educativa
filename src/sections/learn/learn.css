@@ -1,6 +1,6 @@
 /* Aprender = Learn (porte Smarty W3+W4): mosaico de rutas · camino de postas · overlay de actividad (lectura / video /
    juego / resultado) · Active Recall. Prefijo propio ln- (grepeado: sin choques); el motor usa lrn- (src/learn). Los
-   colores por módulo del camino son los 6 pares EXACTOS del POC (van inline); el resto, tokens de Innerith. Los overlays
+   colores por módulo del camino son los 6 pares EXACTOS del POC (van inline); el resto, tokens de Smarty. Los overlays
    se dibujan en un portal sobre <body> (pantalla completa, por encima del menú, la barra y el dock). */
 
 /* ---- encabezado de Aprender con el botón Crear a la altura del título (pedido 12-oct) ---- */
@@ -114,7 +114,7 @@
 .ln-stars svg{width:13px;height:13px;color:#D1D5DB}
 .ln-stars svg.on{color:var(--gold)}
 
-/* placeholder de una posta sin definición (sobre la hoja modal .shov de Innerith) */
+/* placeholder de una posta sin definición (sobre la hoja modal .shov de Smarty) */
 .ln-pend{z-index:120}
 .ln-pend-card{position:relative;width:min(384px,100%);padding:24px;border-radius:16px;background:#fff;text-align:center;box-shadow:0 24px 48px -24px rgba(27,34,56,.45)}
 .ln-pend-x{position:absolute;top:10px;right:10px}
@@ -163,7 +163,7 @@
 .ln-result-t{margin:0;font-family:var(--display);font-weight:800;font-size:24px;color:var(--ink)}
 .ln-result-score{margin-top:12px;font-family:var(--display);font-weight:800;font-size:32px;line-height:1.1;color:#2843A8;font-variant-numeric:tabular-nums}
 .ln-result-score span{font-family:var(--body);font-size:16px;font-weight:600;color:#9CA3AF}
-/* la economía de Innerith: lo acreditado, chiquito (mismo look que el premio que tenía Practicar) */
+/* la economía de Smarty: lo acreditado, chiquito (mismo look que el premio que tenía Practicar) */
 .ln-result-ec{display:inline-flex;align-items:center;margin-top:10px;padding:5px 11px;border-radius:999px;background:#FFF4DA;border:1.5px solid #F5D58A;color:#8A5A00;
   font-family:var(--display);font-weight:800;font-size:15px;line-height:1;white-space:nowrap}
 .ln-result-stats{display:flex;justify-content:center;gap:16px;margin-top:12px;font-size:14px;font-weight:700;color:var(--ink)}
@@ -177,7 +177,7 @@
 .ln-err-p{margin:4px 0 0;font-size:14px;font-weight:600;color:var(--muted);overflow-wrap:anywhere}
 .ln-err .ln-btn{margin-top:20px}
 
-/* ---- lectura (fase 'reading' y guidebook de artículo): el lector de Innerith (WikiArticle, columna de 900) ---- */
+/* ---- lectura (fase 'reading' y guidebook de artículo): el lector de Smarty (WikiArticle, columna de 900) ---- */
 .ln-read{display:flex;flex-direction:column;background:#fff}
 .ln-read-head{flex:none;display:flex;align-items:center;gap:14px;min-height:62px;padding:10px 24px;border-bottom:1px solid #E4E8F1;background:#fff}
 .ln-read-cta{flex:none;display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:9px;border:1.5px solid #D9E0FA;background:#F4F6FE;

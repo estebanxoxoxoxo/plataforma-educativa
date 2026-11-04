@@ -19,7 +19,7 @@ const WM = 'https://commons.wikimedia.org/w/api.php'
 const PIXABAY = 'https://pixabay.com/api/'
 const FETCH_COUNT = 50
 const TARGET_COUNT = 24
-const UA = 'InnerithBot/0.1 (educational; contact andres@innerith.com)'
+const UA = 'SmartyBot/0.1 (educational; contact andres@innerith.com)'
 /** Timeout de cada fetch a Pixabay / Commons (responden en < 1 s; un cuelgue esperaba hasta los 300 s de undici). */
 const IMG_FETCH_MS = 10_000
 /** Vigencia en caché de un término: completo, 7 días (como antes); degradado (alguna fuente o moderación falló), 1 minuto. */

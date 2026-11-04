@@ -1,4 +1,4 @@
-// MyTube (porte Smarty, tanda W5) — la capa que el catálogo plano de Innerith no tiene: ENTIDADES de canal (handle,
+// MyTube (porte Smarty, tanda W5) — la capa que el catálogo plano de Smarty no tiene: ENTIDADES de canal (handle,
 // descripción curada, avatar), PLAYLISTS propias de cada canal y la INGESTA del padre. Port EXACTO de smarty-poc @ develop
 // (app/src/lib/mytube.ts + youtube.ts + la solapa YouTube de zones/admin/pages.tsx; informe docs/porte-smarty/03 §1).
 // Desvíos forzados del mapa §4: (a) la key de YouTube y la de OpenAI viven en server/.env (el POC las tenía en Ajustes del
@@ -101,7 +101,7 @@ interface YtVideo {
   tags?: string[]; categoryId?: string; topics?: string[]
 }
 /** Tabla `ytChannels` sin `followed` (el seguir es de CADA USUARIO desde U4: vive en server/data/space.json v2, space.ts).
- *  `metaAt`/`descTriedAt`/`playlistsAt`/`*TriedAt` = caché del enriquecimiento on-demand de Innerith (no existen en el POC). */
+ *  `metaAt`/`descTriedAt`/`playlistsAt`/`*TriedAt` = caché del enriquecimiento on-demand de Smarty (no existen en el POC). */
 interface YtChannel {
   channelId: string; title: string; handle?: string; descRaw?: string; desc?: string; thumb?: string; createdAt: number
   metaAt?: number; metaTriedAt?: number; descTriedAt?: number; playlistsAt?: number; playlistsTriedAt?: number

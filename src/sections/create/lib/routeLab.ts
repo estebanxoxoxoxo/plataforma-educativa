@@ -14,7 +14,7 @@ export const ROUTE_LAB_DEFAULT_URL = 'http://localhost:5203';
 export const ROUTE_LAB_URL_KEY = 'innerith.routeLabUrl';
 
 /** La URL guardada (o el default). localStorage puede fallar (modo privado): cae al default.
- *  GUARD-RAIL Innerith (14-oct, pasó dos veces): si lo recordado apunta a la PROPIA API de Innerith
+ *  GUARD-RAIL Smarty (14-oct, pasó dos veces): si lo recordado apunta a la PROPIA API de Smarty
  *  (:8787, que no es route-lab y da "Failed to fetch" por CORS), se vuelve al default 5203. */
 export function savedRouteLabUrl(): string {
   try {

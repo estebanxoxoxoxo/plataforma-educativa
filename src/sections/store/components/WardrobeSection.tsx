@@ -6,7 +6,7 @@ import { WardrobeCard, type WearState } from '../cards/WardrobeCard';
 import { byPrice } from '../lib/format';
 
 /** "Ropa para tu avatar" (visión §7: ítems de plataforma; audios 26, 29, 41-42): separada de los premios del padre.
- *  Son de Innerith: se compran con ⚡ y se ponen al instante (sin canje pendiente), o se regalan a un amigo. Si se llegó
+ *  Son de Smarty: se compran con ⚡ y se ponen al instante (sin canje pendiente), o se regalan a un amigo. Si se llegó
  *  desde el detalle de un amigo ("Regalale ropa"), arriba queda a quién es el regalo. Pura: todo llega por props. */
 export function WardrobeSection({ items, ec, me, stateOf, wearing, giftOn, giftFor, ref, onBuy, onWear, onGift, onClearGiftFor }: {
   /** Las prendas (kind 'ropa') */ items: MarketItem[];

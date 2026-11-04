@@ -123,7 +123,7 @@ export function FamilyChannelPanel({ member }: { member: string }) {
     <div className="pz-mt-ch">
       <Link className="back" to={back}>‹ Mis videos</Link>
       {failed ? <section className="pz-panel"><PanelState failed onRetry={() => setRound((n) => n + 1)} /></section> : !detail ? <PanelState failed={false} onRetry={() => {}} /> : !detail.channel ? (
-        <p className="mt-empty">Este canal ya no tiene videos aprobados en Innerith.</p>
+        <p className="mt-empty">Este canal ya no tiene videos aprobados en Smarty.</p>
       ) : (
         <>
           <ChannelHeader channel={{ ...detail.channel, desc: undefined }} followed={false} descOpen={false} onToggleDesc={() => {}} />

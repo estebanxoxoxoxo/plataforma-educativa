@@ -333,7 +333,7 @@ export const api = {
   /** Resultados de Learn (W3): todas las filas (el cliente deriva progreso/urgencia por target, como el POC). */
   learnResults: () => http<{ rows: ActivityResultRow[] }>('/api/learn/results'),
   /** Graba una partida terminada (el recordResult del POC; fire-and-forget en el overlay).
-   *  `awarded` = ⚡/XP acreditados SOLO la primera vez que ese target queda logrado (economía Innerith). */
+   *  `awarded` = ⚡/XP acreditados SOLO la primera vez que ese target queda logrado (economía Smarty). */
   recordLearnResult: (input: ActivityResultInput) => ecBump(http<{ row: ActivityResultRow; awarded?: { ec: number; xp: number } }>('/api/learn/results', input)),
   /** TODAS las definiciones del catálogo en un viaje (hidratación del motor al entrar a Learn). */
   learnDefinitions: () => http<{ definitions: DefinitionRecipeData[] }>('/api/learn-routes/definitions'),

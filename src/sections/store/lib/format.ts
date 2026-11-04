@@ -13,7 +13,7 @@ export const faltan = (n: number) => `Te faltan ${fmtEc(n)} ⚡`;
 
 export const isSoldOut = (it: MarketItem) => it.stock !== null && it.stock <= 0;
 export const stockText = (stock: number) => (stock === 1 ? 'Queda 1' : `Quedan ${fmtEc(stock)}`);
-export const sourceText = (s: MarketItem['source']) => (s === 'padre' ? 'De tu familia' : 'De Innerith');
+export const sourceText = (s: MarketItem['source']) => (s === 'padre' ? 'De tu familia' : 'De Smarty');
 
 /** Fondo suave del recuadro del emoji (tonos de la paleta de la app), estable por premio. */
 const TINTS = ['#FFF1D6', '#E7ECFD', '#FDEBE3', '#E2F5F3', '#EFE8FE', '#FBE9F0', '#E8F6D8', '#E3F3FB'];

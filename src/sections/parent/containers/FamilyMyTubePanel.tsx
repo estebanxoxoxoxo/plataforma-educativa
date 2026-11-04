@@ -19,7 +19,7 @@ export const familyChannelPath = (id: string) => `/familia/mytube/canal/${encode
    Pedido del dueño: "el listado tiene que ser el MISMO tipo de grilla que ve el chico, con una forma de agregar". Arriba, el
    AGREGAR por URL (video, playlist o canal; el lote con progreso del POC). Abajo, la grilla de canales con la MISMA tarjeta
    del MyTube del chico (sections/mytube/cards/ChannelCard: avatar, título, "N videos"): primero lo que SUMÓ la familia (con su
-   menú ⋮: Reingestar / Eliminar con confirmación) y después el catálogo de Innerith, con un "Buscar un canal". Tocar una
+   menú ⋮: Reingestar / Eliminar con confirmación) y después el catálogo de Smarty, con un "Buscar un canal". Tocar una
    tarjeta abre el canal (FamilyChannelPanel: sus videos como los ve el chico + la descripción editable). El mantenimiento
    general (Completar canales, Quitar duplicados, tope por entrada) queda al pie, plegado. La ingesta corre en el server con
    la key de YouTube del server (server/src/mytube.ts). Todo con la sesión del adulto activo (parentCall).
@@ -155,7 +155,7 @@ export function FamilyMyTubePanel({ member }: { member: string }) {
       <section className="pz-panel" aria-labelledby="pz-mt-h">
         <header className="pz-panel-head">
           <h3 id="pz-mt-h">Mis videos <span className="pz-mem-fam">Vale para toda la familia</span></h3>
-          <p>Videos, playlists y canales de YouTube que aprobás para tu familia. Se suman al catálogo aprobado de Innerith y cada integrante los puede seguir en Mis videos. Abajo, los canales como los ve tu familia.</p>
+          <p>Videos, playlists y canales de YouTube que aprobás para tu familia. Se suman al catálogo aprobado de Smarty y cada integrante los puede seguir en Mis videos. Abajo, los canales como los ve tu familia.</p>
         </header>
         <div className="pz-block">
           <h4 className="pz-block-h">Agregar</h4>
@@ -190,7 +190,7 @@ export function FamilyMyTubePanel({ member }: { member: string }) {
               ? <p className="pz-form-err" role="alert">{ops.note.text}</p>
               : <p className="pz-yt-msg" role="status">{ops.note.text}</p>)}
             {famCount === 0 ? (
-              <p className="pz-muted">Todavía no sumaste nada. Además del catálogo de Innerith, tu familia solo puede ver en Mis videos lo que agregues arriba.</p>
+              <p className="pz-muted">Todavía no sumaste nada. Además del catálogo de Smarty, tu familia solo puede ver en Mis videos lo que agregues arriba.</p>
             ) : familyShown.length + orphansShown.length === 0 ? (
               <p className="pz-muted">Ningún canal sumado coincide con «{q.trim()}».</p>
             ) : (
@@ -210,7 +210,7 @@ export function FamilyMyTubePanel({ member }: { member: string }) {
           </section>
 
           <section className="pz-mt-sec" aria-labelledby="pz-mt-cat-h">
-            <h4 className="pz-block-h" id="pz-mt-cat-h">Del catálogo de Innerith <span className="pz-block-n">{groups.catalog.length}</span></h4>
+            <h4 className="pz-block-h" id="pz-mt-cat-h">Del catálogo de Smarty <span className="pz-block-n">{groups.catalog.length}</span></h4>
             <p className="pz-help pz-mt-help">Los canales aprobados de fábrica. Tocá uno para ver sus videos y ajustar cómo se le presenta a tu familia.</p>
             {catalogShown.length === 0 ? <p className="pz-muted">{q.trim() ? `Ningún canal del catálogo coincide con «${q.trim()}».` : 'No hay canales en el catálogo.'}</p> : (
               <div className="mt-chgrid">

@@ -215,7 +215,7 @@ export function Sidebar({ user, covered = false }: { user?: User; /** tapada por
 
   return (
     <aside className="side" id={NAV_ID} inert={covered} aria-hidden={covered || undefined}>
-      <button className="brand" onClick={() => go('/')}><BrandMark />Innerith</button>
+      <button className="brand" onClick={() => go('/')}><BrandMark />Smarty</button>
       <nav aria-label="Secciones">
         {NAV.map((n) => (
           <div key={n.sec} className="nav-slot">

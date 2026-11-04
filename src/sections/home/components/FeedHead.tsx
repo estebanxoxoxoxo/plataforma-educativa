@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { IcSpark } from '../../../shared/components/icons';
 
-/** Cabecera del Feed v6 (adaptación nuestra del mock): el saludo de Innerith, debajo la franja del día ("Lunes a la tarde
+/** Cabecera del Feed v6 (adaptación nuestra del mock): el saludo de Smarty, debajo la franja del día ("Lunes a la tarde
  *  · lo más nuevo primero") y a la derecha la racha SIN presión (✨ N) y el chip de demo (regla 9). Pura. */
 export function FeedHead({ name, day, streak, demo }: { name: string; day: string; streak: number | null; demo?: ReactNode }) {
   return (

@@ -5,7 +5,7 @@ import './learn-engine.css'
 /* Vista app-native (Tailwind) de flashcards, sobre el motor portado. Mirá el frente,
    pensá la respuesta, dala vuelta y autocalificate (¿la sabías?). Sin CSS del lab.
    PORTE INNERITH (W2): mismo DOM/textos/handlers que el POC; las clases Tailwind pasan a
-   clases lrn- (learn-engine.css) sobre los tokens de Innerith. Estética fina: W3. */
+   clases lrn- (learn-engine.css) sobre los tokens de Smarty. Estética fina: W3. */
 export default function FlashcardsBoard({ engine }: { engine: FlashcardsEngine }) {
   const snap = useActivitySnapshot(engine)
   const playing = snap.status === 'running'

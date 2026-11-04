@@ -16,7 +16,7 @@ export const CYCLE_SECTIONS: readonly { key: SectionKey; label: string; route: s
   SECTION_KEYS.map((key) => ({ key, label: SECTION_LABEL[key], route: ROUTE[key] }));
 
 /** La sección del ciclo a la que pertenece una RUTA del chico (null = ninguna: siempre se muestra). Mismo mapa que tenían
- *  los horarios por sección (el featureForPath del POC con las rutas de Innerith):
+ *  los horarios por sección (el featureForPath del POC con las rutas de Smarty):
  *  · buscar = solo /buscar (los resultados). El lector (/buscar/articulo/:id) y el reproductor (/buscar/video/:id) NO:
  *    siguen andando con la sección cerrada (los abren el Feed, MyTube, el chat…).
  *  · aprender = /aprender y /crear (Crear vive dentro de Aprender).

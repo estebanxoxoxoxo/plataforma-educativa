@@ -14,7 +14,7 @@
 
 /* ---- tarjeta: miniatura 16:9 con el play encima y el título debajo; la que suena, con borde y aro violeta.
    Desde el 14-oct la card es un DIV con dos botones: .ad-main (tocar = de fondo, como el POC) y «Ver» (el video
-   contenido — extensión Innerith: pueden ser audios o videos). ---- */
+   contenido — extensión Smarty: pueden ser audios o videos). ---- */
 .ad-card{position:relative;display:grid;grid-template-rows:1fr auto;min-width:0;background:#fff;border:1px solid var(--card-line);border-radius:9px;overflow:hidden;
   transition:box-shadow .25s,transform .2s,border-color .25s}
 .ad-main{display:grid;grid-template-rows:auto 1fr;min-width:0;text-align:left;cursor:pointer}
