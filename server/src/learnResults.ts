@@ -9,7 +9,7 @@
 //        pct, seed?, skills?, rollup? } → { row, awarded? }   (el server asigna id y finishedAt)
 //
 // Esqueleto del coordinador (contrato congelado), completado en la tanda W3:
-//   · ECONOMÍA INNERITH (desvío aprobado: el POC no tiene XP/EC). Una fila `completed`, que NO es `rollup`, y que es la
+//   · ECONOMÍA SMARTY (desvío aprobado: el POC no tiene XP/EC). Una fila `completed`, que NO es `rollup`, y que es la
 //     PRIMERA `completed` de ese target acredita LEARN_EC ⚡ + LEARN_EC XP vía progress.addXp() y responde `awarded`.
 //     Replays, abortadas/timeout y los agregados de un multi (`rollup:true`, que el POC marca justo para que la economía
 //     no cuente dos veces el esfuerzo de los hijos) NO pagan. La "primera" se mira sobre las filas PERSISTIDAS: tras un

@@ -3,7 +3,7 @@ import type { AudioManifest } from './engine'
 /* Manifest del AudioEngine para Learn. Ids de canal = nombres de evento (chime/
    buzz/...) → el audioBridge conecta sin traducir. Los WAV CC0 (Kenney) viven en
    app/public/learn-audio/ (Vercel los sirve; el lab usaba un middleware).
-   PORTE INNERITH (W2): los mismos 9 WAV, copiados tal cual a public/learn/audio/ (solo cambia el path). */
+   PORTE SMARTY (W2): los mismos 9 WAV, copiados tal cual a public/learn/audio/ (solo cambia el path). */
 export const gameManifest: AudioManifest = {
   version: 1,
   baseUrl: '/learn/audio/',

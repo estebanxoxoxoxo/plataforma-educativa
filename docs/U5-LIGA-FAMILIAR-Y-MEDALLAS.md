@@ -437,7 +437,7 @@ cuando haya perfiles de otros usuarios reales y su permiso por edad.
 | `primer-repaso` | 🔁 Primer repaso | Hiciste tu primer repaso con Active recall. | Learn: una fila `completed` con `source === 'active-recall'` | — | — |
 | `primer-guardado` | 📁 Tu primer guardado | Guardaste algo en Mi espacio por primera vez. | Mi espacio: ≥ 1 ítem (papelera incluida) | — | Ian ✔ |
 | `ruta-creada` | ✏️ Tu primera ruta | Armaste tu primera ruta en Crear. ("tu primera ruta agregada", 1016) | Catálogo: ≥ 1 ruta con `createdBy === uid` (campo NUEVO, §7) | — | — |
-| `primer-amigo` | 🤝 Primer amigo | Sumaste tu primer amigo en Innerith. ("encontraste tu primer amigo", 1016) | Amigos: grafo del usuario con ≥ 1 amigo | Amigos apagado para ese chico | Ian ✔ · Luna ✔ (el adulto no tiene amigos: nunca) |
+| `primer-amigo` | 🤝 Primer amigo | Sumaste tu primer amigo en Smarty. ("encontraste tu primer amigo", 1016) | Amigos: grafo del usuario con ≥ 1 amigo | Amigos apagado para ese chico | Ian ✔ · Luna ✔ (el adulto no tiene amigos: nunca) |
 | `tres-dias` | 🗓️ Tres días seguidos | Aprendiste algo nuevo tres días seguidos. ("una racha de tres días", 1016) | Progreso: `bestStreak ≥ 3` (máximo histórico, no la racha de hoy) | — | Ian ✔ (5) · Luna ✔ (9) |
 | `de-vuelta` | 🌱 De vuelta | Volviste a aprender algo nuevo después de unos días sin hacerlo. | Progreso: `comebacks ≥ 1` (un `addXp` con ≥ 3 días de calendario desde el último día con aprendizaje) | — | — |
 | `semana-completa` | ✨ Semana completa | Aprendiste algo nuevo los 7 días de una semana. (`×N`) | Progreso: `fullWeeks ≥ 1` (cortes de semana con `days === 7`) | — | Luna ✔ (contador fijo del seed) |
@@ -552,7 +552,7 @@ medals.css`, importado en `src/main.tsx` junto a `avatar.css`). "Como un diploma
 dentro de un disco con cinta (CSS, sin assets: el diseño fino de los emblemas es posterior, 1016 lo dice), el título en la
 display, el texto informativo, "Desde el 23 de octubre" si hay fecha y "×3" si se repitió. Las nuevas llevan la etiqueta
 "Nueva". Orden: las más nuevas primero, las sin fecha al final en el orden del catálogo. Encabezado: "Tus medallas" + "Las que
-fuiste ganando en Innerith." (sin total, sin "faltan"). Al abrirla: `GET /api/medals` (la pila con sus `fresh`) y DESPUÉS
+fuiste ganando en Smarty." (sin total, sin "faltan"). Al abrirla: `GET /api/medals` (la pila con sus `fresh`) y DESPUÉS
 `POST /api/medals/seen` (las etiquetas "Nueva" se ven en ESTA apertura y se van en la próxima). Cerrar con Esc / fondo / ✕; el
 foco vuelve a QUIEN la abrió (el chip o el "Ver tus medallas" de la noticia del Feed; si ya no se ve, al chip).
 
@@ -838,7 +838,7 @@ U5-A  server: liga de la familia + TODOS los contratos (types.ts/api)   ──�
 
 ### 8.3 Brief U5-A — server: la liga de la familia completa (+ contratos)
 
-> Sos el implementador de **U5-A** en Innerith (`/Users/esteban-andres-altamura-kit-digital/Desktop/plataforma-educativa`).
+> Sos el implementador de **U5-A** en Smarty (`/Users/esteban-andres-altamura-kit-digital/Desktop/plataforma-educativa`).
 > Leé ENTEROS `docs/AGENTS.md`, `README.md`, `docs/VISION.md` y `docs/USUARIOS.md` §9-§11; después
 > `docs/U5-LIGA-FAMILIAR-Y-MEDALLAS.md` §0-§4 y §6-§7 (es la spec; manda sobre cualquier otra cosa salvo AGENTS).
 > **Objetivo**: que el server tenga la liga de la familia completa —semana con estado de la familia, cierre real perezoso y
@@ -884,7 +884,7 @@ U5-A  server: liga de la familia + TODOS los contratos (types.ts/api)   ──�
 
 ### 8.4 Brief U5-B — server: las medallas de la plataforma
 
-> Sos el implementador de **U5-B** en Innerith (mismo repo). Leé ENTEROS `docs/AGENTS.md`, `README.md`, `docs/VISION.md`,
+> Sos el implementador de **U5-B** en Smarty (mismo repo). Leé ENTEROS `docs/AGENTS.md`, `README.md`, `docs/VISION.md`,
 > `docs/USUARIOS.md` §9-§12 (la §12 la abrió U5-A) y `docs/U5-LIGA-FAMILIAR-Y-MEDALLAS.md` §1, §5, §6 y §7.
 > **Objetivo**: las 13 medallas derivadas de hechos, su estado por usuario en RAM, `/api/medals*`, la noticia propia en el Feed y
 > las medallas de cada integrante en Familia → Actividad. U5-A ya dejó los contratos (`types.ts`) y la liga de la familia.
@@ -926,7 +926,7 @@ U5-A  server: liga de la familia + TODOS los contratos (types.ts/api)   ──�
 
 ### 8.5 Brief U5-C — cliente: la liga de la familia
 
-> Sos el implementador de **U5-C** en Innerith (mismo repo). Leé ENTEROS `docs/AGENTS.md` (reglas 1, 4, 5 y 9 sobre todo),
+> Sos el implementador de **U5-C** en Smarty (mismo repo). Leé ENTEROS `docs/AGENTS.md` (reglas 1, 4, 5 y 9 sobre todo),
 > `README.md`, `docs/VISION.md`, `docs/USUARIOS.md` §10-§12 y `docs/U5-LIGA-FAMILIAR-Y-MEDALLAS.md` §1-§4, §6 y §7.
 > **Objetivo**: la UI de la liga de la familia completa en `/ligas?tab=familia`, el premio en la Tienda del chico y el canje "de
 > la liga" en Tus canjes y en Familia → Premios. U5-A dejó el server y los contratos (`types.ts`, `api/index.ts`): no los
@@ -958,7 +958,7 @@ U5-A  server: liga de la familia + TODOS los contratos (types.ts/api)   ──�
 
 ### 8.6 Brief U5-D — cliente: las medallas
 
-> Sos el implementador de **U5-D** en Innerith (mismo repo). Leé ENTEROS `docs/AGENTS.md`, `README.md`, `docs/VISION.md`,
+> Sos el implementador de **U5-D** en Smarty (mismo repo). Leé ENTEROS `docs/AGENTS.md`, `README.md`, `docs/VISION.md`,
 > `docs/USUARIOS.md` §10-§12 y `docs/U5-LIGA-FAMILIAR-Y-MEDALLAS.md` §1, §5, §6 y §7. U5-B dejó `/api/medals*`, la noticia
 > `kind:'medal'` y `ParentActivity.medals`.
 > **Objetivo**: la cantidad en el perfil, la pila "como un diploma", la noticia propia en el Feed y las medallas del integrante
@@ -984,7 +984,7 @@ U5-A  server: liga de la familia + TODOS los contratos (types.ts/api)   ──�
 
 ### 8.7 Brief U5-E — QA de punta a punta (honesto)
 
-> Sos el QA de **U5** en Innerith (mismo repo). Leé `docs/AGENTS.md`, `docs/USUARIOS.md` §10-§12 y
+> Sos el QA de **U5** en Smarty (mismo repo). Leé `docs/AGENTS.md`, `docs/USUARIOS.md` §10-§12 y
 > `docs/U5-LIGA-FAMILIAR-Y-MEDALLAS.md` entero. NO arreglás código: encontrás, reproducís y reportás (con severidad y el paso
 > exacto). Si algo de la spec no se cumple, es un hallazgo aunque "ande".
 > **Checklist**: (1) los guardarraíles del premio (§3.5) uno por uno, con el saldo de ⚡ y los movimientos de cada integrante

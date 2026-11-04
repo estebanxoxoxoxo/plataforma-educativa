@@ -4,7 +4,7 @@ import { registerImportedDefinitions, clearImportedDefinition } from '../definit
 import { isChildFinished, type MultiEngine } from '../activities/multi/index'
 import type { ActivityEvent } from '../activity/index'
 
-/* PORTE INNERITH (W2) — suite NUEVA del ARMADOR del multi de recall (el POC no la tiene). Fija:
+/* PORTE SMARTY (W2) — suite NUEVA del ARMADOR del multi de recall (el POC no la tiene). Fija:
    hoja = primera Definición no-multi del target (seed primero) · hijo i = order[i % n] con seed
    base+i+1 · acotado a K con `count` (total = K) · endless sin `count` (total null, cicla) ·
    targets sin hoja se filtran · sin targets termina al arrancar. No cambia runtime. */

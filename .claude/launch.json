@@ -11,7 +11,7 @@
       "port": 5173
     },
     {
-      "name": "innerith-web",
+      "name": "smarty-web",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "run",
@@ -24,7 +24,7 @@
       "port": 5188
     },
     {
-      "name": "innerith-api",
+      "name": "smarty-api",
       "runtimeExecutable": "npx",
       "runtimeArgs": [
         "tsx",

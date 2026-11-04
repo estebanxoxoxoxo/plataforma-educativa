@@ -41,7 +41,7 @@ import { gameManifest } from '../audio/gameManifest'
 import { AudioEngine, validateManifest } from '../audio/engine/index'
 import { loopStems as loopStemsOf } from '../audio/engine/manifest'
 
-/* PORTE INNERITH (W2) — suite NUEVA de FIDELIDAD: fija contra regresiones, punto por punto, lo que el
+/* PORTE SMARTY (W2) — suite NUEVA de FIDELIDAD: fija contra regresiones, punto por punto, lo que el
    informe 02 dice del motor (§5 núcleo, §6 tipos, §9 gamificación) y las trampas que se portan TAL
    CUAL (§15: 6, 13, 17, 38, 39, 40). Si alguien "arregla" un quirk documentado, esto se pone rojo.
    No cambia runtime. */

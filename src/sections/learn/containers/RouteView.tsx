@@ -16,7 +16,7 @@ import { VideoReadingView } from './VideoReadingView';
    posta (lograda/disponible/bloqueada + estrellas) se DERIVA de la maestría del objetivo
    (store persistido); jugar una posta lo actualiza. */
 
-/* PORTE INNERITH (W3+W4): port EXACTO de smarty-poc app/src/zones/child/RutaView.tsx @ 47f434b — segmentos contiguos por
+/* PORTE SMARTY (W3+W4): port EXACTO de smarty-poc app/src/zones/child/RutaView.tsx @ 47f434b — segmentos contiguos por
    módulo con su banda STICKY a color (6 colores en ciclo; "ver" = guidebook del contenido, sin bloqueo ni registro), el
    zig-zag por índice GLOBAL, estados de resolveRoute, la posta de REPASO (alcance = targets de las postas previas que no
    son de repaso —con moduleId, solo las de su módulo—, filtrados a lo ya jugado y ordenados por urgencia EN EL GESTO;

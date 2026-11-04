@@ -22,7 +22,7 @@ import { RouteView } from './RouteView';
    Grilla de Rutas (cards) AGRUPADA por categoría + entrada raíz "Active recall" (repaso
    cross-ruta, scroll infinito, se calcula al vuelo desde la maestría). Ver ACTIVIDADES.md §5/§7. */
 
-/* PORTE INNERITH (W3+W4): port EXACTO de smarty-poc app/src/zones/child/Learn.tsx @ 47f434b — Aprender y Practicar
+/* PORTE SMARTY (W3+W4): port EXACTO de smarty-poc app/src/zones/child/Learn.tsx @ 47f434b — Aprender y Practicar
    COLAPSADOS en una sola sección: el mosaico de las rutas del catálogo (las que genera /crear) agrupado por categoría (las
    de LEARN_CATEGORIES en su orden → las otras alfabético → "Sin categoría"; con un solo grupo, grilla plana), la entrada
    raíz de ACTIVE RECALL (≥1 objetivo jugado con Definición hoja; "· N temas" = esos objetivos; el orden por urgencia se

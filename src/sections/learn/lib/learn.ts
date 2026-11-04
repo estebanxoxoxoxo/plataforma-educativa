@@ -6,7 +6,7 @@ import type { ActivityResult } from '../../../learn/activity';
    resultados (db.activityResults). La posta solo proyecta ese objetivo; jugarla
    (o un repaso que comparta el target) actualiza el estado. */
 
-/* PORTE INNERITH (W3): port 1:1 de smarty-poc app/src/lib/learn.ts @ 47f434b — la parte PURA (tipos, categorías,
+/* PORTE SMARTY (W3): port 1:1 de smarty-poc app/src/lib/learn.ts @ 47f434b — la parte PURA (tipos, categorías,
    progressByTarget, starsForPct, resolveRoute, routeProgress) y el armado de la fila de recordResult. Los tipos son los
    del contrato (src/api/types.ts: LearnRouteData/LearnPosta/LearnModule, espejo exacto de los del POC). Lo que en el POC
    es Dexie (recordResult escribe, useLearnProgress/useImportedRoutes leen en vivo) vive en ./learnData (filas y rutas de

@@ -8,7 +8,7 @@ import './learn-engine.css'
 /* Vista app-native (Tailwind) del dominó, sobre el motor + DragDropKit portados del
    lab. Arrastrá una ficha de la mano hasta el extremo donde encaja (matchea por key
    de equivalencia: número↔expresión, o país↔capital). Sin audio/efectos por ahora.
-   PORTE INNERITH (W2): mismo DOM/textos/handlers que el POC; Tailwind → clases lrn-
+   PORTE SMARTY (W2): mismo DOM/textos/handlers que el POC; Tailwind → clases lrn-
    (learn-engine.css) y lucide → ícono local. Estética fina: W3. */
 
 interface DragPayload {

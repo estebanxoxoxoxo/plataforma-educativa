@@ -10,7 +10,7 @@ import { useOverlay } from '../lib/overlayNav';
    YouTube para que el chico mire/pause; botón CTA para pasar a las preguntas. useOverlay da z-index
    + "Volver" por historial. */
 
-/* PORTE INNERITH (W3): port de smarty-poc app/src/zones/child/VideoReadingView.tsx — componente PROPIO de la sección (no
+/* PORTE SMARTY (W3): port de smarty-poc app/src/zones/child/VideoReadingView.tsx — componente PROPIO de la sección (no
    el VideoPlayer del catálogo: este video NO pasa por la lista aprobada de MyTube, trampa 28 del informe 02, fiel), con el
    puente ytBridge de Smarty (mismas firmas). Tope de volumen: el POC aplica `settings.maxVolVideo` (default 100 = sin
    tope); en Smarty no existe un tope para videos en primer plano (el de Límites es SOLO de la música de fondo, y el

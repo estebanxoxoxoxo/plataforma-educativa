@@ -15,7 +15,7 @@ import MultipleChoiceBoard from './MultipleChoiceBoard'
    Los GENERADORES también se registran acá por id → una Definición es DATO puro
    ({generatorId, params}) y puede persistirse/publicarse (ver definitions.ts).
 
-   PORTE INNERITH (tanda "Deudas técnicas", 14-oct): mecánica + generadores + portero + build viven en
+   PORTE SMARTY (tanda "Deudas técnicas", 14-oct): mecánica + generadores + portero + build viven en
    `registryCore.ts` (TS puro: lo carga también el SERVER para el acuñado seco del import de rutas); acá se les suman
    los Boards. TYPES conserva la forma ({ module, Board, build }) y el orden de claves del registry del POC. */
 

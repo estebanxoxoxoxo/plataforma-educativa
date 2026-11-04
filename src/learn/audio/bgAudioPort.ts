@@ -1,5 +1,5 @@
 /**
- * PORTE INNERITH (W2) — puerto de la MÚSICA DE FONDO del chico para el SceneDirector.
+ * PORTE SMARTY (W2) — puerto de la MÚSICA DE FONDO del chico para el SceneDirector.
  *
  * En el POC, `sceneDirector.ts` importa estas 5 funciones de `lib/backgroundAudio` (el singleton
  * del MiniPlayer). En Smarty ese singleton es `src/shared/audio/bgAudio.ts`, que hoy NO expone

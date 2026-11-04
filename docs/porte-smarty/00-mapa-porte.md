@@ -1,8 +1,8 @@
-# Porte Smarty→Innerith · 00: Mapa consolidado y plan de tandas
+# Porte Smarty→Smarty · 00: Mapa consolidado y plan de tandas
 
 > 12-oct-2026. Fuente canónica: `smarty-poc` rama **develop** @ `47f434b` (la carpeta adjunta a la sesión).
 > Mandato de Esteban: **funcionalidad EXACTA, sin recortes; la estética no se copia**. route-lab ya se
-> copió **tal cual** a `innerith-ui/route-lab/` ("copiar pegar y listo; después lo integrás, sin
+> copió **tal cual** a `smarty-ui/route-lab/` ("copiar pegar y listo; después lo integrás, sin
 > reinterpretar"). Detalle por subsistema: informes [01](01-route-lab-crear.md) (route-lab + /crear),
 > [02](02-learn-active-recall.md) (Learn + Active Recall), [03](03-mytube-afterday-arquitectura.md)
 > (MyTube, After Day, arquitectura). Este doc es el mapa que los une y el plan.
@@ -44,12 +44,12 @@
 
 1. **Exactitud funcional** (mandato): mismas reglas, mismos umbrales, mismos textos de error, mismos
    contratos de datos. Todo desvío se anota en el informe de la tanda y en este doc.
-2. **Arquitectura Innerith** (AGENTS 1-2): la UI es cáscara → lo que en el POC vive en Dexie/browser
+2. **Arquitectura Smarty** (AGENTS 1-2): la UI es cáscara → lo que en el POC vive en Dexie/browser
    pasa a NUESTRO server (RAM o persistido según regla 9) manteniendo formas; route-lab queda como
    servicio hermano COPIADO TAL CUAL (decisión Esteban 12-oct) y el server Node lo proxya/orquesta
    en la integración (sin reinterpretar su código).
 3. **Keys server-side**: lo que el POC llama desde el navegador con la key de Ajustes (auditoría de
-   facts, descripciones de canal) en Innerith va por nuestro server.
+   facts, descripciones de canal) en Smarty va por nuestro server.
 4. **Dónde vive cada dato (regla 9):** rutas importadas + definiciones = CATÁLOGO (persisten);
    resultados (`activityResults`) = sesión del demo (RAM + reset por carga), salvo decisión en
    contrario de Esteban (ver §4.4).
@@ -76,12 +76,12 @@ W5/W6/W7 son independientes entre sí y de la línea Learn.
 1. **/crear vive en la ZONA DEL CHICO**, como en el POC (punto de menú propio).
 2. **Los 5 cursos actuales se convierten a rutas** (bundles seed): un solo modelo mental.
 3. **Active Recall se copia EXACTO** ("tiene toda su lógica: toma de todas las rutas y genera un
-   repaso con mezcla de todo; examinarlo extremadamente bien"). **El Repasar actual de Innerith
+   repaso con mezcla de todo; examinarlo extremadamente bien"). **El Repasar actual de Smarty
    VUELA** (menú, sección y server propio se retiran cuando aterrice W4). Nota de fidelidad: en el
    código del POC la raíz del AR es sin fin y por urgencia, no hay gating "diario" — se porta lo
    que el código hace.
 4. **Progreso (`activityResults`): mismo método que el POC.** El POC lo PERSISTE (IndexedDB del
-   navegador; sobrevive a recargas; en el respaldo va como ámbito "sesión"). En Innerith → persiste
+   navegador; sobrevive a recargas; en el respaldo va como ámbito "sesión"). En Smarty → persiste
    del lado del server (archivo append-only, patrón space.json), FUERA del reset del demo.
    [Informado a Esteban: el método del POC es persistencia local, no RAM.]
 5. **Los quirks documentados del POC se portan EXACTO por ahora** (rendirse=lograda, % ponderado
@@ -89,10 +89,10 @@ W5/W6/W7 son independientes entre sí y de la línea Learn.
    tanda como "fiel al POC".
 6. **MyTube exacto como está en el POC** (mirando el POC en profundidad): followed-only, sin
    buscador propio, ChannelView con playlists del canal, ingesta y mantenimiento del padre. Lo que
-   Innerith tenía de más en Videos (grilla "Para descubrir", buscador, suscriptores) se retira al
+   Smarty tenía de más en Videos (grilla "Para descubrir", buscador, suscriptores) se retira al
    aterrizar W5.
 
-**Desvíos forzados (no negociables de Innerith, documentados):** (a) las claves JAMÁS van al
+**Desvíos forzados (no negociables de Smarty, documentados):** (a) las claves JAMÁS van al
 cliente → la auditoría de facts (que el POC corre en el navegador con la key de Ajustes) se porta
 con la MISMA lógica pero ejecutada en nuestro server; (b) los datos que el POC guarda en
 IndexedDB se guardan en nuestro server manteniendo formas y semántica de persistencia.
@@ -102,7 +102,7 @@ IndexedDB se guardan en nuestro server manteniendo formas y semántica de persis
 1. **¿Dónde vive /crear?** En el POC está en el menú del chico ("pensado para el adulto", URL sin
    guardia). Propuesta: en la Zona de padres v1, y más adelante habilitable al chico por permiso
    (audio 13: "o el mismo chico, si ya es grande, según los permisos que le da el padre").
-2. **Los 5 cursos actuales de Innerith** (Aprender/Practicar hoy): ¿se convierten a formato ruta
+2. **Los 5 cursos actuales de Smarty** (Aprender/Practicar hoy): ¿se convierten a formato ruta
    (bundles seed generados una vez con route-lab) o conviven hasta que Learn madure? Propuesta:
    convertirlos (un solo modelo mental, el demo no pierde contenido).
 3. **Nuestro Repasar vs el Active Recall del POC.** El informe 02 §13 lo marca: nuestro Repasar
@@ -122,7 +122,7 @@ IndexedDB se guardan en nuestro server manteniendo formas y semántica de persis
 
 ## 5. Estado operativo (12-oct)
 
-- route-lab **copiado tal cual** a `innerith-ui/route-lab/` (fuente completa + jobs + fixtures;
+- route-lab **copiado tal cual** a `smarty-ui/route-lab/` (fuente completa + jobs + fixtures;
   excluidos solo `.venv`, `__pycache__` y `.env`); `.gitignore` actualizado; `.env.example`
   restaurado con la plantilla de HEAD; venv propio creado e instalado; `.env` local con la key
   (nunca impresa). El :5203 hoy lo sirve una instancia de Esteban (python PID externo, modo `real`);
@@ -130,14 +130,14 @@ IndexedDB se guardan en nuestro server manteniendo formas y semántica de persis
   (OJO: `uvicorn.exe` directo lo bloquea el Control de aplicaciones de Windows en esta máquina).
 - La app del POC corre en :5173; su wizard quedó en el paso 2 (clave de OpenAI: la carga Esteban, o
   importa su respaldo en el paso 1 para traer la config real).
-- Innerith web en :5188 (preview) + API :8787.
+- Smarty web en :5188 (preview) + API :8787.
 - **W2 (motor de actividades) — HECHA 12-oct, sin commitear.** Árbol nuevo `src/learn/` espejo de
   `app/src/learn/` del POC @ `47f434b`: núcleo `activity/*`, los 5 tipos `activities/*` (engines,
   módulos, configs, generadores, porteros), `kits/dragdrop/*`, `react/useActivity.ts`, los 5 Boards,
   `registry.ts`, `definitions.ts` (12 seeds + hook de importadas), `recallActivity.ts` (solo el ARMADOR
   `buildRecallActivity`), `visual/*` y `audio/*` (+ `engine/*`). Fidelidad: de los 72 archivos portados,
-  61 son idénticos al POC salvo especificadores de import (`.ts` fuera: Innerith no permite importar
-  con extensión); los otros 11: clases Tailwind→`lrn-` y lucide→íconos de Innerith (5 Boards +
+  61 son idénticos al POC salvo especificadores de import (`.ts` fuera: Smarty no permite importar
+  con extensión); los otros 11: clases Tailwind→`lrn-` y lucide→íconos de Smarty (5 Boards +
   VisualStage), paths (gameManifest, sceneDirector, ytScenePlayer) y dos cortes de ALCANCE
   (definitions, recallActivity). Desvíos/seams documentados en cada archivo: `hydrateImportedDefinitions` (Dexie)
   NO se porta → la hidratación desde `api` la cablea W3 con `registerImportedDefinitions(filas.map(r=>r.def))`;
@@ -159,7 +159,7 @@ IndexedDB se guardan en nuestro server manteniendo formas y semántica de persis
   (+ `create.css`, prefijo `cr-`): port exacto de `RouteCreator.tsx` con `routeDraft.ts`, `parseYtUrl` y
   `cropToCover`/`mqThumb` portados a `sections/create/lib/`; route-lab se llama DIRECTO desde el navegador
   (`/module`, `/emit`; URL editable en la vista, recordada en `innerith.routeLabUrl` al Generar); los
-  `confirm()` del POC son una hoja de Innerith (`ConfirmSheet`) con el MISMO texto. Server:
+  `confirm()` del POC son una hoja de Smarty (`ConfirmSheet`) con el MISMO texto. Server:
   `learnRoutes.ts` = el catálogo (filas Dexie `learnRoutes`/`learnDefinitions` con sus formas) en
   `server/data/learn-routes.json` (atómico, fuera del reset), validación del importador del POC con sus
   mensajes + reemplazo transaccional por `routeId`; `create.ts` = `factAudit` del POC en el server
@@ -188,7 +188,7 @@ IndexedDB se guardan en nuestro server manteniendo formas y semántica de persis
   "N/M postas" y el botón raíz "Active recall · N temas" (espera la hidratación: trampa 16 resuelta, aprobado). **Camino**:
   zig-zag por índice global, los 6 pares de color EXACTOS por módulo con banda sticky y guidebook, nodos círculo/cuadrado,
   estados de `resolveRoute` tal cual, repaso en ruta (K = min(5, n), urgencia en el gesto). **Overlay** (portal a pantalla
-  completa): lectura con el LECTOR REAL de Innerith (mismo `api.article` + `WikiArticle`; ReadingView propio de la
+  completa): lectura con el LECTOR REAL de Smarty (mismo `api.article` + `WikiArticle`; ReadingView propio de la
   sección porque ArticlePage está atada a su ruta) o video propio (nocookie + sandbox) → "Empezar preguntas →" → lobby,
   cuenta 3-2-1 (700/450 ms), Runner y resultado, `makeSeed` exacto, persistencia primero (hijo → su target, outer → posta,
   recall sin outer, multi con rollup). **Datos**: `lib/learnData.ts` = el liveQuery del POC sobre el server (filas +
@@ -234,7 +234,7 @@ IndexedDB se guardan en nuestro server manteniendo formas y semántica de persis
   del padre se re-cura en la próxima ingesta; `Number(cap) || 0`. **Desvíos** (además de a/b): el catálogo base es de solo
   lectura (reingestar/completar solo refrescan filas de la familia); canal del catálogo base sin entidad → título del
   catálogo; editar la descripción de un canal sin entidad la crea; textos que nombraban la pantalla del POC: «(Ajustes)»
-  → «(falta en el servidor)», «Agregar a lista» → «＋ Lista» (el botón del reproductor de Innerith), y el vacío de
+  → «(falta en el servidor)», «Agregar a lista» → «＋ Lista» (el botón del reproductor de Smarty), y el vacío de
   entradas aclara que existe el catálogo base. **Retirado** (cero zonas muertas): `space/containers/{VideosPage,
   ChannelPage,PlaylistPage}`, `space/cards/{ChannelCard,PlaylistCard,VideoTile}`, `space/components/{ChannelsPane,
   PlaylistsPane}` y sus bloques de `space.css`. **Pendiente (coordinador):** (1) enchufar `familyCatalog` en `videos.ts`
@@ -269,7 +269,7 @@ IndexedDB se guardan en nuestro server manteniendo formas y semántica de persis
   sección se va del menú y la vista pasa a "cerrado"); el `v=` de cualquier dominio pasa como videoId; sin nombre = "Audio" en
   la tarjeta y "Música" en el MiniPlayer; tocar la tarjeta que ya suena no la reinicia (y si estaba en pausa la marca "sonando"
   sin mandar play: `playQueue` con el mismo id no re-monta el iframe, igual que el POC); el editor normaliza por día; "se abre
-  a las…" solo mira hoy; un horario inválido deja la sección ABIERTA. `bgAudioEnabled` no existe en Innerith (nada que portar).
+  a las…" solo mira hoy; un horario inválido deja la sección ABIERTA. `bgAudioEnabled` no existe en Smarty (nada que portar).
   **Desvíos** (además de a/b): (1) el server es la verdad Y el candado (403) — el POC solo escondía la vista en localStorage;
   (2) título por noembed cuando el padre no pone nombre (decisión del contrato; el POC no buscaba título); (3) mapa del
   enforcement afinado respecto del brief para no cerrar lo que el POC no cerraba (overlays del shell): `/api/article` (lector:

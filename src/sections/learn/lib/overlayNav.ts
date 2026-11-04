@@ -17,7 +17,7 @@ import { useEffect, useRef, useState } from 'react';
    "atrás" del navegador) y se registra acá. `close()` (botón Volver / cierre programático)
    hace `history.back()`, que dispara el popstate y saca el tope. */
 
-/* PORTE INNERITH (W3): port de smarty-poc app/src/lib/overlayNav.ts (useOverlay) para los overlays de Learn
+/* PORTE SMARTY (W3): port de smarty-poc app/src/lib/overlayNav.ts (useOverlay) para los overlays de Learn
    (ActivityOverlay, ReadingView, VideoReadingView): misma pila, mismo "Atrás" (cierra el de ARRIBA de la pila).
    Ojo, comportamiento REAL del POC (verificado en E2E; el informe 02, trampa 31, lo infirió distinto): cuando una posta
    abre directo en su fase de contenido, el ActivityOverlay devuelve el lector/video como hijo y React corre los efectos
@@ -71,7 +71,7 @@ export function useOverlay(onClose: () => void): { close: () => void; z: number 
     if (!pushed.current) {
       pushed.current = true;
       const st = history.state && typeof history.state === 'object' ? (history.state as Record<string, unknown>) : {};
-      history.pushState({ ...st, innerithOverlay: true }, '');
+      history.pushState({ ...st, smartyOverlay: true }, '');
     }
     stack.push(entry);
     return () => {

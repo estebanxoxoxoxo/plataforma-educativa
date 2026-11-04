@@ -12,7 +12,7 @@ import {
   type MultipleChoiceConfig,
 } from '../index'
 
-/* PORTE INNERITH (W2) — suite NUEVA: el POC no tiene tests de opción múltiple. Fija el
+/* PORTE SMARTY (W2) — suite NUEVA: el POC no tiene tests de opción múltiple. Fija el
    comportamiento EXACTO del motor portado (informe 02 §6): envío diferido, crédito parcial
    (single binario; multi clamp((aciertos−errores)/correctas); sin correctas → 1 solo si no marcó
    nada), puntaje PLANO round(fracción·10), fracción>0 emite move:correct, atajos Todas/Ninguna

@@ -11,7 +11,7 @@
  * Realidad: el audio del iframe es cross-origin → NO pasa por el motor; se controla por setVolume (0-100,
  * escalonado). Autoplay-con-sonido puede bloquearse en iOS/Safari sin un tap directo (a probar en iPad).
  *
- * PORTE INNERITH (W2): archivo FIEL al POC pero SIN MONTAR (lo usará el SceneDirector cuando W3 lo
+ * PORTE SMARTY (W2): archivo FIEL al POC pero SIN MONTAR (lo usará el SceneDirector cuando W3 lo
  * integre). Único cambio: el puente con YouTube es el port que Smarty ya tiene del mismo
  * `lib/ytBridge.ts` del POC (`src/shared/lib/ytBridge.ts`, mismas firmas).
  */

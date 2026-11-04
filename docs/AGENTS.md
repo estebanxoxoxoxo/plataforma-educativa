@@ -1,4 +1,4 @@
-# Briefing para agentes que implementan en Innerith
+# Briefing para agentes que implementan en Smarty
 
 Leé esto ENTERO antes de tocar código. Después: `README.md` (arquitectura y swap-points) y
 `docs/VISION.md` (qué es el producto y qué existe dónde). No arranques sin leer los tres.
@@ -139,8 +139,8 @@ Si tu tanda es del PORTE de la POC de Smarty: lectura OBLIGATORIA de `docs/porte
 (`C:\Users\esteb\Desktop\snapshot-personal-2026-10-03\snapshot-personal-2026-10-03\smarty-poc`, rama
 develop ya servida — SOLO LECTURA ahí). Regla suprema: **funcionalidad EXACTA, sin recortes ni mejoras
 creativas; los quirks documentados se portan tal cual (decisión 12-oct)**. La estética NO se copia: se
-usa el sistema visual de Innerith. Desvíos permitidos SOLO los dos forzados del §4 del mapa (claves al
-server, IndexedDB→server) y cualquier otro se frena y se reporta. `innerith-ui/route-lab/` es copia
+usa el sistema visual de Smarty. Desvíos permitidos SOLO los dos forzados del §4 del mapa (claves al
+server, IndexedDB→server) y cualquier otro se frena y se reporta. `smarty-ui/route-lab/` es copia
 literal del POC: NO se edita salvo pedido explícito.
 
 ## Seguridad (crítico)

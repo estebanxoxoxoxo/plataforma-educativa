@@ -2,7 +2,7 @@ import { CORE_TYPES, type AnyHandle, type DefinitionRecipe, type ResolveChild } 
 import type { MultiChild } from './activities/multi'
 import { SISTEMA_SOLAR } from './activities/flashcards'
 
-/* PORTE INNERITH (tanda "Deudas técnicas", 14-oct): en el POC este archivo importa TYPES de './registry'; acá importa el
+/* PORTE SMARTY (tanda "Deudas técnicas", 14-oct): en el POC este archivo importa TYPES de './registry'; acá importa el
    NÚCLEO del registry (registryCore.ts: el mismo build por Tipo, sin los Boards) para que el SERVER pueda cargarlo y hacer
    el acuñado seco del import de rutas con ESTE mismo código (src/learn/dryMint.ts). Nada más cambia. */
 
@@ -59,7 +59,7 @@ export function registerImportedDefinitions(defs: DefinitionRecipe[]): void {
 export function clearImportedDefinition(id: string): void {
   delete imported[id]
 }
-/* PORTE INNERITH (W2): en el POC acá vive `hydrateImportedDefinitions()`, que lee
+/* PORTE SMARTY (W2): en el POC acá vive `hydrateImportedDefinitions()`, que lee
    `db.learnDefinitions.toArray()` (Dexie) y llama
    `registerImportedDefinitions(rows.map((r) => r.def as DefinitionRecipe))` UNA vez al arrancar.
    En Smarty las definiciones importadas viven en NUESTRO server (desvío forzado (b) del mapa

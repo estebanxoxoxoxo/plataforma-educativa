@@ -3,7 +3,7 @@ import type { ActivityResultRow } from '../../api/types'
 import { SPACING_WINDOW_MS, dueTargets, skillMastery, targetMastery, targetUrgency } from '../recall'
 import { recallableTargets } from '../recallActivity'
 
-/* PORTE INNERITH (W4) — suite NUEVA del Active Recall (el POC no tiene tests de lib/recall). Fija la urgencia EXACTA del
+/* PORTE SMARTY (W4) — suite NUEVA del Active Recall (el POC no tiene tests de lib/recall). Fija la urgencia EXACTA del
    informe 02 §7.3 (0.6·clamp01(1−lastPct) + 0.4·clamp01(Δt/3 días)), el orden finishedAt asc de la maestría, dueTargets
    SIN umbral ni límite (orden desc) y recallableTargets (scope + solo targets con Definición hoja). Quirk 10: lo dominado
    igual entra (al final). */

@@ -6,7 +6,7 @@ import type { ActivityResultRow } from '../api/types'
    olvido). Funciones PURAS con `now` inyectado (testeables). La fórmula es afinable;
    acá se fija la estructura. El paso 3b/3c consumen `dueTargets`. */
 
-/* PORTE INNERITH (W4, decisión 3 de Esteban: "Active Recall se copia EXACTO"): port 1:1 de smarty-poc
+/* PORTE SMARTY (W4, decisión 3 de Esteban: "Active Recall se copia EXACTO"): port 1:1 de smarty-poc
    app/src/lib/recall.ts @ 47f434b. Únicos cambios: las filas vienen de NUESTRO server (`ActivityResultRow` de
    src/api/types.ts, misma forma que la fila de Dexie) y NO se porta el hook `useDueTargets` (era un
    useLiveQuery de Dexie sin ningún consumidor en el POC; en Smarty las filas las trae la sección Learn).

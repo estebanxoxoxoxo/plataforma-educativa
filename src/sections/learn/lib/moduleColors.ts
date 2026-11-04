@@ -1,7 +1,7 @@
 /* Color por módulo (estilo Duolingo: cada módulo tiñe su banda Y sus nodos). Cicla por posición.
    band = banda del header (tinte suave), ink = texto, soft = halo del nodo disponible,
    strong = nodo logrado/recall. Los bloqueados quedan grises (señal universal). */
-/* PORTE INNERITH (W3): los 6 pares EXACTOS de smarty-poc app/src/zones/child/RutaView.tsx. */
+/* PORTE SMARTY (W3): los 6 pares EXACTOS de smarty-poc app/src/zones/child/RutaView.tsx. */
 export type ModuleColor = { band: string; ink: string; soft: string; strong: string };
 export const MODULE_COLORS: ModuleColor[] = [
   { band: '#e6f1fb', ink: '#0c447c', soft: '#b5d4f4', strong: '#378add' }, // azul

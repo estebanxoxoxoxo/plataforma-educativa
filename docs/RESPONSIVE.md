@@ -1,6 +1,6 @@
-# Innerith en teléfono y tablet — auditoría y propuesta
+# Smarty en teléfono y tablet — auditoría y propuesta
 
-> Deuda: **"Innerith no tiene diseño de teléfono"**. Spec del auditor, 28-oct-2026. NO se tocó el repo ni se commiteó nada.
+> Deuda: **"Smarty no tiene diseño de teléfono"**. Spec del auditor, 28-oct-2026. NO se tocó el repo ni se commiteó nada.
 > Todo lo que sigue se midió en el dev vivo (`localhost:5173`) con Chrome headless. Las capturas viven en
 > `shots/` y las métricas en `metrics/`, al lado de este archivo
 > (`/private/tmp/claude-501/-Users-esteban-andres-altamura-kit-digital-Desktop-plataforma-educativa/7a572f1b-a01c-423c-9e13-1bc82caa4a0e/scratchpad/responsive-spec/`).
@@ -374,7 +374,7 @@ Total: **55 de 61 PASS**. Fallas reales: 3 (reproductor, Premios, dock). Las otr
 - **Orden y contenido del menú** (regla 8): la barra inferior es un subconjunto en el mismo orden relativo y el cajón es el menú completo.
 - **Escritorio ≥ 1024 px**: ni un píxel. Todo lo nuevo vive dentro de container queries < 1024.
 - **Estética**: colores, tipografías, la píldora con borde por sección y la TopBar GT7.
-- **Learn por dentro**: overlays, motor (`src/learn/**`) y `innerith-ui/route-lab/` (copia literal del POC: no se edita). Solo `100vh`→`100dvh` en `.ln-vid-frame`.
+- **Learn por dentro**: overlays, motor (`src/learn/**`) y `smarty-ui/route-lab/` (copia literal del POC: no se edita). Solo `100vh`→`100dvh` en `.ln-vid-frame`.
 - **Sin framework ni dependencias nuevas**: nada de Tailwind ni de librerías de UI o de media queries en JS. CSS propio con
   los prefijos de cada sección (regla 5) y un componente nuevo (`BottomNav.tsx`).
 
@@ -412,7 +412,7 @@ Reporte honesto de lo que no cerró.
 ### 4.1 T0 — Shell: modos, rail, cajón, barra inferior, TopBar compacta
 
 **Brief (autocontenido):**
-> Sos el agente de la tanda T0 de la deuda "Innerith no tiene diseño de teléfono" (repo `plataforma-educativa`). Leé
+> Sos el agente de la tanda T0 de la deuda "Smarty no tiene diseño de teléfono" (repo `plataforma-educativa`). Leé
 > ENTEROS `docs/AGENTS.md` (regla 5, regla 8, verificación) y `RESPONSIVE.md` §1.1, §2 y §3 (ruta al principio de §4).
 > **Objetivo**: que el shell tenga tres modos (escritorio ≥1024 sin cambios, tablet 640–1023 con rail de 80 px, teléfono
 > <640 con barra inferior + cajón) decididos con `@container app`.
@@ -495,7 +495,7 @@ Reporte honesto de lo que no cerró.
 ### 4.4 T3 — MyTube (+canal), Aprender (camino), Crear y After Day
 
 **Brief:**
-> Sos el agente de la tanda T3. Leé `docs/AGENTS.md` (reglas 5 y "Porte Smarty": `innerith-ui/route-lab/` NO se edita) y
+> Sos el agente de la tanda T3. Leé `docs/AGENTS.md` (reglas 5 y "Porte Smarty": `smarty-ui/route-lab/` NO se edita) y
 > `RESPONSIVE.md` §1.2 (filas MyTube, canal, Aprender, camino, overlay, Crear, After Day), §2.4 y §2.6.
 > **Archivos tuyos**: `src/sections/mytube/mytube.css`, `src/sections/learn/learn.css`, `src/sections/create/create.css`,
 > `src/sections/afterday/afterday.css`.
@@ -686,7 +686,7 @@ En (B), `check.mjs` se corre con `--tablet-side 240`.
 
 ## 7. Resumen para Esteban
 
-1. Hoy Innerith en un celular no se puede usar: el menú ocupa 240 de los 375 píxeles y cada pantalla queda en una tira de 55 px, con una o dos palabras por renglón.
+1. Hoy Smarty en un celular no se puede usar: el menú ocupa 240 de los 375 píxeles y cada pantalla queda en una tira de 55 px, con una o dos palabras por renglón.
 2. Peor todavía: en el celu no se llega al cambio de usuario ni a la campana (quedan cortados) y la ventanita del chat con amigos se abre fuera de la pantalla.
 3. En tablet (768) ya anda bien, salvo tres detalles: la tabla de Premios de Familia, la fila de botones del video y que el menú se come un tercio de la pantalla.
 4. Lo que ya está bien en el celu: los ejercicios de Aprender, el visor de After Day y las ventanas emergentes ocupan toda la pantalla.

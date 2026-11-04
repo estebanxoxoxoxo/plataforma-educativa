@@ -9,7 +9,7 @@ import './learn-engine.css'
    Indicador redondo = una sola respuesta; cuadrado = varias. Respeta prefers-reduced-motion
    (motion-reduce: el giro es instantáneo). Los efectos (confeti/chime/shake) los dispara el
    audio/visual-bridge desde los mismos eventos move:correct/wrong del motor.
-   PORTE INNERITH (W2): mismo DOM/textos/handlers que el POC; Tailwind → clases lrn-
+   PORTE SMARTY (W2): mismo DOM/textos/handlers que el POC; Tailwind → clases lrn-
    (learn-engine.css) y lucide → íconos de Smarty. Estética fina: W3. */
 
 type Verdict = 'hit' | 'wrongPick' | 'missed' | 'skip'

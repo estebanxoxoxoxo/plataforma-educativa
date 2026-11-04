@@ -453,13 +453,13 @@ modelo por carga, el epoch y los REGALOS que vos hiciste (la prenda que el NPC t
 cada uno (`friendsFake.ts`, `GRAPH_SEEDS`). Ser "del pool" de Buscar → Personas ya no es un atributo del NPC: es no ser amigo,
 ni solicitud, ni saliente EN TU grafo. Una respuesta en vuelo guarda al arrancar su grafo, su epoch y su chico. El ADULTO no
 tiene amigos chicos (D4): su grafo nace vacío, `GET /api/friends/search` le responde `people: []` y `POST
-/api/friends/requests/send` → `200 {ok:false, relation:'none', error:'Los chicos de Innerith se conectan entre chicos. Como
+/api/friends/requests/send` → `200 {ok:false, relation:'none', error:'Los chicos de Smarty se conectan entre chicos. Como
 adulto, acompañás a los tuyos desde Familia.'}`. Ian y Luna NO se hacen amigos ni se escriben (mensajería entre usuarios
 reales = otra superficie de moderación).
 
 **Los NPCs nombran a quien juega.** Plantillas con `{kid}` ("¡Gracias, {kid}!", "¡Hola, {kid}!", el "¡gracias!" por un
 regalo, los saludos al aceptar) y prompts con el nombre y la edad del activo (persona: "…con Luna (12 años), que es de tus
-amigos en Innerith"; juez de mensajes: "ÚLTIMO MENSAJE DE LUNA PARA …"; transcripción). `UserInfo` no tiene género: todo
+amigos en Smarty"; juez de mensajes: "ÚLTIMO MENSAJE DE LUNA PARA …"; transcripción). `UserInfo` no tiene género: todo
 texto que lo nombra es NEUTRO ("si se siente mal o tiene una preocupación…"). Lo que el NPC "sabe que viste de él" son sus
 noticias que TU familia te deja ver (temas negros, palabras y, con Ligas apagadas, sin las de ligas). La frase plantillada
 "Te espero en Practicar" (Practicar no existe desde W3) pasó a "Te espero en Aprender".
@@ -698,7 +698,7 @@ una pestaña nueva "Ciclo del día"; y, para la demo, un selector en la barra de
   "Canales (N)" con «Buscar un canal» (título o @handle, sin tildes) y la MISMA tarjeta del chico (`sections/mytube/cards/
   ChannelCard.tsx`, que suma el prop opcional `counting` → "… videos"; el MyTube del chico no lo pasa) en dos grupos: «Sumados
   por tu familia» (canales con alguna entrada, del más reciente; con un ⋮ que abre `components/MtEntriesSheet.tsx`: las entradas
-  de ese canal con Reingestar y Eliminar → `ConfirmSheet` con el texto de la cascada) y «Del catálogo de Innerith» (en el orden
+  de ese canal con Reingestar y Eliminar → `ConfirmSheet` con el texto de la cascada) y «Del catálogo de Smarty» (en el orden
   del server, como el chico). Las entradas sin canal conocido van como tarjeta suelta en el primer grupo. "N videos": el admin
   no trae conteos (contrato congelado) y `GET /api/mytube/channel` dispara el enriquecimiento con YouTube + IA, así que sale del
   `total` de `GET /api/mytube/channel/videos?limit=1` (= el "Videos (N)" que ve el chico adentro del canal; puede diferir en
@@ -1172,7 +1172,7 @@ del chip, "Desde el…", "×N", la nota de los candados, el evento; con `__tests
   cierran, Tab queda adentro y el foco vuelve a QUIEN la abrió (el chip o el botón de la noticia del Feed). Grilla "como un
   diploma": disco dorado con cinta (CSS, sin assets), título, texto, "Desde el 23 de octubre" (solo si el hecho trae fecha),
   "×3" (solo `times ≥ 2`) y la etiqueta "Nueva"; en el orden en que llega del server; encabezado "Tus medallas" + "Las que
-  fuiste ganando en Innerith.". Al abrir: `GET /api/medals` (la pila con sus `fresh`: las "Nueva" se ven en ESTA apertura) y
+  fuiste ganando en Smarty.". Al abrir: `GET /api/medals` (la pila con sus `fresh`: las "Nueva" se ven en ESTA apertura) y
   después `POST /api/medals/seen` (el puntito del chip se va con la hoja abierta; en la próxima apertura, sin "Nueva").
 - **Feed** (`src/sections/home/`): `cards/FeedMedalCard.tsx` (pura, estilo C de noticia con `MyAvatar` y el emoji en un disco
   dorado: "Tu medalla · recién", "Ganaste la medalla «Superaste tu semana»", el texto de la medalla, "Ver tus medallas" y el
@@ -1324,7 +1324,7 @@ Me gusta / No me gusta.
 | Circulito de Aprender | 1 con su liga (con Ligas) | Nunca: la liga del contextual es del chico |
 | Contextual de la Tienda | Billetera + premio de la familia | Billetera (su Tienda es solo la ropa) |
 | Contextual de Aprender | Active recall + su liga completa | Active recall (si tiene qué repasar) |
-| Home de Buscar | «Buscar a otros chicos de Innerith» (con Amigos) | «Ver los mentores» |
+| Home de Buscar | «Buscar a otros chicos de Smarty» (con Amigos) | «Ver los mentores» |
 | Configuración → Sonido | «El volumen máximo lo pone tu familia…» | Link a Familia → Límites (sin topes) |
 | Configuración → Ciclo (demo) | Su ciclo, si tiene rangos | El del primer integrante (o el del `?m=`), si tiene rangos |
 

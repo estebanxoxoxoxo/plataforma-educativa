@@ -1,4 +1,4 @@
-// PORTE INNERITH (W2): los Boards del POC usan lucide-react (Check, X, Minus, Lightbulb), que Smarty
+// PORTE SMARTY (W2): los Boards del POC usan lucide-react (Check, X, Minus, Lightbulb), que Smarty
 // no tiene. Check y X salen del set de Smarty (shared/components/icons); Minus y Lightbulb no existen
 // ahí → se definen acá con la MISMA convención (viewBox 24, trazo currentColor) para que los Boards
 // rindan ya. La estética fina la ajusta W3.

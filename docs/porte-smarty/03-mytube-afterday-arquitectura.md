@@ -1,4 +1,4 @@
-# Porte Smarty→Innerith · Informe 3: MyTube, After Day y arquitectura de la app
+# Porte Smarty→Smarty · Informe 3: MyTube, After Day y arquitectura de la app
 
 > Análisis de ingeniería inversa sobre `smarty-poc` rama **develop**, HEAD `47f434b` (12-oct-2026).
 > Producido por el analista de la fase de investigación (pedido de Esteban: funcionalidad EXACTA,
@@ -92,9 +92,9 @@ El padre los carga en Admin → Listas → YouTube (`pages.tsx` + `youtube.ts`).
 
 **No tiene:** feed propio, "continuar viendo", historial, buscador interno, recomendaciones fuera de Relacionados, ni suscriptores/likes.
 
-**Comparación con innerith-ui (lectura rápida, no exhaustiva):**
+**Comparación con smarty-ui (lectura rápida, no exhaustiva):**
 
-| Aspecto | Innerith hoy | Smarty POC |
+| Aspecto | Smarty hoy | Smarty POC |
 |---|---|---|
 | Lista de canales | Todos los canales, "Para descubrir" y buscador | Solo los seguidos, sin buscador |
 | Página de canal | Videos aprobados y suscriptores | + descripción curada, handle y solapa Playlists; sin suscriptores |
@@ -286,7 +286,7 @@ Tools de música y ruido con tarjetas · `search_archivo` · historial con archi
 - Key de YouTube: ingerir playlists y canales (un video sin key queda sin canal y NO aparece en MyTube).
 - OpenAI: descripción de canales. After Day: ninguna key. Commons estricto: NudeNet corriendo.
 
-**Qué pediría un backend real en Innerith**
+**Qué pediría un backend real en Smarty**
 - Catálogo por familia: ingesta/reingesta/completar server-side con la key de YouTube como secreto; relación muchos-a-muchos permisos↔videos; descripción curada en el server, editable; playlists de canal con su orden.
 - Por niño: `child_follows`, listas ordenadas y, si se quiere, historial/progreso.
 - Búsqueda y relacionados en el server.
@@ -297,4 +297,4 @@ Tools de música y ruido con tarjetas · `search_archivo` · historial con archi
 ---
 
 ## 7. No verificado por este informe
-Funcionalidad del reproductor de Innerith · código interno de route-lab y voice-server · detalle interno de Learn y el creador de rutas · comportamiento en iPad.
+Funcionalidad del reproductor de Smarty · código interno de route-lab y voice-server · detalle interno de Learn y el creador de rutas · comportamiento en iPad.

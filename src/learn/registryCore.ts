@@ -6,7 +6,7 @@ import { flashcardsModule, staticFlashcardsGenerator, makeFlashcardsRuntime, typ
 import { multipleChoiceModule, staticMultipleChoiceGenerator, makeMultipleChoiceRuntime, type MultipleChoiceContent, type StaticMultipleChoiceParams } from './activities/multiplechoice'
 
 /* NÚCLEO del REGISTRY de Tipos (smarty-poc app/src/learn/registry.ts) SIN los tableros: typeId → { module, build }.
-   PORTE INNERITH (deuda de W1, tanda "Deudas técnicas" 14-oct): el registry del POC ata en UN objeto mecánica (module),
+   PORTE SMARTY (deuda de W1, tanda "Deudas técnicas" 14-oct): el registry del POC ata en UN objeto mecánica (module),
    vista (Board) y acuñado (build). Los Boards son .tsx con CSS, así que el SERVER no podía cargarlo y el import de rutas
    no hacía el ACUÑADO SECO completo (generador + portero). Se partió en dos sin cambiar una línea de lógica:
      · ESTE archivo = todo lo que no es vista: el DefinitionRecipe, los generadores registrados por Tipo, el portero

@@ -4,7 +4,7 @@ import './learn-engine.css'
 
 /* Vista app-native (Tailwind) del quiz, sobre el motor portado. Elegí la respuesta;
    si fallás, esa opción se descarta y seguís en la misma pregunta. Sin CSS del lab.
-   PORTE INNERITH (W2): mismo DOM/textos/handlers que el POC; Tailwind → clases lrn-
+   PORTE SMARTY (W2): mismo DOM/textos/handlers que el POC; Tailwind → clases lrn-
    (learn-engine.css). Estética fina: W3. */
 export default function QuizBoard({ engine }: { engine: QuizEngine }) {
   const snap = useActivitySnapshot(engine)

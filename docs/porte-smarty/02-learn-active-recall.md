@@ -1,4 +1,4 @@
-# Porte Smarty→Innerith · Informe 2: Learn y Active Recall
+# Porte Smarty→Smarty · Informe 2: Learn y Active Recall
 
 > Análisis de ingeniería inversa sobre `smarty-poc` rama **develop**, HEAD `47f434b` (12-oct-2026).
 > Pedido de Esteban: funcionalidad EXACTA, sin recortes. Informes hermanos: 01 route-lab+Crear,
@@ -199,7 +199,7 @@ Respeta `prefers-reduced-motion`. Los moods solo tocan el canal `bed`, que **nun
 ## 13. Delta conceptual con "Aprender + Practicar separados"
 **Piezas del POC que no existen en el modelo separado:** el Módulo (contenido → comprobación → profundización → repaso) · bloqueo por comprensión (`passThreshold`: de "lo vi" a "lo demostré") · contenido DENTRO del overlay (una sesión) · guidebook · **store único por target** (posta = proyección; cualquier lanzador mueve la misma maestría) · recall como nodo del camino + raíz sin fin con el mismo motor · Definición como dato con portero/acuñado de prueba/seed · inventario+curaduría+auditoría de facts como metadata editorial · música por fase.
 **Se gana:** coherencia en un camino; una sola verdad del progreso; desbloqueo con evidencia; repaso contextual.
-**Se pierde o queda más pobre:** sin biblioteca/banco navegable fuera de rutas; sin práctica libre por tema/tipo; el repaso es por target o mazo, **sin SRS por ítem ni fechas** (si el Repasar de Innerith es por ítem, copiar 1:1 es un retroceso en esa dimensión: decisión a tomar); no se mide consumo de contenido; el padre no ve nada.
+**Se pierde o queda más pobre:** sin biblioteca/banco navegable fuera de rutas; sin práctica libre por tema/tipo; el repaso es por target o mazo, **sin SRS por ítem ni fechas** (si el Repasar de Smarty es por ítem, copiar 1:1 es un retroceso en esa dimensión: decisión a tomar); no se mide consumo de contenido; el padre no ve nada.
 **Mapeo posible (interpretación del analista):** Aprender → posta contenido+comprensión · Practicar → profundizaciones · Repasar → postas de repaso + raíz · backend → `activity_results` append-only por chico + `learn_routes`/`learn_definitions` por familia + blob editorial (la partición de INFORME_BETA).
 
 ## 14. Archivos clave
@@ -234,4 +234,4 @@ Respeta `prefers-reduced-motion`. Los moods solo tocan el canal `bed`, que **nun
 37. A sacar/reemplazar: panel "Probar YouTube" en Learn.tsx, escena `ruta` → `yJ6Lbsmb1lY`, temas demo `temaA/temaB`. 38. Moods inaudibles. 39. El audio exige gesto (se desbloquea al abrir ruta/recall y en "Empezar"). 40. Nada usa `timed`.
 
 ## 16. No verificado
-Comportamiento en ejecución (carreras de hidratación/rollback, inflado del multi) · internals del AudioEngine más allá de FX/moods/stems · extracción jina más allá de sus llamadas · datos reales de uso (backups cifrados) · memorias de diseño citadas en comentarios (no están en el snapshot) · innerith-ui.
+Comportamiento en ejecución (carreras de hidratación/rollback, inflado del multi) · internals del AudioEngine más allá de FX/moods/stems · extracción jina más allá de sus llamadas · datos reales de uso (backups cifrados) · memorias de diseño citadas en comentarios (no están en el snapshot) · smarty-ui.

@@ -8,7 +8,7 @@ import type { LearnRoute } from './learn';
    La portada solo VENDE la ruta visualmente (no indica el tipo de contenido: una ruta puede
    mezclar artículos y videos). Todo client-side; no toca route-lab ni el modelo persistido. */
 
-/* PORTE INNERITH (W3): port de smarty-poc app/src/lib/routeCover.ts (lo que usa el mosaico; `mqThumb`/`cropToCover` ya
+/* PORTE SMARTY (W3): port de smarty-poc app/src/lib/routeCover.ts (lo que usa el mosaico; `mqThumb`/`cropToCover` ya
    los portó /crear en sections/create/lib/routeCover.ts). RECORTE (alcance fijado por el brief de la tanda, documentado):
    el paso 3 —la imagen del artículo vía la API summary de Wikipedia, pedida DESDE EL NAVEGADOR y cacheada en
    localStorage— no se porta: en Smarty la UI no sale a la red fuera de `api` y esa imagen no pasa por ninguna

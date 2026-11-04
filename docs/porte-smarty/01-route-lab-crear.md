@@ -1,4 +1,4 @@
-# Porte Smarty→Innerith · Informe 1: route-lab y el flujo /crear
+# Porte Smarty→Smarty · Informe 1: route-lab y el flujo /crear
 
 > Análisis de ingeniería inversa sobre smarty-poc rama develop, HEAD 47f434b (12-oct-2026).
 > Pedido de Esteban: funcionalidad EXACTA, sin recortes. Informes hermanos: 02 Learn+AR, 03 MyTube/arquitectura, 00 mapa.
@@ -737,14 +737,14 @@ FactInv = { id, concept, conceptLabel, kind /*definition|property|numeric|relati
   - Un acuñado seco fallido al re-guardar una ruta existente **saca de memoria** sus definiciones vigentes, y la ruta muestra "No encontré esta actividad" hasta recargar.
   - Si la transacción de Dexie falla, la memoria ya tiene las definiciones nuevas.
 - **D3. Hidratación al arrancar.** Se hace una sola vez y de forma asíncrona, sin `await` antes del render.
-- **D4. No hay foreign key pregunta → fact.** No hay puntaje por fact (lo confirma `ESTADO.md` §7.3). Si Innerith quiere mostrar badges de auditoría por pregunta o repasar facts fallados, tiene que agregar `factId` a los ítems (`skill = fact.id` sería la vía barata según ESTADO).
+- **D4. No hay foreign key pregunta → fact.** No hay puntaje por fact (lo confirma `ESTADO.md` §7.3). Si Smarty quiere mostrar badges de auditoría por pregunta o repasar facts fallados, tiene que agregar `factId` a los ítems (`skill = fact.id` sería la vía barata según ESTADO).
 - **D5. `editorial` puede pesar.** Incluye todo el inventario y todas las auditorías, y `cover` es un data URL. El creador carga todas las rutas con `useLiveQuery`.
 
 ### Auditor
 
 - **A1. Título y snippet de las fuentes vienen del LLM.** Se filtran por URL realmente consultada, pero se usa `s.title || base.title` y `s.snippet || base.snippet`. El texto que se muestra como "lo que dice la fuente" **puede estar parafraseado o inventado**.
 - **A2. Si se agotan las 8 rondas de tools,** el texto puede quedar vacío y el resultado es un error de formato. Con `max_output_tokens:1500` en un modelo de razonamiento existe riesgo de truncamiento; esto no lo verifiqué.
-- **A3. Corre con las keys en el browser** (OpenAI con `dangerouslyAllowBrowser`, Serper en localStorage). En Innerith conviene moverlo al backend Node.
+- **A3. Corre con las keys en el browser** (OpenAI con `dangerouslyAllowBrowser`, Serper en localStorage). En Smarty conviene moverlo al backend Node.
 - **A4. El modo lote solo audita "riesgosos" sin veredicto.** Los umbrales no coinciden: el badge de certeza usa 0.92 y "riesgoso" usa 0.9.
 
 ---

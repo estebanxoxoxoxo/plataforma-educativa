@@ -8,7 +8,7 @@
  * FASE 1a (esto): sólo maneja los TEMAS del motor (crossfade por escena) + el ánimo. La coordinación del
  * fondo/ruido y el "dueño único del duck" van en la fase 1b.
  *
- * PORTE INNERITH (W2): archivo FIEL al POC. La música de fondo se lee del puerto `./bgAudioPort` (mismas
+ * PORTE SMARTY (W2): archivo FIEL al POC. La música de fondo se lee del puerto `./bgAudioPort` (mismas
  * firmas que el `lib/backgroundAudio` del POC). W3 lo MONTA: useScene('ruta') en el camino, push/update/pop
  * por fase en el ActivityOverlay (sections/learn) y `bindBgAudio` con el MiniPlayer real
  * (sections/learn/lib/bgAudioBinding.ts). Único cambio de W3 acá: la escena 'ruta' sin el iframe TEMP
@@ -47,7 +47,7 @@ interface Recipe {
 const SCENES: Record<Scene, Recipe> = {
   // TEMP test: la escena 'ruta' usa UN solo video de YouTube (embed liviano de un video, no el de
   // playlist videoseries que es más pesado/lento). Al terminar, repite. Revertir a { kind:'stem', stem:'temaA' }.
-  // PORTE INNERITH (W3, trampa 37 — placeholder TEMP NO portado por pedido del brief): el iframe oculto de YouTube
+  // PORTE SMARTY (W3, trampa 37 — placeholder TEMP NO portado por pedido del brief): el iframe oculto de YouTube
   // (video de prueba yJ6Lbsmb1lY) se saca y la fuente vuelve a lo que indica el propio comentario del POC: el tema
   // demo temaA. La política del fondo ('fadeout') queda como está.
   ruta: { source: { kind: 'stem', stem: 'temaA' }, fondo: 'fadeout' },

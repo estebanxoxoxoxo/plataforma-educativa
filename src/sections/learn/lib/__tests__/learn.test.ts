@@ -3,7 +3,7 @@ import type { ActivityResultRow } from '../../../../api/types';
 import type { ActivityResult } from '../../../../learn/activity';
 import { progressByTarget, resolveRoute, resultRowOf, routeProgress, starsForPct, type LearnRoute } from '../learn';
 
-/* PORTE INNERITH (W3) — resolveRoute EXACTO (informe 02 §4.4) y sus quirks fieles: rendirse = lograda (no mira outcome),
+/* PORTE SMARTY (W3) — resolveRoute EXACTO (informe 02 §4.4) y sus quirks fieles: rendirse = lograda (no mira outcome),
    umbral = bestPct ≥ passThreshold, bloqueo lineal GLOBAL (una lograda después de una bloqueada sigue lograda y destraba
    la siguiente), el repaso nunca se logra ni bloquea, estrellas por bestPct. Más el armado de la fila de recordResult. */
 
