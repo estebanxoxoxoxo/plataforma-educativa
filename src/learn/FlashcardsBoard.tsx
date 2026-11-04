@@ -61,7 +61,7 @@ export default function FlashcardsBoard({ engine }: { engine: FlashcardsEngine }
           )}
         </>
       ) : (
-        <p className="lrn-done">¡Mazo completo! 🎉</p>
+        <p className="lrn-done">Mazo completo ✓</p>
       )}
       <p className="lrn-help">
         {playing ? 'Pensá la respuesta, dala vuelta y decí si la sabías.' : ''}

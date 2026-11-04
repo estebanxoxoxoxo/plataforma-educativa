@@ -61,7 +61,7 @@ export function RewardForm({ item, kid, busy, error, onSubmit, onCancel }: {
       <div className="pz-field">
         <label htmlFor="pz-rf-title">Título</label>
         <input id="pz-rf-title" className="pz-input" value={d.title} maxLength={LIMITS.title + 10} autoComplete="off"
-          placeholder="Por ejemplo: Una hora de juegos de mesa" onChange={(e) => set('title')(e.target.value)} {...err('title')} />
+          placeholder="Por ejemplo: Elegís la película del viernes" onChange={(e) => set('title')(e.target.value)} {...err('title')} />
         {msg('title')}
       </div>
 

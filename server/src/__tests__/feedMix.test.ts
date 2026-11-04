@@ -225,7 +225,7 @@ describe('la ráfaga no repite protagonista si hay alternativa, con las semillas
     const mem = newBurstMemory(), cands = candsFor(user);
     return Array.from({ length: n }, (_, i) => planBurst(cands, mem, rng(hashOf(`npcs:${i + 1}:${week}`))));
   };
-  it('el caso del hallazgo: la 7.ª ráfaga de Luna (antes: CataEstrella en insignia Y en unidad) trae 4 protagonistas distintos', () => {
+  it('el caso del hallazgo: la 7.ª ráfaga de Luna (antes: CataNova en insignia Y en unidad) trae 4 protagonistas distintos', () => {
     const b7 = run('luna', 0, 7)[6];
     expect(b7.map((c) => c.type)).toEqual(SOCIAL);
     expect(new Set(b7.map((c) => c.nick)).size).toBe(4);

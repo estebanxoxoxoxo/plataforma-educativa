@@ -154,7 +154,7 @@ export default function MultipleChoiceBoard({ engine }: { engine: MultipleChoice
           </div>
         </>
       ) : (
-        <p className="lrn-done">¡Listo! 🎉</p>
+        <p className="lrn-done">Listo ✓</p>
       )}
     </div>
   )

@@ -121,7 +121,7 @@ export function ChatWindow({ f, entries, typing, sending, minimized, unread, hid
               aria-label={`Mensaje para ${f.nick}`} maxLength={500} readOnly={sending} />
             <button className="send" type="submit" aria-label="Enviar" disabled={!text.trim() || sending}><IcArrowRight /></button>
           </form>
-          <span className={`fnote${sending ? ' busy' : ''}`}><IcShieldOkBold />{sending ? 'Revisando tu mensaje…' : 'Los mensajes están moderados para chicos.'}</span>
+          <span className={`fnote${sending ? ' busy' : ''}`}><IcShieldOkBold />{sending ? 'Revisando tu mensaje…' : 'Los mensajes están moderados para tu edad.'}</span>
         </>
       )}
     </section>

@@ -1,7 +1,7 @@
 // Identidad (avatar propio) — visión §9 y audios 26, 32, 41-42: el avatar es uno de los ACTIVOS que hacen querer
 // quedarse. El look ELEGIBLE: uno de los 16 personajes dibujados del cliente (src/shared/components/Avatar.tsx: SVG propio,
 // sin assets externos) en un color de la paleta, o las iniciales (el default típico). Y, encima del personaje, la ROPA del
-// guardarropas (tanda W): un accesorio dibujado del set (gorra, vincha, moño, anteojos de sol, auriculares, corona) que se
+// guardarropas (tanda W): un accesorio dibujado del set (gorra, vincha, bandana —id lazo; TEEN 4-nov—, anteojos de sol, auriculares, corona) que se
 // compra con Energy Coin en la Tienda (market.ts).
 // POR USUARIO (línea 14-oct, docs/USUARIOS.md): cada usuario del demo (users.ts: Ian, Andrés) tiene SU look; GET y POST
 // leen y escriben el del usuario ACTIVO (cabecera X-Innerith-User → actingUser).

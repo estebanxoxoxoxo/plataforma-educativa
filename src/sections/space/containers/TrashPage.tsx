@@ -36,7 +36,7 @@ export function TrashPage() {
         <button className="sbtn ghost" onClick={() => go('/espacio/carpetas')}>‹ Volver a Carpetas</button>
       </div>
       {data && <>
-        {data.folders.length === 0 && data.items.length === 0 && <p className="spempty">La papelera está vacía. ✨</p>}
+        {data.folders.length === 0 && data.items.length === 0 && <p className="spempty">La papelera está vacía.</p>}
         <div className="tlist">
           {data.folders.map((f) => row('folder', f.id, <IcFolderWin className="tfold" />, f.name, 'Carpeta (con todo lo de adentro)'))}
           {data.items.map((it) => row('item', it.id, it.type === 'video' ? '🎬' : it.type === 'articulo' ? '📖' : '🖼️', it.title, it.subtitle))}

@@ -64,14 +64,14 @@ export function RedeemSheet({ s, ec, onConfirm, onClose }: {
                 {BURST.map((c, i) => <i key={c} style={{ '--c': c, '--a': `${i * 45}deg` } as CSSProperties} />)}
               </span>
             </div>
-            <h3 className="st-done-t" id="st-sheet-t">🎉 ¡Canjeado!</h3>
-            <p className="st-done-p" id="st-sheet-d">Quedó pendiente: avisale a papá o mamá.</p>
+            <h3 className="st-done-t" id="st-sheet-t">Canjeado ✓</h3>
+            <p className="st-done-p" id="st-sheet-d">Quedó pendiente: avisale a tu familia.</p>
             <p className="st-done-bal">
               <span>Canjeaste {item.title} por {fmtEc(item.price)} <IcCoin className="ec-coin" aria-hidden="true" /></span>{' '}
               <span>Te quedan <b>{fmtEc(s.ec)} <IcCoin className="ec-coin" aria-hidden="true" /></b></span>
             </p>
             <div className="st-sheet-btns">
-              <button type="button" className="st-btn" data-autofocus onClick={onClose}>¡Genial!</button>
+              <button type="button" className="st-btn" data-autofocus onClick={onClose}>Listo</button>
             </div>
           </div>
         ) : s.phase === 'error' ? (
@@ -89,7 +89,7 @@ export function RedeemSheet({ s, ec, onConfirm, onClose }: {
             <h3 className="st-sheet-q" id="st-sheet-t">¿Canjeás {fmtEc(item.price)} <IcCoin className="ec-coin" aria-hidden="true" /> por {item.title}?</h3>
             <p className="st-sheet-sub" id="st-sheet-d">
               {after >= 0 && <><span>Después te quedan <b>{fmtEc(after)} <IcCoin className="ec-coin" aria-hidden="true" /></b></span>{' '}</>}
-              <span>Queda pendiente hasta que papá o mamá te lo den.</span>
+              <span>Queda pendiente hasta que tus papás te lo den.</span>
             </p>
             <div className="st-sheet-btns">
               <button type="button" className="st-btn st-btn--ghost" data-autofocus={busy ? undefined : true} disabled={busy} onClick={onClose}>Cancelar</button>

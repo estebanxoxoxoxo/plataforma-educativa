@@ -5,8 +5,9 @@ import { FAMILY_NOTE, FAMILY_WIDE, famTo, familyNoteFor, membersOf, pickMember }
 /* U3 · M2 — el selector de integrante de Familia: quiénes son los integrantes (los dependents del adulto, en su orden), a
    quién apunta `?m=` (trim + minúsculas como el ?member= del server; ausente/ajeno → el primero) y los links con `?m=`. */
 
+// TEEN (4-nov): Ian tiene 13 (server/src/users.ts; antes 9).
 const USERS: UserInfo[] = [
-  { id: 'ian', name: 'Ian', nick: 'Ian', age: 9, kind: 'child' },
+  { id: 'ian', name: 'Ian', nick: 'Ian', age: 13, kind: 'child' },
   { id: 'luna', name: 'Luna', nick: 'Luna', age: 12, kind: 'child' },
   { id: 'andres', name: 'Andrés', nick: 'Andrés', age: 38, kind: 'adult', dependents: ['ian', 'luna'] },
 ];
@@ -14,7 +15,7 @@ const USERS: UserInfo[] = [
 describe('membersOf', () => {
   it('los dependents del adulto, en su orden y con la forma FamilyMember', () => {
     expect(membersOf(USERS, 'andres')).toEqual([
-      { id: 'ian', name: 'Ian', age: 9, nick: 'Ian' },
+      { id: 'ian', name: 'Ian', age: 13, nick: 'Ian' },
       { id: 'luna', name: 'Luna', age: 12, nick: 'Luna' },
     ]);
   });

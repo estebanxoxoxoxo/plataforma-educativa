@@ -17,7 +17,7 @@ export function ContactRequestCard({ r, phase, accepted, onAccept, onDecline }: 
         {r.note && <p className="fpin-note">“{r.note}”</p>}
       </div>
       {accepted ? (
-        <p className="fpin-done" role="status"><span aria-hidden="true">🎉</span> ¡Ya son amigos! Su chat se abrió en Mensajes</p>
+        <p className="fpin-done" role="status"><span aria-hidden="true">🤝</span> Ya son amigos. Su chat se abrió en Mensajes</p>
       ) : (
         <div className="fpin-acts">
           <button className="fpin-ok" type="button" disabled={busy} aria-label={`Aceptar a ${r.nick}`} onClick={onAccept}>Aceptar</button>

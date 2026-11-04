@@ -17,8 +17,8 @@ export function RedemptionsView({ list, fresh, onBack }: {
         <h2 className="h2">Tus canjes</h2>
         <p className="lede">
           {pend > 0
-            ? pend === 1 ? 'Uno espera que papá o mamá te lo den.' : `${pend} esperan que papá o mamá te los den.`
-            : 'Cuando canjeás un premio aparece acá, pendiente hasta que papá o mamá te lo den.'}
+            ? pend === 1 ? 'Uno espera que tus papás te lo den.' : `${pend} esperan que tus papás te los den.`
+            : 'Cuando canjeás un premio aparece acá, pendiente hasta que tus papás te lo den.'}
         </p>
       </header>
       {list === null ? (

@@ -39,10 +39,11 @@ export interface ChatReply {
 
 const pick = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)]
 /** Redirección sin tema (cuando la familia no puso sugerencias): el mismo tono que las de Smarty, sin proponer nada. */
+// TEEN (4-nov): «con tu mamá o papá» → «con tu familia» (a los 13 se le habla de la familia, no de papá y mamá).
 const REDIRECCION_SIN_TEMA = [
-  'Esa pregunta es buena para charlarla con tu mamá o papá. Mientras tanto… ¿de qué otra cosa tenés ganas de hablar?',
+  'Esa pregunta es buena para charlarla con tu familia. Mientras tanto… ¿de qué otra cosa tenés ganas de hablar?',
   'Eso mejor lo hablás con un adulto de tu familia. ¿Hay otra cosa que te dé curiosidad?',
-  'Hay temas que van mejor en persona con tu mamá o papá. Si querés, preguntame otra cosa.',
+  'Hay temas que van mejor en persona con tu familia. Si querés, preguntame otra cosa.',
 ]
 /** La redirección de la lista negra. Propone SOLO un tema blanco DE LA FAMILIA del chico activo (sus sugerencias): los
  *  blancos de FÁBRICA son lo que el chat puede tratar si el chico pregunta (hoy, educación sexual: "feto", "óvulos"…),

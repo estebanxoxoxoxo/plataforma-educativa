@@ -30,28 +30,32 @@ export function makeFlashcardsRuntime(mode: FlashcardsMode, durationSec: number)
 
 /* Mazos de ejemplo: contenido benévolo estilo "artículo wiki" (término ↔ dato). Es lo
    que la etapa `generate` del pipeline de rutas (route-lab) emitiría desde los facts de
-   un artículo → params { cards } del generador `static`. */
+   un artículo → params { cards } del generador `static`.
+   TEEN-COPY (4-nov): el usuario modelo pasa de 9 a 13 años. Las dos cartas de jardín del mazo solar («La estrella del
+   sistema solar», «El planeta donde vivimos») ceden lugar a datos de 13 (Urano acostado, los 8 minutos de la luz), y el
+   mazo «Animales» (la jirafa, el elefante) pasa a Mitología griega. Mismos ids y mismo largo (ss7 pasa a skill .planetas: ya no es la Tierra): los tests del motor
+   miden el largo del mazo y el seed `flashcards-solar` lo usa por referencia. */
 export const SISTEMA_SOLAR: Card[] = [
   { id: 'ss1', front: '¿Cuántos planetas tiene el sistema solar?', back: '8', skill: 'sistema-solar.planetas' },
   { id: 'ss2', front: 'El planeta más grande', back: 'Júpiter', skill: 'sistema-solar.planetas' },
   { id: 'ss3', front: 'El "planeta rojo"', back: 'Marte', skill: 'sistema-solar.planetas' },
   { id: 'ss4', front: 'El planeta más cercano al Sol', back: 'Mercurio', skill: 'sistema-solar.planetas' },
   { id: 'ss5', front: 'El planeta con los anillos más visibles', back: 'Saturno', skill: 'sistema-solar.planetas' },
-  { id: 'ss6', front: 'La estrella del sistema solar', back: 'el Sol', skill: 'sistema-solar.sol' },
-  { id: 'ss7', front: 'El planeta donde vivimos', back: 'la Tierra', skill: 'sistema-solar.tierra' },
+  { id: 'ss6', front: 'Cuánto tarda la luz del Sol en llegar a la Tierra', back: 'unos 8 minutos', skill: 'sistema-solar.sol' },
+  { id: 'ss7', front: 'El planeta que gira "acostado", con el eje casi horizontal', back: 'Urano', skill: 'sistema-solar.planetas' },
   { id: 'ss8', front: 'El planeta más lejano al Sol', back: 'Neptuno', skill: 'sistema-solar.planetas', hint: 'empieza con N' },
 ]
 
-export const ANIMALES: Card[] = [
-  { id: 'an1', front: 'El animal terrestre más grande', back: 'el elefante', skill: 'animales.mamiferos' },
-  { id: 'an2', front: 'El animal más rápido del mundo', back: 'el guepardo', skill: 'animales.mamiferos' },
-  { id: 'an3', front: 'El único mamífero que puede volar', back: 'el murciélago', skill: 'animales.mamiferos' },
-  { id: 'an4', front: 'El ave que no vuela y vive en la Antártida', back: 'el pingüino', skill: 'animales.aves' },
-  { id: 'an5', front: 'El animal más alto', back: 'la jirafa', skill: 'animales.mamiferos' },
-  { id: 'an6', front: 'El animal más grande del mundo', back: 'la ballena azul', skill: 'animales.mamiferos' },
+export const MITOLOGIA_GRIEGA: Card[] = [
+  { id: 'mg1', front: 'El rey de los dioses del Olimpo', back: 'Zeus', skill: 'mitologia-griega.dioses' },
+  { id: 'mg2', front: 'La diosa de la sabiduría y la estrategia', back: 'Atenea', skill: 'mitologia-griega.dioses' },
+  { id: 'mg3', front: 'El dios del mar, con su tridente', back: 'Poseidón', skill: 'mitologia-griega.dioses' },
+  { id: 'mg4', front: 'El héroe de los doce trabajos', back: 'Heracles (Hércules)', skill: 'mitologia-griega.heroes' },
+  { id: 'mg5', front: 'El titán que robó el fuego para dárselo a los humanos', back: 'Prometeo', skill: 'mitologia-griega.titanes' },
+  { id: 'mg6', front: 'El monstruo del laberinto de Creta', back: 'el Minotauro', skill: 'mitologia-griega.criaturas' },
 ]
 
 export const DEMO_DECKS: { id: string; label: string; cards: Card[] }[] = [
   { id: 'solar', label: '🪐 Sistema solar', cards: SISTEMA_SOLAR },
-  { id: 'animales', label: '🦉 Animales', cards: ANIMALES },
+  { id: 'mitologia', label: '🏛️ Mitología griega', cards: MITOLOGIA_GRIEGA },
 ]

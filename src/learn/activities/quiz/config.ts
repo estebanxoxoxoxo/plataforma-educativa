@@ -38,10 +38,13 @@ export interface QuizMathPreset {
   durationSec: number
 }
 
+/* TEEN-COPY (4-nov): «sumas 0–10» era de primer grado; el usuario modelo tiene 13. El generador del quiz ya sabe ×, así
+   que los presets pasan a tablas y a una mezcla con números más grandes (mismas cantidades y duraciones). «Álgebra
+   simple» (x + 3 = 7) necesitaría un generador nuevo: fuera de esta tanda de copy. */
 export const MATH_PRESETS: QuizMathPreset[] = [
-  { id: 'facil', label: 'Fácil · sumas 0–10', math: { questionCount: 6, maxValue: 10, ops: ['+'], optionCount: 4 }, durationSec: 45 },
-  { id: 'medio', label: 'Medio · sumas y restas 0–12', math: { questionCount: 8, maxValue: 12, ops: ['+', '-'], optionCount: 4 }, durationSec: 60 },
-  { id: 'dificil', label: 'Difícil · + − × 0–12', math: { questionCount: 10, maxValue: 12, ops: ['+', '-', '×'], optionCount: 4 }, durationSec: 75 },
+  { id: 'facil', label: 'Fácil · tablas hasta el 9', math: { questionCount: 6, maxValue: 9, ops: ['×'], optionCount: 4 }, durationSec: 45 },
+  { id: 'medio', label: 'Medio · tablas hasta el 12', math: { questionCount: 8, maxValue: 12, ops: ['×'], optionCount: 4 }, durationSec: 60 },
+  { id: 'dificil', label: 'Difícil · + − × hasta 20', math: { questionCount: 10, maxValue: 20, ops: ['+', '-', '×'], optionCount: 4 }, durationSec: 75 },
 ]
 
 export interface QuizFactPreset {

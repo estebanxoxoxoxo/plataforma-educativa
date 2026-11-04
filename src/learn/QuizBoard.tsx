@@ -37,7 +37,7 @@ export default function QuizBoard({ engine }: { engine: QuizEngine }) {
           </div>
         </>
       ) : (
-        <p className="lrn-done">¡Quiz completo! 🎉</p>
+        <p className="lrn-done">Quiz completo ✓</p>
       )}
       <p className="lrn-help">
         {playing ? 'Tocá la respuesta correcta. Si fallás, esa opción se descarta.' : ''}

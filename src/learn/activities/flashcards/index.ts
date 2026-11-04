@@ -3,7 +3,7 @@ export { FlashcardsEngine, FLASHCARDS_ID, FLASHCARDS_VERSION } from './engine'
 export { staticFlashcardsGenerator, type StaticFlashcardsParams } from './generators'
 export {
   SISTEMA_SOLAR,
-  ANIMALES,
+  MITOLOGIA_GRIEGA,
   DEMO_DECKS,
   TIME_BONUS_MAX,
   makeFlashcardsRuntime,

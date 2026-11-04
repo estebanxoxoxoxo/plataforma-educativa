@@ -9,8 +9,8 @@
 //     con un prompt adaptado a "mensaje entre chicos" (mismo modelo, lista negra, categorías de crisis y knobs de la
 //     familia que el juez del chat). Si no pasa, NO entra al hilo y vuelve un aviso amable que no repite lo bloqueado
 //     (crisis → el guion fijo de la familia, el mismo del chat). Si el juez falla (red/modelo): fail-closed.
-//   - Las RESPUESTAS de los NPC son agénticas de verdad: el modelo económico escribe como un chico de 9-10 años con la
-//     persona de cada NPC; las últimas líneas del hilo entran en cuarentena (spotlighting, como el chat) y la respuesta
+//   - Las RESPUESTAS de los NPC son agénticas de verdad: el modelo económico escribe como un chico de 13 (TEEN, 4-nov:
+//     antes 9-10) con la persona de cada NPC; las últimas líneas del hilo entran en cuarentena (spotlighting, como el chat) y la respuesta
 //     pasa por palabras bloqueadas + filtro de datos de contacto + el JUEZ DE SALIDA del chat antes de entrar al hilo
 //     (si no aprueba, el NPC "no contesta" esta vez). Queda lista con 2-6 s de demora natural ("escribiendo…").
 //   - COSTO: tope de COST_CAP respuestas con modelo por carga de página DE CADA USUARIO; después, frases cortas plantilladas.
@@ -18,9 +18,9 @@
 // POR USUARIO desde U4 (docs/USUARIOS.md §10; A4 de la spec): el MUNDO NPC es uno solo (los 14 chicos, su persona, sus
 // noticias) y el GRAFO es de cada uno: amigos, solicitudes entrantes (con su nota) y salientes, hilos, "escribiendo…", el
 // tope de costo, el epoch y los regalos que VOS le hiciste (qué prenda tiene puesta el NPC en TU vista) viven en un slice
-// de perUser() por usuario (el del pedido, por el contexto de U3). Ian = exactamente lo de siempre (6 amigos, NicoRobot
-// le pide contacto, 3 hilos); Luna = 4 amigos (2 en común con Ian: CataEstrella y MartuLuna, más LeaTelescopio y
-// TriniPiano), FedeAjedrez le pide contacto y tiene 2 hilos propios; Andrés (el adulto, A11/D4) no tiene amigos chicos:
+// de perUser() por usuario (el del pedido, por el contexto de U3). Ian = exactamente lo de siempre (6 amigos, NicoServo
+// le pide contacto, 3 hilos); Luna = 4 amigos (2 en común con Ian: CataNova y MartuPulso, más LeaVega y
+// TriniLofi), FedeBlitz le pide contacto y tiene 2 hilos propios; Andrés (el adulto, A11/D4) no tiene amigos chicos:
 // su grafo nace vacío, Buscar → Personas le responde vacío y no puede pedirle contacto a un chico. Ian y Luna NO se hacen
 // amigos ni se escriben entre sí (mensajería entre usuarios reales = otra superficie de moderación: U5+).
 // LOS NPCs NOMBRAN A QUIEN JUEGA: las plantillas ("¡Gracias, {kid}!", "¡Hola, {kid}!") y los prompts (persona, juez de
@@ -48,7 +48,7 @@
 // Personas). Rutas (formas formalizadas en types.ts: PersonResult/ConnectResult):
 //   GET  /api/friends/search?q=             → { query: string; people: PersonResult[] }
 //        Sobre TODOS los chicos del demo (los 14 NPCs: el "pool" de cada uno es quien no es amigo, ni solicitud, ni
-//        saliente EN SU grafo). Por nick, parcial, sin mayúsculas ni acentos ("colibri" → GeroColibrí); mínimo 2 letras,
+//        saliente EN SU grafo). Por nick, parcial, sin mayúsculas ni acentos ("halcon" → GeroHalcón); mínimo 2 letras,
 //        hasta 12 resultados. MODERACIÓN: de cada chico SOLO viaja su nick, su línea de estado (texto fijo del demo), el
 //        color de su avatar, la ropa que tiene puesta y la relación con el activo. Nada de texto libre (ni la nota de una
 //        solicitud). Una búsqueda con una palabra bloqueada de la familia no devuelve a nadie. Un ADULTO activo → people: []
@@ -141,88 +141,92 @@ interface Npc extends Omit<Friend, 'since' | 'accessory'> {
 // Los 14 chicos del demo (nicks propios: ninguno se cruza con los de ligas, zona, país ni el feed — un chico es UNA
 // identidad en todo el demo; leaguePools.test.ts lo revisa). Quién es amigo, quién pide contacto y quién es "del pool" de
 // Buscar → Personas NO es un atributo del NPC: lo dice el grafo de cada usuario (GRAPH_SEEDS, abajo).
+// TEEN (4-nov, pedido de Esteban: «que parezca para un chico de 13»): los 14 tienen 12-14 años, nicks de alias elegidos por
+// ellos (sin diminutivos de juguete), cursos de 13 (Álgebra, Paleontología, Biología marina, Inglés intermedio, Anatomía;
+// El sistema solar queda: es la ruta real de Ian) y voz de chat adolescente (sin «¡Uaaa!» ni dobles signos). Mismos ids,
+// géneros, ligas, rachas y XP: el grafo, la ráfaga y las ligas no cambian de forma.
 const NPCS: Npc[] = [
   {
-    id: 'f1', nick: 'TomiCohete', color: '#3A5BD9', status: 'Practicando: El sistema solar', xp: '3.120', streak: '12 días', league: 'Liga Cometa', commonCourses: ['El sistema solar', 'Dinosaurios'],
-    age: 10, girl: false, persona: 'Le encantan los cohetes, los planetas y todo lo del espacio; quiere ser astronauta y su planeta favorito es Saturno. Competitivo pero buena onda: siempre propone carreras de XP.',
-    thanks: '¡Gracias, {kid}! Con {el} voy a ir más rápido que un cohete en la liga 🚀',
+    id: 'f1', nick: 'TomasApolo', color: '#3A5BD9', status: 'Practicando: El sistema solar', xp: '3.120', streak: '12 días', league: 'Liga Cometa', commonCourses: ['El sistema solar', 'Paleontología'],
+    age: 13, girl: false, persona: 'Sigue cada lanzamiento de cohetes en vivo y sabe de memoria las misiones Apolo; quiere estudiar ingeniería aeroespacial y su planeta favorito es Saturno. Competitivo pero buena onda: siempre propone carreras de XP.',
+    thanks: 'Gracias, {kid}. Con {el} ya estoy listo para la carrera de esta semana en la liga 🚀',
   },
   {
-    id: 'f2', nick: 'LuliVolcan', color: '#F26B3A', status: 'Racha de 8 días', xp: '2.870', streak: '8 días', league: 'Liga Cometa', commonCourses: ['Animales del océano'],
-    age: 9, girl: true, persona: 'Fanática de los volcanes (sueña con ver el Lanín) y de los animales del océano; su favorito es el pulpo. Alegre y charlatana, re contenta con su racha.',
-    thanks: '¡Uaaa, gracias, {kid}! Me puse {el} y no me {lo} saco más 🌋',
+    id: 'f2', nick: 'LuMagma', color: '#F26B3A', status: 'Racha de 8 días', xp: '2.870', streak: '8 días', league: 'Liga Cometa', commonCourses: ['Biología marina'],
+    age: 13, girl: true, persona: 'Le fascinan los volcanes y la geología (sueña con subir al Lanín) y también la biología marina: te explica cómo un pulpo cambia de color. Charlatana y entusiasta, está orgullosa de su racha.',
+    thanks: 'Gracias, {kid}. Me puse {el} y no me {lo} saco más 🌋',
   },
   {
-    id: 'f3', nick: 'MateoDino', color: '#13A39A', status: 'Terminó la unidad 2 de Dinosaurios', xp: '4.010', streak: '21 días', league: 'Liga Estrella', commonCourses: ['Dinosaurios', 'Fracciones'],
-    age: 10, girl: false, persona: 'Sabe muchísimo de dinosaurios y fósiles; su favorito es el triceratops. Entusiasta, le encanta contar datos curiosos. Por ganar el oro en la Liga Cometa subió a la Liga Estrella.',
-    thanks: '¡Gracias, {kid}! Ya me puse {el}. ¡Ni un triceratops se vería tan bien! 🦖',
+    id: 'f3', nick: 'MateoPaleo', color: '#13A39A', status: 'Terminó la unidad 2 de Paleontología', xp: '4.010', streak: '21 días', league: 'Liga Estrella', commonCourses: ['Paleontología', 'Álgebra'],
+    age: 14, girl: false, persona: 'Sabe muchísimo de paleontología y fósiles; está leyendo cómo se datan las rocas y su dinosaurio favorito sigue siendo el triceratops. Le encanta tirar datos curiosos. Por ganar el oro en la Liga Cometa subió a la Liga Estrella.',
+    thanks: 'Gracias, {kid}. Ya me puse {el}: queda mejor que cualquier fósil del museo 🦴',
   },
   {
-    id: 'f4', nick: 'CataEstrella', color: '#E5487A', status: 'Practicando: Inglés inicial', xp: '1.940', streak: '3 días', league: 'Liga Cometa', commonCourses: ['Inglés inicial'],
-    age: 9, girl: true, persona: 'Está aprendiendo inglés y a veces mete alguna palabra en inglés. Le gusta mirar las estrellas y dibujar. Un poco tímida y muy amable.',
-    thanks: '¡Thank you, {kid}! Me encanta, ya {lo} tengo {puesto} ✨',
+    id: 'f4', nick: 'CataNova', color: '#E5487A', status: 'Practicando: Inglés intermedio', xp: '1.940', streak: '3 días', league: 'Liga Cometa', commonCourses: ['Inglés intermedio'],
+    age: 12, girl: true, persona: 'Está mejorando su inglés con series y a veces mete alguna frase en inglés. Le gustan la astrofotografía y dibujar en su tablet. Un poco tímida y muy amable.',
+    thanks: 'Thank you, {kid}. Me encanta, ya {lo} tengo {puesto} ✨',
   },
   {
-    id: 'f5', nick: 'JuanchiRayo', color: '#F2A81D', status: 'Racha de 2 días', xp: '1.380', streak: '2 días', league: 'Liga Chispa', commonCourses: ['Fracciones'],
-    age: 9, girl: false, persona: 'Llegó hace poco a Innerith. Las fracciones le costaban pero les pone garra (ya terminó la unidad 1). Gracioso; le gustan el fútbol y las tormentas eléctricas, de ahí su apodo.',
-    thanks: '¡Golazo, {kid}! Gracias por {el}, ya {lo} tengo {puesto} ⚡',
+    id: 'f5', nick: 'JuanTrueno', color: '#F2A81D', status: 'Racha de 2 días', xp: '1.380', streak: '2 días', league: 'Liga Chispa', commonCourses: ['Álgebra'],
+    age: 12, girl: false, persona: 'Llegó hace poco a Innerith. El álgebra le costaba pero le pone garra (ya terminó la unidad 1). Gracioso; juega al fútbol y le encantan las tormentas eléctricas, de ahí su nick.',
+    thanks: 'Golazo, {kid}. Gracias por {el}, ya {lo} tengo {puesto} ⚡',
   },
   {
-    id: 'f6', nick: 'MartuLuna', color: '#8A5CF5', status: 'Practicando: Mi cuerpo', xp: '2.210', streak: '5 días', league: 'Liga Cometa', commonCourses: ['Mi cuerpo', 'El sistema solar'],
-    age: 10, girl: true, persona: 'Curiosa, siempre hace preguntas. Le interesan el cuerpo humano y la Luna; quiere ser médica.',
-    thanks: '¡Gracias, {kid}! Ya {lo} tengo {puesto}. ¿Cómo sabías justo qué regalarme? 🌙',
+    id: 'f6', nick: 'MartuPulso', color: '#8A5CF5', status: 'Practicando: Anatomía', xp: '2.210', streak: '5 días', league: 'Liga Cometa', commonCourses: ['Anatomía', 'El sistema solar'],
+    age: 13, girl: true, persona: 'Curiosa, siempre tiene una pregunta más. Le interesan la anatomía y la astronomía; quiere ser médica y ya sabe cómo funciona el corazón por dentro.',
+    thanks: 'Gracias, {kid}. Ya {lo} tengo {puesto}. ¿Cómo sabías justo qué regalarme? 🌙',
   },
   {
-    // NicoRobot arma robots con Arduino (afín al laboratorio de electrónica que Ian arma con el papá): le pide contacto a Ian.
-    id: 'f7', nick: 'NicoRobot', color: '#18A957', status: 'Practicando: Fracciones', xp: '2.460', streak: '4 días', league: 'Liga Chispa', commonCourses: ['Fracciones', 'El sistema solar'],
-    age: 10, girl: false, persona: 'Arma robots con Arduino y un kit de electrónica, y le encanta la impresión 3D. Tranquilo e ingenioso: siempre está inventando algo.',
-    thanks: '¡Gracias, {kid}! Ya {lo} tengo {puesto} en mi avatar. ¡Bip bip de alegría! 🤖',
+    // NicoServo arma robots con Arduino (afín al laboratorio de electrónica que Ian arma con el papá): le pide contacto a Ian.
+    id: 'f7', nick: 'NicoServo', color: '#18A957', status: 'Practicando: Álgebra', xp: '2.460', streak: '4 días', league: 'Liga Chispa', commonCourses: ['Álgebra', 'El sistema solar'],
+    age: 13, girl: false, persona: 'Arma robots con Arduino y servos, programa en Python y le encanta la impresión 3D. Tranquilo e ingenioso: siempre tiene un proyecto a medio armar.',
+    thanks: 'Gracias, {kid}. Ya {lo} tengo {puesto} en mi avatar: le queda mejor que a mi último robot 🤖',
     // si le dijeron "Ahora no" y después lo buscan y le piden contacto
-    hello: '¡Hola, {kid}! Qué bueno que me escribiste. ¿Vos también armás cosas o hacés experimentos?',
+    hello: 'Hola, {kid}. Qué bueno que me escribiste. ¿Vos también armás cosas o programás?',
   },
-  /* ---- f8-f14: el pool de Buscar → Personas de Ian (tanda F2); Luna tiene a TriniPiano y LeaTelescopio de amigas y a
-     FedeAjedrez pidiéndole contacto ---- */
+  /* ---- f8-f14: el pool de Buscar → Personas de Ian (tanda F2); Luna tiene a TriniLofi y LeaVega de amigas y a
+     FedeBlitz pidiéndole contacto ---- */
   {
-    id: 'f8', nick: 'TriniPiano', color: '#E5487A', status: 'Practicando: Inglés inicial', xp: '2.050', streak: '6 días', league: 'Liga Cometa', commonCourses: ['Inglés inicial'],
-    age: 9, girl: true, persona: 'Toca el piano desde los 6 años y aprende inglés con canciones. Le encanta la música tranquila para estudiar y se inventa melodías cortitas. Dulce y un poco soñadora.',
-    thanks: '¡Gracias, {kid}! Me puse {el} para practicar piano 🎹',
-    hello: '¡Hola, {kid}! Qué lindo que me escribiste 🎹 ¿Vos escuchás música mientras estudiás?',
-  },
-  {
-    id: 'f9', nick: 'FedeAjedrez', color: '#3A5BD9', status: 'Racha de 9 días', xp: '3.380', streak: '9 días', league: 'Liga Estrella', commonCourses: ['Fracciones'],
-    age: 10, girl: false, persona: 'Juega al ajedrez todos los días y le encantan los acertijos de matemática; dice que las fracciones son como mover piezas en el tablero. Pensativo y buen compañero.',
-    thanks: '¡Gracias, {kid}! Con {el} me siento campeón de ajedrez ♟️',
-    hello: '¡Hola, {kid}! Gracias por escribirme. ¿Sabés jugar al ajedrez? ♟️',
+    id: 'f8', nick: 'TriniLofi', color: '#E5487A', status: 'Practicando: Inglés intermedio', xp: '2.050', streak: '6 días', league: 'Liga Cometa', commonCourses: ['Inglés intermedio'],
+    age: 13, girl: true, persona: 'Toca el piano desde los 6 años, produce beats lofi para estudiar y aprende inglés traduciendo letras de canciones. Tranquila y un poco soñadora.',
+    thanks: 'Gracias, {kid}. Me puse {el} para grabar el próximo beat 🎹',
+    hello: 'Hola, {kid}. Qué bueno que me escribiste 🎹 ¿Vos escuchás música mientras estudiás?',
   },
   {
-    id: 'f10', nick: 'MicaPincel', color: '#13A39A', status: 'Practicando: Animales del océano', xp: '1.720', streak: '4 días', league: 'Liga Chispa', commonCourses: ['Animales del océano'],
-    age: 9, girl: true, persona: 'Dibuja y pinta animales del océano (las tortugas marinas son sus favoritas) y llena cuadernos con ballenas y pulpos. Creativa y muy observadora.',
-    thanks: '¡Gracias, {kid}! Me puse {el} y me dibujé así en mi cuaderno 🎨',
-    hello: '¡Hola, {kid}! Me encantó que me escribas. ¿Cuál es tu animal del océano favorito? 🐢',
+    id: 'f9', nick: 'FedeBlitz', color: '#3A5BD9', status: 'Racha de 9 días', xp: '3.380', streak: '9 días', league: 'Liga Estrella', commonCourses: ['Álgebra'],
+    age: 14, girl: false, persona: 'Juega partidas blitz de ajedrez todos los días y le encantan los problemas de lógica; dice que despejar una ecuación es como calcular una combinación en el tablero. Pensativo y buen compañero.',
+    thanks: 'Gracias, {kid}. Con {el} me siento listo para un torneo ♟️',
+    hello: 'Hola, {kid}. Gracias por escribirme. ¿Jugás al ajedrez? ♟️',
   },
   {
-    id: 'f11', nick: 'GeroColibrí', color: '#18A957', status: 'Terminó la unidad 1 de Dinosaurios', xp: '2.640', streak: '11 días', league: 'Liga Cometa', commonCourses: ['Dinosaurios', 'El sistema solar'],
-    age: 10, girl: false, persona: 'Mira pájaros con los binoculares de su abuelo y le fascina que las aves sean dinosaurios; sabe un montón de colibríes. Curioso y paciente.',
-    thanks: '¡Gracias, {kid}! Con {el} salgo a mirar pájaros re canchero 🐦',
-    hello: '¡Hola, {kid}! Gracias por escribirme. ¿Sabías que los pájaros son dinosaurios? 🐦',
+    id: 'f10', nick: 'MicaTinta', color: '#13A39A', status: 'Practicando: Biología marina', xp: '1.720', streak: '4 días', league: 'Liga Chispa', commonCourses: ['Biología marina'],
+    age: 12, girl: true, persona: 'Dibuja fauna marina con tinta y acuarela (las tortugas marinas son su tema favorito) y llena sketchbooks enteros. Creativa y muy observadora.',
+    thanks: 'Gracias, {kid}. Me puse {el} y ya me dibujé así en el sketchbook 🎨',
+    hello: 'Hola, {kid}. Me alegra que me escribas. ¿Dibujás o hacés algo creativo? 🎨',
   },
   {
-    id: 'f12', nick: 'LeaTelescopio', color: '#8A5CF5', status: 'Practicando: El sistema solar', xp: '2.990', streak: '7 días', league: 'Liga Cometa', commonCourses: ['El sistema solar'],
-    age: 10, girl: true, persona: 'Mira la Luna y los planetas con un telescopio chiquito desde el patio y anota todo en su cuaderno de astronomía. Tranquila y muy detallista.',
-    thanks: '¡Gracias, {kid}! Me puse {el} para mirar las estrellas esta noche 🔭',
-    hello: '¡Hola, {kid}! Qué bueno que me escribiste 🔭 ¿Viste la Luna anoche?',
+    id: 'f11', nick: 'GeroHalcón', color: '#18A957', status: 'Terminó la unidad 1 de Paleontología', xp: '2.640', streak: '11 días', league: 'Liga Cometa', commonCourses: ['Paleontología', 'El sistema solar'],
+    age: 13, girl: false, persona: 'Hace avistaje de aves con los binoculares de su abuelo y le fascina que las aves desciendan de los dinosaurios; sabe un montón de rapaces. Curioso y paciente.',
+    thanks: 'Gracias, {kid}. Con {el} salgo a hacer avistaje re canchero 🦅',
+    hello: 'Hola, {kid}. Gracias por escribirme. ¿Sabías que las aves descienden de los dinosaurios? 🦅',
   },
   {
-    id: 'f13', nick: 'NahueGol', color: '#1C9BD6', status: 'Racha de 3 días', xp: '1.510', streak: '3 días', league: 'Liga Chispa', commonCourses: ['Inglés inicial', 'Fracciones'],
-    age: 9, girl: false, persona: 'Juega al fútbol en el club del barrio y practica inglés relatando goles. Fracciones le cuesta un poco pero no se rinde. Divertido y con mucha energía.',
-    thanks: '¡Gooool, {kid}! Gracias por {el}, ya {lo} tengo {puesto} ⚽',
-    hello: '¡Hola, {kid}! ¡Gracias por escribirme! ¿Te gusta el fútbol? ⚽',
+    id: 'f12', nick: 'LeaVega', color: '#8A5CF5', status: 'Practicando: El sistema solar', xp: '2.990', streak: '7 días', league: 'Liga Cometa', commonCourses: ['El sistema solar'],
+    age: 13, girl: true, persona: 'Observa la Luna y los planetas con su telescopio desde la terraza y lleva un registro de observación con fecha y hora. Tranquila y muy detallista.',
+    thanks: 'Gracias, {kid}. Me puse {el} para la observación de esta noche 🔭',
+    hello: 'Hola, {kid}. Qué bueno que me escribiste 🔭 ¿Viste la Luna anoche?',
   },
   {
-    id: 'f14', nick: 'ConiCiencia', color: '#F2A81D', status: 'Practicando: Mi cuerpo', xp: '2.330', streak: '5 días', league: 'Liga Cometa', commonCourses: ['Mi cuerpo', 'Animales del océano'],
-    age: 10, girl: true, persona: 'Hace experimentos en la cocina con su mamá (el volcán de bicarbonato es su favorito) y quiere ser científica. Preguntona y entusiasta.',
-    thanks: '¡Gracias, {kid}! Me puse {el} para mi próximo experimento 🧪',
-    hello: '¡Hola, {kid}! Gracias por escribirme 🧪 ¿Alguna vez hiciste un experimento en tu casa?',
+    id: 'f13', nick: 'NahueRabona', color: '#1C9BD6', status: 'Racha de 3 días', xp: '1.510', streak: '3 días', league: 'Liga Chispa', commonCourses: ['Inglés intermedio', 'Álgebra'],
+    age: 12, girl: false, persona: 'Juega al fútbol en el club del barrio y practica inglés relatando goles como en la tele. El álgebra le cuesta un poco pero no se rinde. Divertido y con mucha energía.',
+    thanks: 'Qué crack, {kid}. Gracias por {el}, ya {lo} tengo {puesto} ⚽',
+    hello: 'Hola, {kid}. Gracias por escribirme. ¿Te gusta el fútbol? ⚽',
+  },
+  {
+    id: 'f14', nick: 'ConiLab', color: '#F2A81D', status: 'Practicando: Anatomía', xp: '2.330', streak: '5 días', league: 'Liga Cometa', commonCourses: ['Anatomía', 'Biología marina'],
+    age: 14, girl: true, persona: 'Hace experimentos de química en la cocina con su familia (cristales de sal, indicador de pH con repollo morado) y quiere ser científica. Preguntona y entusiasta.',
+    thanks: 'Gracias, {kid}. Me puse {el} para el próximo experimento 🧪',
+    hello: 'Hola, {kid}. Gracias por escribirme 🧪 ¿Alguna vez hiciste un experimento en tu casa?',
   },
 ]
 /* Noticias de los NPCs que publica el feed (feedFake las intercala EN ESTE ORDEN y les da id por lugar: ff-1…; lo nuevo
@@ -232,32 +236,33 @@ const NPCS: Npc[] = [
 const NEWS: { f: string; text: string; icon: NewsIcon }[] = [
   { f: 'f3', text: 'ganó la medalla de oro 🥇 en la Liga Cometa', icon: 'medal' },
   { f: 'f1', text: 'llegó a una racha de 12 días seguidos practicando', icon: 'streak' },
-  { f: 'f2', text: 'se ganó la insignia «Guardiana de los Volcanes»', icon: 'badge' },
-  { f: 'f6', text: 'compartió la ruta «El cuerpo humano por dentro»', icon: 'route' },
+  { f: 'f2', text: 'se ganó la insignia «Placas Tectónicas»', icon: 'badge' },
+  { f: 'f6', text: 'compartió la ruta «Cómo funciona el corazón»', icon: 'route' },
   { f: 'f4', text: 'subió a la Liga Estrella ⭐', icon: 'league' },
-  { f: 'f5', text: 'terminó la unidad 1 de Fracciones', icon: 'unit' },
-  { f: 'f3', text: 'completó 40 pasos este mes 💪', icon: 'streak' },
+  { f: 'f5', text: 'terminó la unidad 1 de Álgebra', icon: 'unit' },
+  { f: 'f3', text: 'completó 40 pasos este mes', icon: 'streak' },
   { f: 'f1', text: 'ganó la medalla de bronce 🥉 en la Liga Cometa', icon: 'medal' }, // la plata de esa liga fue de Ian (leaguesFake lastWeek)
   { f: 'f2', text: 'compartió la ruta «Volcanes de Argentina»', icon: 'route' },
   // U4: de las amigas nuevas de Luna (Ian no las ve: no son sus amigas)
   { f: 'f12', text: 'llegó a una racha de 7 días seguidos practicando', icon: 'streak' },
-  { f: 'f8', text: 'se ganó la insignia «Oído Musical»', icon: 'badge' },
+  { f: 'f8', text: 'se ganó la insignia «Progresión de Acordes»', icon: 'badge' },
   // Tanda "Feed diverso" (28-oct): más subtipos en la edición de cada uno (insignias, unidades, rachas), alternados para Ian
-  // y para Luna; ningún texto repite uno de la ráfaga (feedMix.NPC_NEWS). f9 (FedeAjedrez) le pidió contacto a Luna.
-  { f: 'f3', text: 'se ganó la insignia «Paleontólogo Junior» en Dinosaurios 🦕', icon: 'badge' },
-  { f: 'f4', text: 'terminó la unidad «Greetings» de Inglés inicial: hello! 👋', icon: 'unit' },
+  // y para Luna; ningún texto repite uno de la ráfaga (feedMix.NPC_NEWS). f9 (FedeBlitz) le pidió contacto a Luna.
+  // TEEN (4-nov): mismos lugares e íconos (los ids ff-N son por lugar), textos de 13.
+  { f: 'f3', text: 'se ganó la insignia «Datación por Carbono» en Paleontología 🦴', icon: 'badge' },
+  { f: 'f4', text: 'terminó la unidad «Phrasal verbs» de Inglés intermedio', icon: 'unit' },
   { f: 'f5', text: 'volvió a practicar y arrancó una racha nueva ⚡', icon: 'streak' },
-  { f: 'f9', text: 'se ganó la insignia «Rey de los Acertijos» en Fracciones ♟️', icon: 'badge' },
-  { f: 'f12', text: 'terminó la unidad «El Sol» de El sistema solar ☀️', icon: 'unit' },
+  { f: 'f9', text: 'se ganó la insignia «Mate en Dos» en Álgebra ♟️', icon: 'badge' },
+  { f: 'f12', text: 'terminó la unidad «Ciclo solar y manchas» de El sistema solar ☀️', icon: 'unit' },
   { f: 'f1', text: 'terminó la unidad «Los planetas gigantes» de El sistema solar 🪐', icon: 'unit' },
-  { f: 'f6', text: 'se ganó la insignia «Exploradora del Cuerpo» en Mi cuerpo 🔬', icon: 'badge' },
-  { f: 'f8', text: 'terminó la unidad «Family» de Inglés inicial 🏡', icon: 'unit' },
+  { f: 'f6', text: 'se ganó la insignia «Sistema Circulatorio» en Anatomía 🔬', icon: 'badge' },
+  { f: 'f8', text: 'terminó la unidad «Song lyrics» de Inglés intermedio 🎧', icon: 'unit' },
   { f: 'f9', text: 'completó 35 pasos este mes ♟️', icon: 'streak' },
-  { f: 'f7', text: 'terminó la unidad «Sumar fracciones» de Fracciones 🤖', icon: 'unit' },
-  { f: 'f12', text: 'se ganó la insignia «Exploradora Lunar» en El sistema solar 🌕', icon: 'badge' },
-  { f: 'f6', text: 'terminó la unidad «Los cinco sentidos» de Mi cuerpo 👀', icon: 'unit' },
-  { f: 'f8', text: 'practicó con música tranquila y no cortó su racha 🎶', icon: 'streak' },
-  { f: 'f4', text: 'se ganó la insignia «Estrella Fugaz» en Inglés inicial 🌠', icon: 'badge' },
+  { f: 'f7', text: 'terminó la unidad «Ecuaciones lineales» de Álgebra 🤖', icon: 'unit' },
+  { f: 'f12', text: 'se ganó la insignia «Fases y Eclipses» en El sistema solar 🌕', icon: 'badge' },
+  { f: 'f6', text: 'terminó la unidad «El sistema nervioso» de Anatomía 🧠', icon: 'unit' },
+  { f: 'f8', text: 'practicó con un beat lofi de fondo y no cortó su racha 🎶', icon: 'streak' },
+  { f: 'f4', text: 'se ganó la insignia «Conversación Fluida» en Inglés intermedio 🌠', icon: 'badge' },
   // Tanda "Cards del feed" (29-oct): Luna no veía NINGUNA medalla de amigos (el oro y el bronce de arriba son de amigos de
   // Ian), así que la noticia de liga con tinte de medalla nunca le aparecía. Dos de los suyos, una de oro y una de bronce
   // (los dos tintes), con el ascenso que les toca por la regla del cierre (podio → sube: leaguesFake) y que cuadra con la
@@ -284,13 +289,13 @@ const GRAPH_SEEDS: Record<string, GraphSeed> = {
     friends: ['f1', 'f2', 'f3', 'f4', 'f5', 'f6'],
     requests: [{
       id: 'f7',
-      note: '¡Hola! Hacemos el mismo curso de Fracciones y yo armo robots con Arduino 🤖 ¿Querés que seamos amigos?',
-      greeting: '¡Gracias por aceptarme! ¿Vos también armás cosas o hacés experimentos?',
+      note: 'Hola. Hacemos el mismo curso de Álgebra y yo armo robots con Arduino 🤖 ¿Te sumo a mis amigos?',
+      greeting: 'Gracias por aceptarme. ¿Vos también armás cosas o programás?',
     }],
     threads: {
-      f3: ['¡Hola! ¿Viste el curso nuevo de dinosaurios?', 'Yo ya terminé la primera unidad.'],
-      f1: ['¿Cuántos planetas te faltan en el curso?'],
-      f2: ['¡Llegué a 8 días de racha!'],
+      f3: ['Che, ¿viste el curso nuevo de paleontología?', 'Ya terminé la primera unidad, está muy bueno.'],
+      f1: ['¿En qué unidad de El sistema solar vas?'],
+      f2: ['Llegué a 8 días de racha, no la pienso cortar.'],
     },
     since: { f1: 'marzo', f2: 'abril', f3: 'marzo', f4: 'mayo', f5: 'junio', f6: 'marzo' },
   },
@@ -298,12 +303,12 @@ const GRAPH_SEEDS: Record<string, GraphSeed> = {
     friends: ['f4', 'f6', 'f12', 'f8'],
     requests: [{
       id: 'f9',
-      note: '¡Hola! Me encantan los acertijos de matemática y el ajedrez ♟️ ¿Querés que seamos amigos?',
-      greeting: '¡Gracias por aceptarme! ¿Te animás a un acertijo?',
+      note: 'Hola. Me gustan los problemas de lógica y el ajedrez ♟️ ¿Te sumo a mis amigos?',
+      greeting: 'Gracias por aceptarme. ¿Te animás a un problema de lógica?',
     }],
     threads: {
       f6: ['¿Viste la Luna llena de anoche? 🌙 Me acordé de vos'],
-      f12: ['¡Anoche vi los anillos de Saturno con el telescopio!'],
+      f12: ['Anoche vi los anillos de Saturno con el telescopio. Una locura.'],
     },
     since: { f4: 'febrero', f6: 'abril', f12: 'junio', f8: 'agosto' },
   },
@@ -326,7 +331,7 @@ const EMPTY_GRAPH: GraphSeed = { friends: [], requests: [], threads: {}, since: 
 }
 
  /* FS-BASE-B (hallazgo friendsFake.ts:539): con LIGAS APAGADAS para el chico, los NPCs no le hablan de ligas. Antes solo se
-   filtraban sus noticias (seenNewsOf); el prompt igual decía «Liga actual: …» y «Tus temas: … las ligas», TomiCohete
+   filtraban sus noticias (seenNewsOf); el prompt igual decía «Liga actual: …» y «Tus temas: … las ligas», TomasApolo
    «siempre propone carreras de XP», su gracias decía «en la liga» y una frase plantillada era «¿Hacemos una carrera de XP?»:
    el modelo lo invitaba a competir en la Liga Cometa (no es tema negro, así que pasaba los jueces). Ahora, sin Ligas: la
    persona pierde las oraciones que hablan de eso (sin modelo, por esta expresión), el prompt no nombra la liga y suma una
@@ -335,20 +340,22 @@ const LEAGUE_TALK = /\bligas?\b|carreras? de xp|competitiv/i
 /** Sin las oraciones que hablan de ligas (para la persona de un NPC cuando el chico tiene Ligas apagadas). */
 export const withoutLeagueTalk = (text: string): string => text.split(/(?<=[.!?])\s+/).filter(s => !LEAGUE_TALK.test(s)).join(' ').trim()
 /** Pasado el tope de costo, los NPC contestan con frases cortas que sirven para cualquier mensaje (sin modelo; {kid}). */
-const CANNED = ['¡Dale! Te espero en Aprender.', '¿Hacemos una carrera de XP?', 'Ahora estoy practicando, ¡después te escribo!', 'Me voy a seguir con el curso. ¡Hablamos después!']
+// TEEN (4-nov): las plantillas hablan como alguien de 13 (sin signos de festejo en cada frase); «carrera de XP» queda: es
+// la que LEAGUE_TALK saca con Ligas apagadas.
+const CANNED = ['Dale, nos vemos en Aprender.', '¿Hacemos una carrera de XP?', 'Ahora estoy practicando, después te escribo.', 'Me vuelvo al curso. Hablamos después.']
 /** "¡Gracias!" por un regalo que sirven para cualquier NPC (se alternan con el de cada uno, así no repiten siempre lo mismo). */
-const THANKS = ['¡Muchas gracias por {el}, {kid}! Ya {lo} tengo {puesto} 😄', '¡Qué lindo regalo! Me puse {el} y me encanta. ¡Gracias, {kid}!']
+const THANKS = ['Muchas gracias por {el}, {kid}. Ya {lo} tengo {puesto} 😄', 'Qué buen regalo. Me puse {el} y me encanta. Gracias, {kid}.']
 /** Si el padre bloqueó una palabra que aparece en la plantilla (p. ej. el nombre de la prenda): sin nombrarla. */
-const THANKS_SAFE = '¡Muchas gracias por el regalo, {kid}! 😄'
-const GIFT_SAFE = '🎁 ¡Te mandé un regalo!'
+const THANKS_SAFE = 'Muchas gracias por el regalo, {kid}.'
+const GIFT_SAFE = '🎁 Te mandé un regalo.'
 /** Demora del "¡gracias!" (el NPC aparece "escribiendo…" un ratito, como con cualquier respuesta). */
 const THANKS_MIN_MS = 1800, THANKS_SPAN_MS = 1200
 /** "Quiero contactarlo" (demo): el NPC acepta solo entre 4 y 8 s después, y su saludo aparece 2,5 s más tarde (antes:
  *  "escribiendo…"), contados desde que el server ve la aceptación — así la ventana que abre el dock lo recibe por el sondeo. */
 const ACCEPT_MIN_MS = 4000, ACCEPT_SPAN_MS = 4000, HELLO_MS = 2500
 /** Saludo de un NPC que no trae el suyo, y el de reemplazo si la familia bloqueó una palabra de la plantilla. */
-const HELLO_DEFAULT = '¡Hola, {kid}! Gracias por escribirme. ¿Qué estás practicando?'
-const HELLO_SAFE = '¡Hola, {kid}! Gracias por escribirme.'
+const HELLO_DEFAULT = 'Hola, {kid}. Gracias por escribirme. ¿Qué estás practicando?'
+const HELLO_SAFE = 'Hola, {kid}. Gracias por escribirme.'
 /** D4: un adulto no le pide contacto a un chico (los chicos se conectan entre chicos). */
 const ADULT_CONNECT = 'Los chicos de Innerith se conectan entre chicos. Como adulto, acompañás a los tuyos desde Familia.'
 /** Buscar → Personas: largo mínimo de la búsqueda (en letras, sin espacios), tope de resultados y largo máximo del pedido. */
@@ -476,7 +483,7 @@ const NPC_LEAK_RE = new RegExp(`${CONTACT_RE.source}|\\byou ?tube\\b`, 'i')
 /* ---------- moderación de lo que manda el chico (juez de entrada adaptado a "mensaje entre chicos") ---------- */
 type Category = 'palabra' | 'contacto' | 'crisis' | 'insulto' | 'burla' | 'datos_personales' | 'fuera_de_plataforma' | 'tema' | 'inapropiado' | 'falla'
 const JUDGE_CATEGORIES = ['crisis', 'insulto', 'burla', 'datos_personales', 'fuera_de_plataforma', 'tema', 'inapropiado'] as const
-const DM_JUDGE = `Sos el moderador en tiempo real de los mensajes directos entre chicos de 9 a 12 años en Innerith, una plataforma educativa. Revisá SOLO el ÚLTIMO MENSAJE que {{emisor}} quiere mandarle a {{receptor}} (el contexto reciente es referencia, por ejemplo para detectar una burla que se arma de a poco).
+const DM_JUDGE = `Sos el moderador en tiempo real de los mensajes directos entre chicos de 12 a 14 años en Innerith, una plataforma educativa. Revisá SOLO el ÚLTIMO MENSAJE que {{emisor}} quiere mandarle a {{receptor}} (el contexto reciente es referencia, por ejemplo para detectar una burla que se arma de a poco).
 
 LISTA NEGRA DE TEMAS DE LA FAMILIA:
 {{listaNegra}}
@@ -565,7 +572,8 @@ const NOTICES: Record<Exclude<Category, 'crisis'>, string[]> = {
   datos_personales: ['Ese mensaje no salió porque tenía datos personales (como dónde vivís, tu teléfono o tu escuela). Esos datos se cuidan: son para tu familia. 🔒'],
   contacto: ['Ese mensaje no salió: por acá no se pasan links, teléfonos ni otras apps. Si querés compartir algo, contalo con tus palabras 🙂'],
   fuera_de_plataforma: ['Ese mensaje no salió: las charlas con tus amigos de Innerith se quedan acá, sin otras apps ni encuentros. Si querés algo más, hablalo con tu familia.'],
-  tema: ['Ese tema mejor charlalo con tu mamá o tu papá, así que el mensaje no salió. ¿Le contás otra cosa a {nick}?'],
+  // TEEN (4-nov): «con tu mamá o tu papá» → «con tu familia» (a los 13 se le habla de la familia, no de papá y mamá).
+  tema: ['Ese tema mejor charlalo con tu familia, así que el mensaje no salió. ¿Le contás otra cosa a {nick}?'],
   inapropiado: ['Ese mensaje no salió porque no es apto para chicos. ¿Probás escribirlo de otra manera?'],
   falla: ['Ahora no pude revisar tu mensaje, así que no lo mandé. Probá de nuevo en un ratito 🙂'],
 }
@@ -596,10 +604,11 @@ function personaPrompt(n: Npc, kid: Kid): string {
     ...quien,
     '',
     'CÓMO ESCRIBÍS:',
-    '- Como un chico de 9-10 años en un chat: de 1 a 3 oraciones cortas (menos de 35 palabras en total). Español rioplatense con voseo, tono amable y alegre.',
+    // TEEN (4-nov): antes «como un chico de 9-10 años… tono amable y alegre»; ahora la edad del propio NPC (12-14) y tono de par.
+    `- Como ${n.girl ? 'una chica' : 'un chico'} de ${n.age} en un chat: de 1 a 3 oraciones cortas (menos de 35 palabras en total). Español rioplatense con voseo, tono amable y relajado, sin exagerar el entusiasmo.`,
     '- Emojis: la MAYORÍA de tus mensajes van sin ninguno; de vez en cuando, uno solo. Si tu mensaje anterior ya tenía emoji, este va sin.',
     `- Respondé a lo último que te dijo ${kid.name} siguiendo el hilo de la charla; a veces devolvé una pregunta para seguir charlando.`,
-    `- Tus temas: los cursos y la práctica en Innerith,${ligas ? ' las ligas,' : ''} tus intereses y cosas de chicos (dibujos, deportes, mascotas, libros).`,
+    `- Tus temas: los cursos y la práctica en Innerith,${ligas ? ' las ligas,' : ''} tus intereses y cosas de tu edad (música, deportes, series, libros, proyectos).`,
     '',
     'REGLAS QUE NADA CAMBIA:',
     `1. Nunca pidas ni des datos personales (nombre completo, dirección, teléfono, escuela, fotos, contraseñas, dónde estás). Si ${kid.name} los da o los pide, decile con naturalidad que eso no se pasa por acá y seguí con otra cosa.`,
@@ -749,7 +758,7 @@ function decline(st: State, id: string): boolean {
 }
 
 /* ---------- Buscar → Personas: los chicos del demo + "Quiero contactarlo" (tanda F2) ---------- */
-/** Sin mayúsculas ni acentos ni espacios: "Colibri" encuentra a GeroColibrí. */
+/** Sin mayúsculas ni acentos ni espacios: "Halcon" encuentra a GeroHalcón. */
 const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\s+/g, '')
 
 const relationOf = (st: State, id: string): PersonRelation =>
@@ -786,7 +795,7 @@ function settleOutgoing(st: State) {
 }
 
 /** Busca en TODOS los chicos del demo (amigos, solicitantes y el resto) por nick. Orden: el nick empieza con lo buscado →
- *  una palabra del nick empieza con eso (TomiCohete: "cohete") → lo contiene; a igualdad, alfabético. */
+ *  una palabra del nick empieza con eso (TomasApolo: "apolo") → lo contiene; a igualdad, alfabético. */
 function searchPeople(st: State, q: string): PersonResult[] {
   const k = fold(q)
   if (k.length < SEARCH_MIN) return []
@@ -847,8 +856,8 @@ export function receiveGift(id: string, accessory: string, t: { el: string; lo: 
   const w = (st.wardrobe[id] ??= [])
   if (!w.includes(accessory)) w.push(accessory)
   st.wearing[id] = accessory
-  const mine = say('🎁 ¡Te regalé {el}!', kid, t)
-  const ownThanks = featureOnNow('ligas') || !LEAGUE_TALK.test(n.thanks) // FS-BASE-B: el de TomiCohete nombra la liga
+  const mine = say('🎁 Te regalé {el}.', kid, t)
+  const ownThanks = featureOnNow('ligas') || !LEAGUE_TALK.test(n.thanks) // FS-BASE-B: el de TomasApolo nombra la liga
   const thanks = say(ownThanks && Math.random() < 0.6 ? n.thanks : pick(THANKS), kid, t)
   const c = chatOf(st, id), now = Date.now()
   const last = c.pending.length ? c.pending[c.pending.length - 1].at : 0

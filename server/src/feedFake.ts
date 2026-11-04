@@ -20,7 +20,7 @@
 //     aprender (lecturas y rutas primero) · tarde = más para explorar (videos antes) · noche = más tranquila (videos de
 //     hasta 6 min y el hero como repaso sin apuro). El resumen lo dice así y avisa qué viene después: es verdad.
 //   - Cada ítem trae su "por qué" (`reason`) en lenguaje de chico, en el eje de SU interés ("Porque te gustan los
-//     dinosaurios", "TomiCohete es tu amigo", "Tu liga").
+//     dinosaurios", "TomasApolo es tu amigo", "Tu liga").
 //   - Los VIDEOS salen del catálogo aprobado real (se pueden abrir y reproducir); las LECTURAS son URLs reales de sitios de
 //     la lista blanca (pasan por el lector moderado). La grilla 'videos' son hasta 3 del tema + el total de ese tema (su
 //     "Ver todos" lleva a Buscar). TODO lo que lleva un "por qué" temático (los videos sueltos, la grilla y su total) sale
@@ -182,29 +182,40 @@ export function feedLess(id: string, undo = false): { ok: boolean } {
 /* ---------- "por qué": en el eje del interés del chico (mock v6) ---------- */
 /** Los temas de chico con los que se arma la edición (las sugerencias de la familia van aparte). Ver el DESVÍO de la
  *  cabecera: no salen de los temas blancos de fábrica del chat. */
-const INTERESTS = ['el sistema solar', 'dinosaurios', 'volcanes', 'tiburones', 'inventos', 'robots', 'la luna', 'experimentos para niños', 'fracciones']
+// TEEN (4-nov, pedido de Esteban: «que parezca para un chico de 13»): Ian tiene 13 (astronomía, música, programar,
+// ajedrez). Antes: sistema solar, dinosaurios, volcanes, tiburones, «experimentos para niños», fracciones. Cada tema se
+// midió contra el catálogo real por la vía ESTRICTA (videos.ts) ese día: todos rinden 7+ videos de 1-25 min, así la
+// edición no se adelgaza.
+const INTERESTS = ['agujeros negros', 'exploración espacial', 'programación', 'ajedrez', 'acordes', 'robots', 'cómo funciona un motor', 'mitología griega', 'álgebra']
 const TOPIC_WHY: Record<string, string> = {
-  'el sistema solar': 'Porque te interesa el espacio',
+  'agujeros negros': 'Porque te interesa el espacio',
+  'exploración espacial': 'Porque te interesa el espacio',
   'el espacio': 'Porque te interesa el espacio',
   'la luna': 'Porque te interesa el espacio',
-  dinosaurios: 'Porque te gustan los dinosaurios',
-  volcanes: 'Porque te copan los volcanes',
-  tiburones: 'Porque te gustan los animales del mar',
-  inventos: 'Porque te gusta saber cómo se inventan las cosas',
-  robots: 'Porque te gustan los robots',
-  'experimentos para niños': 'Porque te gusta experimentar',
-  fracciones: 'Para jugar con fracciones mirando',
+  programación: 'Porque te gusta programar',
+  ajedrez: 'Porque jugás al ajedrez',
+  acordes: 'Porque estás aprendiendo música',
+  robots: 'Porque te interesa la robótica',
+  'cómo funciona un motor': 'Porque te gusta entender cómo funcionan las cosas',
+  'mitología griega': 'Porque te interesa la historia',
+  álgebra: 'Para practicar álgebra mirando',
+  // temas de las lecturas (ARTICLES) que no son búsquedas de video
+  paleontología: 'Porque te interesa la paleontología',
+  geología: 'Porque te interesa cómo funciona la Tierra',
+  'biología marina': 'Porque te interesa la biología marina',
+  inventos: 'Porque te gusta saber cómo se inventaron las cosas',
+  'el método científico': 'Porque te gusta experimentar',
 }
 const kidWhy = (topic: string) => TOPIC_WHY[topic] ?? `Porque te interesa: ${topic}`
 /** El motivo de una sugerencia de la familia (tema blanco de la Zona de padres). */
 const familyReason = (t: string) => `Porque a tu familia le interesa: ${t}`
 /** Por qué aparece lo de un NPC, según lo que es EN EL GRAFO DEL ACTIVO (FS-BASE-B, hallazgo feedFake.ts:194: antes era por
- *  nick y a Luna le decía «FedeAjedrez es tu amigo» cuando él solo le había mandado una solicitud): amigo → "<nick> es tu
+ *  nick y a Luna le decía «FedeBlitz es tu amigo» cuando él solo le había mandado una solicitud): amigo → "<nick> es tu
  *  amiga/amigo"; solicitud pendiente → "<nick> quiere ser tu amiga/amigo" (el género sale de friendsFake.npcInfo: una sola
- *  lista de NPCs en el sistema). NicoRobot conserva SIEMPRE su caso especial (el de la solicitud de amistad de Ian: hace
- *  Fracciones como Ian, sea o no su amigo todavía). Lo que se sirve ya pasó por isVisibleNpc (amigo o te pidió contacto). */
+ *  lista de NPCs en el sistema). NicoServo conserva SIEMPRE su caso especial (el de la solicitud de amistad de Ian: hace
+ *  Álgebra como Ian (TEEN, 4-nov: antes Fracciones), sea o no su amigo todavía). Lo que se sirve ya pasó por isVisibleNpc (amigo o te pidió contacto). */
 const npcWhy = (nick: string) => {
-  if (nick === 'NicoRobot') return 'NicoRobot hace Fracciones como vos'
+  if (nick === 'NicoServo') return 'NicoServo hace Álgebra como vos'
   const n = npcInfo(nick)
   if (!n) return 'Es de tus amigos'
   const who = n.girl ? 'amiga' : 'amigo'
@@ -225,14 +236,14 @@ const ARTICLES: { title: string; url: string; source: string; snippet: string; t
   { title: 'El cinturón de asteroides', url: 'https://es.wikipedia.org/wiki/Cintur%C3%B3n_de_asteroides', source: 'es.wikipedia.org', snippet: 'Entre Marte y Júpiter hay millones de rocas girando alrededor del Sol.', topic: 'el espacio' },
   { title: '¿Qué es un cometa?', url: 'https://concepto.de/cometas/', source: 'concepto.de', snippet: 'Cuerpos celestes con núcleo de hielo y polvo que desarrollan una cola brillante.', topic: 'el espacio' },
   { title: 'La Vía Láctea', url: 'https://es.wikipedia.org/wiki/V%C3%ADa_L%C3%A1ctea', source: 'es.wikipedia.org', snippet: 'La galaxia espiral donde vive el sistema solar, con cientos de miles de millones de estrellas.', topic: 'el espacio' },
-  { title: 'Tyrannosaurus rex, el rey de los dinosaurios', url: 'https://es.wikipedia.org/wiki/Tyrannosaurus_rex', source: 'es.wikipedia.org', snippet: 'Uno de los carnívoros más grandes que pisaron la Tierra: vivió al final del Cretácico.', topic: 'dinosaurios' },
-  { title: '¿Qué es un volcán?', url: 'https://concepto.de/volcan/', source: 'concepto.de', snippet: 'Cómo se forman, qué tipos hay y por qué algunos están dormidos durante siglos.', topic: 'volcanes' },
-  { title: 'El tiburón blanco', url: 'https://concepto.de/tiburon/', source: 'concepto.de', snippet: 'Dónde vive, qué come y cómo es uno de los grandes cazadores del océano.', topic: 'tiburones' },
-  { title: 'Arduino: la placa para armar robots', url: 'https://es.wikipedia.org/wiki/Arduino', source: 'es.wikipedia.org', snippet: 'La placa electrónica con la que chicos y grandes arman robots, luces y sensores.', topic: 'robots' },
+  { title: 'Tyrannosaurus rex, el rey de los dinosaurios', url: 'https://es.wikipedia.org/wiki/Tyrannosaurus_rex', source: 'es.wikipedia.org', snippet: 'Uno de los carnívoros más grandes que pisaron la Tierra: vivió al final del Cretácico.', topic: 'paleontología' },
+  { title: '¿Qué es un volcán?', url: 'https://concepto.de/volcan/', source: 'concepto.de', snippet: 'Cómo se forman, qué tipos hay y por qué algunos están dormidos durante siglos.', topic: 'geología' },
+  { title: 'El tiburón blanco', url: 'https://concepto.de/tiburon/', source: 'concepto.de', snippet: 'Dónde vive, qué come y cómo es uno de los grandes cazadores del océano.', topic: 'biología marina' },
+  { title: 'Arduino: la placa para armar robots', url: 'https://es.wikipedia.org/wiki/Arduino', source: 'es.wikipedia.org', snippet: 'La placa programable con la que se arman robots, luces y sensores: hardware libre desde 2005.', topic: 'robots' },
   { title: 'La imprenta', url: 'https://es.wikipedia.org/wiki/Imprenta', source: 'es.wikipedia.org', snippet: 'El invento que permitió copiar libros en cantidad y cambió cómo aprende el mundo.', topic: 'inventos' },
-  { title: 'El método científico', url: 'https://concepto.de/metodo-cientifico/', source: 'concepto.de', snippet: 'Observar, preguntar, probar y sacar conclusiones: los pasos de todo buen experimento.', topic: 'experimentos para niños' },
-  { title: 'Fracciones', url: 'https://www.disfrutalasmatematicas.com/fracciones.html', source: 'disfrutalasmatematicas.com', snippet: 'Qué son el numerador y el denominador, explicado con pizzas y dibujos.', topic: 'fracciones', why: 'Para jugar con fracciones leyendo' },
-  { title: 'Triceratops', url: 'https://es.wikipedia.org/wiki/Triceratops', source: 'es.wikipedia.org', snippet: 'El dinosaurio de los tres cuernos y el gran escudo de hueso en la cabeza.', topic: 'dinosaurios' },
+  { title: 'El método científico', url: 'https://concepto.de/metodo-cientifico/', source: 'concepto.de', snippet: 'Observar, preguntar, probar y sacar conclusiones: los pasos de todo buen experimento.', topic: 'el método científico' },
+  { title: 'Fracciones', url: 'https://www.disfrutalasmatematicas.com/fracciones.html', source: 'disfrutalasmatematicas.com', snippet: 'Numerador, denominador y operaciones: la base que después usa todo el álgebra.', topic: 'álgebra', why: 'Para repasar la base del álgebra leyendo' },
+  { title: 'Triceratops', url: 'https://es.wikipedia.org/wiki/Triceratops', source: 'es.wikipedia.org', snippet: 'El ceratopsio de los tres cuernos: qué nos dicen sus fósiles sobre cómo vivía.', topic: 'paleontología' },
   { title: 'Las fases de la Luna', url: 'https://es.wikipedia.org/wiki/Fase_lunar', source: 'es.wikipedia.org', snippet: 'Por qué la Luna se ve llena, en cuarto o nueva a lo largo del mes.', topic: 'la luna' },
 ]
 /* Rutas: el CATÁLOGO real de Learn (ver la cabecera). El catálogo no trae colores: el fondo de la card sale de un par fijo
@@ -291,8 +302,8 @@ function leagueNews(): { name: string; desc: string } {
     const res = `${lc.pos}º en la ${lc.from}`
     if (lc.medal && lc.movement === 'sube') return { name: l.name, desc: `${MEDAL_EMOJI[lc.medal]} ¡Saliste ${res} y subiste a la ${l.name}! Esta semana ${others}. ${closes}` }
     if (lc.medal) return { name: l.name, desc: `${MEDAL_EMOJI[lc.medal]} ¡Saliste ${res}${lc.top ? ', la más alta de todas' : ''}! Seguís ahí: esta semana ${others}. ${closes}` }
-    if (lc.movement === 'baja') return { name: l.name, desc: `Saliste ${res} y esta semana te toca la ${l.name}, con otros ${l.total - 1} ${peers} de tu nivel: ¡a sumar XP para volver a subir! ${closes}` }
-    return { name: l.name, desc: `Saliste ${res} y seguís en esta liga. Esta semana ${others}: ¡vamos por el podio! ${closes}` }
+    if (lc.movement === 'baja') return { name: l.name, desc: `Saliste ${res} y esta semana te toca la ${l.name}, con otros ${l.total - 1} ${peers} de tu nivel: a sumar XP para volver a subir. ${closes}` }
+    return { name: l.name, desc: `Saliste ${res} y seguís en esta liga. Esta semana ${others}: el podio está a tiro. ${closes}` }
   }
   if (lw?.medal) return { name: l.name, desc: `${MEDAL_EMOJI[lw.medal]} ¡La semana pasada saliste ${lw.pos}º en la ${l.name}! Esta semana ${others}. ${closes}` }
   if (lw) return { name: l.name, desc: `La semana pasada saliste ${lw.pos}º en la ${l.name}. Esta semana ${others}. ${closes}` }
@@ -396,19 +407,19 @@ const DP_NAME: Record<Daypart, string> = { manana: 'mañana', tarde: 'tarde', no
 const DESC: Record<Daypart, string> = {
   manana: 'Armé la edición con más para aprender: lecturas y rutas primero — cambia según la hora del día.',
   tarde: 'Armé la edición con más para explorar y menos repaso — cambia según la hora del día.',
-  noche: 'Armé una edición más tranquila: un repaso sin apuro y videos cortitos — cambia según la hora del día.',
+  noche: 'Armé una edición más tranquila: un repaso sin apuro y videos cortos — cambia según la hora del día.',
 }
 /** Cómo cambia en la franja que viene. */
 const LATER: Record<Daypart, string> = {
   manana: 'a la tarde cambia a más para explorar',
-  tarde: 'a la nochecita cambia a repaso tranquilo',
+  tarde: 'a la noche cambia a repaso tranquilo',
   noche: 'mañana arranca con más para aprender',
 }
 /* FS-BASE-B (hallazgo feedFake.ts:382): el "repaso sin apuro" de la noche solo existe si hay una ruta EN CURSO (nextStep: sin
    ella el hero de la noche es "Empezá …" o "Elegí qué aprender hoy"). Sin ruta en curso, el resumen de la noche no lo promete
    y el de la tarde no anuncia un repaso que no va a venir: el resumen "confiesa la mezcla y es verdad". */
-const DESC_NOCHE_SIN_REPASO = 'Armé una edición más tranquila, con videos cortitos — cambia según la hora del día.'
-const LATER_TARDE_SIN_REPASO = 'a la nochecita cambia a algo más tranquilo'
+const DESC_NOCHE_SIN_REPASO = 'Armé una edición más tranquila, con videos cortos — cambia según la hora del día.'
+const LATER_TARDE_SIN_REPASO = 'a la noche cambia a algo más tranquilo'
 /** Horas desde el cierre de liga del seed (lunes 00:00 de esta semana), en la ZONA HORARIA DE LA FAMILIA como la franja
  *  (sin zona, la del server). Horas "de pared" desde el lunes: en la semana del cambio de horario puede correrse una
  *  hora, y da igual (ubica en la escala de ageOf, que va de 1 a 100 h). */
@@ -520,13 +531,13 @@ function nextStep(dp: Daypart): Of<'next'> {
     const last = runs.filter((r) => r.lastAt > 0).sort((a, b) => b.lastAt - a.lastAt)[0]
     return {
       kind: 'next', id: `fn-${other.id}`, time: 'ahora', title: `Empezá ${other.title}`, meta: `${other.total} ${postasWord(other.total)} para descubrir${coins}`,
-      reason: last ? `Terminaste ${last.title}: ¡vamos por otra!` : 'Es una ruta para arrancar algo nuevo', action: { label: 'Empezar', to: routeLink(other.id) },
+      reason: last ? `Terminaste ${last.title}: seguí con otra` : 'Es una ruta para arrancar algo nuevo', action: { label: 'Empezar', to: routeLink(other.id) },
     }
   }
   const to = routeLink(cur.id)
   const left = cur.total - cur.done
   if (dp === 'noche') {
-    return { kind: 'next', id: `fn-${cur.id}`, time: 'ahora', title: `Repasá ${cur.title}, sin apuro`, meta: `Vas ${cur.done} de ${cur.total} ${postasWord(cur.total)} · un repaso cortito antes de dormir`, reason: 'A la noche, un repaso tranquilo te ayuda a recordar', action: { label: 'Repasar', to } }
+    return { kind: 'next', id: `fn-${cur.id}`, time: 'ahora', title: `Repasá ${cur.title}, sin apuro`, meta: `Vas ${cur.done} de ${cur.total} ${postasWord(cur.total)} · un repaso corto para cerrar el día`, reason: 'A la noche, un repaso tranquilo te ayuda a recordar', action: { label: 'Repasar', to } }
   }
   return {
     kind: 'next', id: `fn-${cur.id}`, time: 'ahora', title: `Seguí con ${cur.title}`,
@@ -726,9 +737,10 @@ const friendColor = (nick: string) => npcInfo(nick)?.color ?? '#3A5BD9'
 const visibleNick = (nick: string) => isVisibleNpc(npcInfo(nick)?.id)
 /** La carrera de la liga, contada para el chico. */
 function raceText(ev: NpcRace): string {
-  if (ev.passedMe) return `te pasó en la ${ev.league}: sumó ${ev.gain} XP y ahora va ${ev.to}º 😮`
+  // TEEN (4-nov): sin el «😮» ni el «un montón 💪» de antes (tono de par, no de festejo).
+  if (ev.passedMe) return `te pasó en la ${ev.league}: sumó ${ev.gain} XP y ahora va ${ev.to}º`
   if (ev.to < ev.from) return `sumó ${ev.gain} XP y subió al ${ev.to}º puesto de tu ${ev.league} 📈`
-  return `practicó un montón: +${ev.gain} XP en tu ${ev.league} 💪`
+  return `metió +${ev.gain} XP en tu ${ev.league} esta semana`
 }
 const NPC_NEWS_BY_KEY = new Map(NPC_NEWS.map(e => [e.key, e]))
 const NPC_MEDALS_BY_KEY = new Map(NPC_MEDALS.map(e => [e.key, e]))

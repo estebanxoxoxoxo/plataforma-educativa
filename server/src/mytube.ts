@@ -507,7 +507,8 @@ async function curarDescripcion(title: string, raw: string): Promise<string> {
     console.log(`[mytube] LLM descripción curada de «${title}» · ${usage.llmCalls} llamada(s) desde el arranque`)
     const { text } = await complete({
       model: MODELS.juez,
-      system: 'Resumís en 1-2 oraciones, en español rioplatense y tono cálido para un niño de 9-12 años, de qué trata un canal de YouTube. Sin links, sin promociones, sin pedir suscripciones. Si no hay info útil, devolvé una frase neutra y breve.',
+      // TEEN (4-nov): antes «para un niño de 9-12 años»; Ian tiene 13
+      system: 'Resumís en 1-2 oraciones, en español rioplatense y tono cálido y directo para alguien de 12 a 14 años, de qué trata un canal de YouTube. Sin links, sin promociones, sin pedir suscripciones. Si no hay info útil, devolvé una frase neutra y breve.',
       messages: [{ role: 'user', content: `Canal: ${title}\nDescripción: ${limpia || '(sin descripción)'}` }],
       maxTokens: 120,
       budget: 'aux', // FS-BASE-B: 12 s sin reintento (corre dentro del slot de 2 del enriquecimiento; si vence, la limpia)

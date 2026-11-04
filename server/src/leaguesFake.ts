@@ -7,7 +7,7 @@
 // sus medallas y su "Simular cierre"— con un pool de NPCs PROPIO y DISJUNTO del de los demás (leaguePools.ts; regla 7: un
 // NPC tiene UN puntaje y está en UNA tabla: si Luna e Ian compartieran nicks, "Simular NPCs" de uno le cambiaría el
 // puntaje al NPC en la tabla del otro). Ian = exactamente lo de siempre (Liga Cometa, 7.º, la semana pasada 🥈); Luna =
-// Liga Estrella con chicos de 11-13; Andrés (el adulto, D4) = Liga Chispa con OTROS GRANDES que aprenden. El ciclo de cada
+// Liga Estrella con chicos de 12-14; Andrés (el adulto, D4) = Liga Chispa con OTROS GRANDES que aprenden. El ciclo de cada
 // uno es un slice de perUser() (el del usuario del pedido, por el contexto de U3): las funciones conservan su firma y
 // operan sobre el del activo. Zona y país usan la MISMA fórmula y anclas para todos (son de la zona, no del chico): dos
 // hermanos con la misma XP quedan en el mismo puesto de Palermo. Lo único que depende de quién mira es QUIÉN encabeza:
@@ -97,8 +97,8 @@ import { wallClock, wallDate } from '../../src/shared/lib/zonedClock'
 export type Medal = 'oro' | 'plata' | 'bronce'
 export type Movement = 'sube' | 'baja' | 'queda'
 interface LeagueDef { id: string; name: string; color: string; emoji: string; /** XP típica de una semana completa de sus chicos */ pace: number }
-/** De abajo hacia arriba. Cometa es la del seed de Ian; Chispa (la de JuanchiRayo y NicoRobot en Amigos, y la de Andrés)
- *  y Estrella (la de MateoDino, que subió con el oro, y la de Luna) ya existían en el mundo del demo: la escalera las respeta. */
+/** De abajo hacia arriba. Cometa es la del seed de Ian; Chispa (la de JuanTrueno y NicoServo en Amigos, y la de Andrés)
+ *  y Estrella (la de MateoPaleo, que subió con el oro, y la de Luna) ya existían en el mundo del demo: la escalera las respeta. */
 const LADDER: readonly LeagueDef[] = [
   { id: 'lg-chispa', name: 'Liga Chispa', color: '#F26B3A', emoji: '✨', pace: 760 },
   { id: 'lg-cometa', name: 'Liga Cometa', color: '#F2A81D', emoji: '☄️', pace: 1280 },

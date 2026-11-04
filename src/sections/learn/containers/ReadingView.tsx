@@ -89,7 +89,7 @@ export function ReadingView({ url, title, onClose, ctaLabel, onCta }: {
             {state === 'error' && <p className="ln-read-msg">No puedo revisar esto ahora mismo. Probemos de nuevo en un ratito 🙂</p>}
             {state === 'bloqueado' && (
               <div className="ln-read-msg">
-                Esta página no está disponible.<br /><span>Si te interesa, podés pedírsela a papá o mamá.</span>
+                Esta página no está disponible.<br /><span>Si te interesa, podés pedírsela a tu familia.</span>
               </div>
             )}
             {state === 'ok' && article && (

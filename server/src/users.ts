@@ -3,7 +3,7 @@
 // PIN: es SU menú) donde configura lo de ellos. Los CANDADOS son del dependiente: los apagados de funcionalidades y los
 // horarios por sección rigen SOLO cuando el usuario activo es un chico; el adulto nunca queda afuera de su plataforma.
 //
-// FAKE / DEMO: tres usuarios seed EN CÓDIGO (no es config editable) — Ian (9, chico), Luna (12, chica; U3, 27-oct) y
+// FAKE / DEMO: tres usuarios seed EN CÓDIGO (no es config editable) — Ian (13, chico; TEEN 4-nov: antes 9), Luna (12, chica; U3, 27-oct) y
 // Andrés (38, adulto, el guardián de los dos: dependents ['ian','luna']) — y el usuario ACTIVO lo elige el cliente con el
 // switch de la barra superior: guarda el id en localStorage['innerith.user'] y lo manda en CADA llamada como cabecera
 // X-Innerith-User (src/api/index.ts). Acá solo se valida contra el seed: desconocida o ausente → ian (la app arranca como
@@ -36,7 +36,7 @@ export interface UserInfo {
 
 /* ---------- seed del demo ---------- */
 const SEED: readonly UserInfo[] = [
-  { id: 'ian', name: config.apodo || 'Ian', nick: config.apodo || 'Ian', age: 9, kind: 'child' },
+  { id: 'ian', name: config.apodo || 'Ian', nick: config.apodo || 'Ian', age: 13, kind: 'child' }, // TEEN (4-nov, Esteban: «para un chico de 13»)
   { id: 'luna', name: 'Luna', nick: 'Luna', age: 12, kind: 'child' },
   { id: 'andres', name: 'Andrés', nick: 'Andrés', age: 38, kind: 'adult', dependents: ['ian', 'luna'] },
 ]

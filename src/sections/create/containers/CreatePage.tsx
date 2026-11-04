@@ -205,10 +205,19 @@ export function CreatePage() {
     const m = state.modules.find((x) => x.id === mid);
     if (!m) return;
     // video de YouTube → se manda la URL (route-lab baja el transcript + título); artículo → el título.
-    const isVideo = parseYtUrl(m.source.url)?.type === 'video';
-    const src = (isVideo ? m.source.url : m.source.title).trim();
+    // Un link de video DENTRO de una playlist (watch?v=…&list=PL…) parsea como playlist (regla pensada para MyTube),
+    // pero acá el módulo es UN contenido: si la URL trae v=, se toma ESE video (4-nov, Esteban pegó un link así y el
+    // formulario le pedía «agregá el contenido» con la URL puesta). Una playlist sin v= no sirve como fuente: se avisa.
+    const ref = parseYtUrl(m.source.url);
+    const vidInList = ref?.type === 'playlist' ? (() => { try { return new URL(m.source.url.trim()).searchParams.get('v'); } catch { return null; } })() : null;
+    const isVideo = ref?.type === 'video' || !!vidInList;
+    const src = (vidInList ? `https://www.youtube.com/watch?v=${vidInList}` : isVideo ? m.source.url : m.source.title).trim();
     if (!src) {
-      patchModule(mid, { error: isVideo ? 'Falta la URL del video.' : 'Agregá el contenido (URL o título) antes de generar.' });
+      patchModule(mid, {
+        error: ref?.type === 'playlist'
+          ? 'Una playlist entera no sirve como fuente: pegá el link de UN video.'
+          : isVideo ? 'Falta la URL del video.' : 'Agregá el contenido (URL o título) antes de generar.',
+      });
       return;
     }
     if (m.comprehension || m.profundizacion.length) {

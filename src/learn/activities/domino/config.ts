@@ -38,10 +38,14 @@ export interface DominoMathPreset {
   durationSec: number
 }
 
+/* TEEN-COPY (4-nov): «sumas 0–10» era de primer grado; el usuario modelo tiene 13. El generador del dominó solo arma
+   + y − (makeExprCell), así que «tablas/álgebra» acá cambiaría estructura: se madura el RANGO (cálculo mental hasta
+   20/50/100) con las mismas ops, cantidad de fichas y duraciones. Las Definiciones seed (definitions.ts) NO se tocan:
+   fidelity.test las fija como las del POC. */
 export const MATH_PRESETS: DominoMathPreset[] = [
-  { id: 'facil', label: 'Fácil · sumas 0–10', math: { maxValue: 10, ops: ['+'], tileCount: 6 }, durationSec: 60 },
-  { id: 'medio', label: 'Medio · sumas y restas 0–12', math: { maxValue: 12, ops: ['+', '-'], tileCount: 8 }, durationSec: 75 },
-  { id: 'dificil', label: 'Difícil · sumas y restas 0–20', math: { maxValue: 20, ops: ['+', '-'], tileCount: 10 }, durationSec: 90 },
+  { id: 'facil', label: 'Fácil · cálculo mental hasta 20', math: { maxValue: 20, ops: ['+', '-'], tileCount: 6 }, durationSec: 60 },
+  { id: 'medio', label: 'Medio · cálculo mental hasta 50', math: { maxValue: 50, ops: ['+', '-'], tileCount: 8 }, durationSec: 75 },
+  { id: 'dificil', label: 'Difícil · cálculo mental hasta 100', math: { maxValue: 100, ops: ['+', '-'], tileCount: 10 }, durationSec: 90 },
 ]
 
 export interface DominoPairsPreset {

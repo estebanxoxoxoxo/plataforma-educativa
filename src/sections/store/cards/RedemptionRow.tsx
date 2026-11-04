@@ -4,7 +4,7 @@ import type { Redemption } from '../../../api/types';
 import { useCycle } from '../../parent/lib/cycle';
 import { fmtEc, fmtFull, fmtWhen, isoOf, tintFor } from '../lib/format';
 
-/** Un canje del chico: qué fue, cuánto costó, cuándo, y si papá o mamá ya lo entregaron.
+/** Un canje del chico: qué fue, cuánto costó, cuándo, y si sus papás ya lo entregaron.
  *  U5: el premio de la semana de la liga de la familia (`origin: 'liga-familia'`) llega como un canje más, pero no costó ⚡
  *  (price 0, no es un ítem): en lugar del precio dice "🏆 Lo ganaste en la liga de la familia".
  *  La fecha, en la ZONA DE LA FAMILIA (useCycle().tz: la pared de la barra superior; QA-U5-E). */

@@ -59,7 +59,7 @@ export function GiftSheet({ s, ec, friends, failed, onPick, onConfirm, onBack, o
               <span>Te quedan <b>{fmtEc(s.ec)} <IcCoin className="ec-coin" aria-hidden="true" /></b></span>
             </p>
             <div className="st-sheet-btns">
-              <button type="button" className="st-btn st-btn--ghost" onClick={onClose}>¡Genial!</button>
+              <button type="button" className="st-btn st-btn--ghost" onClick={onClose}>Listo</button>
               <button type="button" className="st-btn st-btn--gift" data-autofocus onClick={() => onChat(f.id)}>Ver su mensaje</button>
             </div>
           </div>

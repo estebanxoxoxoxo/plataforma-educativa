@@ -161,7 +161,7 @@ export function ChatPage() {
           <button className="cx-send" type="submit" aria-label="Enviar" disabled={busy || !text.trim()}><LnArrowUp /></button>
         </form>
         {text.length >= COUNT_FROM && <div className="cx-count" aria-live="polite">{text.length}/{MAX_INPUT}</div>}
-        <div className="cx-note"><IcShield />Respuestas y contenidos moderados para chicos</div>
+        <div className="cx-note"><IcShield />Respuestas y contenidos moderados para tu edad</div>
       </div>
 
       {history && (

@@ -38,7 +38,7 @@ describe('Amigos: juez de mensajes caído', () => {
   it('con una frase de crisis: no sale, se le muestra el GUION y el padre recibe el aviso de crisis SIN CLASIFICAR', async () => {
     const r = await send('ya no quiero vivir');
     expect(r.body).toEqual({ status: 'blocked', notice: 'GUION DE CONTENCIÓN' });
-    expect(P.notify).toEqual([['crisis', 'ya no quiero vivir', 'la conversación con TomiCohete (Amigos)', { unclassified: true }]]);
+    expect(P.notify).toEqual([['crisis', 'ya no quiero vivir', 'la conversación con TomasApolo (Amigos)', { unclassified: true }]]);
     expect(P.unreviewed).toEqual([]);
   });
 
@@ -46,7 +46,7 @@ describe('Amigos: juez de mensajes caído', () => {
     const r = await send('che, ¿jugamos a la tarde?');
     expect(r.body.status).toBe('blocked');
     expect(r.body.notice).toMatch(/^Ahora no pude revisar tu mensaje.*adulto de confianza\.$/);
-    expect(P.unreviewed).toEqual([['che, ¿jugamos a la tarde?', 'la conversación con TomiCohete (Amigos)']]);
+    expect(P.unreviewed).toEqual([['che, ¿jugamos a la tarde?', 'la conversación con TomasApolo (Amigos)']]);
     expect(P.notify).toEqual([]);
   });
 });

@@ -21,8 +21,8 @@ export function resolveTab(q: string | null, familyOn: boolean): LTab {
   return 'liga';
 }
 
-/** El caption de Mi liga: "Liga Cometa · 12 chicos"; para un adulto (su tabla es de OTROS GRANDES, U4 · D4) "· 12 grandes". */
-export const leagueCaption = (name: string, total: number, adult: boolean) => `${name} · ${total} ${adult ? 'grandes' : 'chicos'}`;
+/** El caption de Mi liga: "Liga Cometa · 12 en tu liga" (TEEN-COPY 4-nov: «chicos» sonaba a nene para 13); para un adulto (su tabla es de OTROS GRANDES, U4 · D4) "· 12 grandes". */
+export const leagueCaption = (name: string, total: number, adult: boolean) => `${name} · ${total} ${adult ? 'grandes' : 'en tu liga'}`;
 
 /** El caption de Tu zona / País: el lugar ("Palermo"); para un adulto, "Grandes de Palermo" (U4-B2: sus tops son de
  *  grandes, con la misma fórmula y anclas que los de los chicos). */

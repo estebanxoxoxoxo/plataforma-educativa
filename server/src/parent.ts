@@ -201,16 +201,19 @@ const isPinHash = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-
 /* Seed DEMO "del padre" (se escribe la PRIMERA vez que no hay parent.json y para cada integrante que nace; antes vivía en
    market.ts). Es lo que el papá publicaría para arrancar. Precios calibrados a una cosecha semanal de ~1.200 ⚡: lo
    cotidiano sale 100–250, una salida 400, un libro 600 y hay UNA meta grande para ahorrar varias semanas. stock null =
-   sin límite. Los ids 1..8 de Ian se conservan (la lista de deseos los usa); los de cada integrante nuevo salen de `seq`. */
+   sin límite. Los ids 1..8 de Ian se conservan (la lista de deseos los usa); los de cada integrante nuevo salen de `seq`.
+   TEEN (4-nov, Esteban: «que parezca para un chico de 13»): premios de 13 en los MISMOS lugares y precios (antes: «Día sin
+   tender la cama», «30 minutos más despierto», «parque de diversiones»). Solo rige para lo que se siembra de nuevo: lo ya
+   materializado en parent.json es dato de la familia y no se toca. */
 const SEED_ITEMS: Pick<ParentItem, 'emoji' | 'title' | 'desc' | 'price' | 'stock'>[] = [
-  { emoji: '🎮', title: '30 minutos de videojuegos', desc: 'Media hora de tu juego favorito, cuando terminás las tareas.', price: 150, stock: null },
+  { emoji: '🎮', title: '1 hora extra de juego el sábado', desc: 'Una hora más de tu juego, el sábado, con las tareas hechas.', price: 150, stock: null },
   { emoji: '🍿', title: 'Elegís la película del viernes', desc: 'Noche de peli en familia: esta vez la elección es tuya.', price: 250, stock: null },
-  { emoji: '🍦', title: 'Salida por un helado', desc: 'Vamos juntos a la heladería y elegís los gustos.', price: 400, stock: null },
-  { emoji: '🚲', title: '1 hora de bici en la plaza', desc: 'Salimos a andar juntos. ¡Llevá el casco!', price: 200, stock: null },
-  { emoji: '📚', title: 'Un libro nuevo que elijas', desc: 'Vamos a la librería y te llevás el que más te guste.', price: 600, stock: null },
-  { emoji: '🦉', title: '30 minutos más despierto', desc: 'Te acostás media hora más tarde un viernes o un sábado.', price: 350, stock: 2 },
-  { emoji: '🛏️', title: 'Día sin tender la cama', desc: 'Por un día la cama se queda como está. ¡Nadie te dice nada!', price: 100, stock: null },
-  { emoji: '🎢', title: 'Un día en el parque de diversiones', desc: 'La gran salida: un día entero de juegos. ¡Es para ahorrar!', price: 3000, stock: 1 },
+  { emoji: '🧗', title: 'Salida a escalar', desc: 'Una tarde en el muro de escalada, con el equipo alquilado.', price: 400, stock: null },
+  { emoji: '🍕', title: 'Pizza a elección', desc: 'La noche de pizza la elegís vos: gustos y lugar.', price: 200, stock: null },
+  { emoji: '📚', title: 'Un libro nuevo que elijas', desc: 'Vamos a la librería y te llevás el que quieras.', price: 600, stock: null },
+  { emoji: '🌙', title: '1 hora más despierto el sábado', desc: 'Te acostás una hora más tarde un viernes o un sábado.', price: 350, stock: 2 },
+  { emoji: '🍽️', title: 'Un día sin lavar los platos', desc: 'Por un día, los platos los lava otro.', price: 100, stock: null },
+  { emoji: '🎟️', title: 'Entradas para un recital o un partido', desc: 'La gran salida, a elección: es para ahorrar varias semanas.', price: 3000, stock: 1 },
 ]
 const allFeatures = (on: boolean): ParentFeatures => ({ tienda: on, ligas: on, amigos: on, chat: on })
 /** El nombre del integrante para los textos del adulto ("bloquearía casi todo lo que lee Luna"). */

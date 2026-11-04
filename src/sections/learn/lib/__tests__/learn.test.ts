@@ -27,7 +27,7 @@ describe('resolveRoute', () => {
     expect(states([])).toEqual(['p1:available:0', 'p2:locked:0', 'r1:locked:0', 'p3:locked:0']);
   });
 
-  it('umbral: por debajo sigue disponible ("¡Lo lograste!" no alcanza, trampa 3); con bestPct ≥ umbral queda lograda', () => {
+  it('umbral: por debajo sigue disponible ("Lo lograste" no alcanza, trampa 3); con bestPct ≥ umbral queda lograda', () => {
     expect(states([row('t1', 0.615)])).toEqual(['p1:available:1', 'p2:locked:0', 'r1:locked:0', 'p3:locked:0']);
     expect(states([row('t1', 0.615), row('t1', 0.7)])).toEqual(['p1:done:2', 'p2:available:0', 'r1:locked:0', 'p3:locked:0']);
   });

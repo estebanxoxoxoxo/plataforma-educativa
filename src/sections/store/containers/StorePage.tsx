@@ -399,7 +399,7 @@ export function StorePage() {
                      arriba»: en el escritorio la tarjeta va en la columna de la derecha (30-oct). */
                   <p className="st-empty">Todavía no hay premios para canjear con <IcCoin className="ec-coin" aria-hidden="true" />. El premio de la semana de tu familia se gana en la liga.</p>
                 ) : (
-                  <p className="st-empty">Papá y mamá todavía no publicaron premios. ¡Seguí juntando <IcCoin className="ec-coin" aria-hidden="true" /> mientras tanto!</p>
+                  <p className="st-empty">Tu familia todavía no publicó premios. Sumá <IcCoin className="ec-coin" aria-hidden="true" /> practicando mientras tanto.</p>
                 )}
               </section>
 

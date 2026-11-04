@@ -62,7 +62,7 @@ describe('npcRoster = el seed de friendsFake', () => {
 });
 
 describe('con Ligas apagadas, los NPCs no hablan de ligas (hallazgo friendsFake.ts:539)', () => {
-  it('Ligas PRENDIDAS: el prompt de TomiCohete trae su liga y sus carreras de XP (lo de siempre)', async () => {
+  it('Ligas PRENDIDAS: el prompt de TomasApolo trae su liga y sus carreras de XP (lo de siempre)', async () => {
     const sys = await npcPromptAfter('ian', 'f1');
     expect(sys).toMatch(/Liga actual: Liga Cometa/);
     expect(sys).toMatch(/carreras de XP/);
@@ -74,7 +74,7 @@ describe('con Ligas apagadas, los NPCs no hablan de ligas (hallazgo friendsFake.
     expect(rule).toHaveLength(1); // la regla nueva (ella misma nombra lo que prohíbe)
     const rest = sys.split('\n').filter(l => !rule.includes(l)).join('\n');
     expect(rest).not.toMatch(/Liga actual|ligas|carreras? de XP|Competitivo/i);
-    expect(sys).toMatch(/Le encantan los cohetes/); // el resto de la persona sigue
+    expect(sys).toMatch(/Sigue cada lanzamiento de cohetes/); // el resto de la persona sigue (TEEN, 4-nov: la persona de 13 de TomasApolo)
   });
   it('withoutLeagueTalk saca SOLO las oraciones que hablan de ligas', () => {
     expect(Fr.withoutLeagueTalk('Sabe de dinosaurios. Por ganar el oro en la Liga Cometa subió a la Liga Estrella. Le gusta contar datos.'))

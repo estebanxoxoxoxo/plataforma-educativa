@@ -13,9 +13,8 @@ export const AVATAR_COLORS = ['#3A5BD9', '#13A39A', '#F26B3A', '#8A5CF5', '#E548
 
 const INK = '#1B2238';
 const WHITE = '#FFFFFF';
-const NOSE = '#FF7A9C';
-const SKIN = { light: '#F7D3B7', medium: '#EDBB92', tan: '#C68A5E', deep: '#8A5A3C' } as const;
-const HAIR = { brown: '#4A3324', dark: '#2B1D16' } as const;
+const SKIN = { light: '#F7D3B7', medium: '#E3AE84', tan: '#C68A5E', deep: '#8A5A3C' } as const;
+const HAIR = { brown: '#4A3324', dark: '#2B1D16', sandy: '#B07A3E', auburn: '#7A3E22' } as const;
 
 /** Mezcla lineal de dos colores #RRGGBB (t = cuánto del segundo). */
 function mix(a: string, b: string, t: number): string {
@@ -26,250 +25,309 @@ function mix(a: string, b: string, t: number): string {
 type Kit = { c: string; d: string; l: string; bg: string };
 const kitFor = (c: string): Kit => ({ c, d: mix(c, INK, 0.3), l: mix(c, WHITE, 0.55), bg: mix(c, WHITE, 0.8) });
 
-/* ---------- piezas comunes (viewBox 48 × 48; el círculo lo recorta el CSS) ---------- */
-const Eyes = ({ x1, x2, y, r = 2.2, fill = INK }: { x1: number; x2: number; y: number; r?: number; fill?: string }) => (
+/* ---------- piezas comunes (viewBox 48 × 48; el círculo lo recorta el CSS) ----------
+   TEEN (4-nov): el set dejó el chibi de jardín. Ojos chicos y almendrados (no botones con brillo grande), cejas con una
+   apenas levantada, media sonrisa de costado en vez de la «u», sin cachetes rosados; los humanos son un busto (cuello y
+   hombros) con la cara más larga. Todo sigue leyéndose a 26-36 px: siluetas distintas, trazos de 1.1 o más. */
+const Eyes = ({ x1, x2, y, r = 1.6, fill = INK }: { x1: number; x2: number; y: number; r?: number; fill?: string }) => (
   <>
-    <circle cx={x1} cy={y} r={r} fill={fill} /><circle cx={x2} cy={y} r={r} fill={fill} />
-    <circle cx={x1 + r * 0.32} cy={y - r * 0.36} r={r * 0.34} fill={WHITE} /><circle cx={x2 + r * 0.32} cy={y - r * 0.36} r={r * 0.34} fill={WHITE} />
+    <ellipse cx={x1} cy={y} rx={r} ry={r * 1.14} fill={fill} /><ellipse cx={x2} cy={y} rx={r} ry={r * 1.14} fill={fill} />
+    <circle cx={x1 + r * 0.38} cy={y - r * 0.42} r={r * 0.3} fill={WHITE} /><circle cx={x2 + r * 0.38} cy={y - r * 0.42} r={r * 0.3} fill={WHITE} />
   </>
 );
-const Smile = ({ cx, y, w = 3, sw = 1.6 }: { cx: number; y: number; w?: number; sw?: number }) => (
-  <path d={`M${cx - w} ${y}q${w} ${w * 0.85} ${w * 2} 0`} fill="none" stroke={INK} strokeWidth={sw} strokeLinecap="round" />
+/** Cejas: la izquierda pareja, la derecha un poco más alta (la media actitud del set). */
+const Brows = ({ x1, x2, y, w = 3.4, sw = 1.35, c = INK, lift = 0.7 }: { x1: number; x2: number; y: number; w?: number; sw?: number; c?: string; lift?: number }) => (
+  <path d={`M${x1 - w / 2} ${y + 0.4}Q${x1} ${y - 0.6} ${x1 + w / 2} ${y}M${x2 - w / 2} ${y - lift}Q${x2} ${y - lift - 0.7} ${x2 + w / 2} ${y - lift + 0.5}`}
+    fill="none" stroke={c} strokeWidth={sw} strokeLinecap="round" />
 );
-const Cheeks = ({ x1, x2, y, r = 2.3 }: { x1: number; x2: number; y: number; r?: number }) => (
-  <g fill="#FF6F91" opacity={0.42}><circle cx={x1} cy={y} r={r} /><circle cx={x2} cy={y} r={r} /></g>
+/** Media sonrisa de costado: sube del lado derecho. */
+const Smirk = ({ cx, y, w = 2.6, sw = 1.35 }: { cx: number; y: number; w?: number; sw?: number }) => (
+  <path d={`M${cx - w} ${y}Q${cx + 0.3} ${y + w * 0.55} ${cx + w} ${y - w * 0.35}`} fill="none" stroke={INK} strokeWidth={sw} strokeLinecap="round" />
 );
 /** Polígono con puntas redondeadas (orejas, crestas): mismo color de relleno y de trazo. */
 const Soft = ({ d, fill, w = 2.4 }: { d: string; fill: string; w?: number }) => (
   <path d={d} fill={fill} stroke={fill} strokeWidth={w} strokeLinejoin="round" />
 );
-/** Espeja un path de coordenadas absolutas sobre el eje x = 24 (solo comandos M/L/Z con pares x,y). */
+/** Espeja un path de coordenadas absolutas sobre el eje x = 24 (solo comandos con pares x,y absolutos). */
 const mirror = (d: string) => d.replace(/(-?\d+(?:\.\d+)?)[ ,](-?\d+(?:\.\d+)?)/g, (_, x: string, y: string) => `${+(48 - Number(x)).toFixed(2)} ${y}`);
 
+/* ---------- los humanos: un busto común (cuello, hombros, orejas, cara) y la cara con su gesto ---------- */
+const FACE = 'M24 12.4C31 12.4 35.6 17 35.6 24C35.6 31.4 30.6 37.6 24 37.6S12.4 31.4 12.4 24C12.4 17 17 12.4 24 12.4Z';
+const SHIRT = 'M4.6 48C5.2 42.6 11 39.4 18.4 39C20 40.8 21.8 41.6 24 41.6S28 40.8 29.6 39C37 39.4 42.8 42.6 43.4 48Z';
+const Bust = ({ skin, shirt, ears = true }: { skin: string; shirt: string; ears?: boolean }) => <>
+  <path d="M20.4 31H27.6V42H20.4Z" fill={mix(skin, INK, 0.18)} />
+  <path d={SHIRT} fill={shirt} />
+  {ears && <><circle cx={12.7} cy={25.4} r={2.5} fill={skin} /><circle cx={35.3} cy={25.4} r={2.5} fill={skin} /></>}
+  <path d={FACE} fill={skin} />
+</>;
+const Face = ({ skin, brow, eyes = true }: { skin: string; brow: string; eyes?: boolean }) => <>
+  <Brows x1={19.6} x2={28.4} y={21.4} c={brow} />
+  {eyes && <Eyes x1={19.6} x2={28.4} y={25} r={1.45} />}
+  <path d="M24.5 26.6q.9 1.9-.7 2.5" fill="none" stroke={mix(skin, INK, 0.35)} strokeWidth={1.1} strokeLinecap="round" />
+  <Smirk cx={24} y={31.8} w={2.5} />
+</>;
+
 /* ---------- el set: 16 personajes (APPEND-ONLY: el índice es lo que se guarda en identity.json) ----------
+   TEEN (4-nov, dos pasadas): los índices de los animalitos tiernos se REUSARON con personajes de 13 (0 Gato → Casco de
+   moto, 1 Oso → Mochilero, 3 Conejo → Lentes, 4 Búho → Pelo largo, 5 Rana → DJ, 6 Panda → Gamer, 7 León → Rapado,
+   9 Marciano → Cuello alto, 10 Monstruo → Capucha, 11 Dino → Skater). El 2 es el Zorro (la mascota de la marca, ahora
+   geométrico): ese índice NO se mueve. Quedan dos no-humanos (Zorro y Robot); el resto son bustos que se distinguen por
+   la silueta de la cabeza (casco, capucha, gorra, gorro, rulos, pelo largo, jopo, rapado…).
    `bare` y `over` son SOLO para la ropa (guardarropas, más abajo): sin accesorio puesto se dibuja `draw`, igual que siempre.
-     · bare: el personaje sin su gorro propio, para los accesorios de cabeza que lo REEMPLAZAN (una corona no va arriba de
-       una gorra ni de un gorro de lana).
+     · bare: el personaje sin su prenda propia, para los accesorios que la REEMPLAZAN (una corona no va arriba de una gorra;
+       los auriculares del Gamer no se duplican; la bandana no se pisa con los auriculares al cuello del DJ).
      · over: piezas que se vuelven a pintar ARRIBA del accesorio (la antena del robot atraviesa la gorra, los cuernos del
-       monstruo asoman, el pompón queda delante de la vincha de los auriculares). */
+       casco del Robot asoma). */
 type Variant = {
   name: string;
   draw: (k: Kit) => ReactNode;
   bare?: { for: readonly WearId[]; draw: (k: Kit) => ReactNode };
   over?: { for: readonly WearId[]; draw: (k: Kit) => ReactNode };
 };
+
+const RobotAntenna = ({ d }: { d: string }) => <>
+  <path d="M24 6V11.8" stroke={d} strokeWidth={1.8} strokeLinecap="round" />
+  <rect x={21.8} y={3.2} width={4.4} height={3} rx={0.8} fill="#7CF0DC" stroke={d} strokeWidth={0.9} />
+</>;
+
+/* pelos y prendas propias de los humanos (cada uno en su versión con y sin la prenda) */
+const GamerHair = () => <Soft fill={HAIR.brown} w={1}
+  d="M12.6 23C11.4 15.4 16 10.4 24 10.4S36.6 15.4 35.4 23C34.4 20 33 18.6 31.4 17.8L30.6 20.2L28.4 17.2L26.4 19.8L24.6 16.8L22.2 19.6L20.8 17L18.4 19.6L17.4 17.6C15.4 18.6 13.6 20.4 12.6 23Z" />;
+const CapucHair = () => <path fill={HAIR.dark}
+  d="M12.6 22C12.4 15.8 17 12.2 24 12.2S35.6 15.8 35.4 22C33.4 18.8 30.4 17.6 27.6 18.2C24.8 19.2 21.2 19.6 18.4 18.8C15.8 18.6 13.8 19.8 12.6 22Z" />;
+const SkaterHair = () => <Soft fill={HAIR.sandy} w={1}
+  d="M12 24.6C10.8 15.6 15.8 10.6 24 10.6S37.2 15.6 36 24.6L34.4 20.8L33 23L31.6 18.8C28.6 17.4 25 17.8 22 19.2C19.6 18 17.4 18 15.6 19.2L14.6 22.8L13.4 20.4Z" />;
+const SideHair = ({ fill }: { fill: string }) => <path fill={fill}
+  d="M12.4 23.6C11.8 15.4 16.6 10.8 24 10.8S36.2 15.4 35.6 23.6C34.6 20.2 32.6 18.2 29.6 17.4C26.4 19.4 20.8 19.8 16.8 18.4C14.8 19.4 13.2 21.2 12.4 23.6Z" />;
+const MOCHI_HAIR = 'M12.2 24.4C10.6 16 15.6 10.6 24 10.6S37.4 16 35.8 24.4C35 21.4 33.6 19.8 31.6 19C30.4 20.6 28 21 26.4 19.6C24.6 21 21.6 21.2 20 19.4C18 20.8 15.4 20.6 14.8 19.2C13.6 20.4 12.6 22.2 12.2 24.4Z';
+const QUIFF = 'M12.4 23.4C11.4 16 14.4 11.2 19.6 9.8C23 8.4 28.6 7.8 32.4 10.4C35.6 12.6 36.2 17.6 35.6 23.4C34.8 20.4 33.4 18.8 31.4 18.2C27 18.8 21 18.6 16.4 17.8C14.4 19 13 21 12.4 23.4Z';
+const SWEPT = 'M12.6 22.6C12 15.4 16.6 11 24 11C30.6 11 35.6 14 36 19.4C33.6 17.6 30.6 17.2 27.6 17.8C23.6 18.8 19.6 20.6 15.8 20.4C14.4 21 13.2 21.6 12.6 22.6Z';
+const ShortCurls = () => <>
+  <path d="M12.6 25C12.2 18.6 16.8 14.6 24 14.6S35.8 18.6 35.4 25C33.4 21.6 29.6 20.4 24 20.4S14.6 21.6 12.6 25Z" fill={HAIR.dark} />
+  {[[14.2, 20.8, 2.9], [16.8, 17.4, 3.2], [20.8, 15.4, 3.4], [25.4, 15, 3.4], [29.6, 16.4, 3.2], [33, 19.4, 3]].map(([x, y, r], i) =>
+    <circle key={i} cx={x} cy={y} r={r} fill={HAIR.dark} />)}
+</>;
+
 const VARIANTS: Variant[] = [
-  { name: 'Gato', draw: ({ c, d, l }) => {
-    const ear = 'M10 23 L12.2 7.6 L22 14.6 Z', inner = 'M13.4 17.4 L14.5 11.4 L18.9 14.6 Z';
+  // Casco de moto integral, con la visera levantada: se le ven los ojos por la ventana; la mentonera tapa la boca.
+  /* 0 */ { name: 'Casco de moto', draw: ({ c, d }) => <>
+    <path d={SHIRT} fill={d} />
+    <path d="M24 4.6C35.6 4.6 41.6 12.6 41.6 24.4C41.6 31.6 39.4 37 36.4 40.8H11.6C8.6 37 6.4 31.6 6.4 24.4C6.4 12.6 12.4 4.6 24 4.6Z" fill={c} />
+    <path d="M21.6 4.9H26.4L26.8 12H21.2Z" fill={WHITE} opacity={0.85} />
+    <rect x={12.6} y={18.6} width={22.8} height={12} rx={5} fill={SKIN.light} stroke={INK} strokeWidth={1} />
+    <path d="M11.8 19.4C15.4 14.8 32.6 14.8 36.2 19.4L36 13.2C31.6 9.8 16.4 9.8 12 13.2Z" fill={INK} />
+    <path d="M15.4 13.6Q20 12 25 12.2" fill="none" stroke={WHITE} strokeWidth={1.1} strokeLinecap="round" opacity={0.6} />
+    <circle cx={10.4} cy={20.6} r={1.7} fill={d} /><circle cx={37.6} cy={20.6} r={1.7} fill={d} />
+    <Brows x1={19.6} x2={28.4} y={22} w={3.2} c={HAIR.brown} />
+    <Eyes x1={19.6} x2={28.4} y={25.4} r={1.45} />
+    <path d="M19.6 34.4H28.4M20.8 36.8H27.2" stroke={d} strokeWidth={1.3} strokeLinecap="round" />
+  </>,
+    // sin el casco (gorra, corona, vincha y auriculares van sobre el pelo)
+    bare: { for: ['gorra', 'corona', 'vincha', 'auriculares'], draw: ({ d }) => <>
+      <Bust skin={SKIN.light} shirt={d} />
+      <SideHair fill={HAIR.brown} />
+      <Face skin={SKIN.light} brow={HAIR.brown} />
+    </> } },
+  /* 1 */ { name: 'Mochilero', draw: ({ c, d }) => <>
+    <path d="M8.2 42Q8.6 35.4 14 35.2H34Q39.4 35.4 39.8 42Z" fill={mix(d, INK, 0.25)} />
+    <Bust skin={SKIN.tan} shirt={c} />
+    <path d="M14.2 40.2Q13 44 13.6 48M33.8 40.2Q35 44 34.4 48" fill="none" stroke={mix(d, INK, 0.25)} strokeWidth={3.2} strokeLinecap="round" />
+    <rect x={11.8} y={43.2} width={3.6} height={2.2} rx={0.6} fill={WHITE} opacity={0.85} /><rect x={32.6} y={43.2} width={3.6} height={2.2} rx={0.6} fill={WHITE} opacity={0.85} />
+    <path d={MOCHI_HAIR} fill={HAIR.brown} />
+    <Face skin={SKIN.tan} brow={HAIR.brown} />
+  </> },
+  // La mascota de la marca, madurada en serio: geométrico y angular (facetas planas, ojos rasgados), nada de peluche.
+  // Índice 2 FIJO (identity.json lo puede tener guardado).
+  /* 2 */ { name: 'Zorro', draw: ({ c, d }) => {
+    const ear = 'M9.4 22.6L10.4 3.4L21.2 12.8Z', inner = 'M12.4 16.8L12.9 9L17.6 12.9Z', eye = 'M14.4 21.6Q18.2 19.8 21.4 23Q17.6 24.6 14.4 21.6Z';
     return <>
-      <Soft d={ear} fill={c} /><Soft d={mirror(ear)} fill={c} />
-      <Soft d={inner} fill={l} w={1.2} /><Soft d={mirror(inner)} fill={l} w={1.2} />
-      <ellipse cx={24} cy={28} rx={15.6} ry={13.6} fill={c} />
-      <path d="M7.6 30.6l7 .6M8.2 34.4l6.6-1.2M40.4 30.6l-7 .6M39.8 34.4l-6.6-1.2" stroke={d} strokeWidth={1.1} strokeLinecap="round" />
-      <ellipse cx={24} cy={33.4} rx={6.4} ry={4.4} fill={l} />
-      <Eyes x1={18.2} x2={29.8} y={26.2} r={2.3} />
-      <Soft d="M22.3 30.4 H25.7 L24 32.4 Z" fill={NOSE} w={1.2} />
-      <path d="M24 32.6v1.2m0 0q-1.5 1.5-3 .3m3-.3q1.5 1.5 3 .3" fill="none" stroke={INK} strokeWidth={1.2} strokeLinecap="round" />
+      <Soft d={ear} fill={c} w={1} /><Soft d={mirror(ear)} fill={c} w={1} />
+      <Soft d={inner} fill={d} w={0.8} /><Soft d={mirror(inner)} fill={d} w={0.8} />
+      <Soft d="M7.8 21L14 12.4L24 11L34 12.4L40.2 21L37.4 28.8L24 43.8L10.6 28.8Z" fill={c} w={1} />
+      <path d="M24 11.2L20.4 18.4L24 23.6L27.6 18.4Z" fill={d} opacity={0.35} />
+      <Soft d="M8.4 22.2L17.6 27L24 35.6L30.4 27L39.6 22.2L37.2 29L24 43.6L10.8 29Z" fill={WHITE} w={0.8} />
+      <path d="M14 19.2L20.6 20.4M34 18.6L27.4 20" stroke={INK} strokeWidth={1.2} strokeLinecap="round" />
+      <path d={eye} fill={INK} /><path d={mirror(eye)} fill={INK} />
+      <circle cx={18.6} cy={21.9} r={0.55} fill={WHITE} /><circle cx={30.2} cy={21.9} r={0.55} fill={WHITE} />
+      <path d="M22 38.6H26L24 41.2Z" fill={INK} stroke={INK} strokeWidth={0.8} strokeLinejoin="round" />
     </>;
   } },
-  { name: 'Oso', draw: ({ c, d, l }) => <>
-    <circle cx={12.6} cy={14.6} r={6.3} fill={c} /><circle cx={35.4} cy={14.6} r={6.3} fill={c} />
-    <circle cx={12.6} cy={14.6} r={3.2} fill={d} /><circle cx={35.4} cy={14.6} r={3.2} fill={d} />
-    <circle cx={24} cy={28} r={15.2} fill={c} />
-    <ellipse cx={24} cy={33.4} rx={7.6} ry={5.8} fill={l} />
-    <Eyes x1={18} x2={30} y={25.4} r={2.2} />
-    <ellipse cx={24} cy={30.8} rx={2.9} ry={2.1} fill={INK} />
-    <path d="M24 32.6v1.5m-3 .6q1.5 1.4 3 0q1.5 1.4 3 0" fill="none" stroke={INK} strokeWidth={1.25} strokeLinecap="round" />
-  </> },
-  { name: 'Zorro', draw: ({ c, d }) => {
-    const ear = 'M9 23.5 L11 5.6 L21.6 14.2 Z', inner = 'M12.2 17.6 L13 10.6 L17.6 14.3 Z';
+  // Anteojos de sol puestos (aviador) y jopo: los del guardarropas los reemplazan (bare).
+  /* 3 */ { name: 'Lentes', draw: ({ c }) => {
+    const lens = 'M15 22.4H22.4Q23.2 22.4 22.8 24.6Q22 28.4 18.6 28.4Q15.4 28.4 14.8 24.8Q14.4 22.4 15 22.4Z';
     return <>
-      <Soft d={ear} fill={c} /><Soft d={mirror(ear)} fill={c} />
-      <Soft d={inner} fill={d} w={1.2} /><Soft d={mirror(inner)} fill={d} w={1.2} />
-      <path d="M8.4 22.4C8.4 14.6 15 12.6 24 12.6S39.6 14.6 39.6 22.4C39.6 31.4 32.6 38.6 24 42.2C15.4 38.6 8.4 31.4 8.4 22.4Z" fill={c} />
-      <path d="M8.6 24C14 24.4 19.4 28.6 24 34.8C28.6 28.6 34 24.4 39.4 24C38.6 32 32 38.6 24 42.2C16 38.6 9.4 32 8.6 24Z" fill={WHITE} />
-      <Eyes x1={17.4} x2={30.6} y={24} r={2.2} />
-      <ellipse cx={24} cy={36.2} rx={2.4} ry={1.8} fill={INK} />
+      <Bust skin={SKIN.medium} shirt={c} />
+      <path d={QUIFF} fill={HAIR.dark} />
+      <path d="M20 11.4Q25.4 9.4 30.4 11.2" fill="none" stroke={WHITE} strokeWidth={0.9} strokeLinecap="round" opacity={0.35} />
+      <Face skin={SKIN.medium} brow={HAIR.dark} eyes={false} />
+      <path d={lens} fill={INK} stroke="#C9962A" strokeWidth={0.9} strokeLinejoin="round" />
+      <path d={mirror(lens)} fill={INK} stroke="#C9962A" strokeWidth={0.9} strokeLinejoin="round" />
+      <path d="M22.6 23.2Q24 22.4 25.4 23.2M14.8 23.2H12.6M33.2 23.2H35.4" fill="none" stroke="#C9962A" strokeWidth={0.9} strokeLinecap="round" />
+      <path d="M16.6 24.2Q17.4 23.4 18.6 23.4M27.6 24.2Q28.4 23.4 29.6 23.4" fill="none" stroke={WHITE} strokeWidth={0.8} strokeLinecap="round" opacity={0.75} />
     </>;
-  } },
-  { name: 'Conejo', draw: ({ c, l }) => <>
-    <ellipse cx={17.6} cy={11.6} rx={4.5} ry={10.4} transform="rotate(-12 17.6 11.6)" fill={c} />
-    <ellipse cx={30.4} cy={11.6} rx={4.5} ry={10.4} transform="rotate(12 30.4 11.6)" fill={c} />
-    <ellipse cx={17.6} cy={12.6} rx={2.1} ry={7} transform="rotate(-12 17.6 12.6)" fill={l} />
-    <ellipse cx={30.4} cy={12.6} rx={2.1} ry={7} transform="rotate(12 30.4 12.6)" fill={l} />
-    <circle cx={24} cy={30.6} r={13.4} fill={c} />
-    <Cheeks x1={16.4} x2={31.6} y={33.4} r={2.3} />
-    <Eyes x1={18.8} x2={29.2} y={28.6} r={2.15} />
-    <ellipse cx={24} cy={32.2} rx={1.9} ry={1.35} fill={NOSE} />
-    <rect x={22.4} y={34.4} width={3.2} height={3.6} rx={0.9} fill={WHITE} stroke={INK} strokeWidth={0.9} />
-    <path d="M24 34.6v3.2M20.6 33.9q1.7 1.3 3.4 0q1.7 1.3 3.4 0" fill="none" stroke={INK} strokeWidth={1.1} strokeLinecap="round" />
+  },
+    bare: { for: ['anteojos'], draw: ({ c }) => <>
+      <Bust skin={SKIN.medium} shirt={c} />
+      <path d={QUIFF} fill={HAIR.dark} />
+      <Face skin={SKIN.medium} brow={HAIR.dark} />
+    </> } },
+  /* 4 */ { name: 'Pelo largo', draw: ({ d }) => <>
+    <path d="M10.6 26C9.6 15 15 9.6 24 9.6S38.4 15 37.4 26L38.6 42.6C35 44.6 31.6 43.4 30.4 41H17.6C16.4 43.4 13 44.6 9.4 42.6Z" fill={HAIR.auburn} />
+    <Bust skin={SKIN.light} shirt={d} ears={false} />
+    <path d="M12.4 27C11.6 17.6 16.6 12.2 24 12.2C21.4 15.6 18.6 18.4 14.6 19.8C13.4 21.8 12.8 24.2 12.4 27ZM35.6 27C36.4 17.6 31.4 12.2 24 12.2C26.6 15.6 29.4 18.4 33.4 19.8C34.6 21.8 35.2 24.2 35.6 27Z" fill={HAIR.auburn} />
+    <Face skin={SKIN.light} brow={mix(HAIR.auburn, INK, 0.3)} />
   </> },
-  { name: 'Búho', draw: ({ c, d, l }) => <>
-    <path d="M10.6 15.4L13.6 6.8L19.6 12.4C22.6 11.4 25.4 11.4 28.4 12.4L34.4 6.8L37.4 15.4C40.4 21.4 40.4 29.2 38.4 34.8C36 41.2 30.4 44.6 24 44.6S12 41.2 9.6 34.8C7.6 29.2 7.6 21.4 10.6 15.4Z"
-      fill={c} stroke={c} strokeWidth={1.4} strokeLinejoin="round" />
-    <ellipse cx={24} cy={40} rx={8.6} ry={6.6} fill={l} />
-    <circle cx={18} cy={23.6} r={6.5} fill={WHITE} /><circle cx={30} cy={23.6} r={6.5} fill={WHITE} />
-    <Eyes x1={18.6} x2={29.4} y={24} r={3.1} />
-    <Soft d="M22.2 27.8 H25.8 L24 31.4 Z" fill={d} w={1.4} />
+  /* 5 */ { name: 'DJ', draw: ({ c, d }) => <>
+    <Bust skin={SKIN.deep} shirt={d} />
+    <path d="M13 20.4C12.6 15 13 9.6 15 7.4H33C35 9.6 35.4 15 35 20.4C33.4 17.6 30 16.6 24 16.6S14.6 17.6 13 20.4Z" fill={HAIR.dark} />
+    <Face skin={SKIN.deep} brow={HAIR.dark} />
+    <path d="M16 37.6Q24 46.4 32 37.6" fill="none" stroke={INK} strokeWidth={2.8} strokeLinecap="round" />
+    <path d="M16 37.6Q24 46.4 32 37.6" fill="none" stroke={c} strokeWidth={1.6} strokeLinecap="round" />
+    <rect x={12.6} y={34.6} width={5.6} height={7.4} rx={2.4} fill={c} stroke={INK} strokeWidth={0.8} transform="rotate(-14 15.4 38.3)" />
+    <rect x={29.8} y={34.6} width={5.6} height={7.4} rx={2.4} fill={c} stroke={INK} strokeWidth={0.8} transform="rotate(14 32.6 38.3)" />
+  </>,
+    // sin sus auriculares al cuello (los del guardarropas van en la cabeza; la bandana ocupa el cuello)
+    bare: { for: ['auriculares', 'lazo'], draw: ({ d }) => <>
+      <Bust skin={SKIN.deep} shirt={d} />
+      <path d="M13 20.4C12.6 15 13 9.6 15 7.4H33C35 9.6 35.4 15 35 20.4C33.4 17.6 30 16.6 24 16.6S14.6 17.6 13 20.4Z" fill={HAIR.dark} />
+      <Face skin={SKIN.deep} brow={HAIR.dark} />
+    </> } },
+  /* 6 */ { name: 'Gamer', draw: ({ c, d }) => <>
+    <Bust skin={SKIN.light} shirt={d} />
+    <GamerHair />
+    <Face skin={SKIN.light} brow={HAIR.brown} />
+    <path d="M11.6 23.6C11 12.8 16.4 8 24 8S37 12.8 36.4 23.6" fill="none" stroke={INK} strokeWidth={3.4} strokeLinecap="round" />
+    <path d="M11.6 23.6C11 12.8 16.4 8 24 8S37 12.8 36.4 23.6" fill="none" stroke={c} strokeWidth={2.1} strokeLinecap="round" />
+    <path d="M11.6 30Q12.8 35 19.2 33.8" fill="none" stroke={INK} strokeWidth={1.3} strokeLinecap="round" />
+    <circle cx={19.6} cy={33.7} r={1.2} fill={INK} />
+    <rect x={8.8} y={21} width={5.8} height={9.4} rx={2.6} fill={c} stroke={INK} strokeWidth={0.8} />
+    <rect x={33.4} y={21} width={5.8} height={9.4} rx={2.6} fill={c} stroke={INK} strokeWidth={0.8} />
+  </>,
+    // sin sus auriculares (los del guardarropas los reemplazan; la corona va directo sobre el pelo)
+    bare: { for: ['auriculares', 'corona'], draw: ({ d }) => <>
+      <Bust skin={SKIN.light} shirt={d} />
+      <GamerHair />
+      <Face skin={SKIN.light} brow={HAIR.brown} />
+    </> } },
+  /* 7 */ { name: 'Rapado', draw: ({ c, d }) => <>
+    <Bust skin={SKIN.deep} shirt={c} />
+    <path d="M20.4 39.4L24 44.4L27.6 39.4Z" fill={WHITE} />
+    <path d="M17.4 39Q24 45.4 30.6 39" fill="none" stroke={d} strokeWidth={2.6} strokeLinecap="round" />
+    <path d="M24 44.6V48" stroke={d} strokeWidth={1.2} strokeLinecap="round" />
+    <path d="M12.6 22.4C12.6 15.6 17.4 12.4 24 12.4S35.4 15.6 35.4 22.4C33 19.6 29 18.8 24 18.8S15 19.6 12.6 22.4Z" fill={HAIR.dark} opacity={0.88} />
+    <Face skin={SKIN.deep} brow={HAIR.dark} />
   </> },
-  { name: 'Rana', draw: ({ c, d }) => <>
-    <circle cx={15} cy={15.4} r={7.3} fill={c} /><circle cx={33} cy={15.4} r={7.3} fill={c} />
-    <ellipse cx={24} cy={29.6} rx={18.6} ry={12.8} fill={c} />
-    <circle cx={15} cy={14.8} r={4.7} fill={WHITE} /><circle cx={33} cy={14.8} r={4.7} fill={WHITE} />
-    <Eyes x1={15.6} x2={32.4} y={15.4} r={2.5} />
-    <circle cx={21.8} cy={26.2} r={0.95} fill={d} /><circle cx={26.2} cy={26.2} r={0.95} fill={d} />
-    <Cheeks x1={11.6} x2={36.4} y={32.4} r={2.7} />
-    <path d="M13 29.6Q24 39.6 35 29.6" fill="none" stroke={INK} strokeWidth={1.8} strokeLinecap="round" />
-  </> },
-  { name: 'Panda', draw: ({ c, l }) => <>
-    <circle cx={12.4} cy={14.4} r={6.2} fill={c} /><circle cx={35.6} cy={14.4} r={6.2} fill={c} />
-    <circle cx={24} cy={28} r={15.4} fill={WHITE} stroke={l} strokeWidth={1.2} />
-    <ellipse cx={17.4} cy={27} rx={4.5} ry={5.8} transform="rotate(32 17.4 27)" fill={c} />
-    <ellipse cx={30.6} cy={27} rx={4.5} ry={5.8} transform="rotate(-32 30.6 27)" fill={c} />
-    <circle cx={18} cy={26.4} r={1.9} fill={WHITE} /><circle cx={30} cy={26.4} r={1.9} fill={WHITE} />
-    <circle cx={18.3} cy={26.6} r={1.05} fill={INK} /><circle cx={29.7} cy={26.6} r={1.05} fill={INK} />
-    <Cheeks x1={14.6} x2={33.4} y={34.2} r={2.1} />
-    <ellipse cx={24} cy={32.6} rx={2.7} ry={1.9} fill={INK} />
-    <path d="M24 34.2v1.2m-2.6.4q1.3 1.2 2.6 0q1.3 1.2 2.6 0" fill="none" stroke={INK} strokeWidth={1.15} strokeLinecap="round" />
-  </> },
-  { name: 'León', draw: ({ c, d, l }) => <>
-    <circle cx={24} cy={26.6} r={16.4} fill={c} />
-    {Array.from({ length: 12 }, (_, i) => {
-      const a = (i / 12) * Math.PI * 2;
-      return <circle key={i} cx={24 + Math.cos(a) * 15.2} cy={26.6 + Math.sin(a) * 15.2} r={5} fill={c} />;
-    })}
-    <circle cx={15.6} cy={17.6} r={3.3} fill={l} /><circle cx={32.4} cy={17.6} r={3.3} fill={l} />
-    <circle cx={15.6} cy={17.6} r={1.6} fill={d} /><circle cx={32.4} cy={17.6} r={1.6} fill={d} />
-    <circle cx={24} cy={27.6} r={11.2} fill={l} />
-    <Eyes x1={19.8} x2={28.2} y={25.6} r={2} />
-    <circle cx={22.1} cy={32.4} r={2.6} fill={WHITE} opacity={0.75} /><circle cx={25.9} cy={32.4} r={2.6} fill={WHITE} opacity={0.75} />
-    <Soft d="M22 29.4 H26 L24 31.8 Z" fill={d} w={1.3} />
-    <path d="M24 32v1.1m-2.3.5q1.15 1 2.3 0q1.15 1 2.3 0" fill="none" stroke={INK} strokeWidth={1.1} strokeLinecap="round" />
-  </> },
-  { name: 'Robot', draw: ({ c, d }) => <>
-    <path d="M24 6.8V12.4" stroke={d} strokeWidth={2.2} strokeLinecap="round" />
-    <circle cx={24} cy={6.2} r={2.9} fill={c} /><circle cx={23.1} cy={5.3} r={0.9} fill={WHITE} />
-    <rect x={6.2} y={21.6} width={4.6} height={10.4} rx={2} fill={d} /><rect x={37.2} y={21.6} width={4.6} height={10.4} rx={2} fill={d} />
-    <rect x={9.6} y={12} width={28.8} height={28.4} rx={7.4} fill={c} />
-    <rect x={13.4} y={17.4} width={21.2} height={13.2} rx={4.6} fill={INK} />
-    <circle cx={19.4} cy={24} r={2.6} fill="#7CF0DC" /><circle cx={28.6} cy={24} r={2.6} fill="#7CF0DC" />
-    <rect x={18.2} y={33.4} width={11.6} height={3.4} rx={1.7} fill={d} />
-    <path d="M22.1 33.6v3M25.9 33.6v3" stroke={c} strokeWidth={1} />
+  /* 8 */ { name: 'Robot', draw: ({ c, d }) => <>
+    <RobotAntenna d={d} />
+    <rect x={6.4} y={20.4} width={4.4} height={11.4} rx={1.4} fill={d} /><rect x={37.2} y={20.4} width={4.4} height={11.4} rx={1.4} fill={d} />
+    <rect x={9.8} y={11.6} width={28.4} height={29} rx={5} fill={c} />
+    <path d="M13.6 14.8H34.4" stroke={d} strokeWidth={1} strokeLinecap="round" opacity={0.7} />
+    <circle cx={12.8} cy={37.6} r={0.9} fill={d} /><circle cx={35.2} cy={37.6} r={0.9} fill={d} />
+    <rect x={12.6} y={18.2} width={22.8} height={11.6} rx={3.4} fill={INK} />
+    <rect x={15.6} y={22.6} width={6.2} height={2.6} rx={1.3} fill="#7CF0DC" transform="rotate(7 18.7 23.9)" />
+    <rect x={26.2} y={22.6} width={6.2} height={2.6} rx={1.3} fill="#7CF0DC" transform="rotate(-7 29.3 23.9)" />
+    <path d="M20 34.4Q24 36 28.2 33.6" fill="none" stroke={INK} strokeWidth={1.5} strokeLinecap="round" />
   </>,
     // la antena atraviesa la gorra (y queda delante de la vincha de los auriculares)
-    over: { for: ['gorra', 'auriculares'], draw: ({ c, d }) => <>
-      <path d="M24 6.8V12.4" stroke={d} strokeWidth={2.2} strokeLinecap="round" />
-      <circle cx={24} cy={6.2} r={2.9} fill={c} /><circle cx={23.1} cy={5.3} r={0.9} fill={WHITE} />
-    </> } },
-  { name: 'Marciano', draw: ({ c, d }) => <>
-    <path d="M18.6 14.4Q15.6 10 13.8 6.6M29.4 14.4Q32.4 10 34.2 6.6" fill="none" stroke={c} strokeWidth={2.2} strokeLinecap="round" />
-    <circle cx={13.4} cy={6.2} r={2.9} fill={d} /><circle cx={34.6} cy={6.2} r={2.9} fill={d} />
-    <path d="M24 11C34.6 11 40.2 18.6 39.6 26.6C39 35.6 31.6 42.6 24 42.6S9 35.6 8.4 26.6C7.8 18.6 13.4 11 24 11Z" fill={c} />
-    <ellipse cx={17} cy={26} rx={4.4} ry={6} transform="rotate(-28 17 26)" fill={INK} />
-    <ellipse cx={31} cy={26} rx={4.4} ry={6} transform="rotate(28 31 26)" fill={INK} />
-    <circle cx={16.4} cy={23.8} r={1.4} fill={WHITE} /><circle cx={30} cy={23.8} r={1.4} fill={WHITE} />
-    <Smile cx={24} y={35.2} w={2.6} />
-  </>,
-    // las antenas salen por arriba de la gorra y de la vincha de los auriculares
-    over: { for: ['gorra', 'auriculares'], draw: ({ c, d }) => <>
-      <path d="M18.6 14.4Q15.6 10 13.8 6.6M29.4 14.4Q32.4 10 34.2 6.6" fill="none" stroke={c} strokeWidth={2.2} strokeLinecap="round" />
-      <circle cx={13.4} cy={6.2} r={2.9} fill={d} /><circle cx={34.6} cy={6.2} r={2.9} fill={d} />
-    </> } },
-  { name: 'Monstruo', draw: ({ c, d }) => <>
-    <Soft d="M14.2 15.6 Q11.6 10.4 14 5.6 Q16.4 10.6 19.6 12.8 Z" fill={d} w={1.4} />
-    <Soft d="M33.8 15.6 Q36.4 10.4 34 5.6 Q31.6 10.6 28.4 12.8 Z" fill={d} w={1.4} />
-    <rect x={8} y={11.6} width={32} height={42} rx={15} fill={c} />
-    <circle cx={12.4} cy={31.6} r={1.5} fill={d} /><circle cx={36} cy={34.4} r={1.9} fill={d} /><circle cx={33.6} cy={16.8} r={1.2} fill={d} />
-    <circle cx={24} cy={23.6} r={7.8} fill={WHITE} />
-    <circle cx={24.6} cy={24.2} r={3.8} fill={INK} /><circle cx={26} cy={22.6} r={1.3} fill={WHITE} />
-    <path d="M16.6 32.4Q24 41.4 31.4 32.4Z" fill={INK} stroke={INK} strokeWidth={1.2} strokeLinejoin="round" />
-    <path d="M20.4 33.2h3.2v2.2q-1.6 1-3.2 0Z" fill={WHITE} />
-  </>,
-    // los cuernos asoman por la gorra y quedan delante de la vincha de los auriculares
-    over: { for: ['gorra', 'auriculares'], draw: ({ d }) => <>
-      <Soft d="M14.2 15.6 Q11.6 10.4 14 5.6 Q16.4 10.6 19.6 12.8 Z" fill={d} w={1.4} />
-      <Soft d="M33.8 15.6 Q36.4 10.4 34 5.6 Q31.6 10.6 28.4 12.8 Z" fill={d} w={1.4} />
-    </> } },
-  // De perfil (como 🦖): la única cabeza de costado del set, se reconoce hasta en 26 px.
-  { name: 'Dino', draw: ({ c, d, l }) => <>
-    <Soft d="M17.4 14.6 L18.6 8 L23 12.2 Z M12.4 20 L10 13.8 L16 15.6 Z M9.2 27.2 L5.4 22.4 L11.6 22.2 Z M7.8 35 L3.6 31.4 L9.6 30 Z" fill={d} w={1.8} />
-    <path d="M7.6 48C7.6 38 9.6 28.4 14.6 21.4C18.6 15.6 25.4 11.6 32.6 11.8C39.6 12 44.4 16.4 44.4 22.2C44.4 27.8 40.4 31.2 34.2 31.6C30.4 31.8 27.8 33.6 27.2 37.4L26.4 48Z" fill={c} />
-    <path d="M27.2 37.4C27.8 33.6 30.4 31.8 34.2 31.6L33.4 33.8C30.6 34.2 29.6 36.2 29.4 39.4L29 48H26.4Z" fill={l} />
-    <circle cx={34.6} cy={25.6} r={2.3} fill="#FF6F91" opacity={0.42} />
-    <circle cx={31.4} cy={19.6} r={2.5} fill={INK} /><circle cx={32.2} cy={18.7} r={0.85} fill={WHITE} />
-    <circle cx={41} cy={18.4} r={1} fill={d} />
-    <path d="M43 25.2Q37.4 28.8 31.6 26.6" fill="none" stroke={INK} strokeWidth={1.6} strokeLinecap="round" />
+    over: { for: ['gorra', 'auriculares'], draw: ({ d }) => <RobotAntenna d={d} /> } },
+  /* 9 */ { name: 'Cuello alto', draw: ({ c, d }) => <>
+    <Bust skin={SKIN.medium} shirt={c} />
+    <path d="M19.2 33H28.8Q29.6 37.6 29.8 40.4Q24 43 18.2 40.4Q18.4 37.6 19.2 33Z" fill={c} />
+    <path d="M19 35.6Q24 37.2 29 35.6M18.8 38.2Q24 40 29.2 38.2" fill="none" stroke={d} strokeWidth={0.9} strokeLinecap="round" />
+    <path d={SWEPT} fill={HAIR.dark} />
+    <Face skin={SKIN.medium} brow={HAIR.dark} />
   </> },
-  { name: 'Astronauta', draw: ({ c, d, l }) => <>
+  /* 10 */ { name: 'Capucha', draw: ({ c, d }) => <>
+    <path d={SHIRT} fill={c} />
+    <path d="M24 5.6C35 5.6 41.4 13.4 41 24.6C40.8 31.6 38.4 36.8 35.4 40.4H12.6C9.6 36.8 7.2 31.6 7 24.6C6.6 13.4 13 5.6 24 5.6Z" fill={c} />
+    <path d="M24 9.6C32.4 9.6 36.8 15.6 36.6 24C36.4 31.6 32.4 38 24 39.6C15.6 38 11.6 31.6 11.4 24C11.2 15.6 15.6 9.6 24 9.6Z" fill={d} />
+    <path d={FACE} fill={SKIN.tan} />
+    <CapucHair />
+    <Face skin={SKIN.tan} brow={HAIR.dark} />
+    <path d="M12.6 40.4Q24 44.6 35.4 40.4" fill="none" stroke={d} strokeWidth={1.1} strokeLinecap="round" />
+    <path d="M19.6 40.8V45.6M28.4 40.8V45.6" stroke={WHITE} strokeWidth={1.2} strokeLinecap="round" />
+  </>,
+    // con la capucha baja (gorra, corona, vincha y auriculares van sobre el pelo)
+    bare: { for: ['gorra', 'corona', 'vincha', 'auriculares'], draw: ({ c, d }) => <>
+      <Bust skin={SKIN.tan} shirt={c} />
+      <path d="M11.6 42.4C15 38.4 19.4 37.2 24 37.2S33 38.4 36.4 42.4" fill="none" stroke={d} strokeWidth={3} strokeLinecap="round" />
+      <CapucHair />
+      <Face skin={SKIN.tan} brow={HAIR.dark} />
+      <path d="M19.6 41.6V46.2M28.4 41.6V46.2" stroke={WHITE} strokeWidth={1.2} strokeLinecap="round" />
+    </> } },
+  /* 11 */ { name: 'Skater', draw: ({ c, d }) => <>
+    <Bust skin={SKIN.medium} shirt={d} />
+    <SkaterHair />
+    <path d="M27.4 10.2C30.8 6.4 36.4 4.6 40.2 5.8C38.8 8.8 34.6 10.8 31 11.8Z" fill={d} stroke={d} strokeWidth={1} strokeLinejoin="round" />
+    <path d="M11.4 20.8C11.4 12.4 16.6 8.4 24 8.4S36.6 12.4 36.6 20.8Z" fill={c} />
+    <path d="M20.4 21Q24 15.8 27.6 21Z" fill={HAIR.sandy} />
+    <path d="M21.2 18.6H26.8" stroke={d} strokeWidth={1} strokeLinecap="round" />
+    <path d="M11 20.8H37" stroke={d} strokeWidth={1.7} strokeLinecap="round" />
+    <circle cx={24} cy={8.6} r={1.5} fill={d} />
+    <Face skin={SKIN.medium} brow={mix(HAIR.sandy, INK, 0.35)} />
+  </>,
+    // sin su gorra al revés (la gorra, la corona y la vincha del guardarropas la reemplazan): pelo despeinado
+    bare: { for: ['gorra', 'corona', 'vincha'], draw: ({ d }) => <>
+      <Bust skin={SKIN.medium} shirt={d} />
+      <SkaterHair />
+      <Face skin={SKIN.medium} brow={mix(HAIR.sandy, INK, 0.35)} />
+    </> } },
+  /* 12 */ { name: 'Astronauta', draw: ({ c, d, l }) => <>
     <rect x={4.4} y={21.6} width={4.8} height={10} rx={2.2} fill={d} /><rect x={38.8} y={21.6} width={4.8} height={10} rx={2.2} fill={d} />
     <circle cx={24} cy={26.6} r={17.6} fill={c} />
     <circle cx={24} cy={27.4} r={13.6} fill={l} />
     <circle cx={24} cy={27.4} r={12.4} fill={SKIN.medium} />
-    <path d="M11.8 26C12.4 18.4 17.4 15 24 15S35.6 18.4 36.2 26C33.4 22.4 29.6 20.8 24 21.8C18.4 20.8 14.6 22.4 11.8 26Z" fill={HAIR.brown} />
-    <Cheeks x1={16.6} x2={31.4} y={32.2} r={2.1} />
-    <Eyes x1={19.4} x2={28.6} y={28.4} r={2} />
-    <Smile cx={24} y={33} w={2.5} sw={1.5} />
+    <path d="M11.8 27C12 18.8 17 15 24 15S36 18.8 36.2 27C35 22.6 32.4 20.6 29 20.2C26 22.2 20.6 22.6 16.6 21.4C14.4 22.4 12.6 24.4 11.8 27Z" fill={HAIR.brown} />
+    <Brows x1={20} x2={28} y={25} w={3} c={HAIR.brown} />
+    <Eyes x1={20} x2={28} y={28.4} r={1.45} />
+    <Smirk cx={24} y={34} w={2.3} />
     <path d="M14.6 21.4A11.6 11.6 0 0 1 21 16.2" fill="none" stroke={WHITE} strokeWidth={1.8} strokeLinecap="round" opacity={0.7} />
   </> },
-  { name: 'Gorra', draw: ({ c, d }) => <>
-    <circle cx={11.2} cy={30.6} r={2.8} fill={SKIN.tan} /><circle cx={36.8} cy={30.6} r={2.8} fill={SKIN.tan} />
-    <circle cx={24} cy={29.8} r={12.9} fill={SKIN.tan} />
-    <path d="M11.2 27.6C11.2 22.4 14 19 18 18L30 18C34 19 36.8 22.4 36.8 27.6C34 24.6 30 23.4 24 23.4S14 24.6 11.2 27.6Z" fill={HAIR.dark} />
-    <path d="M10.4 23.8C10.4 13.2 16 8.6 24 8.6S37.6 13.2 37.6 23.8Z" fill={c} />
-    <path d="M24 8.9V23.6" stroke={d} strokeWidth={1} opacity={0.55} />
-    <circle cx={24} cy={9.2} r={1.7} fill={d} />
-    <path d="M30.4 21.2C36.2 19.6 42.6 20 44.4 22.6C42.4 24.8 36.4 25.2 30.4 24.2Z" fill={d} stroke={d} strokeWidth={1} strokeLinejoin="round" />
-    <path d="M10 23.4H38" stroke={d} strokeWidth={1.6} strokeLinecap="round" />
-    <Cheeks x1={16.4} x2={31.6} y={33.4} r={2.1} />
-    <Eyes x1={19.2} x2={28.8} y={29.8} r={2.1} />
-    <Smile cx={24} y={34.4} w={2.6} sw={1.5} />
+  /* 13 */ { name: 'Gorra', draw: ({ c, d }) => <>
+    <Bust skin={SKIN.tan} shirt={d} />
+    <path d="M12.8 26.4C12.2 23.8 12.4 21.6 13 20.4H16.6C15.2 21.8 14.2 23.6 13.9 26.4Z" fill={HAIR.dark} />
+    <path d={mirror('M12.8 26.4C12.2 23.8 12.4 21.6 13 20.4H16.6C15.2 21.8 14.2 23.6 13.9 26.4Z')} fill={HAIR.dark} />
+    <path d="M11.4 20.4C11.4 11.2 16.6 7.4 24 7.4S36.6 11.2 36.6 20.4Z" fill={c} />
+    <path d="M24 7.7V20.2" stroke={d} strokeWidth={1} opacity={0.55} />
+    <circle cx={24} cy={8} r={1.6} fill={d} />
+    <path d="M30.4 18.2C36.2 16.6 42.6 17 44.4 19.6C42.4 21.8 36.4 22.2 30.4 21.2Z" fill={d} stroke={d} strokeWidth={1} strokeLinejoin="round" />
+    <path d="M11 20.2H37" stroke={d} strokeWidth={1.6} strokeLinecap="round" />
+    <Face skin={SKIN.tan} brow={HAIR.dark} />
   </>,
     // sin su gorra (la corona y la vincha la reemplazan): pelo oscuro con raya al costado
-    bare: { for: ['corona', 'vincha'], draw: () => <>
-      <circle cx={11.2} cy={30.6} r={2.8} fill={SKIN.tan} /><circle cx={36.8} cy={30.6} r={2.8} fill={SKIN.tan} />
-      <circle cx={24} cy={29.8} r={12.9} fill={SKIN.tan} />
-      <path d="M11 28.8C10.4 20.2 15.8 15.6 24 15.6S37.6 20.2 37 28.8C35.6 25.2 33.2 23.2 29.6 22.4C27 24.4 21.4 24.8 17.6 23.4C14.6 24.2 12.4 26.2 11 28.8Z" fill={HAIR.dark} />
-      <Cheeks x1={16.4} x2={31.6} y={33.4} r={2.1} />
-      <Eyes x1={19.2} x2={28.8} y={29.8} r={2.1} />
-      <Smile cx={24} y={34.4} w={2.6} sw={1.5} />
+    bare: { for: ['corona', 'vincha'], draw: ({ d }) => <>
+      <Bust skin={SKIN.tan} shirt={d} />
+      <SideHair fill={HAIR.dark} />
+      <Face skin={SKIN.tan} brow={HAIR.dark} />
     </> } },
-  { name: 'Rulos', draw: ({ c }) => <>
-    {[[12.4, 24.6, 6.4], [13.4, 15.8, 6.8], [20, 10.8, 6.8], [28, 10.8, 6.8], [34.6, 15.8, 6.8], [35.6, 24.6, 6.4], [24, 20, 13]].map(([x, y, r], i) =>
+  /* 14 */ { name: 'Rulos', draw: ({ c, d }) => <>
+    <Bust skin={SKIN.light} shirt={d} />
+    {[[13, 21, 4.4], [14.2, 14.8, 4.8], [19, 10.8, 5], [24.4, 9.4, 5], [29.8, 10.8, 5], [34, 14.8, 4.8], [35, 21, 4.4], [24, 15.6, 9.4]].map(([x, y, r], i) =>
       <circle key={i} cx={x} cy={y} r={r} fill={c} />)}
-    <circle cx={24} cy={29.2} r={12.3} fill={SKIN.light} />
-    {[[16.6, 19.6, 4.4], [22.6, 17.6, 4.6], [28.8, 18.2, 4.4], [33.2, 21.4, 3.4]].map(([x, y, r], i) =>
+    {[[17.2, 15.8, 3.3], [21.6, 14.4, 3.5], [26.4, 14.4, 3.5], [30.8, 16, 3.2]].map(([x, y, r], i) =>
       <circle key={i} cx={x} cy={y} r={r} fill={c} />)}
-    <Cheeks x1={15.2} x2={32.8} y={34.4} r={1.8} />
-    <circle cx={19} cy={29.6} r={4.4} fill={WHITE} fillOpacity={0.35} stroke={INK} strokeWidth={1.5} />
-    <circle cx={29} cy={29.6} r={4.4} fill={WHITE} fillOpacity={0.35} stroke={INK} strokeWidth={1.5} />
-    <path d="M23.4 29.2q.6-.8 1.2 0" fill="none" stroke={INK} strokeWidth={1.4} strokeLinecap="round" />
-    <Eyes x1={19} x2={29} y={29.8} r={1.6} />
-    <Smile cx={24} y={35.6} w={2.4} sw={1.5} />
+    <Brows x1={19.5} x2={28.5} y={20.6} w={3} c={mix(c, INK, 0.45)} />
+    <Eyes x1={19.5} x2={28.5} y={25.2} r={1.35} />
+    <rect x={15.8} y={22.4} width={7.4} height={5.6} rx={2.2} fill="none" stroke={INK} strokeWidth={1.2} />
+    <rect x={24.8} y={22.4} width={7.4} height={5.6} rx={2.2} fill="none" stroke={INK} strokeWidth={1.2} />
+    <path d="M23.2 24.2q.8-.7 1.6 0M15.8 24H13.2M32.2 24H34.8" fill="none" stroke={INK} strokeWidth={1.1} strokeLinecap="round" />
+    <Smirk cx={24} y={32} w={2.4} />
   </> },
-  { name: 'Gorro de lana', draw: ({ c, d, l }) => <>
-    <circle cx={11.6} cy={31} r={2.7} fill={SKIN.deep} /><circle cx={36.4} cy={31} r={2.7} fill={SKIN.deep} />
-    <circle cx={24} cy={30.2} r={12.6} fill={SKIN.deep} />
-    <path d="M10.8 25C10.8 14 16.5 9.6 24 9.6S37.2 14 37.2 25Z" fill={c} />
-    <rect x={9.8} y={20.6} width={28.4} height={7} rx={3.5} fill={d} />
-    <path d="M14 21.6v5M18 21.6v5M22 21.6v5M26 21.6v5M30 21.6v5M34 21.6v5" stroke={c} strokeWidth={1.1} opacity={0.45} />
-    <circle cx={24} cy={8.4} r={4.5} fill={l} />
-    <Cheeks x1={16.6} x2={31.4} y={35} r={2.1} />
-    <Eyes x1={19.2} x2={28.8} y={31.4} r={2.15} />
-    <Smile cx={24} y={35.8} w={2.6} sw={1.5} />
+  /* 15 */ { name: 'Gorro de lana', draw: ({ c, d }) => <>
+    <Bust skin={SKIN.deep} shirt={c} />
+    <path d="M11.8 19C11.4 9.8 16.4 5 24.4 5C31.6 5 36.4 9 36.6 16.6C36.4 17.8 36.3 18.6 36.2 19Z" fill={c} />
+    <path d="M12.7 23.8C12.4 22 12.5 20.8 12.9 20H15.6C14.6 21 14 22.2 13.8 23.8ZM35.3 23.8C35.6 22 35.5 20.8 35.1 20H32.4C33.4 21 34 22.2 34.2 23.8Z" fill={HAIR.dark} />
+    <path d="M18 8.4Q22 11.2 23.4 15M29.6 8Q30.4 11.6 29.8 15" fill="none" stroke={d} strokeWidth={0.9} strokeLinecap="round" opacity={0.6} />
+    <rect x={11} y={14.8} width={26} height={5.6} rx={2.6} fill={d} />
+    <path d="M14.6 15.8v3.6M18.2 15.8v3.6M21.8 15.8v3.6M25.4 15.8v3.6M29 15.8v3.6M32.6 15.8v3.6" stroke={c} strokeWidth={1} opacity={0.45} />
+    <Face skin={SKIN.deep} brow={HAIR.dark} />
   </>,
     // sin su gorro de lana (la gorra, la corona y la vincha lo reemplazan): pelo corto con rulitos
-    bare: { for: ['gorra', 'corona', 'vincha'], draw: () => <>
-      <circle cx={11.6} cy={31} r={2.7} fill={SKIN.deep} /><circle cx={36.4} cy={31} r={2.7} fill={SKIN.deep} />
-      <circle cx={24} cy={30.2} r={12.6} fill={SKIN.deep} />
-      <path d="M11.4 27.6C11 20.6 16.4 16.8 24 16.8S37 20.6 36.6 27.6C34 24.6 29.8 23.6 24 23.6S14 24.6 11.4 27.6Z" fill={HAIR.dark} />
-      {[[13.6, 23.2, 3.4], [16.4, 19.6, 3.8], [21, 17.4, 4], [27, 17.4, 4], [31.6, 19.6, 3.8], [34.4, 23.2, 3.4]].map(([x, y, r], i) =>
-        <circle key={i} cx={x} cy={y} r={r} fill={HAIR.dark} />)}
-      <Cheeks x1={16.6} x2={31.4} y={35} r={2.1} />
-      <Eyes x1={19.2} x2={28.8} y={31.4} r={2.15} />
-      <Smile cx={24} y={35.8} w={2.6} sw={1.5} />
-    </> },
-    // con auriculares el pompón queda delante de la vincha
-    over: { for: ['auriculares'], draw: ({ l }) => <circle cx={24} cy={8.4} r={4.5} fill={l} /> } },
+    bare: { for: ['gorra', 'corona', 'vincha'], draw: ({ c }) => <>
+      <Bust skin={SKIN.deep} shirt={c} />
+      <ShortCurls />
+      <Face skin={SKIN.deep} brow={HAIR.dark} />
+    </> } },
 ];
 export const AVATAR_VARIANT_COUNT = VARIANTS.length;
 /** Nombre de cada personaje (para el selector y los títulos). */
@@ -297,9 +355,11 @@ export function lookFor(nick: string): AvatarLook {
 /* ==================== GUARDARROPAS: la ropa del avatar (visión §7 capa 6 + §9; audios 26, 29, 41-42) ====================
    "Tu prestigio se nota": 6 accesorios DIBUJADOS acá (SVG propio, sin assets externos, igual que los personajes) que se
    ponen ARRIBA de cualquiera de los 16 personajes —y también sobre las iniciales de un amigo que recibió un regalo—.
-   Cada personaje tiene su propio calce (FITS): las cabezas son distintas (la rana tiene los ojos arriba, el dino está de
-   perfil, el robot es un rectángulo con antena) y nada puede quedar flotando ni tapar los ojos (salvo los anteojos).
+   Cada personaje tiene su propio calce (FITS): las cabezas son distintas (los humanos son un busto, el robot es un
+   rectángulo con antena, el marciano tiene los ojos rasgados) y nada puede quedar flotando ni tapar los ojos (salvo los
+   anteojos).
    El id es lo que viaja y se guarda (AvatarLook.accessory, Friend.accessory, MarketItem.accessoryId): APPEND-ONLY.
+   TEEN (4-nov): 'lazo' conserva el id y el precio, pero ya no es el moño rosa con lunares: es una BANDANA al cuello.
    ESPEJO en el server: server/src/identity.ts valida el id contra este set y server/src/market.ts vende cada uno al
    precio de acá (si cambiás un precio o sumás una prenda, tocá los tres). */
 export type Accessory = {
@@ -312,7 +372,7 @@ export type Accessory = {
 export const ACCESSORIES: readonly Accessory[] = [
   { id: 'gorra', name: 'Gorra', price: 80, emoji: '🧢', fem: true, plural: false },
   { id: 'vincha', name: 'Vincha deportiva', price: 90, emoji: '🎽', fem: true, plural: false },
-  { id: 'lazo', name: 'Moño', price: 120, emoji: '🎀', fem: false, plural: false },
+  { id: 'lazo', name: 'Bandana', price: 120, emoji: '🧣', fem: true, plural: false },
   { id: 'anteojos', name: 'Anteojos de sol', price: 150, emoji: '🕶️', fem: false, plural: true },
   { id: 'auriculares', name: 'Auriculares', price: 220, emoji: '🎧', fem: false, plural: true },
   { id: 'corona', name: 'Corona', price: 300, emoji: '👑', fem: true, plural: false },
@@ -321,7 +381,7 @@ type WearId = 'gorra' | 'vincha' | 'lazo' | 'anteojos' | 'auriculares' | 'corona
 const isWearId = (id: string): id is WearId => ACCESSORIES.some((a) => a.id === id);
 /** El accesorio del set con ese id (undefined = no es del set: no se dibuja nada). */
 export const accessoryById = (id: string | null | undefined): Accessory | undefined => (id ? ACCESSORIES.find((a) => a.id === id) : undefined);
-/** "la gorra", "el moño", "los anteojos de sol" (minúscula, para meter en una frase). */
+/** "la gorra", "la bandana", "los anteojos de sol" (minúscula, para meter en una frase). */
 export const accessoryArticle = (a: Accessory) => `${a.plural ? (a.fem ? 'las' : 'los') : a.fem ? 'la' : 'el'} ${a.name.toLowerCase()}`;
 /** Botón para equiparla: "Ponérsela" / "Ponérselo" / "Ponérselos". */
 export const putOnLabel = (a: Accessory) => `Ponérsel${a.fem ? 'a' : 'o'}${a.plural ? 's' : ''}`;
@@ -337,7 +397,8 @@ const RED = '#E8394A', RED_D = '#B21E30';
 const GOLD = '#FFE066', GOLD_D = '#F0B21A', SKY = '#3CC5F2';
 const LENS = '#252B49';
 const PHONE = '#2B3253', PHONE_L = '#5A6390', PHONE_DOT = '#FF6B6B';
-const PINK = '#FF5BA7', PINK_D = '#D33A86';
+// bandana: azul marino clásico con el estampado blanco (roja se leía como una lengua debajo del hocico)
+const BANDANA = '#24407E', BANDANA_D = '#162A58';
 const LINE = { stroke: INK, strokeLinejoin: 'round' as const, strokeLinecap: 'round' as const };
 
 /* ---------- piezas (coordenadas del viewBox 48 × 48; cada calce dice dónde y de qué tamaño) ---------- */
@@ -375,9 +436,9 @@ function Crown({ x, y, w, r = 0 }: CrownFit) {
 }
 
 /** Anteojos de sol. (x, y) = centro entre los ojos; d = media distancia entre los ojos; s = radio de cada vidrio.
- *  tilt = vidrios girados (los ojos rasgados del marciano); one = un solo vidrio (el monstruo de un ojo). */
-type ShadesFit = { x: number; y: number; d: number; s: number; r?: number; tilt?: number; oval?: boolean; one?: boolean };
-function Shades({ x, y, d, s, r = 0, tilt = 0, oval, one }: ShadesFit) {
+ *  tilt = vidrios girados (los ojos rasgados del marciano); oval = vidrios ovalados. */
+type ShadesFit = { x: number; y: number; d: number; s: number; r?: number; tilt?: number; oval?: boolean };
+function Shades({ x, y, d, s, r = 0, tilt = 0, oval }: ShadesFit) {
   const ow = Math.min(1.05, 0.55 + s * 0.09);
   const lens = (cx: number, sign: number) => (
     <g key={cx} transform={`translate(${cx} 0) rotate(${tilt * sign})`}>
@@ -389,10 +450,8 @@ function Shades({ x, y, d, s, r = 0, tilt = 0, oval, one }: ShadesFit) {
   );
   return (
     <g transform={`translate(${x} ${y}) rotate(${r})`}>
-      {one ? lens(0, 0) : <>
-        <path d={`M${-d + 0.9 * s} ${-0.42 * s}Q0 ${-0.95 * s} ${d - 0.9 * s} ${-0.42 * s}`} fill="none" stroke={INK} strokeWidth={Math.max(1, 0.24 * s)} strokeLinecap="round" />
-        {lens(-d, -1)}{lens(d, 1)}
-      </>}
+      <path d={`M${-d + 0.9 * s} ${-0.42 * s}Q0 ${-0.95 * s} ${d - 0.9 * s} ${-0.42 * s}`} fill="none" stroke={INK} strokeWidth={Math.max(1, 0.24 * s)} strokeLinecap="round" />
+      {lens(-d, -1)}{lens(d, 1)}
     </g>
   );
 }
@@ -422,7 +481,7 @@ function Phones({ x, top, y, d, s = 1, k = 0.56, side = 0 }: PhonesFit) {
 /** Vincha deportiva (de toalla, blanca con raya roja) que abraza la cabeza. Dos formas de calzarla:
  *  · head: la franja de la cabeza —un óvalo (cx, cy, rx, ry)— entre y1 e y2, con una leve curva (sag) que le da volumen:
  *    los costados SON el borde de la cabeza (nunca sobresale ni queda corta).
- *  · path: la forma exacta (cabezas que no son óvalos: el robot, el dino de perfil) + el trazo de la raya y su grosor. */
+ *  · path: la forma exacta (cabezas que no son óvalos: el robot) + el trazo de la raya y su grosor. */
 type BandFit =
   | { y1: number; y2: number; head: [cx: number, cy: number, rx: number, ry: number]; sag?: number }
   | { path: string; stripe: string; t: number };
@@ -445,55 +504,27 @@ function Band(fit: BandFit) {
   );
 }
 
-/** Moño (de pelo, con lunares). (x, y) = el nudo; s = escala (1 = 16 de ancho); r = giro. */
-type BowFit = { x: number; y: number; s?: number; r?: number };
-function Bow({ x, y, s = 1, r = 0 }: BowFit) {
-  const loop = 'M-1.2 -0.4C-2.8 -5.2 -7.6 -5.6 -7.4 -1.4C-7.2 2.8 -3 3.2 -1.2 0.9Z';
+/** Bandana al cuello (id 'lazo'): el triángulo que cae sobre el pecho, el rollo anudado arriba y el estampado blanco.
+ *  (x, y) = centro del rollo (bajo el mentón); w = ancho; r = giro. */
+type BandanaFit = { x: number; y: number; w: number; r?: number };
+function Bandana({ x, y, w, r = 0 }: BandanaFit) {
+  const a = w / 2, h = w * 0.5;
   return (
-    <g transform={`translate(${x} ${y}) rotate(${r}) scale(${s * 1.08})`}>
-      <path d={loop} fill={PINK} {...LINE} strokeWidth={0.85} />
-      <path d={mirror0(loop)} fill={PINK} {...LINE} strokeWidth={0.85} />
-      <g fill={WHITE} opacity={0.95}>
-        <circle cx={-4.8} cy={-2.1} r={0.85} /><circle cx={-3.4} cy={0.9} r={0.65} />
-        <circle cx={4.8} cy={-2.1} r={0.85} /><circle cx={3.4} cy={0.9} r={0.65} />
+    <g transform={`translate(${x} ${y}) rotate(${r})`}>
+      <path d={`M${-a} 0Q0 ${0.3 * h} ${a} 0L${0.12 * a} ${h}Q0 ${h + 0.5} ${-0.12 * a} ${h}Z`} fill={BANDANA} {...LINE} strokeWidth={0.8} />
+      <path d={`M${-0.62 * a} ${0.28 * h}Q0 ${0.5 * h} ${0.62 * a} ${0.28 * h}`} fill="none" stroke={WHITE} strokeWidth={0.55} strokeDasharray="1 1.1" opacity={0.85} />
+      <g fill={WHITE} opacity={0.92}>
+        <circle cx={-0.34 * a} cy={0.5 * h} r={0.06 * w} /><circle cx={0.34 * a} cy={0.5 * h} r={0.06 * w} />
+        <circle cx={0} cy={0.72 * h} r={0.05 * w} /><circle cx={0} cy={0.42 * h} r={0.035 * w} />
       </g>
-      <rect x={-1.7} y={-2.2} width={3.4} height={4.2} rx={1.5} fill={PINK_D} {...LINE} strokeWidth={0.85} />
-    </g>
-  );
-}
-/** Espeja un path relativo al origen sobre el eje x = 0 (solo comandos con pares x,y absolutos). */
-const mirror0 = (d: string) => d.replace(/(-?\d+(?:\.\d+)?)[ ,](-?\d+(?:\.\d+)?)/g, (_, x: string, y: string) => `${+(-Number(x)).toFixed(2)} ${y}`);
-
-/* ---------- de perfil (el Dino mira a la derecha): anteojos y auriculares vistos de costado (su vincha de costado es
-   un `path` en su calce; gorra, corona y moño le calzan con giro) ---------- */
-function ShadesSide() {
-  return (
-    <g>
-      <path d="M29 18.6L22.6 17.4" stroke={INK} strokeWidth={1.3} strokeLinecap="round" />
-      <path d="M35.2 18.4Q37.6 17.6 39.8 18.6" fill="none" stroke={INK} strokeWidth={1.2} strokeLinecap="round" />
-      <path d="M28.6 17.4Q28.4 15.9 30 15.9H34.6Q36.2 15.9 36 17.6Q35.6 22.6 32.2 22.6Q28.9 22.6 28.6 17.4Z" fill={LENS} {...LINE} strokeWidth={0.9} />
-      <path d="M40 18.2Q41.4 18.2 41.2 19.6Q40.9 21.8 39.8 21.8Z" fill={LENS} {...LINE} strokeWidth={0.8} />
-      <path d="M30.2 17.6Q30.8 16.9 32.2 16.9" fill="none" stroke={WHITE} strokeWidth={0.7} strokeLinecap="round" opacity={0.8} />
-    </g>
-  );
-}
-/** De costado la vincha de los auriculares sube del parlante, pasa por arriba de la coronilla y baja del otro lado: el
- *  arco nace en el parlante y vuelve a apoyarse en la cabeza (sobre el hocico), nunca termina en el aire. El otro
- *  parlante queda del otro lado, tapado. */
-function PhonesSide() {
-  const band = 'M24.9 17.4C24.2 13.2 26.6 10.5 29.9 10.3C32.7 10.1 35 11 36.8 12.9';
-  return (
-    <g>
-      <path d={band} fill="none" stroke={INK} strokeWidth={2.9} strokeLinecap="round" />
-      <path d={band} fill="none" stroke={PHONE} strokeWidth={1.9} strokeLinecap="round" />
-      <rect x={22.1} y={16.6} width={5.6} height={7.8} rx={2.6} fill={PHONE} {...LINE} strokeWidth={0.7} />
-      <circle cx={24.9} cy={20.5} r={1.1} fill={PHONE_DOT} />
+      <path d={`M${-a - 0.3} ${-0.1}Q0 ${0.3 * h + 0.3} ${a + 0.3} ${-0.1}`} fill="none" stroke={INK} strokeWidth={0.13 * w + 1.2} strokeLinecap="round" />
+      <path d={`M${-a - 0.3} ${-0.1}Q0 ${0.3 * h + 0.3} ${a + 0.3} ${-0.1}`} fill="none" stroke={BANDANA_D} strokeWidth={0.13 * w} strokeLinecap="round" />
     </g>
   );
 }
 
 /* ---------- calces por personaje ---------- */
-type Fit = { gorra: CapFit; corona: CrownFit; vincha: BandFit; anteojos: ShadesFit | 'side'; auriculares: PhonesFit | 'side'; lazo: BowFit };
+type Fit = { gorra: CapFit; corona: CrownFit; vincha: BandFit; anteojos: ShadesFit; auriculares: PhonesFit; lazo: BandanaFit };
 /** Las iniciales: el círculo entero es la cabeza (la letra va al medio, la ropa la rodea sin taparla). */
 const FIT_INITIALS: Fit = {
   gorra: { x: 24, y: 14.2, w: 27 },
@@ -501,110 +532,73 @@ const FIT_INITIALS: Fit = {
   vincha: { y1: 8.6, y2: 13, head: [24, 24, 24, 24], sag: 1.2 },
   anteojos: { x: 24, y: 10.4, d: 6.6, s: 3.6 },
   auriculares: { x: 24, top: 3.6, y: 24.5, d: 18.8 },
-  lazo: { x: 33, y: 10.6, s: 0.85, r: 22 },
+  lazo: { x: 24, y: 38.6, w: 17 },
 };
+/** El busto humano común (cara 12.4-37.6, ojos en y 25, cuello en y 38). Cada uno ajusta lo que su pelo/prenda pide. */
+const HUMAN: Fit = {
+  gorra: { x: 24, y: 18.6, w: 25.4, h: 11 },
+  corona: { x: 24, y: 11.6, w: 12 },
+  vincha: { y1: 15.4, y2: 19.2, head: [24, 25, 11.6, 12.6] },
+  anteojos: { x: 24, y: 25, d: 4.5, s: 3.3 },
+  auriculares: { x: 24, top: 9, y: 25.8, d: 13.2 },
+  lazo: { x: 24, y: 38.6, w: 17 },
+};
+const human = (o: Partial<Fit>): Fit => ({ ...HUMAN, ...o });
 const FITS: Fit[] = [
-  /* 0 Gato */ {
-    gorra: { x: 24, y: 19.2, w: 25 }, corona: { x: 24, y: 17.4, w: 13 },
-    vincha: { y1: 17.4, y2: 21.4, head: [24, 28, 15.6, 13.6] },
-    anteojos: { x: 24, y: 26.2, d: 5.8, s: 3.8 }, auriculares: { x: 24, top: 12.4, y: 27.4, d: 15.4 },
-    lazo: { x: 31.4, y: 16.2, s: 0.85, r: 18 },
+  /* 0 Casco de moto: con gorra, corona, vincha o auriculares se saca el casco (bare) */ human({
+    anteojos: { x: 24, y: 25.2, d: 4.5, s: 3.3 }, lazo: { x: 24, y: 41.4, w: 17 },
+  }),
+  /* 1 Mochilero */ human({}),
+  /* 2 Zorro (geométrico): ojos en y 22, mentón en punta (y 43.8) */ {
+    gorra: { x: 24, y: 16.4, w: 25 }, corona: { x: 24, y: 13.4, w: 12 },
+    // la cabeza es un polígono: la banda sigue sus bordes rectos (de 14|12.4 a 7.8|21 y su espejo)
+    vincha: { path: 'M12.86 14.2Q24 15.8 35.14 14.2L37.57 17.6Q24 19.2 10.43 17.6Z', stripe: 'M11.7 15.9Q24 17.5 36.3 15.9', t: 3.4 },
+    anteojos: { x: 24, y: 22.4, d: 6.2, s: 3.8 }, auriculares: { x: 24, top: 9.4, y: 23, d: 15.6 },
+    lazo: { x: 24, y: 43.6, w: 16 },
   },
-  /* 1 Oso */ {
-    gorra: { x: 24, y: 18.4, w: 25 }, corona: { x: 24, y: 15.8, w: 13 },
-    vincha: { y1: 16.8, y2: 20.8, head: [24, 28, 15.2, 15.2] },
-    anteojos: { x: 24, y: 25.4, d: 6, s: 3.8 }, auriculares: { x: 24, top: 11, y: 27.4, d: 15 },
-    lazo: { x: 32.6, y: 15.4, s: 0.85, r: 18 },
-  },
-  /* 2 Zorro */ {
-    gorra: { x: 24, y: 17.8, w: 25 }, corona: { x: 24, y: 15.4, w: 13 },
-    vincha: { y1: 15.6, y2: 19.6, head: [24, 23, 15.6, 10.6] },
-    anteojos: { x: 24, y: 24, d: 6.6, s: 4 }, auriculares: { x: 24, top: 10.8, y: 24, d: 15.4 },
-    lazo: { x: 32.6, y: 14.8, s: 0.85, r: 18 },
-  },
-  /* 3 Conejo */ {
-    gorra: { x: 24, y: 22.4, w: 21 }, corona: { x: 24, y: 20, w: 12 },
-    vincha: { y1: 20.4, y2: 24.4, head: [24, 30.6, 13.4, 13.4] },
-    anteojos: { x: 24, y: 28.6, d: 5.2, s: 3.6 }, auriculares: { x: 24, top: 15.4, y: 30.4, d: 13.2 },
-    lazo: { x: 30.2, y: 18, s: 0.8, r: 15 },
-  },
-  /* 4 Búho: la gorra angosta deja asomar los penachos; gorra y vincha terminan antes de lo blanco de los ojos (y 17.1) */ {
-    gorra: { x: 24, y: 15.6, w: 19 }, corona: { x: 24, y: 14.4, w: 12 },
-    vincha: { y1: 12.4, y2: 15.5, head: [24, 27, 16, 15.6], sag: 0.8 },
-    anteojos: { x: 24, y: 23.6, d: 6.1, s: 5.8 }, auriculares: { x: 24, top: 9.6, y: 25.4, d: 15.6 },
-    lazo: { x: 31.6, y: 12.6, s: 0.8, r: 20 },
-  },
-  /* 5 Rana: los ojos están ARRIBA de la cabeza → gorra y corona se apoyan sobre los ojos sin tocarlos (lo blanco
-     arranca en y 10.1); la vincha la ciñe justo debajo (los ojos asoman por arriba, como en las ranas con vincha) */ {
-    gorra: { x: 24, y: 8.8, w: 18, h: 7.4 }, corona: { x: 24, y: 10.4, w: 12 },
-    vincha: { y1: 20.1, y2: 23.3, head: [24, 29.6, 18.6, 12.8], sag: 0.6 },
-    anteojos: { x: 24, y: 14.9, d: 9, s: 5.2 }, auriculares: { x: 24, top: 4.6, y: 24.4, d: 18.2, k: 0.4, side: 1.2 },
-    lazo: { x: 30, y: 8.4, s: 0.72, r: -8 },
-  },
-  /* 6 Panda */ {
-    gorra: { x: 24, y: 18.2, w: 25 }, corona: { x: 24, y: 15.6, w: 13 },
-    vincha: { y1: 16, y2: 20, head: [24, 28, 15.4, 15.4] },
-    anteojos: { x: 24, y: 26.6, d: 6.3, s: 4.3 }, auriculares: { x: 24, top: 11, y: 28, d: 15.2 },
-    lazo: { x: 32.8, y: 15.2, s: 0.85, r: 18 },
-  },
-  /* 7 León */ {
-    gorra: { x: 24, y: 13.6, w: 22 }, corona: { x: 24, y: 12.6, w: 13 },
-    vincha: { y1: 17.6, y2: 21.6, head: [24, 27.6, 11.2, 11.2] },
-    anteojos: { x: 24, y: 25.6, d: 4.4, s: 3.4 }, auriculares: { x: 24, top: 5.2, y: 26.6, d: 16.6 },
-    lazo: { x: 33, y: 11.4, s: 0.85, r: 20 },
-  },
+  /* 3 Lentes: el jopo es alto; los anteojos del guardarropas reemplazan los suyos (bare) */ human({
+    corona: { x: 24, y: 8.8, w: 12 }, auriculares: { x: 24, top: 6.8, y: 25.8, d: 13.4 },
+  }),
+  /* 4 Pelo largo: los auriculares van sobre el pelo suelto */ human({
+    corona: { x: 24, y: 10.4, w: 12 }, auriculares: { x: 24, top: 8.4, y: 25.8, d: 13.8 },
+    vincha: { y1: 14.6, y2: 18.4, head: [24, 25, 13.6, 15.4] },
+  }),
+  /* 5 DJ: el high-top queda debajo de la gorra; la corona va arriba del pelo */ human({
+    gorra: { x: 24, y: 18.6, w: 25.4, h: 12.4 }, corona: { x: 24, y: 8.2, w: 12 },
+    auriculares: { x: 24, top: 6.4, y: 25.8, d: 13.2 },
+  }),
+  /* 6 Gamer */ human({ corona: { x: 24, y: 11.4, w: 12 }, auriculares: { x: 24, top: 8.2, y: 25.8, d: 13.4 } }),
+  /* 7 Rapado */ human({ corona: { x: 24, y: 12.6, w: 12 } }),
   /* 8 Robot */ {
-    gorra: { x: 24, y: 15.6, w: 27 }, corona: { x: 30.6, y: 13.6, w: 12, r: 12 },
-    // la cabeza es un rectángulo redondeado (esquinas de radio 7.4 con centro en 17|31, 19.4): la banda sigue las esquinas
-    vincha: { path: 'M12.67 13.4H35.33A7.4 7.4 0 0 1 38 17H10A7.4 7.4 0 0 1 12.67 13.4Z', stripe: 'M10.5 15.2H37.5', t: 3.6 },
+    gorra: { x: 24, y: 15.4, w: 27 }, corona: { x: 30.6, y: 13.2, w: 12, r: 12 },
+    // la cabeza es un rectángulo redondeado (esquinas de radio 5, centro de la de arriba en y 16.6): la banda sigue las esquinas
+    vincha: { path: 'M11.13 13.2H36.87A5 5 0 0 1 38.2 16.6V16.9H9.8V16.6A5 5 0 0 1 11.13 13.2Z', stripe: 'M10.3 15.05H37.7', t: 3.7 },
     // sobre el visor oscuro los vidrios no se verían: el robot los lleva en la frente (los ojos de luz siguen a la vista)
-    anteojos: { x: 24, y: 15.2, d: 5.2, s: 2.8 }, auriculares: { x: 24, top: 9.6, y: 26.8, d: 15.6, s: 1.1 },
-    lazo: { x: 24, y: 10.4, s: 0.78 },
+    anteojos: { x: 24, y: 15, d: 5.2, s: 2.6 }, auriculares: { x: 24, top: 9.4, y: 26.2, d: 15.6, s: 1.1 },
+    lazo: { x: 24, y: 42.2, w: 19 },
   },
-  /* 9 Marciano */ {
-    gorra: { x: 24, y: 17.6, w: 24 }, corona: { x: 24, y: 13.4, w: 10 },
-    vincha: { y1: 15.2, y2: 18.8, head: [24, 26.6, 15.8, 15.6] },
-    anteojos: { x: 24, y: 26, d: 7, s: 5.6, tilt: 28, oval: true }, auriculares: { x: 24, top: 9.4, y: 27, d: 15.4 },
-    lazo: { x: 31.8, y: 10.2, s: 0.7, r: 35 },
-  },
-  /* 10 Monstruo */ {
-    gorra: { x: 24, y: 14.6, w: 20 }, corona: { x: 24, y: 13.4, w: 9 },
-    // el ojo único arranca en y 15.8: la vincha (con su curva) termina antes
-    vincha: { y1: 11.9, y2: 14.6, head: [24, 26.6, 16, 15], sag: 0.6 },
-    anteojos: { x: 24, y: 23.6, d: 0, s: 7.4, one: true }, auriculares: { x: 24, top: 9.6, y: 27, d: 16 },
-    lazo: { x: 31.4, y: 11, s: 0.7, r: 22 },
-  },
-  /* 11 Dino (de perfil, mira a la derecha) */ {
-    gorra: { x: 33, y: 15.4, w: 17, r: -6 }, corona: { x: 32.4, y: 12.6, w: 11, r: -6 },
-    // de costado: la banda cruza la cabeza de la nuca (en diagonal, sobre el cuello) a la frente (curva del hocico)
-    vincha: { path: 'M21.1 16.7L25.6 13.4C30 12.4 35.6 12.4 40.2 13.4Q42 14.6 42.9 16.9C36.6 16.4 29.4 16.4 21.1 16.7Z', stripe: 'M23.6 15Q32 14 41.6 15.1', t: 3.4 },
-    anteojos: 'side', auriculares: 'side',
-    lazo: { x: 26.8, y: 12.6, s: 0.8, r: -20 },
-  },
+  /* 9 Cuello alto: la bandana va sobre el cuello del buzo */ human({ lazo: { x: 24, y: 39.8, w: 17 } }),
+  /* 10 Capucha: gorra, corona, vincha y auriculares van con la capucha baja (bare); la bandana, sobre el borde */ human({}),
+  /* 11 Skater: gorra, corona y vincha reemplazan la suya (bare); los auriculares van arriba de la gorra al revés */ human({
+    auriculares: { x: 24, top: 7.4, y: 25.8, d: 13.4 },
+  }),
   /* 12 Astronauta */ {
     gorra: { x: 24, y: 13, w: 22 }, corona: { x: 24, y: 10.6, w: 12 },
-    vincha: { y1: 21.8, y2: 25.2, head: [24, 27.4, 12.4, 12.4] },
-    anteojos: { x: 24, y: 28.4, d: 4.6, s: 3.5 }, auriculares: { x: 24, top: 7.6, y: 26.6, d: 17.2, s: 1.1 },
-    lazo: { x: 33.6, y: 11.6, s: 0.8, r: 25 },
+    vincha: { y1: 21.6, y2: 24.6, head: [24, 27.4, 12.4, 12.4] },
+    anteojos: { x: 24, y: 28.4, d: 4.2, s: 3.2 }, auriculares: { x: 24, top: 7.6, y: 26.6, d: 17.2, s: 1.1 },
+    lazo: { x: 24, y: 43.6, w: 18.4 },
   },
-  /* 13 Gorra: la gorra nueva TAPA la suya (misma copa); corona y vincha van sin gorra (bare) */ {
-    gorra: { x: 24, y: 23.4, w: 27.6, h: 15.6 }, corona: { x: 24, y: 17.4, w: 13 },
-    vincha: { y1: 19.2, y2: 23, head: [24, 29.8, 12.9, 12.9] },
-    anteojos: { x: 24, y: 29.8, d: 4.8, s: 3.6 }, auriculares: { x: 24, top: 7, y: 30, d: 13.6 },
-    lazo: { x: 14.6, y: 15.6, s: 0.8, r: -22 },
-  },
-  /* 14 Rulos */ {
-    gorra: { x: 24, y: 14.6, w: 25 }, corona: { x: 24, y: 10.4, w: 12 },
-    vincha: { y1: 19.6, y2: 23.4, head: [24, 22, 16.8, 18] },
-    anteojos: { x: 24, y: 29.6, d: 5, s: 5 }, auriculares: { x: 24, top: 3.6, y: 26, d: 17.6 },
-    lazo: { x: 33.4, y: 11.8, s: 0.85, r: 20 },
-  },
-  /* 15 Gorro de lana: gorra, corona y vincha van sin el gorro (bare) */ {
-    gorra: { x: 24, y: 21.4, w: 24 }, corona: { x: 24, y: 18.2, w: 13 },
-    vincha: { y1: 19.8, y2: 23.6, head: [24, 30.2, 12.6, 12.6] },
-    anteojos: { x: 24, y: 31.4, d: 4.8, s: 3.6 }, auriculares: { x: 24, top: 7.2, y: 31, d: 13.4 },
-    lazo: { x: 14.4, y: 16.4, s: 0.8, r: -22 },
-  },
+  /* 13 Gorra: la gorra nueva TAPA la suya (misma copa); corona y vincha van sin gorra (bare) */ human({
+    gorra: { x: 24, y: 20.4, w: 25.4, h: 13.2 }, corona: { x: 24, y: 11.6, w: 12 },
+  }),
+  /* 14 Rulos: los rulos son más altos: corona y gorra van más arriba; la vincha abraza los rulos */ human({
+    gorra: { x: 24, y: 17, w: 26.4, h: 11.4 }, corona: { x: 24, y: 6.6, w: 12 },
+    vincha: { y1: 14.2, y2: 18, head: [24, 20.6, 15.4, 16.2] },
+    anteojos: { x: 24, y: 25.2, d: 4.5, s: 3.4 }, auriculares: { x: 24, top: 3.6, y: 25, d: 15.2 },
+  }),
+  /* 15 Gorro de lana: gorra, corona y vincha van sin el gorro (bare); los auriculares, arriba del gorro */ human({
+    auriculares: { x: 24, top: 4.2, y: 25.8, d: 13.6 },
+  }),
 ];
 
 /** Dibuja un accesorio con el calce de ese personaje (o el de las iniciales). */
@@ -613,9 +607,9 @@ function Wear({ id, fit }: { id: WearId; fit: Fit }) {
     case 'gorra': return <Cap {...fit.gorra} />;
     case 'corona': return <Crown {...fit.corona} />;
     case 'vincha': return <Band {...fit.vincha} />;
-    case 'anteojos': return fit.anteojos === 'side' ? <ShadesSide /> : <Shades {...fit.anteojos} />;
-    case 'auriculares': return fit.auriculares === 'side' ? <PhonesSide /> : <Phones {...fit.auriculares} />;
-    case 'lazo': return <Bow {...fit.lazo} />;
+    case 'anteojos': return <Shades {...fit.anteojos} />;
+    case 'auriculares': return <Phones {...fit.auriculares} />;
+    case 'lazo': return <Bandana {...fit.lazo} />;
   }
 }
 

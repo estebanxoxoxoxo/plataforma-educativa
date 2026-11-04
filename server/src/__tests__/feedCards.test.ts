@@ -44,7 +44,7 @@ vi.mock('../leaguesFake', () => {
   };
   const hashOf = (s: string) => { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
   const shuffle = <T,>(xs: readonly T[], r: () => number) => { const a = [...xs]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-  const TABLE = ['FeliTrex', 'EmiFósil', 'NachoNova', 'SofiCometa', 'BautiRayo', 'ValenLuz', 'JuliMar', 'PedroPixel', 'RoAstro', 'TatiNube', 'LoloGeo'];
+  const TABLE = ['FeliSkate', 'EmiCode', 'NachoPixel', 'SofiCometa', 'BautiRayo', 'ValenLuz', 'JuliMar', 'PedroPixel', 'RoAstro', 'TatiNube', 'LoloGeo'];
   // sinceLabel y weeksAgoLabel como los de leaguesFake (días de pared; sin zona de la familia = la hora local)
   const dayNum = (t: number) => { const d = new Date(t); return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5); };
   const sinceLabel = (at: number, now = Date.now()) => {

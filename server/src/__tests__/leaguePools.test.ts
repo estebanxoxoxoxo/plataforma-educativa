@@ -29,11 +29,13 @@ const POOLS: Record<string, readonly string[]> = {
 };
 
 describe('leaguePools', () => {
-  it('Ian conserva su pool de siempre, en el mismo orden (sus semanas simuladas no cambian)', () => {
+  // TEEN (4-nov, Esteban: «que parezca para un chico de 13»): los nicks se re-envejecieron uno por uno EN SU LUGAR (mismo
+  // largo y orden: las semanas simuladas de Ian conservan su forma); acá se fijan los nuevos.
+  it('Ian conserva su pool por lugar, en el mismo orden (sus semanas simuladas no cambian de forma)', () => {
     expect(NICKS).toHaveLength(16);
     expect(MORE_NICKS).toHaveLength(44);
     expect(LEAGUE_NICKS).toEqual([...NICKS, ...MORE_NICKS]);
-    expect(NICKS.slice(0, 3)).toEqual(['NachoNova', 'EmiFósil', 'ValenOrbita']);
+    expect(NICKS.slice(0, 3)).toEqual(['NachoPixel', 'EmiCode', 'ValenRíos']);
     expect(MORE_NICKS[MORE_NICKS.length - 1]).toBe('MaxiRadar');
   });
 
@@ -61,9 +63,9 @@ describe('leaguePools', () => {
     }
   });
 
-  it('zona y país de los chicos conservan sus nicks de siempre, en el mismo orden (sus tops no cambian)', () => {
-    expect(GEO_NICKS).toEqual(['SofiAurora', 'ThiagoFoton', 'CamiCuarzo', 'BrunoTornado', 'AlmaBrisa', 'IkerMagma', 'LunaBoreal', 'DanteOrion', 'MiaTundra', 'TeoGranizo', 'VeraCeleste', 'SimonQuasar']);
-    expect(GEO_NICKS_PAIS).toEqual(['RenzoPolaris', 'MiluVega', 'KiaraAndromeda', 'ManuLucero', 'AinaCenit', 'GaspiHorizonte', 'EmmaSolsticio', 'LucasRelampago', 'TatiArrecife', 'AxelMistral', 'AmpiSequoia', 'RomiEquinoccio']);
+  it('zona y país de los chicos conservan sus nicks por lugar, en el mismo orden (sus tops no cambian de forma; TEEN 4-nov: 4 armonizados)', () => {
+    expect(GEO_NICKS).toEqual(['SofiAurora', 'ThiagoFoton', 'CamiCuarzo', 'BrunoTornado', 'AlmaSaxo', 'IkerMagma', 'LunaBoreal', 'DanteOrion', 'MiaTundra', 'TeoGrind', 'VeraCeleste', 'SimonQuasar']);
+    expect(GEO_NICKS_PAIS).toEqual(['RenzoPolaris', 'MiluVoltio', 'KiaraAndromeda', 'ManuLucero', 'AinaCenit', 'GaspiHorizonte', 'EmmaSolsticio', 'LucasRelampago', 'TatiApnea', 'AxelMistral', 'AmpiSequoia', 'RomiEquinoccio']);
   });
 
   it('U4-B2: el chico ve el top de chicos de siempre y el adulto el de grandes, del mismo tamaño', () => {

@@ -50,19 +50,20 @@ vi.mock('../friendsFake', async () => {
   const { GRAPH_IDS, NPC_ROSTER, visibleNicksAtStart } = await import('../npcRoster');
   const vis = () => visibleNicksAtStart(currentUser()?.id ?? 'ian');
   const requests = () => (GRAPH_IDS[currentUser()?.id ?? 'ian']?.requests ?? []).map((id) => NPC_ROSTER.find((n) => n.id === id)!.nick);
-  // Un seed social como el de friendsFake.NEWS (subtipos alternados + lo de ligas que se reparte en el cierre)
+  // Un seed social como el de friendsFake.NEWS (subtipos alternados + lo de ligas que se reparte en el cierre). TEEN (4-nov):
+  // nicks y fragmentos al día con el seed de 13 (mismo orden y tipos: los casos no cambian).
   const NEWS: [string, string, string][] = [
-    ['MateoDino', 'ganó la medalla de oro 🥇 en la Liga Cometa', 'medal'], ['TomiCohete', 'llegó a una racha de 12 días', 'streak'],
-    ['LuliVolcan', 'se ganó la insignia «Guardiana»', 'badge'], ['MartuLuna', 'compartió la ruta «El cuerpo»', 'route'],
-    ['CataEstrella', 'subió a la Liga Estrella ⭐', 'league'], ['JuanchiRayo', 'terminó la unidad 1', 'unit'],
-    ['MateoDino', 'completó 40 pasos', 'streak'], ['TomiCohete', 'ganó la medalla de bronce 🥉', 'medal'],
-    ['LuliVolcan', 'compartió la ruta «Volcanes»', 'route'], ['LeaTelescopio', 'llegó a 7 días', 'streak'],
-    ['TriniPiano', 'se ganó la insignia «Oído»', 'badge'], ['MateoDino', 'insignia «Paleontólogo»', 'badge'],
-    ['CataEstrella', 'unidad «Greetings»', 'unit'], ['JuanchiRayo', 'racha nueva', 'streak'], ['FedeAjedrez', 'insignia «Acertijos»', 'badge'],
-    ['LeaTelescopio', 'unidad «El Sol»', 'unit'], ['TomiCohete', 'unidad «Gigantes»', 'unit'], ['MartuLuna', 'insignia «Exploradora»', 'badge'],
-    ['TriniPiano', 'unidad «Family»', 'unit'], ['FedeAjedrez', '35 pasos', 'streak'], ['NicoRobot', 'unidad «Sumar»', 'unit'],
-    ['LeaTelescopio', 'insignia «Lunar»', 'badge'], ['MartuLuna', 'unidad «Sentidos»', 'unit'], ['TriniPiano', 'no cortó su racha', 'streak'],
-    ['CataEstrella', 'insignia «Estrella Fugaz»', 'badge'],
+    ['MateoPaleo', 'ganó la medalla de oro 🥇 en la Liga Cometa', 'medal'], ['TomasApolo', 'llegó a una racha de 12 días', 'streak'],
+    ['LuMagma', 'se ganó la insignia «Placas Tectónicas»', 'badge'], ['MartuPulso', 'compartió la ruta «Cómo funciona el corazón»', 'route'],
+    ['CataNova', 'subió a la Liga Estrella ⭐', 'league'], ['JuanTrueno', 'terminó la unidad 1 de Álgebra', 'unit'],
+    ['MateoPaleo', 'completó 40 pasos', 'streak'], ['TomasApolo', 'ganó la medalla de bronce 🥉', 'medal'],
+    ['LuMagma', 'compartió la ruta «Volcanes»', 'route'], ['LeaVega', 'llegó a 7 días', 'streak'],
+    ['TriniLofi', 'se ganó la insignia «Progresión de Acordes»', 'badge'], ['MateoPaleo', 'insignia «Datación por Carbono»', 'badge'],
+    ['CataNova', 'unidad «Phrasal verbs»', 'unit'], ['JuanTrueno', 'racha nueva', 'streak'], ['FedeBlitz', 'insignia «Mate en Dos»', 'badge'],
+    ['LeaVega', 'unidad «Ciclo solar»', 'unit'], ['TomasApolo', 'unidad «Gigantes»', 'unit'], ['MartuPulso', 'insignia «Sistema Circulatorio»', 'badge'],
+    ['TriniLofi', 'unidad «Song lyrics»', 'unit'], ['FedeBlitz', '35 pasos', 'streak'], ['NicoServo', 'unidad «Ecuaciones lineales»', 'unit'],
+    ['LeaVega', 'insignia «Fases y Eclipses»', 'badge'], ['MartuPulso', 'unidad «El sistema nervioso»', 'unit'], ['TriniLofi', 'no cortó su racha', 'streak'],
+    ['CataNova', 'insignia «Conversación Fluida»', 'badge'],
   ];
   return {
     friendNews: () => NEWS.map(([nick, text, icon]) => ({ fid: nick, friend: { nick, color: '#123456' }, text, icon })),
@@ -79,7 +80,7 @@ vi.mock('../leaguesFake', () => {
   };
   const hashOf = (s: string) => { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
   const shuffle = <T,>(xs: readonly T[], r: () => number) => { const a = [...xs]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-  const TABLE = ['FeliTrex', 'EmiFósil', 'NachoNova', 'SofiCometa', 'BautiRayo', 'ValenLuz', 'JuliMar', 'PedroPixel', 'RoAstro', 'TatiNube', 'LoloGeo'];
+  const TABLE = ['FeliSkate', 'EmiCode', 'NachoPixel', 'SofiCometa', 'BautiRayo', 'ValenLuz', 'JuliMar', 'PedroPixel', 'RoAstro', 'TatiNube', 'LoloGeo'];
   return {
     cycleWeek: () => 0, hashOf, rng, shuffle, lastClose: () => null, lastCloseLabel: () => 'el domingo',
     MEDAL_EMOJI: { oro: '🥇', plata: '🥈', bronce: '🥉' },
@@ -164,7 +165,7 @@ describe('Simular NPCs: 5 por toque, de composición sorteada', () => {
       const medals = bursts.flat().filter((it): it is Extract<Item, { kind: 'friend' }> => it.kind === 'friend' && it.icon === 'medal');
       for (const tint of ['🥇', '🥈', '🥉']) expect(medals.some((it) => it.text.includes(tint)), `sin ${tint}: ${medals.map((it) => it.text).join(' | ')}`).toBe(true);
       // de quien Ian ve, con el "por qué" de su grafo
-      for (const it of medals) expect(['TomiCohete', 'LuliVolcan', 'MateoDino', 'MartuLuna']).toContain(it.friend.nick);
+      for (const it of medals) expect(['TomasApolo', 'LuMagma', 'MateoPaleo', 'MartuPulso']).toContain(it.friend.nick);
       for (const it of medals) expect(it.reason).toMatch(/ es tu amig[oa]$/);
     });
   });
@@ -175,7 +176,7 @@ describe('Simular NPCs: 5 por toque, de composición sorteada', () => {
       expect(simulateNpcs()).toEqual({ added: 5 });
       const [b] = liveBursts();
       expectBurst(b, 'Luna');
-      for (const it of b.filter((x) => typeOf(x) !== 'race')) expect(['CataEstrella', 'MartuLuna', 'LeaTelescopio', 'TriniPiano', 'FedeAjedrez']).toContain(protagonist(it));
+      for (const it of b.filter((x) => typeOf(x) !== 'race')) expect(['CataNova', 'MartuPulso', 'LeaVega', 'TriniLofi', 'FedeBlitz']).toContain(protagonist(it));
     });
     runAsUser('ian', () => expect(liveBursts().flat()).toHaveLength(10));
   });
@@ -259,15 +260,15 @@ describe('FS-BASE-B: el pool del Feed sigue al catálogo aprobado (hallazgo feed
 });
 
 describe('FS-BASE-B: el "por qué" de un NPC según el grafo del activo (hallazgo feedFake.ts:194)', () => {
-  it('a Luna, FedeAjedrez (solo una solicitud pendiente) "quiere ser tu amigo"; sus amigas, "es tu amiga"', () => {
+  it('a Luna, FedeBlitz (solo una solicitud pendiente) "quiere ser tu amigo"; sus amigas, "es tu amiga"', () => {
     runAsUser('luna', () => {
       simulateNpcs(); simulateNpcs(); // también lo que entra en vivo pasa por el mismo "por qué"
       const social = allItems().filter((it): it is Extract<Item, { kind: 'friend' }> => it.kind === 'friend' && it.icon !== 'league');
-      const fede = social.filter((it) => it.friend.nick === 'FedeAjedrez');
+      const fede = social.filter((it) => it.friend.nick === 'FedeBlitz');
       expect(fede.length).toBeGreaterThan(0);
-      for (const it of fede) expect(it.reason).toBe('FedeAjedrez quiere ser tu amigo'); // antes: «FedeAjedrez es tu amigo»
-      const cata = social.find((it) => it.friend.nick === 'CataEstrella');
-      expect(cata?.reason).toBe('CataEstrella es tu amiga');
+      for (const it of fede) expect(it.reason).toBe('FedeBlitz quiere ser tu amigo'); // antes: «FedeBlitz es tu amigo»
+      const cata = social.find((it) => it.friend.nick === 'CataNova');
+      expect(cata?.reason).toBe('CataNova es tu amiga');
     });
   });
 });
@@ -295,7 +296,7 @@ describe('FS-BASE-B: el resumen dice la verdad sobre el hero (hallazgo feedFake.
       expect(sum(xs).desc).toMatch(/un repaso sin apuro/);
     });
   });
-  it('a la tarde: "a la nochecita cambia a repaso tranquilo" solo si de verdad va a haber repaso', () => {
+  it('a la tarde: "a la noche cambia a repaso tranquilo" solo si de verdad va a haber repaso', () => {
     at(16);
     runAsUser('ian', () => { expect(sum(first()).later).not.toMatch(/repaso/); });
     ROWS.list = [{ target: 'a1', pct: 1, source: 'ruta:ruta.a/posta:a1', finishedAt: Date.now() - 3600e3 }];

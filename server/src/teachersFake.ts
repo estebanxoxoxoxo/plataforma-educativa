@@ -104,25 +104,27 @@ const DAYS_PL = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados
    Mercado homeschooler de EE.UU. (VISION §1) con la UI en rioplatense: mentores bilingües y nativos, materias del día a
    día de una familia que educa en casa más las "extra" (música, ajedrez, programación). Precios de clase particular
    online (USD 25-60 la hora) y ratings altos pero creíbles. Sin fotos ni assets externos: emoji de la materia sobre un
-   color de la paleta del demo. El primer nombre es como lo llama el chico ("Clase de Matemática con Caro"). */
+   color de la paleta del demo. El primer nombre es como lo llama el chico ("Clase de Matemática con Caro").
+   TEEN (4-nov, Esteban: «que parezca para un chico de 13»): las bios le hablan a una familia con un chico de 13 (antes:
+   «canciones y juegos que se pegan solos», «bloques de colores»); mismos ids, materias, precios y ratings. */
 interface TeacherDef { id: string; name: string; emoji: string; color: string; subject: string; pricePerHour: number; bio: string; rating: number }
 const CATALOG: readonly TeacherDef[] = [
   { id: 'caro-mendez', name: 'Caro Méndez', subject: 'Matemática', emoji: '🧮', color: '#3A5BD9', pricePerHour: 40, rating: 4.9,
-    bio: 'Convierte cada problema en un misterio para resolver: los chicos terminan pidiendo otro.' },
+    bio: 'Convierte cada problema en un desafío de lógica: de las ecuaciones al álgebra, sin fórmulas de memoria.' },
   { id: 'lucia-ferraro', name: 'Lucía Ferraro', subject: 'Lectura y escritura', emoji: '📚', color: '#E5487A', pricePerHour: 38, rating: 4.9,
-    bio: 'Arma un club de lectura de a dos y ayuda a escribir los cuentos que tienen en la cabeza.' },
+    bio: 'Club de lectura de a dos y taller de escritura: cuento, ensayo y cómo armar un buen argumento.' },
   { id: 'emily-carter', name: 'Emily Carter', subject: 'Inglés', emoji: '🗣️', color: '#F26B3A', pricePerHour: 35, rating: 4.8,
-    bio: 'Habla en inglés desde el primer minuto, con canciones y juegos que se pegan solos.' },
+    bio: 'Clases todo en inglés desde el primer minuto: conversación, series y debate a tu nivel.' },
   { id: 'sam-rivera', name: 'Sam Rivera', subject: 'Ciencias', emoji: '🔬', color: '#18A957', pricePerHour: 45, rating: 4.7,
-    bio: 'Cada clase trae un experimento que se hace con cosas de la cocina.' },
+    bio: 'Física y química con experimentos reales y el porqué de cada resultado.' },
   { id: 'martin-ortega', name: 'Martín Ortega', subject: 'Historia', emoji: '🏛️', color: '#F2A81D', pricePerHour: 36, rating: 4.5,
-    bio: 'Cuenta la historia como una aventura, con mapas y personajes de verdad.' },
+    bio: 'La historia como un caso a investigar: fuentes, mapas y personajes de verdad.' },
   { id: 'dev-patel', name: 'Dev Patel', subject: 'Programación', emoji: '💻', color: '#1C9BD6', pricePerHour: 55, rating: 4.6,
-    bio: 'Arranca con bloques de colores y en pocas semanas ya programan su propio videojuego.' },
+    bio: 'De Python a tu primer videojuego: en pocas semanas tenés un proyecto propio funcionando.' },
   { id: 'grace-kim', name: 'Grace Kim', subject: 'Música', emoji: '🎹', color: '#8A5CF5', pricePerHour: 50, rating: 4.9,
-    bio: 'Piano desde cero: en la primera clase ya sale una canción entera.' },
+    bio: 'Piano y teoría: acordes, lectura y tus canciones favoritas desde la primera clase.' },
   { id: 'leo-novak', name: 'Leo Novak', subject: 'Ajedrez', emoji: '♟️', color: '#13A39A', pricePerHour: 28, rating: 4.8,
-    bio: 'Enseña a pensar dos jugadas adelante, con partidas cortas y mucha paciencia.' },
+    bio: 'Aperturas, táctica y el análisis de tus propias partidas, a tu ritmo.' },
 ]
 /** Seed de la PRIMERA vez: Caro ya le da Matemática a Ian, para que su Calendario nazca vivo. */
 const SEED = { teacherId: 'caro-mendez', beneficiary: DEFAULT_USER_ID, slot: { weekday: 2, hour: 17 } } as const

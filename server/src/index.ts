@@ -304,7 +304,9 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
         snippet: boldSnippet(r.snippet ?? '', q), color: colorFor(host(r.link)), articleId: r.link,
       }))
       console.log(`[search] «${q}» → ${items.length} resultados (${Date.now() - t0} ms)`)
-      return send(res, 200, { query: q, items })
+      // Sin resultados PORQUE el buscador falló (Serper sin créditos, timeout…): el contrato ya tiene `error` y la UI
+      // dibuja su estado de falla — esconderlo mostraba un «No encontré artículos» mentiroso (4-nov, lo sufrió Esteban).
+      return send(res, 200, { query: q, items, ...(error && items.length === 0 ? { error } : {}) })
     }
 
     if (url.pathname === '/api/article') {

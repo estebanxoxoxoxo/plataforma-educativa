@@ -92,7 +92,7 @@ export default function DominoBoard({ engine }: { engine: DominoEngine }) {
         {snap.hand.map((t) => (
           <HandTile key={t.id} tile={t} hintId={hintId} wrong={snap.lastWrongId === t.id} />
         ))}
-        {snap.hand.length === 0 && <p className="lrn-dom-empty">¡Vaciaste la mano! 🎉</p>}
+        {snap.hand.length === 0 && <p className="lrn-dom-empty">Mano vacía ✓</p>}
       </div>
 
       <p className="lrn-help is-left">

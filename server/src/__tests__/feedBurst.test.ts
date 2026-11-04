@@ -46,7 +46,7 @@ vi.mock('../leaguesFake', () => {
   };
   const hashOf = (s: string) => { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
   const shuffle = <T,>(xs: readonly T[], r: () => number) => { const a = [...xs]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-  const TABLE = ['FeliTrex', 'EmiFósil', 'NachoNova', 'SofiCometa', 'BautiRayo', 'ValenLuz', 'JuliMar', 'PedroPixel', 'RoAstro', 'TatiNube', 'LoloGeo'];
+  const TABLE = ['FeliSkate', 'EmiCode', 'NachoPixel', 'SofiCometa', 'BautiRayo', 'ValenLuz', 'JuliMar', 'PedroPixel', 'RoAstro', 'TatiNube', 'LoloGeo'];
   return {
     cycleWeek: () => WEEK.n, hashOf, rng, shuffle, lastClose: () => null, lastCloseLabel: () => (WEEK.n > 0 ? 'recién' : 'el domingo'),
     MEDAL_EMOJI: { oro: '🥇', plata: '🥈', bronce: '🥉' },
@@ -103,9 +103,9 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); });
 
 describe('B · la primera página trae liga cerrada de un amigo', () => {
-  /** Lo que cada uno tiene en el seed real de friendsFake: medallas primero (Ian: MateoDino 🥇 y TomiCohete 🥉; Luna:
-   *  FedeAjedrez 🥇 y LeaTelescopio 🥉), y el ascenso de CataEstrella, que sigue por antigüedad. */
-  const LEAD: Record<string, string[]> = { ian: ['MateoDino', 'TomiCohete'], luna: ['FedeAjedrez', 'LeaTelescopio'] };
+  /** Lo que cada uno tiene en el seed real de friendsFake: medallas primero (Ian: MateoPaleo 🥇 y TomasApolo 🥉; Luna:
+   *  FedeBlitz 🥇 y LeaVega 🥉), y el ascenso de CataNova, que sigue por antigüedad. */
+  const LEAD: Record<string, string[]> = { ian: ['MateoPaleo', 'TomasApolo'], luna: ['FedeBlitz', 'LeaVega'] };
   for (const user of ['ian', 'luna']) {
     for (const [name, d] of [['mañana', THURSDAY(9)], ['tarde', THURSDAY(16)], ['noche', THURSDAY(21)], ['lunes al mediodía', MONDAY(12)]] as const) {
       it(`${user} · ${name}: 2 en la primera página (medallas: oro y bronce), fechadas en el cierre, y ninguna duplicada en la edición`, () => {
@@ -149,8 +149,8 @@ describe('B · la primera página trae liga cerrada de un amigo', () => {
     runAsUser('ian', () => {
       const first = getFeed().items;
       // el cierre fue "anoche": la tarjeta de la liga y las dos primeras de amigos ya están en la primera página, en el orden
-      // del cierre (MateoDino 🥇 y el ascenso de CataEstrella); TomiCohete 🥉 sigue más abajo
-      expect(first.filter(isFriendLeague).map((it) => it.friend.nick)).toEqual(['MateoDino', 'CataEstrella']);
+      // del cierre (MateoPaleo 🥇 y el ascenso de CataNova); TomasApolo 🥉 sigue más abajo
+      expect(first.filter(isFriendLeague).map((it) => it.friend.nick)).toEqual(['MateoPaleo', 'CataNova']);
       expect(first.some((it) => it.kind === 'league')).toBe(true);
     });
   });
@@ -185,8 +185,8 @@ describe('B · la primera página trae liga cerrada de un amigo', () => {
         week: 1, me: { nick: 'Ian', color: '#FFC23D', pos: 2, medal: 'plata' }, from: { name: 'Liga Cometa', emoji: '☄️' },
         to: { name: 'Liga Estrella', emoji: '⭐' }, movement: 'sube',
         podium: [
-          { nick: 'FeliTrex', color: '#3A5BD9', pos: 1, medal: 'oro', up: { name: 'Liga Estrella', emoji: '⭐' }, withMe: true },
-          { nick: 'EmiFósil', color: '#13A39A', pos: 3, medal: 'bronce', up: { name: 'Liga Estrella', emoji: '⭐' }, withMe: true },
+          { nick: 'FeliSkate', color: '#3A5BD9', pos: 1, medal: 'oro', up: { name: 'Liga Estrella', emoji: '⭐' }, withMe: true },
+          { nick: 'EmiCode', color: '#13A39A', pos: 3, medal: 'bronce', up: { name: 'Liga Estrella', emoji: '⭐' }, withMe: true },
         ],
       });
       const pages = pagesOf();
@@ -238,7 +238,7 @@ describe('A · las medallas de la ráfaga cuadran con el mundo REAL de friendsFa
         for (const it of medals) {
           expect(visibleNicksAtStart(user)).toContain(it.friend.nick);
           expect(it.time).toBe('recién');
-          expect(it.reason).toBe(it.friend.nick === 'FedeAjedrez' ? 'FedeAjedrez quiere ser tu amigo' : `${it.friend.nick} es tu ${npcInfo(it.friend.nick)!.girl ? 'amiga' : 'amigo'}`);
+          expect(it.reason).toBe(it.friend.nick === 'FedeBlitz' ? 'FedeBlitz quiere ser tu amigo' : `${it.friend.nick} es tu ${npcInfo(it.friend.nick)!.girl ? 'amiga' : 'amigo'}`);
         }
         // de a 5 (los ids fx-/fs- son correlativos): composiciones distintas entre ráfagas seguidas
         const byBurst = [...live].sort((a, b) => Number(a.id.slice(3)) - Number(b.id.slice(3)));

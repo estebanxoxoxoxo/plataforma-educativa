@@ -12,7 +12,7 @@ export const VideoItem = ({ v, onOpen }: { v: VideoResult; onOpen: () => void })
         <span className="gdur">{v.duration}</span>
       </span>
       <div className="g-vtxt">
-        <div className="g-snip">{v.subtitle}. Un video para aprender sobre el tema, pensado para chicos ...</div>
+        <div className="g-snip">{v.subtitle}. Un video para aprender sobre el tema, pensado para tu edad ...</div>
         <div className="g-meta">YouTube · {v.channel} · {v.date}</div>
       </div>
     </div>

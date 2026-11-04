@@ -193,7 +193,7 @@ describe('Amigos: aceptar y el auto-aceptar del NPC sincronizan («Primer amigo�
     const b = await boot();
     expect(['ian', 'luna', 'andres'].map(u => b.M.medalFactsOf(u).friends)).toEqual([6, 4, 0]);
   });
-  it('Luna acepta la solicitud de FedeAjedrez: su amigo nuevo cuenta y la medalla llega NUEVA a SU feed', async () => {
+  it('Luna acepta la solicitud de FedeBlitz: su amigo nuevo cuenta y la medalla llega NUEVA a SU feed', async () => {
     const b = await boot();
     sonda(b);
     at('2026-10-20T10:00:00Z');
@@ -203,7 +203,7 @@ describe('Amigos: aceptar y el auto-aceptar del NPC sincronizan («Primer amigo�
     expect(b.pila('luna')).toContain('primer-amigo*');
     expect(b.news).toEqual(['luna:primer-amigo']);
   });
-  it('Ian le pide contacto a MicaPincel: el NPC acepta solo (a los 4-8 s, al LEER) y ahí se sincroniza', async () => {
+  it('Ian le pide contacto a MicaTinta: el NPC acepta solo (a los 4-8 s, al LEER) y ahí se sincroniza', async () => {
     const b = await boot();
     sonda(b);
     at('2026-10-20T10:00:00Z');

@@ -6,24 +6,27 @@
 //   - los nicks de zona/país no aparecen en ninguna liga; zona y país tienen DOS tops, el de los chicos y el de los grandes
 //     (U4-B2: el adulto compite con grandes también ahí), disjuntos entre sí;
 //   - ninguno coincide con los 14 NPCs amigos de friendsFake.ts (un chico es UNA identidad en todo el demo).
-// Ian conserva EXACTAMENTE los de siempre (mudados desde leaguesFake.ts SIN cambiar el orden: sus semanas simuladas salen
-// idénticas). Los de Luna (chicos de 11-13) y los de Andrés (GRANDES que aprenden en Innerith, D4 de U4) son nuevos.
+// Ian conserva el MISMO pool por lugar (mudado desde leaguesFake.ts SIN cambiar el orden ni el largo: sus semanas simuladas
+// salen con la misma forma). TEEN (4-nov, pedido de Esteban: «que parezca para un chico de 13»): los nicks de chicos se
+// re-envejecieron a alias de 12-14 (fuera los animalitos y los diminutivos de juguete: «LolaKoala», «FeliTrex»), uno por uno
+// en el mismo lugar; los de zona/país y los de Luna, apenas armonizados. Los de Andrés (GRANDES que aprenden en Innerith,
+// D4 de U4) quedan.
 // Sumar un usuario al seed = sumar acá su pool nuevo y disjunto (y su LeagueSeed en leaguesFake.ts, que falla fuerte al
 // arrancar si falta).
 
 /** Los 16 de la tabla de siempre de Ian (el mock del navegador): los 11 de su tabla del seed salen de acá. */
-export const NICKS: readonly string[] = ['NachoNova', 'EmiFósil', 'ValenOrbita', 'GuadaGalaxia', 'FeliTrex', 'AguMeteoro', 'PiliCometa', 'BautiLava', 'JoaquiSaturno', 'ZoeVolcan', 'FrancoPlaneta', 'MiliEclipse', 'LautiCrater', 'RenataLuna', 'SantiAsteroide', 'OliviaNebula']
+export const NICKS: readonly string[] = ['NachoPixel', 'EmiCode', 'ValenRíos', 'Guada.Beats', 'FeliSkate', 'Agu.Speedrun', 'PiliIndie', 'BautiDrift', 'JoacoSaturno', 'ZoeRiff', 'FrancoTorque', 'MiliEclipse', 'LautiSprint', 'Renata.Ink', 'SantiPivot', 'OliviaNebula']
 /** Más chicos para las tablas de las semanas simuladas de Ian (ninguno es de zona/país ni amigo: un chico tiene UN
  *  solo puntaje y aparece en UNA tabla de liga). */
-export const MORE_NICKS: readonly string[] = ['TobiPulsar', 'CandeMarea', 'RamiTitan', 'AbriCoral', 'GonzaGlaciar', 'MaiaPrisma', 'LeoCiclon', 'AnaKiwi', 'PanchoMamut', 'JoseOrca', 'SolCaracol', 'DelfiDelfin', 'IvoMarte', 'LolaKoala', 'NinaNube', 'MatiAtomo', 'CamiloCanguro', 'ElenaCascada', 'GaelGeiser', 'PedroBambu', 'UmaTucan', 'LuchoHalcon', 'ClaraArcoiris', 'BenjaDuna', 'IaraPinguino', 'FacuBrujula', 'JazminFaro', 'PatoOla', 'RoccoSelva', 'LaraTortuga', 'CiroJaguar', 'BiancaCondor', 'MorePuma', 'LichiBisonte', 'JuanaLince', 'LoloBallena', 'TinoPulpo', 'IsaMedusa', 'BeniCristal', 'AmbarZorro', 'JuliPanda', 'VicenTrueno', 'PazNieve', 'MaxiRadar']
+export const MORE_NICKS: readonly string[] = ['TobiPulsar', 'CandeSurf', 'RamiTitan', 'AbriLens', 'GonzaGlaciar', 'MaiaPrisma', 'LeoCiclon', 'AnaVinilo', 'PanchoBMX', 'JoseVoley', 'SolAcústica', 'DelfiDrums', 'IvoMarte', 'LolaStudio', 'NinaCloud', 'MatiAtomo', 'CamiloParkour', 'ElenaCascada', 'GaelGeiser', 'PedroBajo', 'UmaPolaroid', 'LuchoRally', 'ClaraSonata', 'BenjaDuna', 'IaraManga', 'FacuBrujula', 'JazminFaro', 'PatoTrail', 'RoccoBoulder', 'LaraCine', 'CiroTurbo', 'BiancaAndes', 'MoreHoops', 'LichiBeats', 'JuanaGlitch', 'LoloDribble', 'TinoQuant', 'IsaOpera', 'BeniCristal', 'AmbarZen', 'JuliTrack', 'VicenNitro', 'PazSnowboard', 'MaxiRadar']
 /** El pool de Ian para sus semanas simuladas: EN ESTE ORDEN (weekNpcs lo baraja con un PRNG sembrado). */
 export const LEAGUE_NICKS: readonly string[] = [...NICKS, ...MORE_NICKS]
 
 /* Nicks propios de los rankings geográficos, DISJUNTOS entre sí y con las ligas: si un mismo chico apareciera en dos
    tablas con dos puntajes distintos, se rompería la regla de "un solo puntaje semanal". Son GLOBALES (de la zona y del
    país, no de un usuario): los ven todos los CHICOS. EN ESTE ORDEN (el top rota sobre ellos: sus tablas no cambian). */
-export const GEO_NICKS: readonly string[] = ['SofiAurora', 'ThiagoFoton', 'CamiCuarzo', 'BrunoTornado', 'AlmaBrisa', 'IkerMagma', 'LunaBoreal', 'DanteOrion', 'MiaTundra', 'TeoGranizo', 'VeraCeleste', 'SimonQuasar']
-export const GEO_NICKS_PAIS: readonly string[] = ['RenzoPolaris', 'MiluVega', 'KiaraAndromeda', 'ManuLucero', 'AinaCenit', 'GaspiHorizonte', 'EmmaSolsticio', 'LucasRelampago', 'TatiArrecife', 'AxelMistral', 'AmpiSequoia', 'RomiEquinoccio']
+export const GEO_NICKS: readonly string[] = ['SofiAurora', 'ThiagoFoton', 'CamiCuarzo', 'BrunoTornado', 'AlmaSaxo', 'IkerMagma', 'LunaBoreal', 'DanteOrion', 'MiaTundra', 'TeoGrind', 'VeraCeleste', 'SimonQuasar']
+export const GEO_NICKS_PAIS: readonly string[] = ['RenzoPolaris', 'MiluVoltio', 'KiaraAndromeda', 'ManuLucero', 'AinaCenit', 'GaspiHorizonte', 'EmmaSolsticio', 'LucasRelampago', 'TatiApnea', 'AxelMistral', 'AmpiSequoia', 'RomiEquinoccio']
 /* U4-B2 (decisión del dueño, 28-oct): el ADULTO compite en zona y país contra los tops de GRANDES que aprenden en la zona
    y en el país (como en su liga, D4: nunca contra chicos). Mismo tamaño que los de los chicos, DISJUNTOS de todos los demás
    pools (un grande tiene UN puntaje y aparece en UNA tabla), de los NPCs amigos, de los nicks del seed y de los mentores. */
@@ -41,11 +44,11 @@ export const GEO_POOLS: Readonly<Record<'zona' | 'pais', Readonly<Record<'child'
  *  pool de sus semanas simuladas (incluye a los 11 de la tabla). */
 export interface LeaguePool { table: readonly string[]; pool: readonly string[] }
 
-const LUNA_TABLE = ['FlorAstrolabio', 'JeroCodigo', 'MaleAcuarela', 'TiziRobotica', 'XimeOrbital', 'YagoTeorema', 'SamiHiedra', 'UliDinamo', 'GalaPoema', 'DaniMosaico', 'PiaCompas']
-/** Chicos de 11-13: la tabla de Luna (Liga Estrella en el seed). */
+const LUNA_TABLE = ['FlorAstrolabio', 'JeroCodigo', 'MaleAcuarela', 'Tizi.Robotica', 'XimeOrbital', 'YagoTeorema', 'SamiHiedra', 'UliDinamo', 'GalaVerso', 'DaniMosaico', 'PiaCompas']
+/** Chicos de 12-14: la tabla de Luna (Liga Estrella en el seed). */
 export const LUNA_LEAGUE: LeaguePool = {
   table: LUNA_TABLE,
-  pool: [...LUNA_TABLE, 'AntoMapamundi', 'BelLibreta', 'CeciVioleta', 'DoloPlaneador', 'EliAlgebra', 'EugeMicroscopio', 'FranSextante', 'GimeCaleidoscopio', 'HugoVector', 'InesSinfonia', 'KariPentagrama', 'LucaMagnetita', 'LupeFolio', 'MauroPixel', 'NoeBotanica', 'OriTangram', 'QuiqueAtlas', 'ValuGeoda', 'ZairaCuaderno', 'KeviCircuito', 'WenAbaco', 'RoriTinta', 'AbiMeridiano', 'NeoParalaje'],
+  pool: [...LUNA_TABLE, 'AntoMapamundi', 'BelDiario', 'CeciVioleta', 'DoloPlaneador', 'EliAlgebra', 'EugeMicroscopio', 'FranSextante', 'GimeCaleidoscopio', 'HugoVector', 'InesSinfonia', 'KariPentagrama', 'LucaMagnetita', 'LupeFolio', 'MauroPixel', 'NoeBotanica', 'OriTangram', 'QuiqueAtlas', 'ValuGeoda', 'ZairaBoceto', 'KeviCircuito', 'WenAlgoritmo', 'RoriTinta', 'AbiMeridiano', 'NeoParalaje'],
 }
 
 const ADULT_TABLE = ['MarceloViajero', 'GabiPilates', 'FerGuitarra', 'PaulaMasaMadre', 'DiegoAjedrecista', 'VeroItaliano', 'SergioMaraton', 'LauraFotografa', 'AndreaHuerta', 'GustavoPython', 'SilviCeramica']

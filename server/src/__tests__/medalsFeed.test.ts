@@ -31,7 +31,7 @@ vi.mock('../videos', () => ({
 }));
 vi.mock('../friendsFake', () => ({
   npcRelation: () => 'friend', // FS-BASE-B: el "por qué" según el grafo del activo
-  friendNews: () => [{ fid: 'TomiCohete', friend: { nick: 'TomiCohete', color: '#123456' }, text: 'llegó a una racha de 12 días', icon: 'streak' }],
+  friendNews: () => [{ fid: 'TomasApolo', friend: { nick: 'TomasApolo', color: '#123456' }, text: 'llegó a una racha de 12 días', icon: 'streak' }],
   isVisibleNpc: () => true,
   npcInfo: (nick: string) => ({ id: nick, color: '#123456', girl: false }),
   friendCount: () => 1,

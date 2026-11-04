@@ -72,13 +72,13 @@ export function PeopleResults({ q }: { q: string }) {
     }
   };
 
-  if (!q) return <p className="sempty ppl-empty">Escribí el nombre de usuario de otro chico de Innerith para encontrarlo.</p>;
+  if (!q) return <p className="sempty ppl-empty">Escribí el nombre de usuario de otra persona de Innerith para encontrarla.</p>;
   if (short) return <p className="sempty ppl-empty">Escribí al menos {PEOPLE_MIN} letras de su nombre de usuario.</p>;
   const people = res?.q === q ? res.people : null;
   if (failed && !people) return <p className="sempty ppl-empty">No pude buscar ahora mismo. Probemos de nuevo en un ratito.</p>;
   if (!people) {
     return (
-      <div className="ppl" role="status" aria-label="Buscando chicos con ese nombre">
+      <div className="ppl" role="status" aria-label="Buscando personas con ese nombre">
         {[0, 1, 2].map((i) => <div key={i} className="ppl-row sk"><span className="ph-a" /><span className="ph-b"><i /><i /></span></div>)}
       </div>
     );

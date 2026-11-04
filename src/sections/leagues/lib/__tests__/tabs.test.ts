@@ -38,8 +38,8 @@ describe('resolveTab', () => {
 });
 
 describe('captions', () => {
-  it('Mi liga: chicos para un chico, grandes para el adulto', () => {
-    expect(leagueCaption('Liga Cometa', 12, false)).toBe('Liga Cometa · 12 chicos');
+  it('Mi liga: «en tu liga» para un chico (TEEN-COPY 4-nov: sin «chicos»), grandes para el adulto', () => {
+    expect(leagueCaption('Liga Cometa', 12, false)).toBe('Liga Cometa · 12 en tu liga');
     expect(leagueCaption('Liga Chispa', 12, true)).toBe('Liga Chispa · 12 grandes');
   });
   it('zona y país: el lugar; para el adulto, "Grandes de …"', () => {

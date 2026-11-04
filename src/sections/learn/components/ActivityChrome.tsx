@@ -6,10 +6,13 @@ import { useActivityClock, useActivitySnapshot } from '../../../learn/react/useA
 import { IcFlag, IcPause, IcPlay, IcRotateCcw, IcX } from './LearnIcons';
 
 /* El MARCO (chrome) del overlay de una actividad — piezas de ActivityOverlay.tsx del POC con sus MISMOS textos, tiempos y
-   reglas: Lobby ("¡Cuando estés, dale!" + "▶ ¡Empezar!", que desbloquea el audio) → cuenta 3-2-1-"¡Ya!" (700 ms por número
+   reglas: Lobby ("Arrancá cuando quieras." + "▶ Empezar", que desbloquea el audio) → cuenta 3-2-1-"¡Ya!" (700 ms por número
    + 450 ms del "¡Ya!", con la animación de escala) → Runner (✕, título, puntaje, Pausar/Reanudar, Rendirse) → Resultado
-   ("¡Lo lograste!"/"Terminó", aciertos/errores/mejor racha/duración, "Jugar de nuevo", "Cerrar"). Estética de Innerith.
-   Leen la INSTANCIA del motor (su store), no la API. */
+   ("Lo lograste"/"Terminó", aciertos/errores/mejor racha/duración, "Jugar de nuevo", "Cerrar"). Estética de Innerith.
+   Leen la INSTANCIA del motor (su store), no la API.
+   TEEN-COPY (4-nov): los textos del lobby y del resultado se DESVÍAN del POC («¡Cuando estés, dale!», «▶ ¡Empezar!»,
+   «🎉 ¡Lo lograste!»): el usuario modelo tiene 13 y eso sonaba a jardín. Sin 🎉 ni dobles signos; el «¡Ya!» de la cuenta
+   queda (una sola exclamación, es la largada). Tiempos y reglas, iguales. */
 
 type Board = ComponentType<{ engine: unknown }>;
 
@@ -56,9 +59,9 @@ function Lobby({ title, onStart }: { title: string; onStart: () => void }) {
       ) : (
         <>
           <h2 className="ln-lobby-t">{title}</h2>
-          <p className="ln-lobby-p">¡Cuando estés, dale!</p>
+          <p className="ln-lobby-p">Arrancá cuando quieras.</p>
           <button type="button" className="ln-btn ln-btn-go" onClick={() => { void ensureAudio(); setCounting(true); }}>
-            ▶ ¡Empezar!
+            ▶ Empezar
           </button>
         </>
       )}
@@ -75,8 +78,8 @@ function Result({ instance, awardedEc, onPlayAgain, onClose }: {
   if (!r) return null;
   return (
     <div className="ln-result">
-      <div className="ln-result-emoji" aria-hidden="true">{r.outcome === 'completed' ? '🎉' : '🏁'}</div>
-      <h2 className="ln-result-t">{r.outcome === 'completed' ? '¡Lo lograste!' : 'Terminó'}</h2>
+      <div className="ln-result-emoji" aria-hidden="true">{r.outcome === 'completed' ? '🏆' : '🏁'}</div>
+      <h2 className="ln-result-t">{r.outcome === 'completed' ? 'Lo lograste' : 'Terminó'}</h2>
       <div className="ln-result-score">
         {r.score}
         <span> / {r.maxScore}</span>

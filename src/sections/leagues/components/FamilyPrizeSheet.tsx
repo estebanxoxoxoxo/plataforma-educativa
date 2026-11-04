@@ -117,7 +117,7 @@ export function FamilyPrizeSheet({ initial, options, busy, error, errorSeq, onSu
               <div className="lgp-field">
                 <label htmlFor={`${uid}-title`}>Título</label>
                 <input id={`${uid}-title`} className="lgp-input" value={d.title} maxLength={80} autoComplete="off" disabled={busy}
-                  placeholder="Por ejemplo: 1 hora de bici" onChange={(e) => set({ title: e.target.value })} />
+                  placeholder="Por ejemplo: Salida a escalar el sábado" onChange={(e) => set({ title: e.target.value })} />
               </div>
               <div className="lgp-field">
                 <label htmlFor={`${uid}-desc`}>Descripción <span className="lgp-opt-t">(opcional)</span></label>

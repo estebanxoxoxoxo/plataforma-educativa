@@ -16,9 +16,10 @@ const NY = 'America/New_York'; // horario de verano hasta el 1-nov-2026 (UTC−4
 
 const t = (id: string, name: string, subject: string, bio: string): Teacher =>
   ({ id, name, subject, bio, emoji: '·', color: '#000', pricePerHour: 40, rating: 4.9 });
-const CARO = t('caro-mendez', 'Caro Méndez', 'Matemática', 'Convierte cada problema en un misterio para resolver: los chicos terminan pidiendo otro.');
-const LUCIA = t('lucia-ferraro', 'Lucía Ferraro', 'Lectura y escritura', 'Arma un club de lectura de a dos y ayuda a escribir los cuentos que tienen en la cabeza.');
-const GRACE = t('grace-kim', 'Grace Kim', 'Música', 'Piano desde cero: en la primera clase ya sale una canción entera.');
+// TEEN (4-nov): las bios verbatim de server/src/teachersFake.ts, maduradas para una familia con un chico de 13.
+const CARO = t('caro-mendez', 'Caro Méndez', 'Matemática', 'Convierte cada problema en un desafío de lógica: de las ecuaciones al álgebra, sin fórmulas de memoria.');
+const LUCIA = t('lucia-ferraro', 'Lucía Ferraro', 'Lectura y escritura', 'Club de lectura de a dos y taller de escritura: cuento, ensayo y cómo armar un buen argumento.');
+const GRACE = t('grace-kim', 'Grace Kim', 'Música', 'Piano y teoría: acordes, lectura y tus canciones favoritas desde la primera clase.');
 const people = { andres: 'Andrés', ian: 'Ian' };
 
 describe('mentorMatches (filtro local de Buscar → Mentores)', () => {

@@ -15,7 +15,7 @@
 //      distintos dentro de la ráfaga siempre que se pueda y, primero, otros que los de la ráfaga anterior; sin repetir una
 //      noticia hasta agotar SU tipo, y al reciclarlo nunca las de la ráfaga anterior. FS-BASE-B (hallazgo feedMix.ts:141):
 //      esas reglas podían TRABAR una ráfaga —en la 7.ª de Luna, a insignia y unidad solo les quedaba una noticia cada una y
-//      las dos eran de CataEstrella, así que salía dos veces—. Ahora (a) dentro de cada tipo se prefiere, con peso
+//      las dos eran de CataNova, así que salía dos veces—. Ahora (a) dentro de cada tipo se prefiere, con peso
 //      fraccionario, la noticia de quien más tiene sin publicar (balanceo: los restos no se concentran en una persona), (b)
 //      entre los repartos buenos se prefiere el que deja la ráfaga SIGUIENTE con reparto posible (lookahead de un paso) y
 //      (c) si igual no hay reparto con protagonistas distintos, un tipo trabado RECICLA antes de agotarse lo ya publicado
@@ -414,85 +414,88 @@ export function composeBurst(cands: readonly BurstCand[], mem: BurstMemory, r: (
  *  en su liga" de antes se retiraron de la ráfaga (no son ninguno de los tipos del pedido). Cada usuario ve las de quien ve
  *  en SU grafo (feedFake filtra con isVisibleNpc); f10, f11, f13 y f14 (el pool de Buscar → Personas) entran si se hacen
  *  amigos. Lo nuevo, AL FINAL de cada NPC (las claves no se reusan). */
+// TEEN (4-nov, pedido de Esteban: «que parezca para un chico de 13»): mismas CLAVES, tipos y orden (la memoria de la ráfaga
+// va por clave); textos con los cursos de 13 de friendsFake (Álgebra, Paleontología, Biología marina, Inglés intermedio,
+// Anatomía) y sin festejos de jardín («¡otra vez!», «Little Artist», «Nido de Colibrí»).
 export const NPC_NEWS: readonly { key: string; nick: string; text: string; type: Exclude<SocialBurstType, 'route' | 'medal'> }[] = [
-  // f1 · TomiCohete (El sistema solar, Dinosaurios · racha 12)
-  { key: 'tomi-brujula', nick: 'TomiCohete', text: 'se ganó la «Brújula Espacial» en El sistema solar 🚀', type: 'badge' },
-  { key: 'tomi-cometas', nick: 'TomiCohete', text: 'terminó la unidad «Cometas y asteroides» de El sistema solar ☄️', type: 'unit' },
-  { key: 'tomi-pasos', nick: 'TomiCohete', text: 'completó 25 pasos esta semana 💪', type: 'streak' },
-  { key: 'tomi-saturno', nick: 'TomiCohete', text: 'se ganó la insignia «Anillos de Saturno» en El sistema solar 🪐', type: 'badge' },
-  { key: 'tomi-huellas', nick: 'TomiCohete', text: 'terminó la unidad «Huellas de dinosaurio» de Dinosaurios 🦕', type: 'unit' },
-  { key: 'tomi-desayuno', nick: 'TomiCohete', text: 'practicó antes del desayuno y no cortó su racha 🌅', type: 'streak' },
-  // f2 · LuliVolcan (Animales del océano · racha 8)
-  { key: 'luli-ballenas', nick: 'LuliVolcan', text: 'se ganó la «Medalla de ballenas» en Animales del océano 🐋', type: 'badge' },
-  { key: 'luli-pulpos', nick: 'LuliVolcan', text: 'terminó la unidad «Pulpos, medusas y estrellas» de Animales del océano 🐙', type: 'unit' },
-  { key: 'luli-racha', nick: 'LuliVolcan', text: 'llegó a 8 días seguidos practicando 🔥', type: 'streak' },
-  { key: 'luli-lava', nick: 'LuliVolcan', text: 'se ganó la insignia «Corazón de Lava» en Volcanes 🌋', type: 'badge' },
-  { key: 'luli-tortugas', nick: 'LuliVolcan', text: 'terminó la unidad «Tortugas marinas» de Animales del océano 🐢', type: 'unit' },
-  { key: 'luli-pasos', nick: 'LuliVolcan', text: 'completó 30 pasos esta semana 💪', type: 'streak' },
-  // f3 · MateoDino (Dinosaurios, Fracciones · racha 21)
-  { key: 'mateo-racha', nick: 'MateoDino', text: 'llegó a 3 semanas de racha: ¡21 días seguidos! 🔥', type: 'streak' },
-  { key: 'mateo-llave', nick: 'MateoDino', text: 'se ganó la «Llave de Equivalencias» en Fracciones 🔑', type: 'badge' },
-  { key: 'mateo-comparar', nick: 'MateoDino', text: 'terminó la unidad «Comparar y ordenar» de Fracciones', type: 'unit' },
-  { key: 'mateo-fosiles', nick: 'MateoDino', text: 'se ganó la insignia «Cazador de Fósiles» en Dinosaurios 🦴', type: 'badge' },
-  { key: 'mateo-cretacico', nick: 'MateoDino', text: 'terminó la unidad «El Cretácico» de Dinosaurios 🦖', type: 'unit' },
-  { key: 'mateo-semana', nick: 'MateoDino', text: 'practicó todos los días de la semana, ¡otra vez! 📅', type: 'streak' },
-  // f4 · CataEstrella (Inglés inicial · racha 3)
-  { key: 'cata-colores', nick: 'CataEstrella', text: 'se ganó la «Medalla de Colores» en Inglés inicial 🎨', type: 'badge' },
-  { key: 'cata-numbers', nick: 'CataEstrella', text: 'terminó la unidad «Numbers» de Inglés inicial: one, two, three! 🔢', type: 'unit' },
-  { key: 'cata-racha', nick: 'CataEstrella', text: 'arrancó una racha: 3 días seguidos practicando ✨', type: 'streak' },
-  { key: 'cata-artist', nick: 'CataEstrella', text: 'se ganó la insignia «Little Artist» en Inglés inicial 🖍️', type: 'badge' },
-  { key: 'cata-animals', nick: 'CataEstrella', text: 'terminó la unidad «Animals» de Inglés inicial 🐶', type: 'unit' },
-  { key: 'cata-pasos', nick: 'CataEstrella', text: 'completó 12 pasos esta semana 🌟', type: 'streak' },
-  // f5 · JuanchiRayo (Fracciones · racha 2)
-  { key: 'juanchi-equiv', nick: 'JuanchiRayo', text: 'terminó la unidad «Fracciones equivalentes» ⚡', type: 'unit' },
-  { key: 'juanchi-racha', nick: 'JuanchiRayo', text: 'ya lleva 2 días seguidos practicando 💪', type: 'streak' },
-  { key: 'juanchi-rayo', nick: 'JuanchiRayo', text: 'se ganó la insignia «Rayo de las Fracciones» en Fracciones ⚡', type: 'badge' },
-  { key: 'juanchi-pasos', nick: 'JuanchiRayo', text: 'completó 10 pasos esta semana ⚽', type: 'streak' },
-  // f6 · MartuLuna (Mi cuerpo, El sistema solar · racha 5)
-  { key: 'martu-corazon', nick: 'MartuLuna', text: 'se ganó la «Medalla de Corazón» en Mi cuerpo ❤️', type: 'badge' },
-  { key: 'martu-luna', nick: 'MartuLuna', text: 'terminó la unidad «La Luna» de El sistema solar 🌙', type: 'unit' },
-  { key: 'martu-racha', nick: 'MartuLuna', text: 'llegó a 5 días seguidos practicando 🔥', type: 'streak' },
-  { key: 'martu-huesos', nick: 'MartuLuna', text: 'terminó la unidad «Los huesos» de Mi cuerpo 🦴', type: 'unit' },
-  { key: 'martu-estetoscopio', nick: 'MartuLuna', text: 'se ganó la insignia «Estetoscopio de Oro» en Mi cuerpo 🩺', type: 'badge' },
-  { key: 'martu-pasos', nick: 'MartuLuna', text: 'completó 18 pasos esta semana 💪', type: 'streak' },
-  // f7 · NicoRobot (Fracciones, El sistema solar · racha 4)
-  { key: 'nico-decimales', nick: 'NicoRobot', text: 'se ganó el «Sello de decimales» en Fracciones 🤖', type: 'badge' },
-  { key: 'nico-espacio', nick: 'NicoRobot', text: 'terminó la unidad «Explorar el espacio» de El sistema solar 🛰️', type: 'unit' },
-  { key: 'nico-racha', nick: 'NicoRobot', text: 'llegó a 4 días seguidos practicando 🤖', type: 'streak' },
-  { key: 'nico-recta', nick: 'NicoRobot', text: 'terminó la unidad «Fracciones en la recta» de Fracciones 📏', type: 'unit' },
-  { key: 'nico-rover', nick: 'NicoRobot', text: 'se ganó la insignia «Rover Explorador» en El sistema solar 🛰️', type: 'badge' },
-  // f12 · LeaTelescopio (El sistema solar · racha 7) — amiga de Luna
-  { key: 'lea-saturno', nick: 'LeaTelescopio', text: 'se ganó la insignia «Cazadora de Planetas» en El sistema solar 🪐', type: 'badge' },
-  { key: 'lea-racha', nick: 'LeaTelescopio', text: 'practicó con su telescopio y no cortó su racha 🔭', type: 'streak' },
-  { key: 'lea-constelaciones', nick: 'LeaTelescopio', text: 'terminó la unidad «Las constelaciones» de El sistema solar ✨', type: 'unit' },
-  { key: 'lea-pasos', nick: 'LeaTelescopio', text: 'completó 22 pasos esta semana 💫', type: 'streak' },
-  // f8 · TriniPiano (Inglés inicial · racha 6) — amiga de Luna
-  { key: 'trini-oido', nick: 'TriniPiano', text: 'se ganó la insignia «Clave de Sol» en Inglés inicial 🎼', type: 'badge' },
-  { key: 'trini-pasos', nick: 'TriniPiano', text: 'completó 20 pasos esta semana 💪', type: 'streak' },
-  { key: 'trini-songs', nick: 'TriniPiano', text: 'terminó la unidad «Songs» de Inglés inicial 🎹', type: 'unit' },
-  { key: 'trini-racha', nick: 'TriniPiano', text: 'llegó a 6 días seguidos practicando 🎶', type: 'streak' },
-  // f9 · FedeAjedrez (Fracciones · racha 9) — le pide contacto a Luna
-  { key: 'fede-jaque', nick: 'FedeAjedrez', text: 'se ganó la insignia «Jaque a las Fracciones» en Fracciones ♟️', type: 'badge' },
-  { key: 'fede-racha', nick: 'FedeAjedrez', text: 'llegó a 9 días seguidos practicando ♟️', type: 'streak' },
-  { key: 'fede-mixtos', nick: 'FedeAjedrez', text: 'terminó la unidad «Números mixtos» de Fracciones 🧩', type: 'unit' },
+  // f1 · TomasApolo (El sistema solar, Paleontología · racha 12)
+  { key: 'tomi-brujula', nick: 'TomasApolo', text: 'se ganó la insignia «Órbita de Transferencia» en El sistema solar 🚀', type: 'badge' },
+  { key: 'tomi-cometas', nick: 'TomasApolo', text: 'terminó la unidad «Cometas y asteroides» de El sistema solar ☄️', type: 'unit' },
+  { key: 'tomi-pasos', nick: 'TomasApolo', text: 'completó 25 pasos esta semana', type: 'streak' },
+  { key: 'tomi-saturno', nick: 'TomasApolo', text: 'se ganó la insignia «Anillos de Saturno» en El sistema solar 🪐', type: 'badge' },
+  { key: 'tomi-huellas', nick: 'TomasApolo', text: 'terminó la unidad «Icnitas: leer huellas fósiles» de Paleontología 🦕', type: 'unit' },
+  { key: 'tomi-desayuno', nick: 'TomasApolo', text: 'practicó antes del desayuno y no cortó su racha 🌅', type: 'streak' },
+  // f2 · LuMagma (Biología marina · racha 8)
+  { key: 'luli-ballenas', nick: 'LuMagma', text: 'se ganó la insignia «Ecolocalización» en Biología marina 🐋', type: 'badge' },
+  { key: 'luli-pulpos', nick: 'LuMagma', text: 'terminó la unidad «Cefalópodos» de Biología marina 🐙', type: 'unit' },
+  { key: 'luli-racha', nick: 'LuMagma', text: 'llegó a 8 días seguidos practicando 🔥', type: 'streak' },
+  { key: 'luli-lava', nick: 'LuMagma', text: 'se ganó la insignia «Magma y Placas» en Geología 🌋', type: 'badge' },
+  { key: 'luli-tortugas', nick: 'LuMagma', text: 'terminó la unidad «Migración de las tortugas marinas» de Biología marina 🐢', type: 'unit' },
+  { key: 'luli-pasos', nick: 'LuMagma', text: 'completó 30 pasos esta semana', type: 'streak' },
+  // f3 · MateoPaleo (Paleontología, Álgebra · racha 21)
+  { key: 'mateo-racha', nick: 'MateoPaleo', text: 'llegó a 3 semanas de racha: 21 días seguidos 🔥', type: 'streak' },
+  { key: 'mateo-llave', nick: 'MateoPaleo', text: 'se ganó la insignia «Despeje Perfecto» en Álgebra 🔑', type: 'badge' },
+  { key: 'mateo-comparar', nick: 'MateoPaleo', text: 'terminó la unidad «Inecuaciones» de Álgebra', type: 'unit' },
+  { key: 'mateo-fosiles', nick: 'MateoPaleo', text: 'se ganó la insignia «Estratigrafía» en Paleontología 🦴', type: 'badge' },
+  { key: 'mateo-cretacico', nick: 'MateoPaleo', text: 'terminó la unidad «El Cretácico» de Paleontología 🦖', type: 'unit' },
+  { key: 'mateo-semana', nick: 'MateoPaleo', text: 'practicó todos los días de la semana, otra vez 📅', type: 'streak' },
+  // f4 · CataNova (Inglés intermedio · racha 3)
+  { key: 'cata-colores', nick: 'CataNova', text: 'se ganó la insignia «Past Perfect» en Inglés intermedio 📘', type: 'badge' },
+  { key: 'cata-numbers', nick: 'CataNova', text: 'terminó la unidad «Conditionals» de Inglés intermedio: if I were you…', type: 'unit' },
+  { key: 'cata-racha', nick: 'CataNova', text: 'arrancó una racha: 3 días seguidos practicando ✨', type: 'streak' },
+  { key: 'cata-artist', nick: 'CataNova', text: 'se ganó la insignia «Storyteller» en Inglés intermedio ✍️', type: 'badge' },
+  { key: 'cata-animals', nick: 'CataNova', text: 'terminó la unidad «Movies & Series» de Inglés intermedio 🎬', type: 'unit' },
+  { key: 'cata-pasos', nick: 'CataNova', text: 'completó 12 pasos esta semana 🌟', type: 'streak' },
+  // f5 · JuanTrueno (Álgebra · racha 2)
+  { key: 'juanchi-equiv', nick: 'JuanTrueno', text: 'terminó la unidad «Expresiones algebraicas» de Álgebra ⚡', type: 'unit' },
+  { key: 'juanchi-racha', nick: 'JuanTrueno', text: 'ya lleva 2 días seguidos practicando', type: 'streak' },
+  { key: 'juanchi-rayo', nick: 'JuanTrueno', text: 'se ganó la insignia «Rayo Algebraico» en Álgebra ⚡', type: 'badge' },
+  { key: 'juanchi-pasos', nick: 'JuanTrueno', text: 'completó 10 pasos esta semana ⚽', type: 'streak' },
+  // f6 · MartuPulso (Anatomía, El sistema solar · racha 5)
+  { key: 'martu-corazon', nick: 'MartuPulso', text: 'se ganó la insignia «Ritmo Cardíaco» en Anatomía ❤️', type: 'badge' },
+  { key: 'martu-luna', nick: 'MartuPulso', text: 'terminó la unidad «La Luna» de El sistema solar 🌙', type: 'unit' },
+  { key: 'martu-racha', nick: 'MartuPulso', text: 'llegó a 5 días seguidos practicando 🔥', type: 'streak' },
+  { key: 'martu-huesos', nick: 'MartuPulso', text: 'terminó la unidad «El sistema óseo» de Anatomía 🦴', type: 'unit' },
+  { key: 'martu-estetoscopio', nick: 'MartuPulso', text: 'se ganó la insignia «Estetoscopio de Oro» en Anatomía 🩺', type: 'badge' },
+  { key: 'martu-pasos', nick: 'MartuPulso', text: 'completó 18 pasos esta semana', type: 'streak' },
+  // f7 · NicoServo (Álgebra, El sistema solar · racha 4)
+  { key: 'nico-decimales', nick: 'NicoServo', text: 'se ganó la insignia «Sistemas de Ecuaciones» en Álgebra 🤖', type: 'badge' },
+  { key: 'nico-espacio', nick: 'NicoServo', text: 'terminó la unidad «Sondas y satélites» de El sistema solar 🛰️', type: 'unit' },
+  { key: 'nico-racha', nick: 'NicoServo', text: 'llegó a 4 días seguidos practicando 🔧', type: 'streak' },
+  { key: 'nico-recta', nick: 'NicoServo', text: 'terminó la unidad «Funciones lineales» de Álgebra 📏', type: 'unit' },
+  { key: 'nico-rover', nick: 'NicoServo', text: 'se ganó la insignia «Rover Explorador» en El sistema solar 🛰️', type: 'badge' },
+  // f12 · LeaVega (El sistema solar · racha 7) — amiga de Luna
+  { key: 'lea-saturno', nick: 'LeaVega', text: 'se ganó la insignia «Cazadora de Planetas» en El sistema solar 🪐', type: 'badge' },
+  { key: 'lea-racha', nick: 'LeaVega', text: 'observó con su telescopio y no cortó su racha 🔭', type: 'streak' },
+  { key: 'lea-constelaciones', nick: 'LeaVega', text: 'terminó la unidad «Las constelaciones» de El sistema solar ✨', type: 'unit' },
+  { key: 'lea-pasos', nick: 'LeaVega', text: 'completó 22 pasos esta semana 💫', type: 'streak' },
+  // f8 · TriniLofi (Inglés intermedio · racha 6) — amiga de Luna
+  { key: 'trini-oido', nick: 'TriniLofi', text: 'se ganó la insignia «Lyrics Translator» en Inglés intermedio 🎼', type: 'badge' },
+  { key: 'trini-pasos', nick: 'TriniLofi', text: 'completó 20 pasos esta semana', type: 'streak' },
+  { key: 'trini-songs', nick: 'TriniLofi', text: 'terminó la unidad «Listening: podcasts» de Inglés intermedio 🎧', type: 'unit' },
+  { key: 'trini-racha', nick: 'TriniLofi', text: 'llegó a 6 días seguidos practicando 🎶', type: 'streak' },
+  // f9 · FedeBlitz (Álgebra · racha 9) — le pide contacto a Luna
+  { key: 'fede-jaque', nick: 'FedeBlitz', text: 'se ganó la insignia «Jaque al Álgebra» en Álgebra ♟️', type: 'badge' },
+  { key: 'fede-racha', nick: 'FedeBlitz', text: 'llegó a 9 días seguidos practicando ♟️', type: 'streak' },
+  { key: 'fede-mixtos', nick: 'FedeBlitz', text: 'terminó la unidad «Factorización» de Álgebra 🧩', type: 'unit' },
   // f10, f11, f13, f14 · el pool de Buscar → Personas (salen si se hacen amigos)
-  { key: 'mica-tortuga', nick: 'MicaPincel', text: 'se ganó la insignia «Tortuga Dibujante» en Animales del océano 🐢', type: 'badge' },
-  { key: 'mica-arrecife', nick: 'MicaPincel', text: 'terminó la unidad «Arrecifes de coral» de Animales del océano 🐠', type: 'unit' },
-  { key: 'mica-racha', nick: 'MicaPincel', text: 'llegó a 4 días seguidos practicando 🎨', type: 'streak' },
-  { key: 'gero-plumas', nick: 'GeroColibrí', text: 'terminó la unidad «Dinosaurios con plumas» de Dinosaurios 🐦', type: 'unit' },
-  { key: 'gero-racha', nick: 'GeroColibrí', text: 'llegó a 11 días seguidos practicando 🔥', type: 'streak' },
-  { key: 'gero-nido', nick: 'GeroColibrí', text: 'se ganó la insignia «Nido de Colibrí» en Dinosaurios 🐣', type: 'badge' },
-  { key: 'nahue-golazo', nick: 'NahueGol', text: 'se ganó la insignia «Golazo Matemático» en Fracciones ⚽', type: 'badge' },
-  { key: 'nahue-sports', nick: 'NahueGol', text: 'terminó la unidad «Sports» de Inglés inicial ⚽', type: 'unit' },
-  { key: 'nahue-racha', nick: 'NahueGol', text: 'llegó a 3 días seguidos practicando 💪', type: 'streak' },
-  { key: 'coni-cocina', nick: 'ConiCiencia', text: 'se ganó la insignia «Científica de Cocina» en Mi cuerpo 🧪', type: 'badge' },
-  { key: 'coni-pulmones', nick: 'ConiCiencia', text: 'terminó la unidad «Los pulmones» de Mi cuerpo 🌬️', type: 'unit' },
-  { key: 'coni-racha', nick: 'ConiCiencia', text: 'llegó a 5 días seguidos practicando 🧪', type: 'streak' },
+  { key: 'mica-tortuga', nick: 'MicaTinta', text: 'se ganó la insignia «Ilustración Científica» en Biología marina 🐢', type: 'badge' },
+  { key: 'mica-arrecife', nick: 'MicaTinta', text: 'terminó la unidad «Arrecifes de coral» de Biología marina 🐠', type: 'unit' },
+  { key: 'mica-racha', nick: 'MicaTinta', text: 'llegó a 4 días seguidos practicando 🎨', type: 'streak' },
+  { key: 'gero-plumas', nick: 'GeroHalcón', text: 'terminó la unidad «Dinosaurios con plumas» de Paleontología 🐦', type: 'unit' },
+  { key: 'gero-racha', nick: 'GeroHalcón', text: 'llegó a 11 días seguidos practicando 🔥', type: 'streak' },
+  { key: 'gero-nido', nick: 'GeroHalcón', text: 'se ganó la insignia «Ojo de Halcón» en Paleontología 🦅', type: 'badge' },
+  { key: 'nahue-golazo', nick: 'NahueRabona', text: 'se ganó la insignia «Golazo Algebraico» en Álgebra ⚽', type: 'badge' },
+  { key: 'nahue-sports', nick: 'NahueRabona', text: 'terminó la unidad «Sports commentary» de Inglés intermedio ⚽', type: 'unit' },
+  { key: 'nahue-racha', nick: 'NahueRabona', text: 'llegó a 3 días seguidos practicando', type: 'streak' },
+  { key: 'coni-cocina', nick: 'ConiLab', text: 'se ganó la insignia «Bioquímica» en Anatomía 🧪', type: 'badge' },
+  { key: 'coni-pulmones', nick: 'ConiLab', text: 'terminó la unidad «El sistema respiratorio» de Anatomía 🌬️', type: 'unit' },
+  { key: 'coni-racha', nick: 'ConiLab', text: 'llegó a 5 días seguidos practicando 🧪', type: 'streak' },
 ]
 /** Quién comparte rutas en la ráfaga: cualquier NPC que el activo vea (feedFake filtra con su grafo), en este orden. */
 export const SHARERS: readonly string[] = [
-  'TomiCohete', 'LuliVolcan', 'CataEstrella', 'MartuLuna', 'JuanchiRayo', 'LeaTelescopio', 'TriniPiano', 'MateoDino', 'NicoRobot',
-  'FedeAjedrez', 'MicaPincel', 'GeroColibrí', 'NahueGol', 'ConiCiencia',
+  'TomasApolo', 'LuMagma', 'CataNova', 'MartuPulso', 'JuanTrueno', 'LeaVega', 'TriniLofi', 'MateoPaleo', 'NicoServo',
+  'FedeBlitz', 'MicaTinta', 'GeroHalcón', 'NahueRabona', 'ConiLab',
 ]
 
 export type MedalTint = 'oro' | 'plata' | 'bronce'
@@ -503,20 +506,21 @@ export type MedalTint = 'oro' | 'plata' | 'bronce'
  *  suya, o —si su noticia del seed ya contaba una medalla— es ESA misma medalla (mismo metal), nunca otra. Se cuentan como
  *  algo que el amigo PUBLICA ahora sobre su medalla (la festeja, la colgó, estrena su liga): las medallas se reparten en el
  *  cierre del domingo, no a cualquier hora. Sin los de la Liga Chispa (la de abajo de todo: no pudieron subir a ella) ni
- *  CataEstrella (su noticia del seed "subió a la Liga Estrella" no cuadra con su liga de hoy, la Cometa: no se le suma
+ *  CataNova (su noticia del seed "subió a la Liga Estrella" no cuadra con su liga de hoy, la Cometa: no se le suma
  *  otra). Oro, plata y bronce repartidos para que Ian y Luna vean los TRES tintes. Claves nuevas; lo nuevo, AL FINAL. */
 export const NPC_MEDALS: readonly { key: string; nick: string; medal: MedalTint; league: string; text: string }[] = [
-  // amigos de Ian: TomiCohete, MateoDino (los dos con su medalla en el seed: la misma) y LuliVolcan
-  { key: 'tomi-medalla-liga', nick: 'TomiCohete', medal: 'bronce', league: 'Liga Cometa', text: 'festeja su medalla de bronce 🥉 de la Liga Cometa: ¡esta semana va por más! 🚀' },
-  { key: 'luli-medalla-liga', nick: 'LuliVolcan', medal: 'plata', league: 'Liga Cometa', text: 'colgó en su perfil la medalla de plata 🥈 de la Liga Chispa: ¡ya compite en la Liga Cometa ☄️!' },
-  { key: 'mateo-medalla-liga', nick: 'MateoDino', medal: 'oro', league: 'Liga Estrella', text: 'ya compite en la Liga Estrella ⭐ con la medalla de oro 🥇 que ganó en la Liga Cometa 🦖' },
+  // TEEN (4-nov): mismas medallas, ligas y claves; sin los «¡…!» de festejo de jardín.
+  // amigos de Ian: TomasApolo, MateoPaleo (los dos con su medalla en el seed: la misma) y LuMagma
+  { key: 'tomi-medalla-liga', nick: 'TomasApolo', medal: 'bronce', league: 'Liga Cometa', text: 'festeja su medalla de bronce 🥉 de la Liga Cometa: esta semana va por más 🚀' },
+  { key: 'luli-medalla-liga', nick: 'LuMagma', medal: 'plata', league: 'Liga Cometa', text: 'colgó en su perfil la medalla de plata 🥈 de la Liga Chispa: ya compite en la Liga Cometa ☄️' },
+  { key: 'mateo-medalla-liga', nick: 'MateoPaleo', medal: 'oro', league: 'Liga Estrella', text: 'ya compite en la Liga Estrella ⭐ con la medalla de oro 🥇 que ganó en la Liga Cometa 🦴' },
   // de Ian y de Luna
-  { key: 'martu-medalla-liga', nick: 'MartuLuna', medal: 'plata', league: 'Liga Cometa', text: 'estrena la Liga Cometa ☄️ con la medalla de plata 🥈 que ganó en la Liga Chispa 🌙' },
-  // de Luna: TriniPiano, LeaTelescopio y FedeAjedrez (estos dos, con su medalla en el seed: la misma)
-  { key: 'trini-medalla-liga', nick: 'TriniPiano', medal: 'oro', league: 'Liga Cometa', text: 'festeja su medalla de oro 🥇 de la Liga Chispa con una melodía: ¡ya está en la Liga Cometa ☄️! 🎹' },
-  { key: 'lea-medalla-liga', nick: 'LeaTelescopio', medal: 'bronce', league: 'Liga Cometa', text: 'anotó en su cuaderno la medalla de bronce 🥉 de la Liga Chispa: ¡ya practica en la Liga Cometa ☄️! 🔭' },
-  { key: 'fede-medalla-liga', nick: 'FedeAjedrez', medal: 'oro', league: 'Liga Estrella', text: 'estrena la Liga Estrella ⭐ con su medalla de oro 🥇 de la Liga Cometa ♟️' },
+  { key: 'martu-medalla-liga', nick: 'MartuPulso', medal: 'plata', league: 'Liga Cometa', text: 'estrena la Liga Cometa ☄️ con la medalla de plata 🥈 que ganó en la Liga Chispa 🌙' },
+  // de Luna: TriniLofi, LeaVega y FedeBlitz (estos dos, con su medalla en el seed: la misma)
+  { key: 'trini-medalla-liga', nick: 'TriniLofi', medal: 'oro', league: 'Liga Cometa', text: 'festeja su medalla de oro 🥇 de la Liga Chispa con un beat nuevo: ya está en la Liga Cometa ☄️ 🎹' },
+  { key: 'lea-medalla-liga', nick: 'LeaVega', medal: 'bronce', league: 'Liga Cometa', text: 'anotó en su registro de observación la medalla de bronce 🥉 de la Liga Chispa: ya practica en la Liga Cometa ☄️ 🔭' },
+  { key: 'fede-medalla-liga', nick: 'FedeBlitz', medal: 'oro', league: 'Liga Estrella', text: 'estrena la Liga Estrella ⭐ con su medalla de oro 🥇 de la Liga Cometa ♟️' },
   // el pool de Buscar → Personas (salen si se hacen amigos)
-  { key: 'gero-medalla-liga', nick: 'GeroColibrí', medal: 'bronce', league: 'Liga Cometa', text: 'ya compite en la Liga Cometa ☄️ con la medalla de bronce 🥉 que ganó en la Liga Chispa 🐦' },
-  { key: 'coni-medalla-liga', nick: 'ConiCiencia', medal: 'plata', league: 'Liga Cometa', text: 'festeja su medalla de plata 🥈 de la Liga Chispa: ¡ya compite en la Liga Cometa ☄️! 🧪' },
+  { key: 'gero-medalla-liga', nick: 'GeroHalcón', medal: 'bronce', league: 'Liga Cometa', text: 'ya compite en la Liga Cometa ☄️ con la medalla de bronce 🥉 que ganó en la Liga Chispa 🦅' },
+  { key: 'coni-medalla-liga', nick: 'ConiLab', medal: 'plata', league: 'Liga Cometa', text: 'festeja su medalla de plata 🥈 de la Liga Chispa: ya compite en la Liga Cometa ☄️ 🧪' },
 ]

@@ -107,10 +107,12 @@ export function resetMarket(userId?: string) { stores.reset(userId) }
 /* ---------- ropa del avatar: el catálogo de plataforma (ESPEJO de ACCESSORIES en Avatar.tsx) ---------- */
 type AccessoryId = (typeof ACCESSORY_IDS)[number]
 interface Ropa { id: number; accessoryId: AccessoryId; title: string; emoji: string; price: number; desc: string; fem: boolean; plural: boolean }
+// TEEN (4-nov): nombres FIJADOS por la dirección (la tanda de avatares redibuja los íconos): el 'lazo' ya no es un moño
+// rosa, es una BANDANA azul marino al cuello (como la dibujó TEEN-AVATARES). Los ids no cambian (ropa puesta, regalos y la lista de deseos van por id).
 const ROPA: readonly Ropa[] = [
-  { id: 900001, accessoryId: 'gorra', title: 'Gorra', emoji: '🧢', price: 80, desc: 'Roja, con visera al costado: la clásica para salir a practicar.', fem: true, plural: false },
+  { id: 900001, accessoryId: 'gorra', title: 'Gorra', emoji: '🧢', price: 80, desc: 'Roja, con la visera para atrás: la clásica de todos los días.', fem: true, plural: false },
   { id: 900002, accessoryId: 'vincha', title: 'Vincha deportiva', emoji: '🎽', price: 90, desc: 'Blanca con raya roja, para las prácticas más intensas.', fem: true, plural: false },
-  { id: 900003, accessoryId: 'lazo', title: 'Moño', emoji: '🎀', price: 120, desc: 'Rosa con lunares. Le queda lindo a cualquier personaje.', fem: false, plural: false },
+  { id: 900003, accessoryId: 'lazo', title: 'Bandana', emoji: '🧣', price: 120, desc: 'Azul marino, atada al cuello: le cambia la onda a cualquier personaje.', fem: true, plural: false },
   { id: 900004, accessoryId: 'anteojos', title: 'Anteojos de sol', emoji: '🕶️', price: 150, desc: 'Para verte con onda en tu liga.', fem: false, plural: true },
   { id: 900005, accessoryId: 'auriculares', title: 'Auriculares', emoji: '🎧', price: 220, desc: 'Para estudiar con tu música de fondo.', fem: false, plural: true },
   { id: 900006, accessoryId: 'corona', title: 'Corona', emoji: '👑', price: 300, desc: 'La más especial: para lucir todo lo que practicaste.', fem: true, plural: false },

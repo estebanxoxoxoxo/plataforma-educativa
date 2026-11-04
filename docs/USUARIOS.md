@@ -209,7 +209,7 @@ adulto le contestan siempre; los 401 de Familia a un chico dicen "Solo para un a
 > server** (hecha, 28-oct: contratos, migraciones, gating por chico) → **M2 cliente** (hecha, 28-oct: el selector
 > de integrante en Familia, `?m=<id>`; detalle al final de esta sección) → M3 QA.
 
-**Modelo.** Seed: `ian` (9), `luna` (12), `andres` (adulto, `dependents: ['ian','luna']`). Todo lo que
+**Modelo.** Seed: `ian` (13), `luna` (12), `andres` (adulto, `dependents: ['ian','luna']`). Todo lo que
 era "del chico" es POR INTEGRANTE; lo de la familia queda una sola vez:
 
 | Por integrante (`members[id]`) | De la familia | Compartido en el demo (D2: U3 separa SOLO la config) |
@@ -374,7 +374,7 @@ reiniciar). Reiniciar el server = todos al seed (RAM), como siempre.
 
 **Seeds (lo que ve cada uno al arrancar).**
 
-| | Ian (9) | Luna (12) | Andrés (adulto) |
+| | Ian (13) | Luna (12) | Andrés (adulto) |
 |---|---|---|---|
 | XP semana / total · ⚡ · racha | 1.240 / 8.460 · 1.240 · 5 (el de siempre) | 1.290 / 10.980 · 1.290 · 9 | 450 / 2.310 · 450 · 2 |
 | Movimientos | los 3 de siempre | 470 «Práctica: Inglés inicial», 400 «Práctica: El cuerpo humano», 420 «Práctica: Fracciones» | 240 y 210 «Aprender» |
@@ -476,9 +476,9 @@ La ráfaga cambió A PROPÓSITO (ya no sale idéntica a la de U4): EXACTAMENTE 5
 unidad completada, ruta compartida del catálogo de Learn y la carrera de TU liga con XP real—, nunca dos del mismo tipo,
 protagonistas distintos dentro de la ráfaga (y otros que los de la anterior cuando se puede), sin repetir una noticia hasta
 agotar su tipo (Ian: 13 por tipo social) y al reciclar nunca lo de la ráfaga anterior. FS-BASE-B: si esas reglas trababan
-una ráfaga (la 7.ª de Luna repetía a CataEstrella), ganan los protagonistas distintos: un tipo trabado recicla antes de
+una ráfaga (la 7.ª de Luna repetía a CataNova), ganan los protagonistas distintos: un tipo trabado recicla antes de
 agotarse lo mínimo indispensable (nunca lo de la anterior). Sigue siendo POR USUARIO y de quien
-ves (Luna: sus 4 amigas + FedeAjedrez). El pool (`NPC_NEWS`, re-tipado por tipo; sin los "va 2º en su liga", que no son
+ves (Luna: sus 4 amigas + FedeBlitz). El pool (`NPC_NEWS`, re-tipado por tipo; sin los "va 2º en su liga", que no son
 ninguno de los 5) y `SHARERS` (cualquier NPC visible) viven en `server/src/feedMix.ts`, puro y con tests. Con Amigos apagado
 del chico, `POST /api/feed/simulate-npcs` → 403 (antes 200 `{added: 0}`); con Ligas apagado salen 4; el adulto (sin amigos
 chicos) recibe 1, la carrera de su liga. El seed suma 14 noticias AL FINAL de `NEWS` (los `ff-*` de Ian no se corren) y la
@@ -493,17 +493,17 @@ nadie y, si es él quien la pide, 403 (los adultos siempre aparecen). No es una 
 
 **Seeds sociales (D3/D4).**
 
-| | Ian (9) | Luna (12) | Andrés (adulto) |
+| | Ian (13) | Luna (12) | Andrés (adulto) |
 |---|---|---|---|
 | Liga pública | Cometa · la semana pasada 2.º 🥈 (lo de siempre) | Estrella · la semana pasada 5.ª, sin medalla · NPCs de 11-13 (FlorAstrolabio, JeroCodigo…) | Chispa · la semana pasada 9.º · NPCs GRANDES (MarceloViajero, GabiPilates…) |
-| Amigos | TomiCohete, LuliVolcan, MateoDino, CataEstrella, JuanchiRayo, MartuLuna | CataEstrella, MartuLuna (también de Ian), LeaTelescopio, TriniPiano | ninguno |
-| Solicitud entrante | NicoRobot | FedeAjedrez ("Me encantan los acertijos de matemática y el ajedrez…") | ninguna |
-| Hilos sembrados | MateoDino, TomiCohete, LuliVolcan (los de siempre) | MartuLuna: "¿Viste la Luna llena de anoche? 🌙 Me acordé de vos" · LeaTelescopio: "¡Anoche vi los anillos de Saturno con el telescopio!" | — |
+| Amigos | TomasApolo, LuMagma, MateoPaleo, CataNova, JuanTrueno, MartuPulso | CataNova, MartuPulso (también de Ian), LeaVega, TriniLofi | ninguno |
+| Solicitud entrante | NicoServo | FedeBlitz ("Me encantan los acertijos de matemática y el ajedrez…") | ninguna |
+| Hilos sembrados | MateoPaleo, TomasApolo, LuMagma (los de siempre) | MartuPulso: "¿Viste la Luna llena de anoche? 🌙 Me acordé de vos" · LeaVega: "¡Anoche vi los anillos de Saturno con el telescopio!" | — |
 
 Con la XP del día, el puesto en la tabla pública cambia según el día de la semana (los NPCs juntan 25/50/75/100 % de lunes a
 jueves): de jueves a domingo los tres quedan 7.º; un miércoles, Ian y Luna 1.º y Andrés 4.º.
 
-**Bordes (U4-B).** La gorra que Ian le regaló a TomiCohete no la ve Luna (es de TU grafo). ~~Zona y país usan los mismos tops
+**Bordes (U4-B).** La gorra que Ian le regaló a TomasApolo no la ve Luna (es de TU grafo). ~~Zona y país usan los mismos tops
 (nicks de chicos) también para el adulto~~ — SALDADO por la mini-tanda U4-B2: el adulto ve tops de GRANDES en zona y país
 (misma fórmula y anclas compartidas: con 450 XP Andrés queda #106 de Palermo y #57.806 de 61.250 en el país; la UI no
 promete otra cosa: "Grandes de Argentina" y su puesto). La semana del calendario de la
@@ -918,7 +918,7 @@ de la familia (antes del 405 genérico) → lo de siempre. Un adulto nunca recib
 SEMBRADO (`progress.seedLastWeekOf`, nunca el progreso vivo). Los días salen de `familyWeek.seedWeekDays(racha, díaDeLaSemana,
 deseado)`: dependen del DÍA de hoy (coherentes con la racha).
 
-| | Ian (9) | Luna (12) | Andrés (adulto) |
+| | Ian (13) | Luna (12) | Andrés (adulto) |
 |---|---|---|---|
 | Esta semana: XP · racha (U4, sin cambios) | 1.240 · 5 | 1.290 · 9 | 450 · 2 |
 | Esta semana: días (`days`) | min(5, día+1) — miércoles: 3 | día+1 — miércoles: 3 | min(2, día+1) — miércoles: 2 |

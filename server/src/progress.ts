@@ -107,13 +107,14 @@ interface ProgressSeed {
 const PROGRESS_SEEDS: Record<string, ProgressSeed> = {
   ian: { xpWeek: 1240, xpTotal: 8460, ec: 1240, streakDays: 5, tx: [
     { daysAgo: 1, amount: 440, label: 'Práctica: El sistema solar' },
-    { daysAgo: 2, amount: 380, label: 'Práctica: Fracciones' },
+    { daysAgo: 2, amount: 380, label: 'Práctica: Álgebra' }, // TEEN (4-nov): antes Fracciones (Ian tiene 13)
     { daysAgo: 3, amount: 420, label: 'Práctica: El sistema solar' } ],
     lastWeek: { xp: 1180, days: 6 }, medal: { bestStreak: 5, comebacks: 0, pbWeeks: 0, fullWeeks: 0 } },
   luna: { xpWeek: 1290, xpTotal: 10980, ec: 1290, streakDays: 9, tx: [
-    { daysAgo: 1, amount: 470, label: 'Práctica: Inglés inicial' },
-    { daysAgo: 2, amount: 400, label: 'Práctica: El cuerpo humano' },
-    { daysAgo: 3, amount: 420, label: 'Práctica: Fracciones' } ],
+    // TEEN (4-nov): los cursos de 12-14 del mundo del demo (antes Inglés inicial, El cuerpo humano, Fracciones)
+    { daysAgo: 1, amount: 470, label: 'Práctica: Inglés intermedio' },
+    { daysAgo: 2, amount: 400, label: 'Práctica: Anatomía' },
+    { daysAgo: 3, amount: 420, label: 'Práctica: Álgebra' } ],
     lastWeek: { xp: 1350, days: 7 }, medal: { bestStreak: 9, comebacks: 0, pbWeeks: 0, fullWeeks: 1 } },
   andres: { xpWeek: 450, xpTotal: 2310, ec: 450, streakDays: 2, tx: [
     { daysAgo: 1, amount: 240, label: 'Aprender' },

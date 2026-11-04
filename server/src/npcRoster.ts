@@ -10,20 +10,20 @@ export interface NpcIdentity { id: string; nick: string; girl: boolean }
 
 /** Los 14 chicos del demo, en el orden de friendsFake.NPCS. */
 export const NPC_ROSTER: readonly NpcIdentity[] = [
-  { id: 'f1', nick: 'TomiCohete', girl: false },
-  { id: 'f2', nick: 'LuliVolcan', girl: true },
-  { id: 'f3', nick: 'MateoDino', girl: false },
-  { id: 'f4', nick: 'CataEstrella', girl: true },
-  { id: 'f5', nick: 'JuanchiRayo', girl: false },
-  { id: 'f6', nick: 'MartuLuna', girl: true },
-  { id: 'f7', nick: 'NicoRobot', girl: false },
-  { id: 'f8', nick: 'TriniPiano', girl: true },
-  { id: 'f9', nick: 'FedeAjedrez', girl: false },
-  { id: 'f10', nick: 'MicaPincel', girl: true },
-  { id: 'f11', nick: 'GeroColibrí', girl: false },
-  { id: 'f12', nick: 'LeaTelescopio', girl: true },
-  { id: 'f13', nick: 'NahueGol', girl: false },
-  { id: 'f14', nick: 'ConiCiencia', girl: true },
+  { id: 'f1', nick: 'TomasApolo', girl: false },
+  { id: 'f2', nick: 'LuMagma', girl: true },
+  { id: 'f3', nick: 'MateoPaleo', girl: false },
+  { id: 'f4', nick: 'CataNova', girl: true },
+  { id: 'f5', nick: 'JuanTrueno', girl: false },
+  { id: 'f6', nick: 'MartuPulso', girl: true },
+  { id: 'f7', nick: 'NicoServo', girl: false },
+  { id: 'f8', nick: 'TriniLofi', girl: true },
+  { id: 'f9', nick: 'FedeBlitz', girl: false },
+  { id: 'f10', nick: 'MicaTinta', girl: true },
+  { id: 'f11', nick: 'GeroHalcón', girl: false },
+  { id: 'f12', nick: 'LeaVega', girl: true },
+  { id: 'f13', nick: 'NahueRabona', girl: false },
+  { id: 'f14', nick: 'ConiLab', girl: true },
 ]
 
 /** El grafo de ARRANQUE de cada usuario del seed (ids de NPC): amigos en el orden de su lista y solicitudes ENTRANTES. */
