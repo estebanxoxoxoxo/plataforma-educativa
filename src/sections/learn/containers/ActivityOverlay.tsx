@@ -12,7 +12,7 @@ import { MULTI_ID, isChildFinished } from '../../../learn/activities/multi';
 import type { LearnReading } from '../../../api/types';
 import { useFeatures } from '../../parent/lib/features';
 import { Runner } from '../components/ActivityChrome';
-import { recordResult } from '../lib/learnData';
+import { recordResult, useLearnData } from '../lib/learnData';
 import { useOverlay } from '../lib/overlayNav';
 import { ReadingView } from './ReadingView';
 import { VideoReadingView } from './VideoReadingView';
@@ -22,7 +22,7 @@ import { VideoReadingView } from './VideoReadingView';
    (chrome): lobby → cuenta regresiva → juego → resultado, sobre el VisualStage
    (fondo+efectos), dirigido por el mismo stream de eventos. */
 
-/* PORTE INNERITH (W3+W4): port EXACTO de smarty-poc app/src/learn/ActivityOverlay.tsx @ 47f434b — fases de contenido
+/* PORTE SMARTY (W3+W4): port EXACTO de smarty-poc app/src/learn/ActivityOverlay.tsx @ 47f434b — fases de contenido
    (lectura / video → "Empezar preguntas"), lobby/cuenta/juego/resultado (components/ActivityChrome), makeSeed, el multi de
    ACTIVE RECALL (acotado a K en una posta de repaso, sin fin en la raíz), PERSISTENCIA PRIMERO (el hijo de un multi a SU
    target; el resultado externo al target de la posta salvo en el recall; el agregado de un multi con rollup:true),
@@ -108,9 +108,27 @@ export function ActivityOverlay({
   useEffect(() => {
     if (sceneIdRef.current != null) updateScene(sceneIdRef.current, phaseScene(phase));
   }, [phase, gameNo]);
+  // De qué CURSO viene cada pregunta del recall (pedido 4-nov): el título de la primera ruta cuyo
+  // camino tiene una posta con ese target (targets compartidos entre rutas: gana la primera, como
+  // comparten maestría). Va por ref para que una recarga de rutas NO reconstruya la actividad en
+  // juego: next() del multi es perezoso y lee el mapa vivo al armar cada pregunta.
+  const { routes } = useLearnData();
+  const courseByTarget = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const r of routes ?? []) for (const p of r.postas) if (!m.has(p.target)) m.set(p.target, r.title);
+    return m;
+  }, [routes]);
+  const courseMapRef = useRef(courseByTarget);
+  courseMapRef.current = courseByTarget;
   // gameNo en deps a propósito: "jugar de nuevo" lo incrementa para reconstruir la actividad
   const handle = useMemo<Handle | null>(
-    () => (recallTargets ? buildRecallActivity(recallTargets, makeSeed(), recallCount != null ? { count: recallCount } : undefined) : buildActivity(definitionId ?? '')),
+    () =>
+      recallTargets
+        ? buildRecallActivity(recallTargets, makeSeed(), {
+            ...(recallCount != null ? { count: recallCount } : undefined),
+            courseOf: (t) => courseMapRef.current.get(t),
+          })
+        : buildActivity(definitionId ?? ''),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [definitionId, gameNo, recallTargets, recallCount],
   );

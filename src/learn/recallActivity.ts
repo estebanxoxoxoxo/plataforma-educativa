@@ -12,7 +12,7 @@ import type { ActivityResultRow } from '../api/types'
    se repasa todo el tiempo que se quiera. Cada sub-resultado lo graba el overlay a
    SU objetivo (child-finished) → repasar mueve las postas reales. */
 
-/* PORTE INNERITH: W2 portó el ARMADOR del multi (`buildRecallActivity`); W4 suma `recallableTargets` tal cual el POC
+/* PORTE SMARTY: W2 portó el ARMADOR del multi (`buildRecallActivity`); W4 suma `recallableTargets` tal cual el POC
    (sobre `dueTargets` de ./recall, el port de lib/recall). Único cambio: las filas son las de NUESTRO server
    (`ActivityResultRow` de src/api/types.ts, misma forma que la fila de Dexie). */
 
@@ -21,10 +21,10 @@ function leafDef(target: string) {
   return definitionsForTarget(target).find((d) => d.typeId !== 'multi')
 }
 
-function recallChildFor(target: string, seed: number): MultiChild | null {
+function recallChildFor(target: string, seed: number, courseOf?: (target: string) => string | undefined): MultiChild | null {
   const d = leafDef(target)
   if (!d) return null
-  return { make: () => buildDefinition(d.id, seed), typeId: d.typeId, title: d.title, target: d.target, definitionId: d.id }
+  return { make: () => buildDefinition(d.id, seed), typeId: d.typeId, title: d.title, subtitle: courseOf?.(target), target: d.target, definitionId: d.id }
 }
 
 /** Objetivos repasables (ya vistos + con Definición leaf), ordenados por urgencia.
@@ -36,8 +36,11 @@ export function recallableTargets(rows: ActivityResultRow[], now: number, opts?:
 }
 
 /** Multi de active recall sobre los objetivos due (orden de urgencia). Sin `count` =
- *  ENDLESS (cicla sin fin, raíz cross-ruta); con `count` = ACOTADO a K (posta in-route). */
-export function buildRecallActivity(targetsInOrder: string[], seed: number, opts?: { count?: number }): ActivityHandle<any> {
+ *  ENDLESS (cicla sin fin, raíz cross-ruta); con `count` = ACOTADO a K (posta in-route).
+ *  `opts.courseOf` (pedido 4-nov): el nombre del CURSO del que viene cada objetivo — el motor no
+ *  conoce las rutas, así que lo resuelve quien llama (el overlay) y acá solo se cuelga del hijo
+ *  como `subtitle`. Se evalúa al armar CADA hijo (next es perezoso): puede leer datos vivos. */
+export function buildRecallActivity(targetsInOrder: string[], seed: number, opts?: { count?: number; courseOf?: (target: string) => string | undefined }): ActivityHandle<any> {
   const order = targetsInOrder.filter((t) => leafDef(t) != null)
   const count = opts?.count
   return createActivity(multiModule, {
@@ -46,7 +49,7 @@ export function buildRecallActivity(targetsInOrder: string[], seed: number, opts
     next: (i) => {
       if (order.length === 0) return null
       if (count != null && i >= count) return null
-      return recallChildFor(order[i % order.length], seed + i + 1)
+      return recallChildFor(order[i % order.length], seed + i + 1, opts?.courseOf)
     },
   })
 }

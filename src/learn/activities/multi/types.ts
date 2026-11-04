@@ -11,6 +11,9 @@ export interface MultiChild {
   /** Tipo del hijo (la vista del multi lo usa para renderizar el tablero correcto). */
   typeId: string
   title?: string
+  /** Rótulo de contexto sobre el título (pedido 4-nov: el active recall muestra de qué CURSO
+   *  viene cada pregunta). Quien arma los hijos decide qué poner; sin él no se dibuja nada. */
+  subtitle?: string
   /** Objetivo que entrena (para atribuir el sub-resultado; lo usa el recall). */
   target?: string
   /** Definición que acuñó este hijo (identidad REAL del sub-resultado; no usar el
@@ -23,5 +26,6 @@ export interface MultiSnapshot extends CommonSnapshot {
   /** Cantidad de hijos si es acotado; null = endless (scroll infinito). */
   total: number | null
   childTitle: string | null
+  childSubtitle: string | null
   childTypeId: string | null
 }

@@ -115,6 +115,7 @@ export class MultiEngine implements ActivityInstance<MultiSnapshot> {
       childIndex: Math.max(0, this.index),
       total: this.cfg.total ?? null,
       childTitle: this.active?.spec.title ?? null,
+      childSubtitle: this.active?.spec.subtitle ?? null,
       childTypeId: this.active?.spec.typeId ?? null,
     }
     this.snapRev = this.core.rev
