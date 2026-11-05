@@ -96,7 +96,11 @@ export function VideoPage() {
 
   return (
     <section className={`view${wide ? ' pwide' : ''}`} id="v-player" ref={view}>
-      <button className="back" onClick={() => go(back.to)}>{back.label}</button>
+      {/* «Crear ruta» con este video ya cargado en el 1er módulo: el id de la URL alcanza, no espera a que cargue `v` (pedido 4-nov) */}
+      <div className="phead">
+        <button className="back" onClick={() => go(back.to)}>{back.label}</button>
+        <button className="pcreate" onClick={() => go('/crear?video=' + encodeURIComponent(id))}>+ Crear ruta</button>
+      </div>
       {queue.length > 1 && <p className="pqueue">Lista · video {qi + 1} de {queue.length}</p>}
       <div className="pmain">
         {v ? <>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../../../api';
 import type { ImportBundleResult, LearnRouteListItem } from '../../../api/types';
 import { ModuleCard, type ModuleHandlers } from '../cards/ModuleCard';
@@ -47,7 +48,16 @@ export function CreatePage() {
   const [msg, setMsg] = useState<Msg>(null);
 
   // estado ANIDADO del creador; routeId inmutable (nuevo por sesión, o el de la ruta cargada)
-  const [state, setState] = useState<CreatorState>(blankCreatorState);
+  // Desde el reproductor («Crear ruta», pedido 4-nov) llega ?video=<id>: el 1er módulo arranca con su URL. Solo al montar;
+  // «Nueva» vuelve a dejar todo en blanco.
+  const [params] = useSearchParams();
+  const [state, setState] = useState<CreatorState>(() => {
+    const s = blankCreatorState();
+    const vid = params.get('video');
+    if (!vid) return s;
+    const [m0, ...rest] = s.modules;
+    return { ...s, modules: [{ ...m0, source: { ...m0.source, url: 'https://www.youtube.com/watch?v=' + vid } }, ...rest] };
+  });
   // módulos con el panel de inventario abierto + curaduría (checks sobre el inventario)
   const [openInv, setOpenInv] = useState<Set<string>>(new Set());
   const toggleInv = (mid: string) =>

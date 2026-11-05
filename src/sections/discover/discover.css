@@ -419,6 +419,12 @@
    una notebook y la vista se centra también en vertical); en ventanas chicas ocupa la columna entera. */
 #v-player{display:grid;grid-template-columns:minmax(0,760px);gap:14px 24px;align-content:safe center;justify-content:center}
 #v-player .back{grid-column:1/-1;color:#0B6B66}
+/* Cabecera: «‹ Volver» a la izquierda y «Crear ruta» arriba a la derecha (pedido 4-nov). La pill se come su alto con
+   margen negativo para que la fila siga midiendo lo que el texto del «Volver» (el video no baja). */
+#v-player .phead{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
+.pcreate{flex:none;display:inline-flex;align-items:center;min-height:34px;margin-block:-8.5px;padding:0 14px;border-radius:999px;border:1px solid #CDEBE8;background:#EEF7F6;font-size:13.5px;font-weight:800;color:var(--teal-d);white-space:nowrap;cursor:pointer;transition:background-color .15s,transform .1s}
+.pcreate:hover{background:#E2F5F3}
+.pcreate:active{transform:scale(.95)}
 /* .pmain = el video + sus datos (antes eran hijos directos de la grilla: mismo espacio de 14px entre ellos). */
 #v-player .pmain{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;min-width:0;align-content:start}
 /* Panel del reproductor (relacionados / "En la lista", como el POC, VideoSidePanel): debajo del video en la misma columna
@@ -644,6 +650,7 @@
   /* reproductor: «‹ volver» del ancho de su texto y 44 de alto; los controles a 36×36 (el ícono sigue de 22) y la barra
      de progreso con 24 px para tocarla (antes 4). .prow posicionada: sus botones quedan por encima del área extra. */
   #v-player .back{justify-self:start;min-height:44px;margin-block:-12.5px}
+  .pcreate{min-height:44px;margin-block:-13.5px}
   .prow{position:relative}
   .prow button{min-width:36px;min-height:36px;margin:-7px}
   /* con 36 de alto su anillo (offset 2 + 3) llegaba al borde del .player (overflow:hidden) y lo recortaba: va por dentro */
