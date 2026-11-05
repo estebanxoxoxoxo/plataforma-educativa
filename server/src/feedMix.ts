@@ -42,10 +42,10 @@ export type Slot = 'friend' | 'article' | 'route' | 'video'
 export const SLOTS: readonly Slot[] = ['friend', 'article', 'route', 'video']
 /** La plantilla de cada franja: el orden de los tipos de la CABEZA de la edición (una pasada) y en qué lugar de la primera
  *  página van la grilla de videos y el resumen (noticia → 1-2 "para vos" → grilla → más social → resumen…). */
-export const EDITIONS: Record<Daypart, { pattern: readonly Slot[]; shelfAfter: number; summaryAfter: number }> = {
-  manana: { pattern: ['friend', 'article', 'route', 'friend', 'article', 'video', 'friend', 'video', 'route', 'article', 'video'], shelfAfter: 3, summaryAfter: 4 },
-  tarde: { pattern: ['friend', 'route', 'friend', 'article', 'video', 'friend', 'video', 'article', 'video', 'route', 'video'], shelfAfter: 2, summaryAfter: 4 },
-  noche: { pattern: ['friend', 'article', 'friend', 'video', 'route', 'friend', 'video', 'article', 'video'], shelfAfter: 2, summaryAfter: 3 },
+export const EDITIONS: Record<Daypart, { pattern: readonly Slot[]; shelfAfter: number }> = {
+  manana: { pattern: ['friend', 'article', 'route', 'friend', 'article', 'video', 'friend', 'video', 'route', 'article', 'video'], shelfAfter: 3 },
+  tarde: { pattern: ['friend', 'route', 'friend', 'article', 'video', 'friend', 'video', 'article', 'video', 'route', 'video'], shelfAfter: 2 },
+  noche: { pattern: ['friend', 'article', 'friend', 'video', 'route', 'friend', 'video', 'article', 'video'], shelfAfter: 2 },
 }
 
 /** La edición sembrada en orden. CABEZA: la plantilla de la franja, una pasada (un tipo sin ítems se saltea, y también

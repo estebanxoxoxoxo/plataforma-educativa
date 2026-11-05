@@ -54,7 +54,6 @@ M.registerMedalGate(() => true);
 
 type Item = ReturnType<typeof getFeed>['items'][number];
 const medalsIn = (uid: string) => runAsUser(uid, () => getFeed().items.filter((it): it is Extract<Item, { kind: 'medal' }> => it.kind === 'medal'));
-const summaryIn = (uid: string) => runAsUser(uid, () => getFeed().items.find(it => it.kind === 'summary'));
 
 beforeEach(() => {
   Object.assign(FLAGS, { amigos: true, ligas: true });
@@ -84,13 +83,6 @@ describe('la noticia de una medalla nueva, en el feed de SU dueño', () => {
     // primera página siembra la más reciente (feedFake.seedMedal; mientras estaba viva, el dedupe la escondía). Antes
     // esperaba [] porque no había medalla sembrada.
     expect(medalsIn('ian').map(n => n.id)).toEqual(['fm-seed-de-vuelta']);
-  });
-  it('el resumen de la edición NO la cuenta (no es contenido recomendado)', () => {
-    const before = summaryIn('andres');
-    F.andres = { pbWeeks: 1 };
-    runAsUser('andres', () => M.syncMedals('andres'));
-    expect(medalsIn('andres')).toHaveLength(1);
-    expect(summaryIn('andres')).toEqual(before);
   });
 });
 

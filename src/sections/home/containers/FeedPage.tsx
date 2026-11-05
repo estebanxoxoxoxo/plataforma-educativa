@@ -15,7 +15,6 @@ import { FeedMedalCard } from '../cards/FeedMedalCard';
 import { FeedNewsCard } from '../cards/FeedNewsCard';
 import { FeedNextCard } from '../cards/FeedNextCard';
 import { FeedRouteCard } from '../cards/FeedRouteCard';
-import { FeedSummaryCard } from '../cards/FeedSummaryCard';
 import { FeedVideoCard } from '../cards/FeedVideoCard';
 import { FeedVideoShelf } from '../cards/FeedVideoShelf';
 import { FriendEventCard } from '../cards/FriendEventCard';
@@ -323,15 +322,14 @@ export function FeedPage() {
   /** La noticia es del propio chico (su medalla del cierre de liga). */
   const isMine = (nick: string) => !!user?.nick && nick === user.nick;
 
-  /** Cada kind con su estilo de bloque (mock v6): next → B · videos → D · summary → E · lo de ligas y la medalla propia
-   *  (U5) → C (noticia) · el resto → A (card estándar). */
+  /** Cada kind con su estilo de bloque (mock v6): next → B · videos → D · lo de ligas y la medalla propia
+   *  (U5) → C (noticia) · el resto → A (card estándar). (El summary/estilo E se retiró a pedido, 4-nov.) */
   const block = (it: FeedItem): ReactNode => {
     const off = () => hide(it.id);
     switch (it.kind) {
       // El hero vive DENTRO de la zona Destacado (pedido 14-oct): este case queda solo por exhaustividad.
       case 'next': return <FeedNextCard it={it} onGo={(to) => go(to)} />;
       case 'videos': return <FeedVideoShelf it={it} onOpen={h.video} onAll={() => go(shelfAllUrl(it))} />;
-      case 'summary': return <FeedSummaryCard it={it} />;
       case 'video': return <FeedVideoCard it={it} onOpen={h.video} onLess={off} />;
       case 'article': return <FeedArticleCard it={it} onOpen={h.article} onLess={off} />;
       case 'route': return <FeedRouteCard it={it} onOpen={h.route} onLess={off} />;

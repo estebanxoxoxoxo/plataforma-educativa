@@ -202,14 +202,13 @@ describe('el seed por defecto: cards de muchos tipos en TODAS las franjas', () =
       vi.setSystemTime(new Date(2026, 9, 28, hour, 30)); // miércoles, hora local del server (tz de la familia: null)
       runAsUser('ian', () => {
         const first = getFeed();
-        expect(first.items.find((it) => it.kind === 'summary')).toMatchObject({ title: `Tu ${name} de miércoles` });
         const pages: Item[][] = [first.items];
         for (let next = first.next; next; ) { const r = getFeed(next); pages.push(r.items); next = r.next; }
         const all = pages.flat();
         const types = new Set(all.map(typeOf));
-        for (const t of ['next', 'videos', 'summary', 'video', 'article', 'route', 'league', 'streak', 'badge', 'unit']) expect(types, `${name}: falta ${t}`).toContain(t);
-        // la edición sembrada (sin hero, grilla ni resumen): página por página
-        const seeded = pages.map((p) => p.filter((it) => it.kind !== 'next' && it.kind !== 'videos' && it.kind !== 'summary'));
+        for (const t of ['next', 'videos', 'video', 'article', 'route', 'league', 'streak', 'badge', 'unit']) expect(types, `${name}: falta ${t}`).toContain(t);
+        // la edición sembrada (sin hero ni grilla): página por página
+        const seeded = pages.map((p) => p.filter((it) => it.kind !== 'next' && it.kind !== 'videos'));
         for (const p of seeded.filter((pg) => pg.length >= 9)) expect(new Set(p.map(typeOf)).size, p.map(typeOf).join(' > ')).toBeGreaterThanOrEqual(4);
         const kinds = seeded.flat().map((it) => it.kind);
         for (let i = 1; i < kinds.length; i++) expect(kinds[i] === kinds[i - 1] && kinds[i] !== 'friend', `${name} #${i}: ${kinds[i]}`).toBe(false);
@@ -273,33 +272,17 @@ describe('FS-BASE-B: el "por qué" de un NPC según el grafo del activo (hallazg
   });
 });
 
-describe('FS-BASE-B: el resumen dice la verdad sobre el hero (hallazgo feedFake.ts:382)', () => {
+describe('el hero de la noche según el progreso real (FS-BASE-B; la card summary se retiró 4-nov)', () => {
   const first = () => getFeed().items;
   const hero = (xs: Item[]) => xs.find((it): it is Extract<Item, { kind: 'next' }> => it.kind === 'next')!;
-  const sum = (xs: Item[]) => xs.find((it): it is Extract<Item, { kind: 'summary' }> => it.kind === 'summary')!;
   const at = (h: number) => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date(2026, 9, 29, h, 0)); }; // hora LOCAL (sin zona de la familia)
-  it('de noche sin ruta en curso: el hero es "Empezá …" y el resumen NO promete "un repaso sin apuro"', () => {
+  it('de noche sin ruta en curso: el hero es "Empezá …"', () => {
     at(23);
-    runAsUser('ian', () => {
-      const xs = first();
-      expect(hero(xs).title).toMatch(/^Empezá /);
-      expect(sum(xs).desc).not.toMatch(/repaso/);
-      expect(sum(xs).desc).toMatch(/tranquila/);
-    });
+    runAsUser('ian', () => { expect(hero(first()).title).toMatch(/^Empezá /); });
   });
-  it('de noche CON una ruta en curso: "Repasá …, sin apuro" y el resumen sí lo dice', () => {
+  it('de noche CON una ruta en curso: "Repasá …, sin apuro"', () => {
     at(23);
     ROWS.list = [{ target: 'a1', pct: 1, source: 'ruta:ruta.a/posta:a1', finishedAt: Date.now() - 3600e3 }];
-    runAsUser('ian', () => {
-      const xs = first();
-      expect(hero(xs).title).toMatch(/^Repasá Ruta A, sin apuro/);
-      expect(sum(xs).desc).toMatch(/un repaso sin apuro/);
-    });
-  });
-  it('a la tarde: "a la noche cambia a repaso tranquilo" solo si de verdad va a haber repaso', () => {
-    at(16);
-    runAsUser('ian', () => { expect(sum(first()).later).not.toMatch(/repaso/); });
-    ROWS.list = [{ target: 'a1', pct: 1, source: 'ruta:ruta.a/posta:a1', finishedAt: Date.now() - 3600e3 }];
-    runAsUser('ian', () => { expect(sum(first()).later).toMatch(/repaso tranquilo/); });
+    runAsUser('ian', () => { expect(hero(first()).title).toMatch(/^Repasá Ruta A, sin apuro/); });
   });
 });

@@ -7,8 +7,8 @@
 //         lo que entró en vivo (noticias frescas, lo más nuevo primero),
 //         tu medalla MÁS RECIENTE (la sembrada: tanda "Cards del feed", 29-oct — seedMedal, abajo),
 //         la edición sembrada: noticia de amigos → 1-2 "para vos" (lectura/ruta) → la grilla 'videos' → más social →
-//         el 'summary' (que CONFIESA la mezcla y cómo cambia con la hora) → el resto ].
-//     Las páginas siguientes siguen la edición, más vieja, sin hero ni resumen; la última trae next=null ("Estás al día").
+//         el resto ]. (La card 'summary' que confesaba la mezcla se RETIRÓ a pedido, 4-nov: no se entendía.)
+//     Las páginas siguientes siguen la edición, más vieja, sin hero; la última trae next=null ("Estás al día").
 //     MEZCLA DIVERSA (tanda "Feed diverso", 28-oct; reglas puras en feedMix.ts): la cabeza de la edición sigue la plantilla
 //     de la franja y el resto se reparte balanceado (ninguna página de un solo tipo; antes la cola eran 5-6 videos
 //     seguidos), lo del cierre de liga entra espaciado, las lecturas cubren todos los intereses del chico (intercaladas
@@ -114,15 +114,13 @@ export type FeedItem =
   /** Grilla de videos inline. `topic` = ADITIVO (pendiente de formalizar en src/api/types.ts por el coordinador): el
    *  tema de la grilla, para que "Ver todos" lleve a /buscar?tab=videos&q=<topic>. */
   | { kind: 'videos'; id: string; time: string; reason: string; title: string; total: number; videos: VideoCard[]; topic?: string }
-  /** Resumen de la edición: la mezcla CONTADA de lo servido y cómo cambia con la hora. */
-  | { kind: 'summary'; id: string; title: string; desc: string; mix: { label: string; n: number }[]; later: string }
   /** U5-B: "Ganaste la medalla «…»" — una noticia PROPIA por cada medalla nueva (injectMedalNews), sin reacciones ni
    *  festejos de NPCs (no es la medalla de liga "que ven tus amigos"). Un cliente sin este kind no pinta nada. */
   | { kind: 'medal'; id: string; time: string; reason: string; medal: EarnedMedal }
 type Of<K extends FeedItem['kind']> = Extract<FeedItem, { kind: K }>
 export interface FeedResponse { items: FeedItem[]; next: string | null; motion: FeedMotion }
-/** El mismo ítem con otro "hace cuánto" (el resumen no tiene). */
-const withTime = (it: FeedItem, time: string): FeedItem => (it.kind === 'summary' ? it : { ...it, time })
+/** El mismo ítem con otro "hace cuánto". */
+const withTime = (it: FeedItem, time: string): FeedItem => ({ ...it, time })
 
 /* ---------- lo vivo del demo, POR USUARIO (RAM, U4) ---------- */
 /** Una noticia que entró en vivo: en qué semana del ciclo y cuándo (para fecharla al servir). */
@@ -399,27 +397,7 @@ function build(): Pool {
 /** Franja por la hora REAL del server (mismos cortes que el subtítulo del Feed en el cliente: 6, 13 y 20 h), leída en la ZONA
  *  HORARIA DE LA FAMILIA si el padre eligió una (deuda 14-oct; sin zona, la del server). */
 const daypartOf = (d: Date): Daypart => { const h = wallClock(d, familyTz()).hour; return h >= 6 && h < 13 ? 'manana' : h >= 13 && h < 20 ? 'tarde' : 'noche' }
-const DAYS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
-/** La madrugada (0-5 h) todavía es la noche del día anterior. En la zona de la familia, como la franja. */
-const dayName = (d: Date) => { const c = wallClock(d, familyTz()); return DAYS[(c.day + (c.hour < 6 ? 6 : 0)) % 7] }
-const DP_NAME: Record<Daypart, string> = { manana: 'mañana', tarde: 'tarde', noche: 'noche' }
-/** Lo que el resumen confiesa de la mezcla (y es verdad: lo hace la plantilla de abajo). */
-const DESC: Record<Daypart, string> = {
-  manana: 'Armé la edición con más para aprender: lecturas y rutas primero — cambia según la hora del día.',
-  tarde: 'Armé la edición con más para explorar y menos repaso — cambia según la hora del día.',
-  noche: 'Armé una edición más tranquila: un repaso sin apuro y videos cortos — cambia según la hora del día.',
-}
-/** Cómo cambia en la franja que viene. */
-const LATER: Record<Daypart, string> = {
-  manana: 'a la tarde cambia a más para explorar',
-  tarde: 'a la noche cambia a repaso tranquilo',
-  noche: 'mañana arranca con más para aprender',
-}
-/* FS-BASE-B (hallazgo feedFake.ts:382): el "repaso sin apuro" de la noche solo existe si hay una ruta EN CURSO (nextStep: sin
-   ella el hero de la noche es "Empezá …" o "Elegí qué aprender hoy"). Sin ruta en curso, el resumen de la noche no lo promete
-   y el de la tarde no anuncia un repaso que no va a venir: el resumen "confiesa la mezcla y es verdad". */
-const DESC_NOCHE_SIN_REPASO = 'Armé una edición más tranquila, con videos cortos — cambia según la hora del día.'
-const LATER_TARDE_SIN_REPASO = 'a la noche cambia a algo más tranquilo'
+/* (La card 'summary' y sus textos DESC/LATER se retiraron a pedido, 4-nov.) */
 /** Horas desde el cierre de liga del seed (lunes 00:00 de esta semana), en la ZONA HORARIA DE LA FAMILIA como la franja
  *  (sin zona, la del server). Horas "de pared" desde el lunes: en la semana del cambio de horario puede correrse una
  *  hora, y da igual (ubica en la escala de ageOf, que va de 1 a 100 h). */
@@ -584,31 +562,6 @@ function shelfOf(dp: Daypart, stream: readonly FeedItem[]): Of<'videos'> | null 
   }
   shelfMemo.set(key, shelf)
   return shelf
-}
-
-/** El resumen de la edición: título por la franja REAL, la mezcla CONTADA de lo que se sirve (toda la edición, sin lo
- *  oculto) y cómo cambia en la franja que viene. */
-function summaryOf(dp: Daypart, now: Date, served: readonly FeedItem[], shelf: Of<'videos'> | null): Of<'summary'> {
-  const n = { rutas: 0, videos: shelf?.videos.length ?? 0, lecturas: 0, amigos: 0, liga: 0 }
-  for (const it of served) {
-    if (it.kind === 'route') n.rutas++
-    else if (it.kind === 'video') n.videos++
-    else if (it.kind === 'article') n.lecturas++
-    else if (it.kind === 'league') n.liga++
-    else if (it.kind === 'friend') { if (LEAGUEISH.has(it.icon)) n.liga++; else n.amigos++ }
-    // 'medal' (U5-B) no se cuenta: no es contenido recomendado ni social, es tuyo
-  }
-  const mix = [
-    { label: n.rutas === 1 ? 'ruta' : 'rutas', n: n.rutas },
-    { label: n.videos === 1 ? 'video' : 'videos', n: n.videos },
-    { label: n.lecturas === 1 ? 'lectura' : 'lecturas', n: n.lecturas },
-    { label: 'de amigos', n: n.amigos },
-    { label: 'de la liga', n: n.liga },
-  ].filter(m => m.n > 0)
-  const review = dp === 'manana' || !!routeInProgress(visibleRuns()) // ¿el hero de la noche va a ser un repaso? (nextStep)
-  const desc = dp === 'noche' && !review ? DESC_NOCHE_SIN_REPASO : DESC[dp]
-  const later = dp === 'tarde' && !review ? LATER_TARDE_SIN_REPASO : LATER[dp]
-  return { kind: 'summary', id: 'fsum', title: `Tu ${DP_NAME[dp]} de ${dayName(now)}`, desc, mix, later }
 }
 
 /* ---------- demo vivo: lo que entra en vivo (RAM, en el Live del usuario: ver arriba) ---------- */
@@ -830,13 +783,11 @@ export function getFeed(after?: string | null): FeedResponse {
   // Tu medalla más reciente, debajo de lo vivo (seedMedal). Lo oculto con "ver menos" lo saca el filtro final, como a todo.
   const mine = seedMedal(fresh, week, livePasses)
   const shelf = shelfOf(dp, stream)
-  const sum = summaryOf(dp, now, [...liveItems, ...stream.filter(keep)], shelf)
-  const { shelfAfter, summaryAfter } = EDITIONS[dp]
+  const { shelfAfter } = EDITIONS[dp]
   const head = stream.slice(0, PAGE)
   const items: FeedItem[] = [nextStep(dp), ...liveItems, ...(mine ? [mine] : [])]
   for (let i = 0; i <= head.length; i++) {
     if (i === Math.min(shelfAfter, head.length) && shelf) items.push(shelf)
-    if (i === Math.min(summaryAfter, head.length)) items.push(sum)
     if (i < head.length && keep(head[i])) items.push(serve(dated(head[i])))
   }
   return { items: items.filter(it => !hidden.has(it.id)), next: nextOf(PAGE), motion }

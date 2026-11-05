@@ -124,7 +124,7 @@ describe('B · la primera página trae liga cerrada de un amigo', () => {
           // "alguno que otro": no más de 2
           expect(first.length).toBeLessThanOrEqual(2);
           // y en un lugar tranquilo: ni pegadas a otra noticia de amigos (la plantilla nunca pone dos sociales seguidas)
-          const head = pages[0].filter((it) => it.kind !== 'next' && it.kind !== 'videos' && it.kind !== 'summary' && it.kind !== 'medal');
+          const head = pages[0].filter((it) => it.kind !== 'next' && it.kind !== 'videos' && it.kind !== 'medal');
           for (const it of first) {
             const i = head.indexOf(it);
             expect(i, `${it.friend.nick}: lugar ${i}`).toBeGreaterThanOrEqual(2);
@@ -137,7 +137,7 @@ describe('B · la primera página trae liga cerrada de un amigo', () => {
           const theirs = friendNews().filter((e) => visibleNicksAtStart(user).includes(e.friend.nick) && (e.icon === 'medal' || e.icon === 'league'));
           expect(all.filter(isFriendLeague).map((it) => it.text).sort()).toEqual(theirs.map((e) => e.text).sort());
           // lo de liga sigue sin quedar pegado (la regla de spaceOut), página por página
-          const seq = all.filter((it) => it.kind !== 'next' && it.kind !== 'videos' && it.kind !== 'summary' && it.kind !== 'medal');
+          const seq = all.filter((it) => it.kind !== 'next' && it.kind !== 'videos' && it.kind !== 'medal');
           for (let i = 1; i < seq.length; i++) expect(isLeagueish(seq[i]) && isLeagueish(seq[i - 1]), `${user} · ${name} #${i}`).toBe(false);
         });
       });

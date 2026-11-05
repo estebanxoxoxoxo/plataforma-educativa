@@ -221,7 +221,7 @@ describe('course.done servido (spec §4.2)', () => {
 });
 
 describe('cobertura de tipos con el seed REAL de friendsFake (spec §4.3-§4.4)', () => {
-  const KINDS = ['next', 'video', 'article', 'route', 'friend', 'league', 'videos', 'summary', 'medal'];
+  const KINDS = ['next', 'video', 'article', 'route', 'friend', 'league', 'videos', 'medal'];
   const ICONS = ['streak', 'badge', 'unit', 'route', 'medal', 'league'];
   const HOURS: [string, number][] = [['mañana', 9], ['tarde', 16], ['noche', 21]];
   for (const user of ['ian', 'luna']) {
@@ -239,7 +239,7 @@ describe('cobertura de tipos con el seed REAL de friendsFake (spec §4.3-§4.4)'
           expect(medals.some((t) => t.includes('🥇')), `${user}: sin medalla de oro (tinte)`).toBe(true);
           expect(medals.some((t) => t.includes('🥉')), `${user}: sin medalla de bronce (tinte)`).toBe(true);
           // lo del cierre sigue espaciado aunque haya más noticias de liga: nunca dos pegadas
-          const seeded = all.filter((it) => it.kind !== 'next' && it.kind !== 'videos' && it.kind !== 'summary' && it.kind !== 'medal');
+          const seeded = all.filter((it) => it.kind !== 'next' && it.kind !== 'videos' && it.kind !== 'medal');
           const leagueish = seeded.map((it) => it.kind === 'league' || (it.kind === 'friend' && (it.icon === 'medal' || it.icon === 'league')));
           for (let i = 1; i < leagueish.length; i++) expect(leagueish[i] && leagueish[i - 1], `${user} · ${name} #${i}`).toBe(false);
         });

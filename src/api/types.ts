@@ -306,8 +306,6 @@ export type FeedItem =
   | { kind: 'next'; id: string; time: string; reason: string; title: string; meta: string; action: { label: string; to: string } }
   /** Grilla de videos inline (shelf): 1 lugar del hilo = N videos + "Ver todos" (`topic` arma el link al buscador). */
   | { kind: 'videos'; id: string; time: string; reason: string; title: string; total: number; videos: VideoResult[]; topic?: string }
-  /** Resumen de la edición (panel propio): la mezcla de hoy y cómo cambia según la hora. */
-  | { kind: 'summary'; id: string; title: string; desc: string; mix: { label: string; n: number }[]; later: string }
   /** U5 (ADITIVO; lo emite el server de U5-B, la tarjeta `FeedMedalCard` es de U5-D): "Ganaste la medalla «…»" — una
    *  noticia PROPIA por cada medalla nueva del usuario, en lo vivo (píldora "N novedades ↑"), sin reacciones. id `fm-<n>`,
    *  reason 'Es tu medalla nueva'. Un cliente sin este case no pinta nada (el switch del Feed no tiene default). */
