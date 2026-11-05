@@ -108,14 +108,22 @@ export function ActivityOverlay({
   useEffect(() => {
     if (sceneIdRef.current != null) updateScene(sceneIdRef.current, phaseScene(phase));
   }, [phase, gameNo]);
-  // De qué CURSO viene cada pregunta del recall (pedido 4-nov): el título de la primera ruta cuyo
-  // camino tiene una posta con ese target (targets compartidos entre rutas: gana la primera, como
-  // comparten maestría). Va por ref para que una recarga de rutas NO reconstruya la actividad en
-  // juego: next() del multi es perezoso y lee el mapa vivo al armar cada pregunta.
+  // De qué RUTA y MÓDULO viene cada pregunta del recall (pedido 4-nov): «ruta · módulo» de la primera
+  // ruta cuyo camino tiene una posta con ese target; si la posta no tiene módulo (rutas viejas), solo
+  // la ruta. Targets compartidos entre rutas: gana la primera, como comparten maestría. Va por ref
+  // para que una recarga de rutas NO reconstruya la actividad en juego: next() del multi es perezoso
+  // y lee el mapa vivo al armar cada pregunta.
   const { routes } = useLearnData();
   const courseByTarget = useMemo(() => {
     const m = new Map<string, string>();
-    for (const r of routes ?? []) for (const p of r.postas) if (!m.has(p.target)) m.set(p.target, r.title);
+    for (const r of routes ?? []) {
+      const modTitle = new Map((r.modules ?? []).map((md) => [md.id, md.title]));
+      for (const p of r.postas) {
+        if (m.has(p.target)) continue;
+        const mod = p.moduleId ? modTitle.get(p.moduleId) : undefined;
+        m.set(p.target, mod ? `${r.title} · ${mod}` : r.title);
+      }
+    }
     return m;
   }, [routes]);
   const courseMapRef = useRef(courseByTarget);
