@@ -6,7 +6,11 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "run",
-        "dev"
+        "dev:web",
+        "--",
+        "--port",
+        "5173",
+        "--strictPort"
       ],
       "port": 5173
     },
@@ -33,6 +37,20 @@
         "server/src/index.ts"
       ],
       "port": 8787
+    },
+    {
+      "name": "route-lab",
+      "runtimeExecutable": "route-lab/.venv/bin/python",
+      "runtimeArgs": [
+        "-m",
+        "uvicorn",
+        "server:app",
+        "--port",
+        "5203",
+        "--app-dir",
+        "route-lab"
+      ],
+      "port": 5203
     }
   ]
 }
