@@ -10,6 +10,7 @@ import type {
   AssignedLeague, GeoRanking, GeoScope, ImageResult, LeagueStanding, MarketItem, PageResult, Playlist, PlaylistDetail,
   ProgressSummary, Redemption, SavePayload, ScheduleResult, SearchResponse, SchedulesResponse, SimulateNpcsResult, Tab, TeacherSlot, TrashView, User, UserInfo, Video, VideoResult,
 } from './types';
+import { getLang } from '../shared/lib/lang';
 
 export type { FriendThread } from './types';
 export type SearchMap = { pages: PageResult; images: ImageResult; videos: VideoResult };
@@ -90,11 +91,14 @@ export function consumeKeepDemo(): boolean {
   }
 }
 
-/** Llamada al backend real (server/). Los errores de red se tratan como fallas (fail-closed en la UI). */
+/** Llamada al backend real (server/). Los errores de red se tratan como fallas (fail-closed en la UI).
+ *  Cabeceras de TODA llamada: X-Innerith-User (el usuario activo de la pestaña, arriba) y X-Smarty-Lang (i18n, pedido 9-nov:
+ *  el idioma de la UI, 'es' | 'en', leído en CADA pedido de shared/lib/lang.ts — con él el server arma en ese idioma los
+ *  textos que viajan al usuario; server/src/requestContext.ts → requestLang). Content-Type solo si hay cuerpo. */
 async function http<T>(path: string, body?: unknown): Promise<T> {
   const method = body === undefined ? 'GET' : 'POST';
   console.debug(`%c[api] → ${method} ${path} (backend)`, 'color:#C24B1F;font-weight:bold', body ?? '');
-  const headers: Record<string, string> = { 'X-Innerith-User': actingUserId() };
+  const headers: Record<string, string> = { 'X-Innerith-User': actingUserId(), 'X-Smarty-Lang': getLang() };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   const r = await fetch(path, { method, headers, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
   if (!r.ok) {

@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { Navigate, Outlet, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { ArticlePage } from './sections/discover/containers/ArticlePage';
 import { ChatPage } from './sections/discover/containers/ChatPage';
@@ -23,6 +24,7 @@ import { BgAudioHost } from './shared/audio/BgAudioHost';
 import { BottomNav, NavScrim, useNavDrawer } from './shared/components/BottomNav';
 import { Sidebar } from './shared/components/Sidebar';
 import { UserProvider, useUser } from './hooks/user';
+import { useLang } from './shared/lib/lang';
 
 /* Rutas viejas /descubrir/{articulo,video}/:id → /buscar/… (conservan el :id). */
 const OldArticle = () => <Navigate to={`/buscar/articulo/${encodeURIComponent(useParams().id ?? '')}`} replace />;
@@ -48,8 +50,14 @@ function Layout() {
   // .main, la barra inferior y la lateral van inert y aria-hidden mientras dure (QA-T1 H3: el foco y los lectores de
   // pantalla caían detrás). El dock lo publica (ChatDock.tsx, useDockFullScreen) y no pasa con el cajón abierto.
   const dockFull = useDockFullScreen() && !drawer.open;
+  // i18n (pedido 9-nov; shared/lib/lang.ts): al cambiar el idioma con la bandera de la tarjeta, todo lo de adentro del
+  // Fragment se REMONTA (key={lang}) y cada componente re-evalúa sus L() sin suscribirse. El key va ACÁ y no en el
+  // BrowserRouter (main.tsx) ni en UserProvider: la URL no cambia y el usuario no se vuelve a pedir (ni se resetea la demo).
+  // El .app tampoco se remonta, y BgAudioHost queda AFUERA del key: la música de fondo sigue sonando al cambiar de idioma.
+  const lang = useLang();
   return (
     <div className={`app${drawer.open ? ' is-nav-open' : ''}`}>
+      <Fragment key={lang}>
       <Sidebar user={user} covered={dockFull} />
       <NavScrim drawer={drawer} />
       {/* FeatureGate: las secciones que el padre apagó (Tienda, Ligas, Amigos, Chat) no se abren ni por URL — al chico:
@@ -58,9 +66,10 @@ function Layout() {
         <div className="main-body"><FeatureGate><Outlet /></FeatureGate></div>
       </main>
       <BottomNav user={user} drawer={drawer} covered={dockFull} />
-      {/* iframe oculto del audio de fondo: vive acá para sobrevivir el cambio de sección */}
-      <BgAudioHost />
       <ChatDock />
+      </Fragment>
+      {/* iframe oculto del audio de fondo: vive acá para sobrevivir el cambio de sección (y, fuera del key, el de idioma) */}
+      <BgAudioHost />
     </div>
   );
 }

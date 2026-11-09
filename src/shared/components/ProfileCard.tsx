@@ -11,7 +11,8 @@ import { sheetOpener, useReturnFocus, useVeil } from '../../sections/store/lib/s
 import { ACCESSORIES, AVATAR_COLORS, AVATAR_VARIANT_COUNT, Avatar, accessoryById, avatarVariantName } from './Avatar';
 import { MedalsSheet } from './MedalsSheet';
 import { MiniPlayer } from './MiniPlayer';
-import { IcClose, IcNavLeagues } from './icons';
+import { IcClose, IcFlagEs, IcFlagUs, IcNavLeagues } from './icons';
+import { L, setLang, useLang } from '../lib/lang';
 
 /* Identidad de Ian (visión §9: el avatar es un activo del chico). Su look lo ELIGE él y vive en el server
    (GET/POST /api/identity → server/data/identity.json, no se resetea con la demo); el de los demás usuarios se
@@ -107,9 +108,18 @@ export function MyAvatar({ name, size, accessory }: { name: string; size?: numbe
   return <Avatar name={name} color={ME_COLOR} look={id?.look} accessory={accessory} size={size} style={{ color: ME_INK }} />;
 }
 
-const COLOR_NAMES: Record<string, string> = {
-  '#3A5BD9': 'Azul', '#13A39A': 'Verde agua', '#F26B3A': 'Naranja', '#8A5CF5': 'Violeta',
-  '#E5487A': 'Rosa', '#F2A81D': 'Amarillo', '#1C9BD6': 'Celeste', '#18A957': 'Verde',
+/** Nombre de cada color del picker. Función y no constante de módulo (i18n, 9-nov): L() se evalúa en cada render, y el
+ *  remount del cambio de idioma recién así lo vuelve a leer. */
+const colorNames = (): Record<string, string> => ({
+  '#3A5BD9': L('Azul', 'Blue'), '#13A39A': L('Verde agua', 'Teal'), '#F26B3A': L('Naranja', 'Orange'), '#8A5CF5': L('Violeta', 'Purple'),
+  '#E5487A': L('Rosa', 'Pink'), '#F2A81D': L('Amarillo', 'Yellow'), '#1C9BD6': L('Celeste', 'Sky blue'), '#18A957': L('Verde', 'Green'),
+});
+
+/** Ordinal en inglés para la posición de liga (1st, 2nd, 3rd, 11th…): el «7.º» castellano en EN. */
+const ordinalEn = (n: number) => {
+  const t = n % 100;
+  const suf = t >= 11 && t <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[n % 10] ?? 'th';
+  return `${n}${suf}`;
 };
 
 const POLL_MS = 60_000;
@@ -155,6 +165,8 @@ function useMyLeague(): AssignedLeague | null {
  *    lapicera y sin abrir «Tu avatar» desde acá (eso pasa a ser un punto de Configuración). Al guardar un look nuevo da un
  *    saltito.
  *  · Nombre: solo el nombre, en negrita (sin «N años», pedido explícito).
+ *  · Bandera (i18n, pedido 9-nov): el switch de idioma ES/EN; muestra la del idioma ACTUAL y el click cambia al otro
+ *    (lib/lang.ts: setLang → App.tsx remonta el layout).
  *  · 🎧: el disparador del Sonido de fondo (MiniPlayer, embebido acá; su panel se abre encima de la tarjeta).
  *  · Posición de liga «7.º» con el escudo → /ligas (último; solo con Ligas prendida y si llegó la liga).
  *  Las dos hojas siguen montadas ACÁ aunque la tarjeta ya no las abra: «Tu avatar» (AvatarPicker) se abre SOLO por
@@ -235,8 +247,11 @@ export function ProfileCard({ user }: { user?: User }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [askMedals]);
 
-  const cfg = name ? `Configuración de ${name}` : 'Configuración';
-  const lgTitle = league ? `${league.name}: puesto ${league.pos} de ${league.total}. Ver las ligas` : '';
+  const cfg = name ? L(`Configuración de ${name}`, `${name}'s settings`) : L('Configuración', 'Settings');
+  const lgTitle = league ? L(`${league.name}: puesto ${league.pos} de ${league.total}. Ver las ligas`, `${league.name}: ${ordinalEn(league.pos)} of ${league.total}. See the leagues`) : '';
+  // El switch de idioma (i18n, pedido 9-nov): muestra la bandera del idioma ACTUAL; el nombre accesible dice lo que hace el click.
+  const lang = useLang();
+  const langLbl = L('Cambiar a inglés', 'Switch to Spanish');
   return (
     <>
       <div ref={prof} className="profile">
@@ -246,10 +261,13 @@ export function ProfileCard({ user }: { user?: User }) {
           </span>
         </button>
         <b className="prof-name">{user?.name ?? '…'}</b>
+        <button type="button" className="prof-lang" onClick={() => setLang(lang === 'en' ? 'es' : 'en')} title={langLbl} aria-label={langLbl}>
+          {lang === 'en' ? <IcFlagUs /> : <IcFlagEs />}
+        </button>
         <MiniPlayer />
         {league && (
           <Link className="prof-lg" to="/ligas" title={lgTitle} aria-label={lgTitle}>
-            <IcNavLeagues /><span aria-hidden="true">{league.pos}.º</span>
+            <IcNavLeagues /><span aria-hidden="true">{L(`${league.pos}.º`, ordinalEn(league.pos))}</span>
           </Link>
         )}
       </div>
@@ -292,7 +310,7 @@ function useWardrobe(): Wardrobe {
   return w;
 }
 /** Nombre corto para el rótulo de cada opción de ropa (entra debajo de una miniatura de 40 px). */
-const SHORT: Record<string, string> = { vincha: 'Vincha', anteojos: 'Anteojos' };
+const short = (): Record<string, string> => ({ vincha: L('Vincha', 'Headband'), anteojos: L('Anteojos', 'Glasses') });
 
 /** Hoja "Tu avatar" (patrón global .shov/.shcard): personaje (16 dibujados + Iniciales), color y ROPA, con vista previa.
  *  Radios nativos: flechas para moverse dentro de cada grupo, Tab entre grupos, Esc cierra, Tab queda adentro.
@@ -352,12 +370,14 @@ function AvatarPicker({ name, current, preset, onClose, backTo }: {
     if (busy || !dirty) return;
     setBusy(true); setErr('');
     try { await saveLook(draft); onClose(true); }
-    catch { setErr('No se pudo guardar. Probá de nuevo en un ratito.'); setBusy(false); }
+    catch { setErr(L('No se pudo guardar. Probá de nuevo en un ratito.', 'Couldn’t save. Try again in a little bit.')); setBusy(false); }
   };
   /** Candado → la ropa de la Tienda (la hoja se cierra sin guardar). */
   const toShop = (e: MouseEvent) => { e.preventDefault(); if (busy) return; onClose(false); go('/tienda#ropa'); };
   const wearing = draft?.accessory ? accessoryById(draft.accessory) : undefined;
-  const caption = variant === null ? 'Iniciales' : `${avatarVariantName(variant)} · ${COLOR_NAMES[color] ?? ''}${wearing ? ` · ${wearing.name}` : ''}`;
+  const COLOR_NAMES = colorNames();
+  const SHORT = short();
+  const caption = variant === null ? L('Iniciales', 'Initials') : `${avatarVariantName(variant)} · ${COLOR_NAMES[color] ?? ''}${wearing ? ` · ${wearing.name}` : ''}`;
   const pv = variant ?? lastV;
   const veil = useVeil(() => onClose(false), busy);
 
@@ -369,15 +389,15 @@ function AvatarPicker({ name, current, preset, onClose, backTo }: {
             <Avatar name={name} color={ME_COLOR} look={draft} size={84} style={{ color: ME_INK }} />
           </span>
           <div className="idav-head">
-            <h3 className="idav-t" id="idav-t">Tu avatar</h3>
-            <p className="idav-d" id="idav-d">Así te ven tus amigos y tu liga.</p>
+            <h3 className="idav-t" id="idav-t">{L('Tu avatar', 'Your avatar')}</h3>
+            <p className="idav-d" id="idav-d">{L('Así te ven tus amigos y tu liga.', 'This is how your friends and your league see you.')}</p>
             <p className="idav-cap" aria-live="polite">{caption}</p>
           </div>
-          <button type="button" className="idav-x" aria-label="Cerrar" disabled={busy} onClick={() => onClose(false)}><IcClose /></button>
+          <button type="button" className="idav-x" aria-label={L('Cerrar', 'Close')} disabled={busy} onClick={() => onClose(false)}><IcClose /></button>
         </div>
 
         <fieldset className="idav-set" disabled={busy}>
-          <legend className="lbl">Personaje</legend>
+          <legend className="lbl">{L('Personaje', 'Character')}</legend>
           <div className="idav-grid">
             {Array.from({ length: AVATAR_VARIANT_COUNT }, (_, v) => (
               <label key={v} className="idav-opt" title={avatarVariantName(v)}>
@@ -386,16 +406,16 @@ function AvatarPicker({ name, current, preset, onClose, backTo }: {
                 <span className="idav-sr">{avatarVariantName(v)}</span>
               </label>
             ))}
-            <label className="idav-opt" title="Iniciales (el clásico)">
+            <label className="idav-opt" title={L('Iniciales (el clásico)', 'Initials (the classic)')}>
               <input type="radio" name="idav-v" value="iniciales" checked={variant === null} onChange={() => pickVariant(null)} />
               <Avatar name={name} color={ME_COLOR} size={40} style={{ color: ME_INK }} />
-              <span className="idav-sr">Iniciales</span>
+              <span className="idav-sr">{L('Iniciales', 'Initials')}</span>
             </label>
           </div>
         </fieldset>
 
         <fieldset className="idav-set" disabled={busy || variant === null}>
-          <legend className="lbl">Color{variant === null && <span className="idav-note"> · con iniciales queda tu amarillo</span>}</legend>
+          <legend className="lbl">{L('Color', 'Color')}{variant === null && <span className="idav-note">{L(' · con iniciales queda tu amarillo', ' · with initials you keep your yellow')}</span>}</legend>
           <div className="idav-colors">
             {AVATAR_COLORS.map((c) => (
               <label key={c} className="idav-sw" title={COLOR_NAMES[c]} style={{ background: c }}>
@@ -408,12 +428,12 @@ function AvatarPicker({ name, current, preset, onClose, backTo }: {
 
         {(shopOn || worn || shopClosed) && (
           <fieldset className="idav-set idav-wear" disabled={busy || variant === null} aria-describedby={locked.length ? 'idav-shop' : undefined}>
-            <legend className="lbl">Tu ropa{variant === null && <span className="idav-note"> · la ropa va sobre un personaje</span>}</legend>
+            <legend className="lbl">{L('Tu ropa', 'Your clothes')}{variant === null && <span className="idav-note">{L(' · la ropa va sobre un personaje', ' · clothes go on a character')}</span>}</legend>
             <div className="idav-wgrid">
-              <label className="idav-opt idav-wopt" title="Sin ropa">
+              <label className="idav-opt idav-wopt" title={L('Sin ropa', 'No clothes')}>
                 <input type="radio" name="idav-a" value="" checked={acc === null} onChange={() => setAcc(null)} />
                 <Avatar name={name} color={ME_COLOR} look={{ variant: pv, color }} size={40} />
-                <span className="idav-wl">Nada</span>
+                <span className="idav-wl">{L('Nada', 'None')}</span>
               </label>
               {ropa.map((a) => available(a.id) ? (
                 <label key={a.id} className="idav-opt idav-wopt" title={a.name} data-acc={a.id}>
@@ -422,27 +442,27 @@ function AvatarPicker({ name, current, preset, onClose, backTo }: {
                   <span className="idav-wl">{SHORT[a.id] ?? a.name}</span>
                 </label>
               ) : (
-                <a key={a.id} className="idav-opt idav-wopt idav-lock" href="/tienda#ropa" data-acc={a.id} title={`${a.name}: conseguila en la Tienda`} onClick={toShop}>
+                <a key={a.id} className="idav-opt idav-wopt idav-lock" href="/tienda#ropa" data-acc={a.id} title={L(`${a.name}: conseguila en la Tienda`, `${a.name}: get it in the Store`)} onClick={toShop}>
                   <Avatar name={name} color={ME_COLOR} look={{ variant: pv, color, accessory: a.id }} size={40} />
                   <span className="idav-lk" aria-hidden="true">🔒</span>
                   <span className="idav-wl" aria-hidden="true">{SHORT[a.id] ?? a.name}</span>
-                  <span className="idav-sr">{a.name}: todavía no la tenés. Conseguila en la Tienda</span>
+                  <span className="idav-sr">{L(`${a.name}: todavía no la tenés. Conseguila en la Tienda`, `${a.name}: you don’t have it yet. Get it in the Store`)}</span>
                 </a>
               ))}
             </div>
             {locked.length > 0 && (
-              <a className="idav-shop" id="idav-shop" href="/tienda#ropa" onClick={toShop}>🔒 Conseguí más ropa en la Tienda →</a>
+              <a className="idav-shop" id="idav-shop" href="/tienda#ropa" onClick={toShop}>{L('🔒 Conseguí más ropa en la Tienda →', '🔒 Get more clothes in the Store →')}</a>
             )}
-            {wardrobe.state === 'error' && <p className="idav-wnote">No pude ver tu ropa ahora. Probá abrir de nuevo en un ratito.</p>}
-            {shopClosed && <p className="idav-wnote idav-wnote--rest" role="status">La Tienda está cerrada a esta hora — tu ropa te espera ✨</p>}
+            {wardrobe.state === 'error' && <p className="idav-wnote">{L('No pude ver tu ropa ahora. Probá abrir de nuevo en un ratito.', 'I couldn’t load your clothes right now. Try opening this again in a little bit.')}</p>}
+            {shopClosed && <p className="idav-wnote idav-wnote--rest" role="status">{L('La Tienda está cerrada a esta hora — tu ropa te espera ✨', 'The Store is closed right now — your clothes are waiting for you ✨')}</p>}
           </fieldset>
         )}
 
         {err && <p className="idav-err" role="alert">{err}</p>}
         <div className="idav-btns">
-          <button type="button" className="idav-btn idav-btn--ghost" disabled={busy} onClick={() => onClose(false)}>Cancelar</button>
+          <button type="button" className="idav-btn idav-btn--ghost" disabled={busy} onClick={() => onClose(false)}>{L('Cancelar', 'Cancel')}</button>
           <button type="button" className="idav-btn" disabled={busy || !dirty} aria-busy={busy} onClick={() => void save()}>
-            {busy ? 'Guardando…' : 'Guardar'}
+            {busy ? L('Guardando…', 'Saving…') : L('Guardar', 'Save')}
           </button>
         </div>
       </div>

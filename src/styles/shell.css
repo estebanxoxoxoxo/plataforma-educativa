@@ -129,20 +129,31 @@
 .mp-arow input.off{opacity:.45}
 
 /* Espacio de usuario (ProfileCard; SHELL-2, pedido 30-oct): EXACTAMENTE avatar · nombre · 🎧 · posición de liga, en una fila
+   (desde el 9-nov, con la bandera del idioma entre el nombre y el 🎧: .prof-lang, abajo)
    (escritorio y cajón del teléfono). El avatar es el botón a Configuración; el nombre, solo texto en negrita; la liga, el
    link a /ligas con el escudo. Toma el margin-top:auto del pie (el «Ciclo (demo)» ya no vive arriba: pasó a
    Configuración el 30-oct). Targets: avatar 36, 🎧 34, liga 30 de alto (≥ 24 en todas las densidades). */
-.profile{position:relative;flex:none;display:flex;align-items:center;gap:8px;margin-top:auto;padding:6px 8px;border:2px solid #E4E8F1;border-radius:14px}
+.profile{position:relative;flex:none;display:flex;align-items:center;gap:6px;margin-top:auto;padding:6px 6px;border:2px solid #E4E8F1;border-radius:14px}
 .prof-av{flex:none;display:grid;border-radius:50%;cursor:pointer}
 .prof-av .av3{width:36px;height:36px;font-size:18px;line-height:1;transition:box-shadow .2s ease}
 .prof-av:hover .av3{box-shadow:0 0 0 3px #D3D9E6}
 .prof-name{flex:1 1 auto;min-width:0;font-family:var(--display);font-weight:800;font-size:16px;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.prof-lg{flex:none;display:inline-flex;align-items:center;gap:3px;height:30px;padding:0 8px 0 5px;border-radius:999px;border:1.5px solid #F2D9A8;background:#FFF8E6;
+.prof-lg{flex:none;display:inline-flex;align-items:center;gap:3px;height:30px;padding:0 7px 0 4px;border-radius:999px;border:1.5px solid #F2D9A8;background:#FFF8E6;
   color:#7F5300;font-family:var(--display);font-weight:800;font-size:14px;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap;text-decoration:none;
   transition:background-color .2s ease,border-color .2s ease}
 .prof-lg:hover{background:#FFEFC7;border-color:#E8B94A}
 .prof-lg svg{width:18px;height:18px;flex:none}
 .prof-lg span{transform:translateY(1px)}
+/* Switch de idioma (i18n, pedido 9-nov; ProfileCard): la bandera del idioma ACTUAL, pegada al nombre. Botón pelado: la
+   bandera (20×14) es el dibujo, en un área de 20×28 corrida 2px hacia el nombre. El lugar es justo: la fila tiene ~190px
+   de contenido para 5 piezas, así que para que el nombre no desaparezca la tarjeta bajó su gap y padding de 8 a 6 y la
+   liga 2px de padding (antes del switch: gap 8, padding 8). Target: 20 de ancho y sus vecinos con aire → el círculo de
+   24 no toca a otro control (WCAG 2.5.8, excepción de espaciado). Hover: un fondo suave como el 🎧. */
+.prof-lang{flex:none;width:20px;height:28px;margin-left:-2px;display:grid;place-items:center;border-radius:7px;cursor:pointer;transition:background-color .2s ease}
+.prof-lang svg{width:20px;height:14px;display:block;transition:transform .2s ease}
+.prof-lang:hover{background:#F1F3F8}
+.prof-lang:hover svg{transform:scale(1.08)}
+.prof-lang:focus-visible{outline:3px solid var(--blue);outline-offset:1px}
 
 /* Densidad según el alto de la barra. Cómoda (arriba): necesita ~816px con el submenú abierto.
    Compacta (barra < 816px, p. ej. ?stage 720: entra con ~13px de aire) y apretada (barra < 710px, laptops
@@ -150,7 +161,7 @@
 @container side (max-height:783px){
   .side > *{--ni-h:46px;--ni-gap:4px;--ni-ic:28px;--ni-tx:14px;--ft-h:40px;--ft-gap:8px}
   .brand{height:36px;margin-bottom:12px}
-  .profile{padding:5px 8px}
+  .profile{padding:5px 6px}
   .prof-av .av3{width:32px;height:32px;font-size:16px}
   .mp-hp{width:32px;height:32px}
   .prof-lg{height:28px}
@@ -158,14 +169,14 @@
 @container side (max-height:677px){
   .side > *{--ni-h:40px;--ni-gap:2px;--ni-ic:26px;--ni-tx:12px;--ni-fs:13px;--ft-h:36px}
   .brand{height:34px;margin-bottom:10px;font-size:20px}
-  .profile{padding:4px 8px}
+  .profile{padding:4px 6px}
   /* Último recurso (barra < ~620px): el menú scrollea y el pie queda a la vista. El padding compensado deja
      lugar al anillo de foco dentro del área que recorta el scroll. */
   .side nav{min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;margin:-5px -6px calc(var(--ft-gap) - 5px);padding:5px 6px}
 }
 
 @media (prefers-reduced-motion: reduce){
-  .nav-item,.mp-hp,.prof-av .av3{transition:none}
+  .nav-item,.mp-hp,.prof-av .av3,.prof-lang,.prof-lang svg{transition:none}
   .mp-dot{animation:none}
 }
 
@@ -244,10 +255,12 @@ body.stage-mode{background:#ECEFF6;padding:0 16px}
   .nav-item .nav-hl{position:absolute;top:4px;right:9px;margin-left:0;min-width:16px;height:16px;padding:0 4px;font-size:10px}
   /* sin palabra no hay coins (pedido 30-oct): el aria-label/title del ítem Tienda los sigue diciendo */
   .nav-item .nav-ec{display:none}
-  /* espacio de usuario en columna compacta centrada: avatar, 🎧 y liga (el nombre queda oculto visualmente) */
+  /* espacio de usuario en columna compacta centrada: avatar, bandera, 🎧 y liga (el nombre queda oculto visualmente) */
   .profile{flex-direction:column;justify-content:center;gap:6px;padding:6px 0}
   .prof-lg{height:26px;gap:2px;padding:0 6px 0 4px;font-size:12.5px}
   .prof-lg svg{width:15px;height:15px}
+  /* la bandera, entre el avatar y el 🎧 (el nombre está oculto): mismo ancho de bandera, área apenas más baja */
+  .prof-lang{width:28px;height:24px;margin-left:0}
   /* el panel del mini-reproductor (286 px, z 60) se abre hacia la derecha, encima del contenido: ya es left:0. En WebKit .side
      es contexto de apilamiento (su container-type) y el contenido, que viene después, tapaba lo que el panel saca del rail
      (se veía el 10 %): mientras está abierto, la barra entera sube a 60. Solo entonces, y nunca con una hoja .shov de una

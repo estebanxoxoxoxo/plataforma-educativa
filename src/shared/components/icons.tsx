@@ -259,3 +259,34 @@ export const IcBgHeadphones = (props: P) => (
     <rect x="22" y="18.6" width="2.4" height="7.4" rx="1.2" fill="#fff" fillOpacity=".4" />
   </svg>
 );
+
+/* Banderas del switch de idioma (i18n, pedido 9-nov; ProfileCard .prof-lang): simplificadas a propósito para leerse a 14 px —
+   sin escudo ni 50 estrellas—, 20×14 con esquinas r2 y un filete apenas oscuro para que no se pierdan sobre el blanco. Van
+   aria-hidden: el nombre accesible lo pone el botón (describe el click, no la bandera). */
+const FLAG_EDGE = <rect x=".5" y=".5" width="19" height="13" rx="1.6" fill="none" stroke="#1B2238" strokeOpacity=".16" />;
+/** España (castellano): roja · amarilla · roja, 1:2:1. */
+export const IcFlagEs = (props: P) => (
+  <svg viewBox="0 0 20 14" width="20" height="14" aria-hidden="true" {...props}>
+    <rect width="20" height="14" rx="2" fill="#C8102E" />
+    <rect y="3.5" width="20" height="7" fill="#FFC400" />
+    {FLAG_EDGE}
+  </svg>
+);
+/** EE.UU. (inglés): franjas rojas y blancas + el cantón azul con las estrellas sugeridas como puntos. */
+export const IcFlagUs = (props: P) => (
+  <svg viewBox="0 0 20 14" width="20" height="14" aria-hidden="true" {...props}>
+    <rect width="20" height="14" rx="2" fill="#B22234" />
+    <g fill="#fff">
+      <rect y="2" width="20" height="2" />
+      <rect y="6" width="20" height="2" />
+      <rect y="10" width="20" height="2" />
+    </g>
+    <path d="M0 2a2 2 0 012-2h7v8H0z" fill="#3C3B6E" />
+    <g fill="#fff">
+      <circle cx="2.5" cy="2.2" r=".8" /><circle cx="6.5" cy="2.2" r=".8" />
+      <circle cx="4.5" cy="4" r=".8" />
+      <circle cx="2.5" cy="5.8" r=".8" /><circle cx="6.5" cy="5.8" r=".8" />
+    </g>
+    {FLAG_EDGE}
+  </svg>
+);
