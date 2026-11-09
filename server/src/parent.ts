@@ -138,7 +138,8 @@ import { SERVER_ROOT, blackTopics, config, ov, whiteTopics, whitelistSites } fro
 import { backupBeforeMigrate, quarantine, tryWriteFileAtomic } from './durable'
 import { isObject, upgradeParentRaw } from './familyMigrate'
 import { deliverRedemption, listRedemptions, redeemedCount, stockLeft } from './market'
-import { medalsOf, registerMedalGate, syncMedals } from './medals'
+import { localizeMedal, medalsOf, registerMedalGate, syncMedals } from './medals'
+import { L as tx } from './lang'
 import { currentUser, runAsUser } from './requestContext'
 import { checkCycle, cycleOf, cycleView, saveCycle, setFamilyTzSource } from './schedule'
 import { setProgressTzSource, summaryOf } from './progress'
@@ -241,7 +242,7 @@ const closedMember = (): MemberConfig => ({ features: allFeatures(false), items:
    (familia conservadora que hace homeschooling: VISION §1) y se SUMAN a la protección de fábrica de Smarty. U3: se
    aplican a UN integrante (no hay "aplicar a toda la familia": D3). */
 interface PresetDef { id: string; name: string; desc: string; features: ParentFeatures; topics: ParentTopics; words: string[]; volume: ParentVolume }
-const PRESETS: readonly PresetDef[] = [
+export const PRESETS: readonly PresetDef[] = [
   {
     id: 'primeros-pasos', name: 'Primeros pasos (3 a 6 años)',
     desc: 'Para los más chicos: mirar, escuchar y aprender. Sin chat, sin amigos, sin ligas ni Tienda; la música y los ruidos llegan como mucho a la mitad del volumen.',
@@ -959,8 +960,15 @@ function configView(mid: string) {
   const m = mem(mid)
   return { topics: topicsOf(m), words: wordsView(m), volume: { ...m.volume }, preset: m.preset, feedMotion: m.feedMotion, tz: store.tz, member: mid, features: { ...m.features } }
 }
-const presetView = (p: PresetDef) => ({
-  id: p.id, name: p.name, desc: p.desc,
+/** i18n (9-nov): SOLO la prosa (nombre y descripción) de cada preset en inglés, por id, AL SERVIR. Los temas y palabras que
+ *  aplica (spec) son términos FUNCIONALES de matching: no se traducen nunca. */
+const PRESET_EN: Record<string, { name: string; desc: string }> = {
+  'primeros-pasos': { name: 'First steps (ages 3–6)', desc: 'For the little ones: watch, listen and learn. No chat, no friends, no leagues or Store; music and sounds go up to half volume at most.' },
+  'clasico-conservador': { name: 'Conservative classic', desc: 'Everything on, with the topics a conservative family doesn’t want to see on the platform (added to Smarty’s built-in protection) and the Bible and history as suggestions.' },
+  'explorador-completo': { name: 'Full explorer', desc: 'Everything on and no extra family filters: Smarty’s built-in protection stays.' },
+}
+export const presetView = (p: PresetDef) => ({
+  id: p.id, name: tx(p.name, PRESET_EN[p.id]?.name ?? p.name), desc: tx(p.desc, PRESET_EN[p.id]?.desc ?? p.desc),
   // aditivo (ver cabecera): lo que deja configurado, para que el panel muestre qué prende y qué apaga
   spec: { features: { ...p.features }, topics: { white: [...p.topics.white], black: [...p.topics.black] }, words: [...p.words], volume: { ...p.volume } },
 })
@@ -1016,7 +1024,7 @@ function activity(mid: string) {
     member: mid,
     // U5-B (aditivo, ParentActivity.medals): TODAS las ganadas por el integrante, sin "Nueva"; `hidden` = 'ligas' | 'amigos'
     // en las que él no ve por un candado ("(Ligas apagadas: Luna no la ve)").
-    medals: medalsOf(mid, { forParent: true }),
+    medals: medalsOf(mid, { forParent: true }).map(localizeMedal),
   }
 }
 

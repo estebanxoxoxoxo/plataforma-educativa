@@ -13,7 +13,8 @@ import { matchBlockedWord } from './filters'
 // Zona del padre v2: temas y palabras de fábrica + los de la familia, y el aviso de crisis al padre.
 import { blackTopicsAll, familyTopics, familyWords, notifyParent, notifyUnreviewed } from './parent'
 import { crisisNetHit } from './crisisNet'
-import { currentUser } from './requestContext'
+import { currentUser, requestLang } from './requestContext'
+import { L as tx } from './lang'
 import { DEFAULT_USER_ID } from './users'
 import { completeWithTools, spotlight, tool, type Msg } from './llm'
 import { judgeInput, judgeOutput, type InputVerdict, type Verdict } from './judge'
@@ -45,6 +46,23 @@ const REDIRECCION_SIN_TEMA = [
   'Eso mejor lo hablás con un adulto de tu familia. ¿Hay otra cosa que te dé curiosidad?',
   'Hay temas que van mejor en persona con tu familia. Si querés, preguntame otra cosa.',
 ]
+/** i18n (pedido 9-nov): las MISMAS frases en inglés, en el mismo orden. */
+const REDIRECCION_SIN_TEMA_EN = [
+  'That’s a good question to talk over with your family. In the meantime… what else do you feel like talking about?',
+  'That’s better to talk about with an adult in your family. Is there something else you’re curious about?',
+  'Some topics are better in person with your family. If you want, ask me something else.',
+]
+/** i18n (pedido 9-nov): los textos de FÁBRICA que el chat le muestra al chico (server/data/defaults.json, que no se toca),
+ *  en inglés. Solo valen si la familia NO los cambió (un override de config.json es texto suyo: sale tal cual). */
+const COPY_EN: Record<string, string> = {
+  'copy.failClosed': 'I can’t check this right now. Let’s try again in a little bit 🙂',
+  'copy.interceptado': 'Content intercepted because of a blocked word.',
+  'crisis.guion': 'Thank you for telling me something so important. You’re not alone: this is something to talk about right now with a trusted adult, like your mom, your dad or your teacher.{{helpline}} Want me to help you with something else in the meantime?',
+  redirecciones: 'That’s a good question to talk over with your mom or dad. In the meantime… want to look at something about {{tema}}?\nThat’s better to talk about with an adult in your family. Want me to show you something about {{tema}}?\nSome topics are better in person with your mom or dad. If you want, we can keep going with {{tema}}.',
+}
+/** El texto de fábrica en el idioma del pedido (ov.text, salvo pedido en inglés sin override de la familia). */
+const copy = (k: string): string => (requestLang() === 'en' && !(k in config.overrides) && COPY_EN[k] ? COPY_EN[k] : ov.text(k))
+const copyLines = (k: string) => copy(k).split('\n').map(t => t.trim()).filter(Boolean)
 /** La redirección de la lista negra. Propone SOLO un tema blanco DE LA FAMILIA del chico activo (sus sugerencias): los
  *  blancos de FÁBRICA son lo que el chat puede tratar si el chico pregunta (hoy, educación sexual: "feto", "óvulos"…),
  *  nunca algo para ofrecerle (fix 28-oct: a una pregunta bloqueada le proponía "seguimos con feto."). Sin sugerencias de
@@ -52,10 +70,11 @@ const REDIRECCION_SIN_TEMA = [
  *  las de REDIRECCION_SIN_TEMA. */
 const pickRedireccion = () => {
   const blancos = familyTopics().white.filter(t => matchBlockedWord(t) === null)
-  const arr = ov.lines('redirecciones')
-  if (blancos.length) return fill(arr.length ? pick(arr) : pick(REDIRECCION_SIN_TEMA), { tema: pick(blancos) })
+  const arr = copyLines('redirecciones')
+  const sinTemaFijas = requestLang() === 'en' ? REDIRECCION_SIN_TEMA_EN : REDIRECCION_SIN_TEMA
+  if (blancos.length) return fill(arr.length ? pick(arr) : pick(sinTemaFijas), { tema: pick(blancos) })
   const sinTema = arr.filter(l => !l.includes('{{tema}}'))
-  return pick(sinTema.length ? sinTema : REDIRECCION_SIN_TEMA)
+  return pick(sinTema.length ? sinTema : sinTemaFijas)
 }
 /** A quién le habla el chat: el chico activo por su nombre (la ficha de Smarty solo es de Ian); un ADULTO por SU nombre y
  *  sin ficha (U4, A7); un pedido sin usuario, como siempre (el apodo y la ficha de la config). */
@@ -65,11 +84,11 @@ function chatKid(): { name: string; ficha: typeof config.ficha } {
   if (u?.kind === 'adult') return { name: u.name, ficha: [] }
   return { name: config.apodo, ficha: config.ficha }
 }
-const helplineSuffix = () => (config.helpline.trim() ? ` También podés comunicarte con: ${config.helpline.trim()}.` : '')
-const guionCrisis = () => fill(ov.text('crisis.guion'), { helpline: helplineSuffix() })
+const helplineSuffix = () => (config.helpline.trim() ? tx(` También podés comunicarte con: ${config.helpline.trim()}.`, ` You can also reach out to: ${config.helpline.trim()}.`) : '')
+const guionCrisis = () => fill(copy('crisis.guion'), { helpline: helplineSuffix() })
 /** FS-BASE-A: la línea de cuidado que acompaña al fail-closed cuando el juez de ENTRADA no pudo revisar lo que escribió el
  *  chico (no se sabe si era una crisis): lo invita a hablar con un adulto y le deja la línea de ayuda de la familia. */
-const safetyLine = () => ` Si te pasa algo o te sentís mal, contáselo a un adulto de confianza.${helplineSuffix()}`
+const safetyLine = () => tx(` Si te pasa algo o te sentís mal, contáselo a un adulto de confianza.${helplineSuffix()}`, ` If something’s going on or you feel bad, tell a trusted adult.${helplineSuffix()}`)
 /** FS-BASE-A (hallazgo chat.ts:252): el juez de ENTRADA no respondió (caído, vencido o veredicto fuera de esquema) → el
  *  mensaje NO se responde normal y una crisis no se pierde en silencio. Si la red de frases (crisisNet.ts) pega, es el
  *  camino de crisis —el guion de contención y el aviso de crisis al padre, marcado "sin clasificar"—; si no, fail-closed con
@@ -103,6 +122,8 @@ function buildSystemPrompt(): string {
   if (config.imagenesActivo) parts.push(ov.text('sys.imagenes'))
   parts.push(ov.text('sys.resultados'))
   parts.push(fill(ov.text('sys.formato'), { soloFuentes: config.soloFuentes ? '\n' + ov.text('sys.soloFuentesSufijo') : '' }))
+  // i18n (pedido 9-nov): ADITIVO, solo con la app en inglés (X-Smarty-Lang: en). defaults.json y los jueces no cambian.
+  if (requestLang() === 'en') parts.push(`IDIOMA (manda sobre cualquier indicación de idioma de arriba): ${kid.name || 'el chico'} usa Smarty en inglés. Respondé SIEMPRE en inglés de Estados Unidos, con palabras simples y el mismo tono cálido, aunque te escriba en castellano, aunque el historial o los resultados de las herramientas estén en castellano. Los títulos de videos, artículos e imágenes que muestres quedan como vienen.`)
   return parts.join('\n\n')
 }
 
@@ -249,7 +270,7 @@ async function resolveMedia(uis: Ui[]): Promise<ChatReply['media']> {
 }
 
 export async function sendChildMessage(history: Msg[], childText: string): Promise<ChatReply> {
-  const failClosed = (trace: string): ChatReply => ({ kind: 'failclosed', text: ov.text('copy.failClosed'), contextText: ov.text('copy.failClosed'), trace })
+  const failClosed = (trace: string): ChatReply => ({ kind: 'failclosed', text: copy('copy.failClosed'), contextText: copy('copy.failClosed'), trace })
   const ctx = history.slice(-ov.num('const.principalTurnos'))
 
   // 1) Principal y juez de entrada EN PARALELO (si el juez bloquea, se aborta el principal).
@@ -280,7 +301,7 @@ export async function sendChildMessage(history: Msg[], childText: string): Promi
       const t = guionCrisis()
       return { kind: 'crisis', text: t, contextText: t, childContextText: '[mensaje sensible — atendido con protocolo de contención]', trace: `El juez de entrada falló; la red de frases vio una posible crisis («${down.hit}»): guion fijo de contención y aviso al padre (sin clasificar).` }
     }
-    const t = ov.text('copy.failClosed') + safetyLine()
+    const t = copy('copy.failClosed') + safetyLine()
     return { kind: 'failclosed', text: t, contextText: t, trace: 'El juez de entrada falló: no se mostró nada (fail-closed), con la línea de cuidado y aviso al padre (sin clasificar).' }
   }
 
@@ -307,7 +328,7 @@ export async function sendChildMessage(history: Msg[], childText: string): Promi
   // 4) Veto por ítem determinista + filtro de palabras sobre la prosa.
   let { uis: uisOk } = vetarItemsDeMedios(uis)
   const palabra = matchBlockedWord(principal.text)
-  if (palabra) return { kind: 'interceptado', text: ov.text('copy.interceptado'), contextText: ov.text('copy.interceptado'), trace: `Palabra de la lista negra en la respuesta: «${palabra}».` }
+  if (palabra) return { kind: 'interceptado', text: copy('copy.interceptado'), contextText: copy('copy.interceptado'), trace: `Palabra de la lista negra en la respuesta: «${palabra}».` }
 
   // 5) Juez de salida (modo estricto: antes de mostrar), salvo que el padre lo saltee para respuestas solo-videos.
   const kinds = new Set(uisOk.map(u => u.kind))

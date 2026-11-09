@@ -75,6 +75,10 @@ import { spendEc, summary } from './progress'
 import { upgradeWishRaw } from './userDataMigrate'
 import { DEFAULT_USER_ID, actingUser } from './users'
 import { readJson, send } from './web'
+// i18n (9-nov): textos de UI que arma este módulo (ropa de plataforma, rechazos) en el idioma del pedido, al servir.
+// Los premios del padre (parent.json) son DATA: no se traducen.
+import { L as tx } from './lang'
+import { requestLang } from './requestContext'
 
 type Status = 'pendiente' | 'entregado'
 /** U5-A: `origin: 'liga-familia'` = el premio de la semana de la familia que ganó este chico (grantFamilyPrize): itemId 0
@@ -87,7 +91,7 @@ interface Redemption {
 interface Store { redemptions: Redemption[]; /** Prendas que compró ESTE usuario en esta demo (ids de accesorio) */ owned: Set<string> }
 
 const fmt = (n: number) => n.toLocaleString('es-AR')
-const OFF = { error: 'La Tienda está apagada por tu familia' }
+const OFF = { get error() { return tx('La Tienda está apagada por tu familia', 'The Store is turned off by your family') } }
 
 /** Estado inicial NUEVO de cada usuario: 0 canjes y el guardarropas vacío (los premios no viven acá: son config del padre,
  *  en parent.json). El padre entrega con el integrante: deliverRedemption(id, member). */
@@ -126,8 +130,20 @@ const ropaItem = (id: number) => ROPA.find(r => r.id === id)
 const theRopa = (r: Ropa) => `${r.plural ? (r.fem ? 'las' : 'los') : r.fem ? 'la' : 'el'} ${r.title.toLowerCase()}`
 /** Lo que necesita el NPC para agradecer con la concordancia justa ("me LA puse", "ya LOS tengo PUESTOS"). */
 const giftText = (r: Ropa) => ({ el: theRopa(r), lo: `${r.fem ? 'la' : 'lo'}${r.plural ? 's' : ''}`, puesto: `puest${r.fem ? 'a' : 'o'}${r.plural ? 's' : ''}` })
+/** i18n: la ropa de plataforma en inglés (por accessoryId). ROPA queda en castellano (theRopa y los "¡gracias!" la usan). */
+const ROPA_EN: Record<string, { title: string; desc: string; the: string }> = {
+  gorra: { title: 'Cap', desc: 'Red, with the brim turned back: the everyday classic.', the: 'the cap' },
+  vincha: { title: 'Sports headband', desc: 'White with a red stripe, for your toughest practices.', the: 'the sports headband' },
+  lazo: { title: 'Bandana', desc: 'Navy blue, tied around the neck: it changes the vibe of any character.', the: 'the bandana' },
+  anteojos: { title: 'Sunglasses', desc: 'To look cool in your league.', the: 'the sunglasses' },
+  auriculares: { title: 'Headphones', desc: 'To study with your music in the background.', the: 'the headphones' },
+  corona: { title: 'Crown', desc: 'The most special one: to show off everything you practiced.', the: 'the crown' },
+}
+const ropaEn = (r: Ropa) => (requestLang() === 'en' ? ROPA_EN[r.accessoryId] : undefined)
+/** "la gorra" / "the cap" según el idioma del pedido (para los rechazos). */
+const theRopaNow = (r: Ropa) => ropaEn(r)?.the ?? theRopa(r)
 const toRopaItem = (r: Ropa) => ({
-  id: r.id, title: r.title, desc: r.desc, price: r.price, emoji: r.emoji, source: 'plataforma' as const, stock: null, wished: false,
+  id: r.id, title: ropaEn(r)?.title ?? r.title, desc: ropaEn(r)?.desc ?? r.desc, price: r.price, emoji: r.emoji, source: 'plataforma' as const, stock: null, wished: false,
   kind: 'ropa' as const, accessoryId: r.accessoryId, owned: stores.now().owned.has(r.accessoryId),
 })
 
@@ -266,10 +282,10 @@ type RedeemBody = { ok: boolean; ec: number; redemption?: ReturnType<typeof toRe
 function buyRopa(r: Ropa): { status: number; body: RedeemBody } {
   const store = stores.now()
   const ec = summary().ec
-  if (store.owned.has(r.accessoryId)) return { status: 200, body: { ok: false, ec, error: `Ya tenés ${theRopa(r)} en tu guardarropas.` } }
-  if (ec < r.price) return { status: 200, body: { ok: false, ec, error: `Te faltan ${fmt(r.price - ec)} ⚡` } }
+  if (store.owned.has(r.accessoryId)) return { status: 200, body: { ok: false, ec, error: tx(`Ya tenés ${theRopa(r)} en tu guardarropas.`, `You already have ${theRopaNow(r)} in your wardrobe.`) } }
+  if (ec < r.price) return { status: 200, body: { ok: false, ec, error: tx(`Te faltan ${fmt(r.price - ec)} ⚡`, `You need ${fmt(r.price - ec)} more ⚡`) } }
   const paid = spendEc(r.price, `Ropa para tu avatar: ${r.title}`)
-  if (!paid.ok) return { status: 200, body: { ok: false, ec: paid.ec, error: `Te faltan ${fmt(Math.max(1, r.price - paid.ec))} ⚡` } }
+  if (!paid.ok) return { status: 200, body: { ok: false, ec: paid.ec, error: tx(`Te faltan ${fmt(Math.max(1, r.price - paid.ec))} ⚡`, `You need ${fmt(Math.max(1, r.price - paid.ec))} more ⚡`) } }
   store.owned.add(r.accessoryId)
   console.log(`[market] ropa de ${stores.nowId()}: ${r.emoji} ${r.title} (−${r.price} ⚡) → saldo ${paid.ec} · guardarropas: ${[...store.owned].join(', ')}`)
   return { status: 200, body: { ok: true, ec: paid.ec } }
@@ -283,12 +299,12 @@ export function redeem(itemId: number): { status: number; body: RedeemBody } {
   if (ropa) return buyRopa(ropa)
   const ec = summary().ec
   const it = activeItem(itemId)
-  if (!it) return { status: 404, body: { ok: false, ec, error: 'Ese premio ya no está en la Tienda.' } }
+  if (!it) return { status: 404, body: { ok: false, ec, error: tx('Ese premio ya no está en la Tienda.', 'That prize is no longer in the Store.') } }
   const left = stockLeft(it)
-  if (left !== null && left <= 0) return { status: 200, body: { ok: false, ec, error: 'Este premio se agotó.' } }
-  if (ec < it.price) return { status: 200, body: { ok: false, ec, error: `Te faltan ${fmt(it.price - ec)} ⚡` } }
+  if (left !== null && left <= 0) return { status: 200, body: { ok: false, ec, error: tx('Este premio se agotó.', 'This prize is sold out.') } }
+  if (ec < it.price) return { status: 200, body: { ok: false, ec, error: tx(`Te faltan ${fmt(it.price - ec)} ⚡`, `You need ${fmt(it.price - ec)} more ⚡`) } }
   const paid = spendEc(it.price, `Canje: ${it.title}`)
-  if (!paid.ok) return { status: 200, body: { ok: false, ec: paid.ec, error: `Te faltan ${fmt(Math.max(1, it.price - paid.ec))} ⚡` } }
+  if (!paid.ok) return { status: 200, body: { ok: false, ec: paid.ec, error: tx(`Te faltan ${fmt(Math.max(1, it.price - paid.ec))} ⚡`, `You need ${fmt(Math.max(1, it.price - paid.ec))} more ⚡`) } }
   const store = stores.now()
   const r: Redemption = { id: redemptionSeq++, itemId: it.id, title: it.title, emoji: it.emoji, price: it.price, ts: Date.now(), status: 'pendiente' }
   store.redemptions.unshift(r)
@@ -309,14 +325,14 @@ async function gift(req: IncomingMessage, itemId: number, friendId: string): Pro
   const r = ropaItem(itemId)
   if (!r) {
     return anyParentItem(itemId)
-      ? { status: 400, body: { ok: false, ec, error: 'Por ahora solo se puede regalar ropa para el avatar.' } }
-      : { status: 404, body: { ok: false, ec, error: 'Ese regalo no está en la Tienda.' } }
+      ? { status: 400, body: { ok: false, ec, error: tx('Por ahora solo se puede regalar ropa para el avatar.', 'For now you can only gift avatar clothes.') } }
+      : { status: 404, body: { ok: false, ec, error: tx('Ese regalo no está en la Tienda.', 'That gift isn’t in the Store.') } }
   }
   const target = friends.giftCheck(req, friendId, r.accessoryId, theRopa(r))
   if (!target.ok) return { status: target.status, body: { ok: false, ec, error: target.error } }
-  if (ec < r.price) return { status: 200, body: { ok: false, ec, error: `Te faltan ${fmt(r.price - ec)} ⚡` } }
+  if (ec < r.price) return { status: 200, body: { ok: false, ec, error: tx(`Te faltan ${fmt(r.price - ec)} ⚡`, `You need ${fmt(r.price - ec)} more ⚡`) } }
   const paid = spendEc(r.price, `Regalo para ${target.nick}: ${r.title}`)
-  if (!paid.ok) return { status: 200, body: { ok: false, ec: paid.ec, error: `Te faltan ${fmt(Math.max(1, r.price - paid.ec))} ⚡` } }
+  if (!paid.ok) return { status: 200, body: { ok: false, ec: paid.ec, error: tx(`Te faltan ${fmt(Math.max(1, r.price - paid.ec))} ⚡`, `You need ${fmt(Math.max(1, r.price - paid.ec))} more ⚡`) } }
   const friend = friends.receiveGift(friendId, r.accessoryId, giftText(r))
   console.log(`[market] regalo: ${r.emoji} ${r.title} para ${target.nick} (−${r.price} ⚡) → saldo ${paid.ec}`)
   return { status: 200, body: { ok: true, ec: paid.ec, friend } }
@@ -336,7 +352,7 @@ export async function marketRoutes(req: IncomingMessage, res: ServerResponse, ur
   // ni canjes, ni lista de deseos. Antes que cualquier otra validación (fail-closed). Es un candado del CHICO (el de ESE
   // chico, U3): el adulto activo pasa (docs/USUARIOS.md §4).
   const me = actingUser(req)
-  if (me.kind === 'child' && !featureOn('tienda', me.id)) return send(res, 403, OFF)
+  if (me.kind === 'child' && !featureOn('tienda', me.id)) return send(res, 403, { error: OFF.error })
   const path = url.pathname.replace(/\/+$/, '')
   if (path === '/api/market') {
     if (req.method !== 'GET') return send(res, 405, { error: 'Método no permitido: usá GET.' })
@@ -366,7 +382,7 @@ export async function marketRoutes(req: IncomingMessage, res: ServerResponse, ur
     const value = (body as Record<string, unknown>).value
     if (value !== undefined && value !== null && typeof value !== 'boolean') return send(res, 400, { error: 'value tiene que ser true o false (o no venir, para alternar).', wishlist: liveWish() })
     try { return send(res, 200, { wishlist: setWish(itemId, typeof value === 'boolean' ? value : undefined) }) }
-    catch (e) { if (e instanceof DiskWriteError) return send(res, 500, { error: 'No pude guardar tu lista de deseos. Probá de nuevo.', wishlist: liveWish() }); throw e }
+    catch (e) { if (e instanceof DiskWriteError) return send(res, 500, { error: tx('No pude guardar tu lista de deseos. Probá de nuevo.', 'I couldn’t save your wishlist. Try again.'), wishlist: liveWish() }); throw e }
   }
   if (path === '/api/market/gift') {
     if (req.method !== 'POST') return send(res, 405, { ok: false, ec: summary().ec, error: 'Método no permitido: para regalar se usa POST.' })

@@ -44,6 +44,23 @@ export const MEDALS: Record<MedalId, MedalDef> = {
   'mejor-semana': { emoji: '📈', title: 'Superaste tu semana', text: 'Sumaste más XP que la semana anterior.', domain: null, repeatable: true },
   'semana-familia': { emoji: '🏆', title: 'Copa de la familia', text: 'Ganaste una semana de la liga de tu familia.', domain: 'ligas', repeatable: true },
 }
+/** i18n (9-nov): los textos de cada medalla en inglés. MEDALS queda en castellano (lo afirman los tests y lo guardan las
+ *  noticias vivas del feed); la traducción se aplica AL SERVIR, por id (medals.ts: localizeMedal). */
+export const MEDALS_EN: Record<MedalId, { title: string; text: string }> = {
+  'primera-posta': { title: 'First step', text: 'You completed your first step in Learn.' },
+  'diez-objetivos': { title: 'Ten goals', text: 'You completed 10 different goals in Learn.' },
+  'ruta-completa': { title: 'Route complete', text: 'You completed every step of a route.' },
+  'posta-perfecta': { title: 'Not a single mistake', text: 'You solved a whole step without mistakes.' },
+  'primer-repaso': { title: 'First review', text: 'You did your first review with Active recall.' },
+  'primer-guardado': { title: 'Your first save', text: 'You saved something in My space for the first time.' },
+  'ruta-creada': { title: 'Your first route', text: 'You built your first route in Create.' },
+  'primer-amigo': { title: 'First friend', text: 'You added your first friend on Smarty.' },
+  'tres-dias': { title: 'Three days in a row', text: 'You learned something new three days in a row.' },
+  'de-vuelta': { title: 'Back again', text: 'You came back to learn something new after a few days off.' },
+  'semana-completa': { title: 'Full week', text: 'You learned something new all 7 days of a week.' },
+  'mejor-semana': { title: 'You beat your week', text: 'You earned more XP than the week before.' },
+  'semana-familia': { title: 'Family cup', text: 'You won a week of your family league.' },
+}
 /** Los ids en el orden del catálogo. */
 export const MEDAL_IDS = Object.keys(MEDALS) as MedalId[]
 

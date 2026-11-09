@@ -64,7 +64,8 @@ import { join } from 'node:path'
 import { SERVER_ROOT } from './config'
 import { quarantine, tryWriteFileAtomic } from './durable'
 import { ensureMedals, registerMedalFacts, syncMedals } from './medals'
-import { currentUser } from './requestContext'
+import { currentUser, requestLang } from './requestContext'
+import { L as tx } from './lang'
 import { send } from './web'
 import { isAllowedArticleSite } from './filters'
 import { userById } from './users'
@@ -416,8 +417,13 @@ function servedRoute(row: RouteRow): RouteData | null {
   if (childBlocked(textOf(row)) || !readingsApproved(r)) return null
   return r.cover !== undefined && !isWikiImage(r.cover) ? { ...r, cover: undefined } : r // la portada subida por un chico, no
 }
-/** Las filas habilitadas que se le sirven al usuario del pedido, en el orden de la clave. */
-const servedRows = () => [...routes.values()].filter((r) => r.enabled !== false).sort(byId)
+/** i18n (pedido 9-nov: en inglés sin rutas): el contenido de las rutas (títulos, postas, lecturas) está generado en
+ *  castellano y no debe aparecer en la app en inglés → con X-Smarty-Lang: en NO se sirve ninguna (lista, definiciones, una
+ *  sola: 404, y el Feed, que lee servedRoutes, queda sin hero de ruta ni cards de ruta). Importar y borrar NO cambian.
+ *  «después me ocupo» (Esteban): es un corte deliberado, no una traducción. */
+const noRoutesInEnglish = () => requestLang() === 'en'
+/** Las filas habilitadas que se le sirven al usuario del pedido, en el orden de la clave (ninguna en inglés: arriba). */
+const servedRows = () => (noRoutesInEnglish() ? [] : [...routes.values()]).filter((r) => r.enabled !== false).sort(byId)
   .map((row) => ({ row, route: servedRoute(row) })).filter((x): x is { row: RouteRow; route: RouteData } => x.route !== null)
 /** FS-BASE-A: catalogRoutes() con lo que ve el usuario del pedido (servedRoute): el Feed sirve ESTO. catalogRoutes() queda
  *  crudo para lo que no se muestra (la economía y los hechos de las medallas: no pueden cambiar según quién mira). */
@@ -486,6 +492,7 @@ export async function learnRoutesRoutes(req: IncomingMessage, res: ServerRespons
   if (path === '/api/learn-routes/definitions') {
     if (req.method !== 'GET') return send(res, 405, { error: 'method' })
     // FS-BASE-A: solo las de las rutas que se le sirven al usuario del pedido (con un adulto: todas, como siempre)
+    if (noRoutesInEnglish()) return send(res, 200, { definitions: [] }) // (pedido 9-nov: en inglés sin rutas)
     const served = currentUser()?.kind === 'child' ? new Set(servedRows().map((x) => x.row.id)) : null
     return send(res, 200, { definitions: [...defs.values()].filter((d) => !served || served.has(d.routeId)).sort(byId).map((d) => d.def) })
   }
@@ -495,8 +502,8 @@ export async function learnRoutesRoutes(req: IncomingMessage, res: ServerRespons
     const id = url.searchParams.get('id') ?? ''
     const row = routes.get(id)
     // FS-BASE-A: una ruta que no se le sirve al usuario del pedido no existe para él (mismo 404)
-    const route = row ? servedRoute(row) : null
-    if (!row || !route) return send(res, 404, { error: 'No encontré esa ruta.' })
+    const route = row && !noRoutesInEnglish() ? servedRoute(row) : null // (pedido 9-nov: en inglés sin rutas → el mismo 404)
+    if (!row || !route) return send(res, 404, { error: tx('No encontré esa ruta.', 'I couldn’t find that route.') })
     const definitions = [...defs.values()].filter((d) => d.routeId === row.id).sort(byId).map((d) => d.def)
     return send(res, 200, { route, definitions, editorial: editorialFor(row.editorial) })
   }

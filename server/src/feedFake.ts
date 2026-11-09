@@ -87,7 +87,12 @@ import { MEDALS, type EarnedMedal } from './medalRules'
 import { medalsOf, registerMedalNews } from './medals'
 import { familyCatalogVersion, searchVideosStrict, toVideoResult, type CatalogVideo } from './videos'
 import { perUser } from './perUser'
-import { currentUser } from './requestContext'
+import { currentUser, requestLang } from './requestContext'
+// i18n (9-nov): lo que se arma POR PEDIDO (el hero, la tarjeta de mi liga) usa L() directo; lo que vive en pools o en lo
+// vivo (RAM) queda en castellano y se traduce al salir (feedEn.feedText, en localizeFeedItem): nunca se guarda inglés.
+import { L as tx } from './lang'
+import { feedText } from './feedEn'
+import { localizeMedal } from './medals'
 import {
   BURST_MAX_PER_TYPE, EDITIONS, NPC_MEDALS, NPC_NEWS, SHARERS, composeBurst, interleave, newBurstMemory, roundRobinBy, spaceOut,
   type BurstCand, type BurstMemory, type Daypart, type Slot,
@@ -293,19 +298,21 @@ const LEAGUEISH: ReadonlySet<NewsIcon> = new Set<NewsIcon>(['medal', 'league'])
 function leagueNews(): { name: string; desc: string } {
   const l = myLeague(), lw = l.lastWeek, lc = lastClose()
   // El adulto compite con otros GRANDES (U4 D4: su liga pública es de NPCs adultos), nunca con chicos.
-  const peers = currentUser()?.kind === 'adult' ? 'grandes' : 'chicos'
-  const others = `competís con otros ${l.total - 1} ${peers} de tu nivel`
-  const closes = l.closesInDays === 0 ? '¡Cierra hoy!' : `Cierra ${l.closes}.`
+  const adult = currentUser()?.kind === 'adult'
+  const peers = adult ? 'grandes' : 'chicos', peersEn = adult ? 'adults' : 'kids'
+  const others = tx(`competís con otros ${l.total - 1} ${peers} de tu nivel`, `you’re competing with ${l.total - 1} other ${peersEn} at your level`)
+  // l.closes ya viene en el idioma del pedido (leaguesFake.closesText: "el domingo" / "on Sunday")
+  const closes = l.closesInDays === 0 ? tx('¡Cierra hoy!', 'Closes today!') : tx(`Cierra ${l.closes}.`, `Closes ${l.closes}.`)
   if (lc) {
-    const res = `${lc.pos}º en la ${lc.from}`
-    if (lc.medal && lc.movement === 'sube') return { name: l.name, desc: `${MEDAL_EMOJI[lc.medal]} ¡Saliste ${res} y subiste a la ${l.name}! Esta semana ${others}. ${closes}` }
-    if (lc.medal) return { name: l.name, desc: `${MEDAL_EMOJI[lc.medal]} ¡Saliste ${res}${lc.top ? ', la más alta de todas' : ''}! Seguís ahí: esta semana ${others}. ${closes}` }
-    if (lc.movement === 'baja') return { name: l.name, desc: `Saliste ${res} y esta semana te toca la ${l.name}, con otros ${l.total - 1} ${peers} de tu nivel: a sumar XP para volver a subir. ${closes}` }
-    return { name: l.name, desc: `Saliste ${res} y seguís en esta liga. Esta semana ${others}: el podio está a tiro. ${closes}` }
+    const res = tx(`${lc.pos}º en la ${lc.from}`, `#${lc.pos} in ${lc.from}`)
+    if (lc.medal && lc.movement === 'sube') return { name: l.name, desc: tx(`${MEDAL_EMOJI[lc.medal]} ¡Saliste ${res} y subiste a la ${l.name}! Esta semana ${others}. ${closes}`, `${MEDAL_EMOJI[lc.medal]} You finished ${res} and moved up to ${l.name}! This week ${others}. ${closes}`) }
+    if (lc.medal) return { name: l.name, desc: tx(`${MEDAL_EMOJI[lc.medal]} ¡Saliste ${res}${lc.top ? ', la más alta de todas' : ''}! Seguís ahí: esta semana ${others}. ${closes}`, `${MEDAL_EMOJI[lc.medal]} You finished ${res}${lc.top ? ', the top league of all' : ''}! You’re staying there: this week ${others}. ${closes}`) }
+    if (lc.movement === 'baja') return { name: l.name, desc: tx(`Saliste ${res} y esta semana te toca la ${l.name}, con otros ${l.total - 1} ${peers} de tu nivel: a sumar XP para volver a subir. ${closes}`, `You finished ${res} and this week you’re in ${l.name}, with ${l.total - 1} other ${peersEn} at your level: earn XP to move back up. ${closes}`) }
+    return { name: l.name, desc: tx(`Saliste ${res} y seguís en esta liga. Esta semana ${others}: el podio está a tiro. ${closes}`, `You finished ${res} and you’re staying in this league. This week ${others}: the podium is within reach. ${closes}`) }
   }
-  if (lw?.medal) return { name: l.name, desc: `${MEDAL_EMOJI[lw.medal]} ¡La semana pasada saliste ${lw.pos}º en la ${l.name}! Esta semana ${others}. ${closes}` }
-  if (lw) return { name: l.name, desc: `La semana pasada saliste ${lw.pos}º en la ${l.name}. Esta semana ${others}. ${closes}` }
-  return { name: l.name, desc: `Por tus resultados, esta semana ${others}. ${closes}` }
+  if (lw?.medal) return { name: l.name, desc: tx(`${MEDAL_EMOJI[lw.medal]} ¡La semana pasada saliste ${lw.pos}º en la ${l.name}! Esta semana ${others}. ${closes}`, `${MEDAL_EMOJI[lw.medal]} Last week you finished #${lw.pos} in ${l.name}! This week ${others}. ${closes}`) }
+  if (lw) return { name: l.name, desc: tx(`La semana pasada saliste ${lw.pos}º en la ${l.name}. Esta semana ${others}. ${closes}`, `Last week you finished #${lw.pos} in ${l.name}. This week ${others}. ${closes}`) }
+  return { name: l.name, desc: tx(`Por tus resultados, esta semana ${others}. ${closes}`, `Based on your results, this week ${others}. ${closes}`) }
 }
 const LEAGUE_WHY = 'Te la asignaron por tus resultados'
 
@@ -501,26 +508,28 @@ function visibleRuns(): RouteRun[] {
  *  jugó todas, la primera sin terminar); con todo terminado (o sin rutas), elegir en Aprender. */
 function nextStep(dp: Daypart): Of<'next'> {
   const runs = visibleRuns()
-  const coins = featureOnNow('tienda') ? ` · +${LEARN_EC} ⚡ por cada posta nueva` : '' // sin Tienda no se nombra la moneda
+  const coins = featureOnNow('tienda') ? tx(` · +${LEARN_EC} ⚡ por cada posta nueva`, ` · +${LEARN_EC} ⚡ for each new step`) : '' // sin Tienda no se nombra la moneda
+  const steps = (n: number) => tx(postasWord(n), n === 1 ? 'step' : 'steps')
+  const now = tx('ahora', 'now')
   const cur = routeInProgress(runs)
   if (!cur) {
     const other = runs.find((r) => r.lastAt === 0 && r.total > 0) ?? runs.find((r) => r.done < r.total)
-    if (!other) return { kind: 'next', id: 'fn-aprender', time: 'ahora', reason: 'Para elegir qué aprender hoy', title: 'Elegí qué aprender hoy', meta: 'En Aprender están todas tus rutas', action: { label: 'Ver rutas', to: '/aprender' } }
+    if (!other) return { kind: 'next', id: 'fn-aprender', time: now, reason: tx('Para elegir qué aprender hoy', 'To choose what to learn today'), title: tx('Elegí qué aprender hoy', 'Choose what to learn today'), meta: tx('En Aprender están todas tus rutas', 'All your routes are in Learn'), action: { label: tx('Ver rutas', 'See routes'), to: '/aprender' } }
     const last = runs.filter((r) => r.lastAt > 0).sort((a, b) => b.lastAt - a.lastAt)[0]
     return {
-      kind: 'next', id: `fn-${other.id}`, time: 'ahora', title: `Empezá ${other.title}`, meta: `${other.total} ${postasWord(other.total)} para descubrir${coins}`,
-      reason: last ? `Terminaste ${last.title}: seguí con otra` : 'Es una ruta para arrancar algo nuevo', action: { label: 'Empezar', to: routeLink(other.id) },
+      kind: 'next', id: `fn-${other.id}`, time: now, title: tx(`Empezá ${other.title}`, `Start ${other.title}`), meta: tx(`${other.total} ${postasWord(other.total)} para descubrir${coins}`, `${other.total} ${steps(other.total)} to discover${coins}`),
+      reason: last ? tx(`Terminaste ${last.title}: seguí con otra`, `You finished ${last.title}: keep going with another one`) : tx('Es una ruta para arrancar algo nuevo', 'A route to start something new'), action: { label: tx('Empezar', 'Start'), to: routeLink(other.id) },
     }
   }
   const to = routeLink(cur.id)
   const left = cur.total - cur.done
   if (dp === 'noche') {
-    return { kind: 'next', id: `fn-${cur.id}`, time: 'ahora', title: `Repasá ${cur.title}, sin apuro`, meta: `Vas ${cur.done} de ${cur.total} ${postasWord(cur.total)} · un repaso corto para cerrar el día`, reason: 'A la noche, un repaso tranquilo te ayuda a recordar', action: { label: 'Repasar', to } }
+    return { kind: 'next', id: `fn-${cur.id}`, time: now, title: tx(`Repasá ${cur.title}, sin apuro`, `Review ${cur.title}, no rush`), meta: tx(`Vas ${cur.done} de ${cur.total} ${postasWord(cur.total)} · un repaso corto para cerrar el día`, `You’re at ${cur.done} of ${cur.total} ${steps(cur.total)} · a short review to wrap up the day`), reason: tx('A la noche, un repaso tranquilo te ayuda a recordar', 'At night, a calm review helps you remember'), action: { label: tx('Repasar', 'Review'), to } }
   }
   return {
-    kind: 'next', id: `fn-${cur.id}`, time: 'ahora', title: `Seguí con ${cur.title}`,
-    meta: `Vas ${cur.done} de ${cur.total} ${postasWord(cur.total)}${coins}`,
-    reason: `La empezaste y te ${left === 1 ? 'queda' : 'quedan'} ${left} ${postasWord(left)}`, action: { label: 'Seguir', to },
+    kind: 'next', id: `fn-${cur.id}`, time: now, title: tx(`Seguí con ${cur.title}`, `Keep going with ${cur.title}`),
+    meta: tx(`Vas ${cur.done} de ${cur.total} ${postasWord(cur.total)}${coins}`, `You’re at ${cur.done} of ${cur.total} ${steps(cur.total)}${coins}`),
+    reason: tx(`La empezaste y te ${left === 1 ? 'queda' : 'quedan'} ${left} ${postasWord(left)}`, `You started it and have ${left} ${steps(left)} left`), action: { label: tx('Seguir', 'Continue'), to },
   }
 }
 
@@ -663,7 +672,7 @@ registerMedalNews(injectMedalNews)
  *  cuenta los días de pared en la zona de la familia) en vez de contar los días otra vez. */
 function seedMedalTime(at: number | null, week: number): string {
   const since = at === null ? null : sinceLabel(at)
-  if (since !== null && !/^hace \d+ días$/.test(since)) return since
+  if (since !== null && !/^(?:hace \d+ días|\d+ days ago)$/.test(since)) return since // (sinceLabel sale en el idioma del pedido)
   return week > 0 ? weeksAgoLabel(week) : 'esta semana'
 }
 /** Tanda "Cards del feed" (29-oct; spec §4.1): sin ganar una medalla en vivo, la card 'medal' no aparecía NUNCA. Ahora la
@@ -760,7 +769,25 @@ function serve(it: FeedItem): FeedItem {
   if (it.kind === 'friend') return { ...it, reactions: reactionsOf(it.id).map(r => ({ ...r })) }
   return it
 }
+/** i18n (9-nov): el ítem en el idioma del pedido, justo antes de salir. Los textos de pools y de lo vivo están en castellano
+ *  (así se guardan y así los filtra la familia) y se traducen acá por tabla (feedEn.feedText); la medalla, por id
+ *  (medals.localizeMedal). Lo que se arma por pedido (hero, tarjeta de liga, rótulos de leaguesFake) ya viene traducido y
+ *  la tabla lo deja pasar igual. En castellano devuelve el MISMO objeto. */
+function localizeFeedItem(it: FeedItem): FeedItem {
+  if (requestLang() !== 'en') return it // pedido en castellano: nada que hacer
+  const base = { ...it, time: feedText(it.time), ...(it.reason !== undefined ? { reason: feedText(it.reason) } : {}) } as FeedItem
+  if (base.kind === 'friend') return { ...base, text: feedText(base.text) }
+  if (base.kind === 'videos') return { ...base, title: feedText(base.title) }
+  if (base.kind === 'medal') return { ...base, medal: localizeMedal(base.medal) }
+  return base
+}
 export function getFeed(after?: string | null): FeedResponse {
+  const r = getFeedEs(after)
+  // (pedido 9-nov: en inglés sin rutas) learnRoutes.servedRoutes ya viene vacío en inglés (sin hero de ruta ni cards del
+  // catálogo); acá sale además cualquier ruta COMPARTIDA que haya entrado en vivo antes (ráfaga en castellano, en la RAM).
+  return requestLang() === 'en' ? { ...r, items: r.items.filter(it => it.kind !== 'route').map(localizeFeedItem) } : r
+}
+function getFeedEs(after?: string | null): FeedResponse {
   const now = new Date()
   const dp = daypartOf(now), week = cycleWeek(), motion = feedMotion()
   const { fresh, hidden } = live()

@@ -33,11 +33,11 @@
 // El catálogo NO viaja nunca: solo las ganadas (sin totales, sin "faltan", sin siluetas).
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import {
-  MEDALS, earnedFrom, emptyFacts, sortMedals,
+  MEDALS, MEDALS_EN, earnedFrom, emptyFacts, sortMedals,
   type EarnedMedal, type MedalDomain, type MedalFacts, type MedalId,
 } from './medalRules'
 import { perUser } from './perUser'
-import { currentUser, runAsUser } from './requestContext'
+import { currentUser, requestLang, runAsUser } from './requestContext'
 import { actingUser, userById, users } from './users'
 import { send } from './web'
 
@@ -82,6 +82,13 @@ export function resetMedals(userId?: string): void {
   if (userId !== undefined) { if (userById(userId)) states.reset(userId); return }
   states.reset()
   for (const u of users()) states.of(u.id)
+}
+
+/** i18n (9-nov): la medalla con el título y el texto en el idioma del pedido (medalRules.MEDALS_EN, por id). Se aplica AL
+ *  SERVIR (GET /api/medals, la card del feed, Familia → Actividad): lo guardado y lo que filtra la familia sigue en castellano. */
+export function localizeMedal<T extends { id: MedalId; title: string; text: string }>(m: T): T {
+  const en = requestLang() === 'en' ? MEDALS_EN[m.id] : undefined
+  return en ? { ...m, title: en.title, text: en.text } : m
 }
 
 const toEarned = (id: MedalId, e: Earned): EarnedMedal => {
@@ -139,7 +146,8 @@ export function medalsOf(uid: string, opts: { forParent?: boolean } = {}): (Earn
 /** La forma de GET /api/medals: la pila del usuario + cuántas no vio (de las que ve). */
 export function medalsResponse(uid: string): { medals: EarnedMedal[]; unseen: number } {
   const medals = medalsOf(uid)
-  return { medals, unseen: medals.filter(m => m.fresh).length }
+  // i18n (9-nov): los textos se traducen AL SERVIR (medalRules.localizeMedal); medalsOf sigue en castellano para el feed.
+  return { medals: medals.map(localizeMedal), unseen: medals.filter(m => m.fresh).length }
 }
 
 /** "Ya las vio": marca vistas las que hoy VE (una escondida por un candado sigue sin ver: si la familia lo prende, la ve

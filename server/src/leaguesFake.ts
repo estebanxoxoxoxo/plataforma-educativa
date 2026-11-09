@@ -89,6 +89,8 @@ import { checkPrizeFields, familyTz, featureOn, memberItemsOf } from './parent'
 import { perUser } from './perUser'
 import { familyWeekStart, seedLastWeekOf, startNewWeek, summaryOf, weekFactsOf, weekXp, weekXpOf } from './progress'
 import { currentUser, runAsUser } from './requestContext'
+// i18n (9-nov): los rótulos de tiempo se resuelven al servir (estas funciones corren en cada pedido; nada las cachea).
+import { L as tx } from './lang'
 import { actingUser, familyKeyOf, familyOf, userById, users, type UserInfo } from './users'
 import { readJson, send } from './web'
 import { wallClock, wallDate } from '../../src/shared/lib/zonedClock'
@@ -274,18 +276,18 @@ export function closesInDays(): number {
   return Math.max(0, 7 - daysIn(c))
 }
 /** El "cierra …" de la liga (tooltip del chip y noticia del feed). */
-const closesText = (n: number) => (cy().closedAt === null ? 'el domingo' : n <= 0 ? 'hoy' : n === 1 ? 'mañana' : `en ${n} días`)
+const closesText = (n: number) => (cy().closedAt === null ? tx('el domingo', 'on Sunday') : n <= 0 ? tx('hoy', 'today') : n === 1 ? tx('mañana', 'tomorrow') : tx(`en ${n} días`, `in ${n} days`))
 
 /** "recién", "hace 5 min", "hace 2 h", "ayer", "hace 3 días" (hora real; los días, en el calendario de la familia). */
 export function sinceLabel(at: number, now = Date.now()): string {
   const min = Math.floor((now - at) / 60000)
-  if (min < 1) return 'recién'
+  if (min < 1) return tx('recién', 'just now')
   const days = dayNum(now) - dayNum(at)
-  if (days <= 0) return min < 60 ? `hace ${min} min` : `hace ${Math.floor(min / 60)} h`
-  return days === 1 ? 'ayer' : `hace ${days} días`
+  if (days <= 0) return min < 60 ? tx(`hace ${min} min`, `${min} min ago`) : tx(`hace ${Math.floor(min / 60)} h`, `${Math.floor(min / 60)} h ago`)
+  return days === 1 ? tx('ayer', 'yesterday') : tx(`hace ${days} días`, `${days} days ago`)
 }
 /** Lo que pasó hace `n` semanas del ciclo (cada cierre simulado es una semana). */
-export const weeksAgoLabel = (n: number) => (n <= 1 ? 'la semana pasada' : `hace ${n} semanas`)
+export const weeksAgoLabel = (n: number) => (n <= 1 ? tx('la semana pasada', 'last week') : tx(`hace ${n} semanas`, `${n} weeks ago`))
 
 /** Cuándo fue el último cierre del activo, para fechar lo que reparte (medallas, ascensos). Semana del seed: el lunes fue
  *  "anoche"; el domingo, el de hoy todavía no pasó y el último es el de la semana anterior (días de la familia). Semana
@@ -294,7 +296,7 @@ export function lastCloseLabel(): string {
   const c = cy()
   if (c.closedAt !== null) return sinceLabel(c.closedAt)
   const dow = weekdayOf()
-  return dow === 0 ? 'anoche' : dow === 6 ? 'el domingo pasado' : 'el domingo'
+  return dow === 0 ? tx('anoche', 'last night') : dow === 6 ? tx('el domingo pasado', 'last Sunday') : tx('el domingo', 'on Sunday')
 }
 
 /** Cómo terminó el activo el último cierre: el del seed (FAKE: su lastWeekPos; con el backend real sale de la tabla
@@ -691,7 +693,7 @@ export function closeFamilyWeekNow(viewer: UserInfo):
   | { ok: true; result: { closed: FamilyWeekClosed; mine: ReturnType<typeof closeWeek> } }
   | { ok: false; status: 400; error: string } {
   const rows = liveRows(viewer.id)
-  if (rows.length < 2) return { ok: false, status: 400, error: 'La liga de la familia necesita al menos dos integrantes.' }
+  if (rows.length < 2) return { ok: false, status: 400, error: tx('La liga de la familia necesita al menos dos integrantes.', 'The family league needs at least two members.') }
   // U5-B: los slices de medallas de TODA la familia existen ANTES de la copa y de los cortes (ver familyCloseIfDue).
   const members = familyOf(viewer.id)
   for (const u of members) ensureMedals(u.id)
@@ -733,16 +735,16 @@ const toPosInt = (v: unknown): number | null => {
  *  MISMA validación que un premio de la Tienda (parent.checkPrizeFields). Errores con los textos LITERALES de §6.2. */
 export function setFamilyPrize(viewer: UserInfo, b: Record<string, unknown>): { ok: true; league: FamilyLeague } | { ok: false; error: string } {
   const condition = b.condition
-  if (typeof condition !== 'string' || !(PRIZE_CONDITIONS as readonly string[]).includes(condition)) return { ok: false, error: 'Elegí para quién es el premio.' }
+  if (typeof condition !== 'string' || !(PRIZE_CONDITIONS as readonly string[]).includes(condition)) return { ok: false, error: tx('Elegí para quién es el premio.', 'Choose who the prize is for.') }
   let fields: { emoji: string; title: string; desc?: string }
   let from: FamilyWeekPrize['from'] = null
   if (b.from !== undefined && b.from !== null) {
     const f = typeof b.from === 'object' && !Array.isArray(b.from) ? (b.from as Record<string, unknown>) : {}
     const member = typeof f.member === 'string' ? f.member.trim().toLowerCase() : ''
-    if (!member || !(viewer.dependents ?? []).includes(member)) return { ok: false, error: 'Ese integrante no es de tu familia.' }
+    if (!member || !(viewer.dependents ?? []).includes(member)) return { ok: false, error: tx('Ese integrante no es de tu familia.', 'That member isn’t part of your family.') }
     const itemId = toPosInt(f.itemId)
     const it = itemId === null ? undefined : memberItemsOf(member).find(i => i.id === itemId)
-    if (!it || itemId === null) return { ok: false, error: `Ese premio ya no está en la Tienda de ${userById(member)?.name ?? member}.` }
+    if (!it || itemId === null) return { ok: false, error: tx(`Ese premio ya no está en la Tienda de ${userById(member)?.name ?? member}.`, `That prize is no longer in ${userById(member)?.name ?? member}’s Store.`) }
     fields = { emoji: it.emoji, title: it.title, ...(it.desc ? { desc: it.desc } : {}) }
     from = { member, itemId }
   } else {
@@ -750,7 +752,7 @@ export function setFamilyPrize(viewer: UserInfo, b: Record<string, unknown>): { 
     if (!c.ok) return { ok: false, error: c.error }
     fields = c.value
   }
-  if (!familyTable(viewer.id).some(({ u }) => u.kind === 'child')) return { ok: false, error: 'Ninguno de tus chicos está jugando la liga de la familia (tienen Ligas apagadas).' }
+  if (!familyTable(viewer.id).some(({ u }) => u.kind === 'child')) return { ok: false, error: tx('Ninguno de tus chicos está jugando la liga de la familia (tienen Ligas apagadas).', 'None of your kids are playing the family league (Leagues are turned off for them).') }
   const st = familyState(viewer.id)
   st.prize = { ...fields, condition: condition as FamilyPrizeCondition, by: { id: viewer.id, name: viewer.name }, from, setAt: Date.now() }
   console.log(`[leagues] premio de la semana de la familia ${st.key}: ${st.prize.emoji} ${st.prize.title} · ${condition}${from ? ` (copiado del #${from.itemId} de ${from.member})` : ''} · lo pone ${viewer.id}`)
@@ -765,21 +767,21 @@ export function clearFamilyPrize(viewer: UserInfo): FamilyLeague {
 }
 
 /* ---------- rutas ---------- */
-const PRIZE_ADULT = { error: 'El premio de la semana lo pone un adulto de la familia.' }
-const CLOSE_ADULT = { error: 'El cierre de la semana de la familia lo hace un adulto.' }
+const PRIZE_ADULT = () => ({ error: tx('El premio de la semana lo pone un adulto de la familia.', 'The weekly prize is set by an adult in the family.') })
+const CLOSE_ADULT = () => ({ error: tx('El cierre de la semana de la familia lo hace un adulto.', 'The family week is closed by an adult.') })
 /** /api/leagues/family/* (U5-A). Ya pasó el 403 de Ligas apagadas del chico (primera línea de leaguesRoutes). Un adulto
  *  nunca recibe 403 acá; un chico, en todo lo que no es leer la tabla (D4: solo el adulto cierra y pone el premio). */
 async function familyRoutes(req: IncomingMessage, res: ServerResponse, path: string, me: UserInfo): Promise<void> {
   switch (path) {
     case '/api/leagues/family/close-week': {
       if (req.method !== 'POST') return send(res, 405, { error: 'Método no permitido: usá POST.' })
-      if (me.kind !== 'adult') return send(res, 403, CLOSE_ADULT)
+      if (me.kind !== 'adult') return send(res, 403, CLOSE_ADULT())
       const r = closeFamilyWeekNow(me)
       return r.ok ? send(res, 200, r.result) : send(res, r.status, { error: r.error })
     }
     case '/api/leagues/family/prize': {
       if (req.method !== 'POST') return send(res, 405, { error: 'Método no permitido: usá POST.' })
-      if (me.kind !== 'adult') return send(res, 403, PRIZE_ADULT)
+      if (me.kind !== 'adult') return send(res, 403, PRIZE_ADULT())
       let b: Record<string, unknown>
       try {
         const raw = await readJson<unknown>(req)
@@ -791,12 +793,12 @@ async function familyRoutes(req: IncomingMessage, res: ServerResponse, path: str
     }
     case '/api/leagues/family/prize/clear': {
       if (req.method !== 'POST') return send(res, 405, { error: 'Método no permitido: usá POST.' })
-      if (me.kind !== 'adult') return send(res, 403, PRIZE_ADULT)
+      if (me.kind !== 'adult') return send(res, 403, PRIZE_ADULT())
       return send(res, 200, clearFamilyPrize(me))
     }
     case '/api/leagues/family/prize-options': {
       if (req.method !== 'GET') return send(res, 405, { error: 'Método no permitido: usá GET.' })
-      if (me.kind !== 'adult') return send(res, 403, PRIZE_ADULT)
+      if (me.kind !== 'adult') return send(res, 403, PRIZE_ADULT())
       return send(res, 200, familyPrizeOptions(me))
     }
   }
@@ -808,7 +810,7 @@ export async function leaguesRoutes(req: IncomingMessage, res: ServerResponse, u
   // candado del CHICO —el de ESE chico, U3—: con un adulto como usuario activo no rige (docs/USUARIOS.md §4). Vale también
   // para la tabla de la familia y TODO /api/leagues/family/* (U5).
   const me = actingUser(req)
-  if (me.kind === 'child' && !featureOn('ligas', me.id)) return send(res, 403, { error: 'Las ligas están apagadas por tu familia' })
+  if (me.kind === 'child' && !featureOn('ligas', me.id)) return send(res, 403, { error: tx('Las ligas están apagadas por tu familia', 'Leagues are turned off by your family') })
   // U5-A: la liga de la familia completa (premio, opciones y cierre de la familia), ANTES del 405 genérico de abajo.
   if (url.pathname.startsWith('/api/leagues/family/')) return familyRoutes(req, res, url.pathname.replace(/\/+$/, ''), me)
   // Botón de demo "Simular cierre de semana" (Ligas): cierra TU liga; el efecto vive en RAM y una recarga vuelve al seed.
@@ -821,7 +823,7 @@ export async function leaguesRoutes(req: IncomingMessage, res: ServerResponse, u
   if (url.pathname === '/api/leagues/family') return send(res, 200, familyLeague(me))
   if (url.pathname === '/api/leagues/standing') {
     const L = leagueOf()
-    if (url.searchParams.get('id') !== L.id) return send(res, 404, { error: 'Esa liga no es tuya' })
+    if (url.searchParams.get('id') !== L.id) return send(res, 404, { error: tx('Esa liga no es tuya', 'That league isn’t yours') })
     const rows = standing()
     const pos = rows.findIndex(r => r.me) + 1
     return send(res, 200, { league: { id: L.id, name: L.name, color: L.color, total: TOTAL, pos }, rows })

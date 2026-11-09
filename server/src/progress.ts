@@ -45,6 +45,7 @@ import { bestRun, seedWeekDays } from './familyWeek'
 import { registerMedalFacts } from './medals'
 import { perUser } from './perUser'
 import { send } from './web'
+import { requestLang } from './requestContext'
 
 export interface EcTx { id: number; ts: number; kind: 'earn' | 'spend'; amount: number; label: string }
 /** La semana que cerró el último corte (U5). `prevXp` = la XP de la semana ANTERIOR a esa con la que se comparó (null = no
@@ -307,9 +308,28 @@ export function medalCountersOf(userId: string): { bestStreak: number; comebacks
 registerMedalFacts((uid) => { const s = stores.of(uid); return { bestStreak: s.bestStreak, comebacks: s.comebacks, pbWeeks: s.pbWeeks, fullWeeks: s.fullWeeks } }, 'progreso')
 
 /* ---------- rutas (del usuario activo: el contexto del pedido es el de su cabecera) ---------- */
+/* ---------- i18n (9-nov): el rótulo de cada movimiento en el idioma del pedido, AL SERVIR (lo guardado queda en castellano:
+   lo escriben learnResults.txLabel, market.spendEc y el seed de arriba). Títulos de rutas y premios del padre son data. ---------- */
+const TX_COURSE_EN: Record<string, string> = {
+  'El sistema solar': 'The solar system', Álgebra: 'Algebra', 'Inglés intermedio': 'Intermediate English', Anatomía: 'Anatomy',
+  Paleontología: 'Paleontology', 'Biología marina': 'Marine biology',
+}
+const TX_ROPA_EN: Record<string, string> = { Gorra: 'Cap', 'Vincha deportiva': 'Sports headband', Bandana: 'Bandana', 'Anteojos de sol': 'Sunglasses', Auriculares: 'Headphones', Corona: 'Crown' }
+function txLabelEn(l: string): string {
+  if (l === 'Aprender') return 'Learn'
+  let m = /^Práctica: (.+)$/.exec(l)
+  if (m) return `Practice: ${TX_COURSE_EN[m[1]] ?? m[1]}`
+  if ((m = /^Ruta: (.+)$/.exec(l))) return `Route: ${m[1]}`
+  if ((m = /^Ropa para tu avatar: (.+)$/.exec(l))) return `Avatar clothes: ${TX_ROPA_EN[m[1]] ?? m[1]}`
+  if ((m = /^Regalo para (.+?): (.+)$/.exec(l))) return `Gift for ${m[1]}: ${TX_ROPA_EN[m[2]] ?? m[2]}`
+  if ((m = /^Canje: (.+)$/.exec(l))) return `Redeemed: ${m[1]}`
+  return l
+}
+const txOut = (t: EcTx): EcTx => (requestLang() === 'en' ? { ...t, label: txLabelEn(t.label) } : t)
+
 export function progressRoutes(req: IncomingMessage, res: ServerResponse, url: URL) {
   if (req.method !== 'GET') return send(res, 405, { error: 'method' })
   if (url.pathname === '/api/progress/summary') return send(res, 200, summary())
-  if (url.pathname === '/api/progress/tx') return send(res, 200, { tx: stores.now().tx.slice(0, 50) })
+  if (url.pathname === '/api/progress/tx') return send(res, 200, { tx: stores.now().tx.slice(0, 50).map(txOut) })
   return send(res, 404, { error: 'not found' })
 }

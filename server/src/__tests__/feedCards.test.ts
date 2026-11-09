@@ -22,12 +22,14 @@ vi.mock('../parent', () => ({
 }));
 vi.mock('../filters', () => ({ matchBlockedWord: (text: string) => (BLOCK.word && text.includes(BLOCK.word) ? BLOCK.word : null) }));
 vi.mock('../learnResults', () => ({ LEARN_EC: 30, resultRows: () => ROWS.list }));
+/** i18n (9-nov): el catálogo vacío, como lo sirve learnRoutes en inglés (pedido 9-nov: en inglés sin rutas). */
+const NO_ROUTES = vi.hoisted(() => ({ on: false }));
 vi.mock('../learnRoutes', () => {
   const routes = [
     { id: 'ruta.a', title: 'Ruta A', emoji: '🪐', postas: [{ target: 'a1' }, { target: 'a2' }, { target: 'a3' }] },
     { id: 'ruta.b', title: 'Ruta B', emoji: '🌋', postas: [{ target: 'b1' }, { target: 'b2' }] },
   ];
-  return { servedRoutes: () => routes, catalogRoutes: () => routes };
+  return { servedRoutes: () => (NO_ROUTES.on ? [] : routes), catalogRoutes: () => routes };
 });
 vi.mock('../videos', () => ({
   searchVideosStrict: (q: string, lim = 24) => Array.from({ length: Math.min(lim, 6) }, (_, i) => ({
@@ -246,4 +248,44 @@ describe('cobertura de tipos con el seed REAL de friendsFake (spec §4.3-§4.4)'
       });
     }
   }
+});
+
+describe('i18n (pedido 9-nov): el feed en el idioma del pedido, traducido AL SERVIR', () => {
+  beforeEach(() => { vi.setSystemTime(new Date(2026, 9, 29, 16, 30)); resetFeed(); resetFriends(); NO_ROUTES.on = false; });
+  afterEach(() => { NO_ROUTES.on = false; });
+
+  it('con lang en: los mismos ítems que en castellano (salvo las rutas: en inglés no se sirven), con los textos en inglés', () => {
+    const es = runAsUser('ian', () => getFeed(), 'es');
+    const en = runAsUser('ian', () => getFeed(), 'en');
+    expect(en.items.map((it) => it.id)).toEqual(es.items.filter((it) => it.kind !== 'route').map((it) => it.id));
+    const streakEs = es.items.find((it) => it.kind === 'friend' && it.text === 'llegó a una racha de 12 días seguidos practicando');
+    expect(streakEs, 'la noticia sembrada de TomasApolo').toBeDefined();
+    const streakEn = en.items.find((it) => it.id === streakEs!.id) as Extract<Item, { kind: 'friend' }>;
+    expect(streakEn.text).toBe('hit a 12-day practice streak');
+    expect(streakEn.reason).toBe('TomasApolo is your friend');
+    expect((en.items.find((it) => it.kind === 'videos') as Extract<Item, { kind: 'videos' }> | undefined)?.title).toBe('Videos for you');
+    // el castellano no cambió por haber servido en inglés (lo guardado en RAM/pools sigue en castellano)
+    expect(runAsUser('ian', () => getFeed(), 'es')).toEqual(es);
+  });
+
+  it('lo que entró en vivo (ráfaga) se guarda en castellano y se sirve en el idioma de cada pedido', () => {
+    runAsUser('ian', () => simulateNpcs(), 'en');
+    const live = (lang: 'es' | 'en') => runAsUser('ian', () => getFeed(), lang).items.filter((it) => it.kind === 'friend' && it.id.startsWith('fx-')) as Extract<Item, { kind: 'friend' }>[];
+    const es = live('es'), en = live('en');
+    expect(es.length).toBeGreaterThan(0);
+    expect(es.every((it) => it.time === 'recién')).toBe(true);
+    expect(en.every((it) => it.time === 'just now')).toBe(true);
+    expect(en.map((it) => it.id)).toEqual(es.map((it) => it.id));
+    expect(en.some((it, i) => it.text !== es[i].text)).toBe(true);
+  });
+
+  it('con el catálogo de rutas vacío (en inglés no se sirven rutas) el feed responde igual: sin cards de ruta y con el hero de elegir', () => {
+    NO_ROUTES.on = true;
+    const en = runAsUser('ian', () => getFeed(), 'en');
+    expect(en.items.length).toBeGreaterThan(0);
+    expect(en.items.some((it) => it.kind === 'route')).toBe(false);
+    const hero = en.items[0] as Extract<Item, { kind: 'next' }>;
+    expect(hero.kind).toBe('next');
+    expect(hero.title).toBe('Choose what to learn today');
+  });
 });

@@ -46,6 +46,7 @@ import { afterdayRoutes } from './afterday'
 import { closedSectionFor, scheduleRoutes } from './schedule'
 import { learnRoutesRoutes } from './learnRoutes'
 import { learnResultsRoutes } from './learnResults'
+import { L as tx } from './lang'
 import { medalsRoutes } from './medals'
 import { createRoutes } from './create'
 import { mytubeRoutes } from './mytube'
@@ -188,7 +189,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     // Con Amigos apagado del CHICO activo la ráfaga no existe: 403 fail-closed antes de tocar nada, como /api/friends*
     // (mismo texto; tanda "Feed diverso", 28-oct — antes respondía 200 {added: 0}). Con un adulto no rige.
     if (url.pathname === '/api/feed/simulate-npcs' && req.method === 'POST') {
-      if (me.kind === 'child' && !featureOn('amigos', me.id)) return send(res, 403, { error: 'Los amigos están apagados por tu familia' })
+      if (me.kind === 'child' && !featureOn('amigos', me.id)) return send(res, 403, { error: tx('Los amigos están apagados por tu familia', 'Friends are turned off by your family') })
       return send(res, 200, simulateNpcs())
     }
 
@@ -240,7 +241,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
 
     if (req.method === 'POST' && url.pathname === '/api/chat') {
       // Gate del padre (fail-closed): si la familia apagó el chat DE ESTE CHICO, ni se lee el mensaje (el adulto pasa).
-      if (me.kind === 'child' && !featureOn('chat', me.id)) return send(res, 403, { error: 'El chat está apagado por tu familia' })
+      if (me.kind === 'child' && !featureOn('chat', me.id)) return send(res, 403, { error: tx('El chat está apagado por tu familia', 'Chat is turned off by your family') })
       const body = await readJson<{ history?: Msg[]; text?: string }>(req)
       const text = String(body.text ?? '').trim().slice(0, 2000) // límite de input de Smarty (RF-1.5)
       if (!text) return send(res, 400, { error: 'mensaje vacío' })
@@ -288,7 +289,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     if (url.pathname === '/api/video') {
       const v = await getVideo(url.searchParams.get('id') ?? '')
       // `followed`: el canal en el Mi espacio DEL USUARIO ACTIVO (U4: cada uno sigue lo suyo)
-      return v ? send(res, 200, { ...v, followed: space.isFollowed(v.channelId) }) : send(res, 404, { error: 'Video no aprobado' })
+      return v ? send(res, 200, { ...v, followed: space.isFollowed(v.channelId) }) : send(res, 404, { error: tx('Video no aprobado', 'Video not approved') })
     }
 
     if (url.pathname === '/api/health') return send(res, 200, { ok: true, policyVersion: config.policyVersion, sites: config.sites.length })
@@ -323,7 +324,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     // el chat cuando el contexto pasaba los 200 KB); un cambio que no se pudo guardar (Mi espacio, durable.ts) es un 500 CON
     // motivo y la RAM ya volvió a lo que hay en disco.
     if (e instanceof BodyError) return send(res, e.status, { error: e.message })
-    if (e instanceof DiskWriteError) { console.error('[error]', e.message); return send(res, 500, { error: 'No pude guardar el cambio. Probá de nuevo.' }) }
+    if (e instanceof DiskWriteError) { console.error('[error]', e.message); return send(res, 500, { error: tx('No pude guardar el cambio. Probá de nuevo.', 'I couldn’t save the change. Try again.') }) }
     console.error('[error]', e)
     send(res, 500, { error: 'internal' })
   }

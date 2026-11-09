@@ -70,6 +70,16 @@ function call(user: string, method: string, path: string, body?: unknown): Promi
     void runAsUser(user, () => RT.learnRoutesRoutes(req, res, new URL(path, 'http://localhost')));
   });
 }
+/** El mismo pedido con X-Smarty-Lang: en (i18n, pedido 9-nov). */
+function callEn(user: string, method: string, path: string): Promise<{ status: number; body: any }> {
+  const req = Readable.from([]) as unknown as IncomingMessage;
+  Object.assign(req, { method, url: path, headers: { 'x-innerith-user': user, 'x-smarty-lang': 'en' } });
+  return new Promise(resolve => {
+    let status = 0;
+    const res = { writeHead: (s: number) => { status = s; }, end: (raw: string) => resolve({ status, body: JSON.parse(raw) }) } as unknown as ServerResponse;
+    void runAsUser(user, () => RT.learnRoutesRoutes(req, res, new URL(path, 'http://localhost')), 'en');
+  });
+}
 const list = async (u: string) => (await call(u, 'GET', '/api/learn-routes')).body.routes as { id: string; cover?: string }[];
 
 describe('lo que se le sirve a un chico (hallazgo learnRoutes.ts:333 + faltante 3)', () => {
@@ -212,5 +222,31 @@ describe('FIX-MINT: un param que escala tiene que ser un NÚMERO (hallazgo ALTA 
     expect(RT.checkBounds(bundle('questionCount', 100) as never)).toBeNull();
     expect(RT.checkBounds(bundle('questionCount', 200) as never)).toBe('La ruta excede los límites del importador: r.texto.d: params.questionCount = 200: fuera de rango (0 a 100).');
     expect((await call('ian', 'POST', '/api/learn-routes/import', { bundle: bundle('maxValue', 1000) })).body).toMatchObject({ ok: true, routeId: 'r.texto' });
+  });
+});
+
+describe('i18n (pedido 9-nov: en inglés sin rutas)', () => {
+  it('con lang en: lista y definiciones vacías, /one 404 y servedRoutes vacío; en castellano, todo igual', async () => {
+    expect((await callEn('ian', 'GET', '/api/learn-routes')).body.routes).toEqual([]);
+    expect((await callEn('andres', 'GET', '/api/learn-routes/definitions')).body.definitions).toEqual([]);
+    const one = await callEn('ian', 'GET', '/api/learn-routes/one?id=r.seed');
+    expect(one.status).toBe(404);
+    expect(one.body.error).toBe('I couldn’t find that route.');
+    expect(runAsUser('ian', () => RT.servedRoutes(), 'en')).toEqual([]);
+    expect((await list('ian')).length).toBeGreaterThan(0);
+    expect((await call('ian', 'GET', '/api/learn-routes/one?id=r.seed')).status).toBe(200);
+  });
+});
+
+describe('i18n (9-nov): los presets de Familia, solo la prosa', () => {
+  it('en inglés nombre y descripción traducidos, los temas del spec INTACTOS; en castellano, igual que siempre', async () => {
+    const P = await import('../parent');
+    const cc = P.PRESETS.find(p => p.id === 'clasico-conservador')!;
+    const en = runAsUser('andres', () => P.presetView(cc), 'en');
+    expect(en.name).toBe('Conservative classic');
+    expect(en.spec.topics).toEqual({ white: ['Biblia', 'historia'], black: ['ideología de género', 'política partidaria', 'activismo climático', 'Halloween', 'brujería'] });
+    const es = P.presetView(cc);
+    expect(es.name).toBe('Clásico conservador');
+    expect(es.spec).toEqual(en.spec);
   });
 });

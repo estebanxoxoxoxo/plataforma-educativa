@@ -71,6 +71,8 @@ import { quarantine, tryWriteFileAtomic } from './durable'
 import { familyTzNow } from './schedule'
 import { DEFAULT_USER_ID, actingUser, isAdultReq, userById, type UserInfo } from './users'
 import { readJson, send } from './web'
+// i18n (9-nov): los rechazos que la UI muestra tal cual, en el idioma del pedido. Catálogo, materias y bios: data (no).
+import { L as tx } from './lang'
 import { wallClock } from '../../src/shared/lib/zonedClock'
 
 /* ---------- formas (espejo de src/api/types.ts: los tipos no se importan de src/; el reloj de pared sí, zonedClock.ts) ---------- */
@@ -138,6 +140,12 @@ const slotEvery = (s: TeacherSlot) => `los ${DAYS_PL[s.weekday]} a las ${hh(s.ho
 const listEs = (xs: string[], last = 'y') => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} ${last} ${xs[xs.length - 1]}`)
 const slotsEvery = (slots: readonly TeacherSlot[]) => listEs(slots.map(slotEvery))
 const planLabel = (n: number) => `${n} ${n === 1 ? 'clase' : 'clases'} por semana`
+/* Los mismos rótulos en inglés (solo para los rechazos: los logs siguen en castellano). */
+const DAYS_PL_EN = ['Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays', 'Sundays']
+const slotEveryEn = (s: TeacherSlot) => `${DAYS_PL_EN[s.weekday] ?? ''} at ${hh(s.hour)}`
+const listEn = (xs: string[], last = 'and') => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} ${last} ${xs[xs.length - 1]}`)
+const slotsEveryEn = (slots: readonly TeacherSlot[]) => listEn(slots.map(slotEveryEn))
+const planLabelEn = (n: number) => `${n} ${n === 1 ? 'class' : 'classes'} a week`
 const obj = (v: unknown) => (v && typeof v === 'object' && !Array.isArray(v) ? v : {}) as Record<string, unknown>
 const byTime = (a: TeacherSlot, b: TeacherSlot) => a.weekday - b.weekday || a.hour - b.hour
 
@@ -364,6 +372,14 @@ function mentorsView(adult: UserInfo): MentorsResponse {
  *  estable por mentor + inicio (minutos desde epoch × 100 + posición en el catálogo), así una relectura no cambia las keys
  *  de la UI; dos días del mismo contrato no chocan (empiezan en momentos distintos) y dos mentores tampoco (un
  *  beneficiario nunca tiene dos clases a la misma hora). */
+/** i18n (9-nov): las materias del catálogo en inglés, SOLO para el título de la clase (que se arma acá, al servir: el
+ *  calendario se calcula en cada pedido, nada en inglés queda guardado). La materia que no está en la tabla queda tal cual. */
+const SUBJECT_EN: Record<string, string> = {
+  Matemática: 'Math', Ciencias: 'Science', Historia: 'History', Inglés: 'English', Música: 'Music', Programación: 'Programming',
+  'Lectura y escritura': 'Reading & writing', Ajedrez: 'Chess',
+}
+/** «Clase de Ciencias con Sam» / "Science class with Sam" según el idioma del pedido. */
+export const classTitle = (subject: string, name: string) => tx(`Clase de ${subject} con ${name}`, `${SUBJECT_EN[subject] ?? subject} class with ${name}`)
 function calendar(userId: string, now = Date.now()): CalendarEvent[] {
   const tz = familyTzNow() // la zona VIGENTE de la familia: "miércoles 17:00" es su reloj de pared
   const out: CalendarEvent[] = []
@@ -375,7 +391,7 @@ function calendar(userId: string, now = Date.now()): CalendarEvent[] {
     for (const s of c.slots) {
       for (const start of classesOf(s, now, tz)) {
         out.push({
-          id: Math.floor(start / 60_000) * 100 + i + 1, teacherId: t.id, title: `Clase de ${t.subject} con ${firstName(t.name)}`,
+          id: Math.floor(start / 60_000) * 100 + i + 1, teacherId: t.id, title: classTitle(t.subject, firstName(t.name)),
           subject: t.subject, emoji: t.emoji, color: t.color, start, durationMin: DURATION_MIN,
         })
       }
@@ -395,26 +411,28 @@ function findOwn(adult: UserInfo, id: number): Contract | undefined {
 /** El pago (instantáneo en el demo): el contrato nace `pending`, sin días. */
 function createContract(adult: UserInfo, teacherId: string, rawPlan: unknown, rawBeneficiary: unknown): Out {
   const t = teacherDef(teacherId)
-  if (!t) return fail('Ese mentor no está en el catálogo.')
+  if (!t) return fail(tx('Ese mentor no está en el catálogo.', 'That mentor isn’t in the catalog.'))
   const plan = parsePlan(rawPlan)
-  if (!plan) return fail('Elegí cuántas clases por semana: 1, 2 o 3.')
+  if (!plan) return fail(tx('Elegí cuántas clases por semana: 1, 2 o 3.', 'Choose how many classes a week: 1, 2 or 3.'))
   const fam = familyOf(adult)
   const beneficiary = typeof rawBeneficiary === 'string' ? rawBeneficiary.trim() : ''
   if (!fam.some(u => u.id === beneficiary)) {
-    return fail(`Las clases pueden ser ${listEs(['para vos', ...fam.slice(1).map(u => `para ${u.name}`)], 'o')}.`)
+    return fail(tx(`Las clases pueden ser ${listEs(['para vos', ...fam.slice(1).map(u => `para ${u.name}`)], 'o')}.`, `Classes can be ${listEn(['for you', ...fam.slice(1).map(u => `for ${u.name}`)], 'or')}.`))
   }
   const self = beneficiary === adult.id
   const dup = store.contracts.find(c => c.teacherId === t.id && c.beneficiary === beneficiary)
   if (dup) {
     return fail(dup.status === 'active'
-      ? `${t.name} ya ${self ? 'te da clases' : `le da clases a ${nameOf(beneficiary)}`} ${slotsEvery(dup.slots)}. Para cambiar los días, cancelá esas clases en Familia → Mentorías y volvé a contratar.`
-      : `Ya contrataste a ${t.name} para ${self ? 'vos' : nameOf(beneficiary)}: falta elegir los días. Elegilos desde su tarjeta o desde Familia → Mentorías.`)
+      ? tx(`${t.name} ya ${self ? 'te da clases' : `le da clases a ${nameOf(beneficiary)}`} ${slotsEvery(dup.slots)}. Para cambiar los días, cancelá esas clases en Familia → Mentorías y volvé a contratar.`,
+        `${t.name} already teaches ${self ? 'you' : nameOf(beneficiary)} on ${slotsEveryEn(dup.slots)}. To change the days, cancel those classes in Family → Mentoring and hire again.`)
+      : tx(`Ya contrataste a ${t.name} para ${self ? 'vos' : nameOf(beneficiary)}: falta elegir los días. Elegilos desde su tarjeta o desde Familia → Mentorías.`,
+        `You already hired ${t.name} for ${self ? 'yourself' : nameOf(beneficiary)}: the days still need to be picked. Pick them from their card or from Family → Mentoring.`))
   }
   const c: Contract = { id: nextId(), teacherId: t.id, beneficiary, daysPerWeek: plan, slots: [], status: 'pending' }
   store.contracts.push(c)
   if (!save()) {
     store.contracts.pop()
-    return { status: 500, body: { ok: false, error: 'No pude guardar la contratación. Probá de nuevo.' } }
+    return { status: 500, body: { ok: false, error: tx('No pude guardar la contratación. Probá de nuevo.', 'I couldn’t save the booking. Try again.') } }
   }
   console.log(`[mentors] contrato #${c.id}: ${t.name} (${t.subject}) para ${beneficiary} · ${planLabel(plan)} → pagado, falta elegir los días`)
   return { status: 200, body: { ok: true, contract: contractView(c) } }
@@ -423,23 +441,24 @@ function createContract(adult: UserInfo, teacherId: string, rawPlan: unknown, ra
 /** El post-compra: los días del contrato pendiente (tantos como el plan, distintos, en punto y libres para SU beneficiario). */
 function scheduleContract(adult: UserInfo, contractId: number, rawSlots: unknown): Out {
   const c = findOwn(adult, contractId)
-  if (!c) return fail('Esa contratación ya no existe: puede que se haya cancelado desde otra pestaña.')
+  if (!c) return fail(tx('Esa contratación ya no existe: puede que se haya cancelado desde otra pestaña.', 'That booking no longer exists: it may have been canceled from another tab.'))
   if (c.status === 'active') {
-    return fail(`Esas clases ya tienen sus días: ${slotsEvery(c.slots)}. Para cambiarlos, cancelá esas clases en Familia → Mentorías y volvé a contratar.`)
+    return fail(tx(`Esas clases ya tienen sus días: ${slotsEvery(c.slots)}. Para cambiarlos, cancelá esas clases en Familia → Mentorías y volvé a contratar.`, `Those classes already have their days: ${slotsEveryEn(c.slots)}. To change them, cancel those classes in Family → Mentoring and hire again.`))
   }
   const n = c.daysPerWeek
   const raws = Array.isArray(rawSlots) ? rawSlots : []
-  if (raws.length !== n) return fail(`El plan es de ${planLabel(n)}: elegí ${n === 1 ? 'un día' : `${n} días`}, cada uno con su hora.`)
+  if (raws.length !== n) return fail(tx(`El plan es de ${planLabel(n)}: elegí ${n === 1 ? 'un día' : `${n} días`}, cada uno con su hora.`, `The plan is ${planLabelEn(n)}: pick ${n === 1 ? 'one day' : `${n} days`}, each with its time.`))
   const parsed = raws.map(parseSlot)
   const slots = parsed.filter((s): s is TeacherSlot => !!s)
-  if (slots.length !== n) return fail(`Elegí días de lunes a domingo y horas en punto entre las ${hh(HOUR_MIN)} y las ${hh(HOUR_MAX)}.`)
-  if (new Set(slots.map(s => s.weekday)).size !== n) return fail('Cada clase va en un día distinto de la semana.')
+  if (slots.length !== n) return fail(tx(`Elegí días de lunes a domingo y horas en punto entre las ${hh(HOUR_MIN)} y las ${hh(HOUR_MAX)}.`, `Pick days from Monday to Sunday and on-the-hour times between ${hh(HOUR_MIN)} and ${hh(HOUR_MAX)}.`))
+  if (new Set(slots.map(s => s.weekday)).size !== n) return fail(tx('Cada clase va en un día distinto de la semana.', 'Each class goes on a different day of the week.'))
   const taken = takenOf(c.beneficiary)
   for (const s of slots) {
     const clash = taken.find(x => sameSlot(x, s))
     if (clash) {
       const who = c.beneficiary === adult.id ? 'tenés' : `${nameOf(c.beneficiary)} tiene`
-      return fail(`Ese horario ya está ocupado: ${slotEvery(s)} ${who} ${clash.subject} con ${clash.mentorName}. Elegí otro.`)
+      const whoEn = c.beneficiary === adult.id ? 'you have' : `${nameOf(c.beneficiary)} has`
+      return fail(tx(`Ese horario ya está ocupado: ${slotEvery(s)} ${who} ${clash.subject} con ${clash.mentorName}. Elegí otro.`, `That time is already taken: on ${slotEveryEn(s)} ${whoEn} ${clash.subject} with ${clash.mentorName}. Pick another one.`))
     }
   }
   const now = Date.now()
@@ -449,7 +468,7 @@ function scheduleContract(adult: UserInfo, contractId: number, rawSlots: unknown
   if (!save()) {
     c.slots = []
     c.status = 'pending'
-    return { status: 500, body: { ok: false, error: 'No pude guardar los días. Probá de nuevo.' } }
+    return { status: 500, body: { ok: false, error: tx('No pude guardar los días. Probá de nuevo.', 'I couldn’t save the days. Try again.') } }
   }
   const added = CLASSES_PER_SLOT * c.slots.length
   const first = Math.min(...c.slots.map(s => s.since))
@@ -460,12 +479,12 @@ function scheduleContract(adult: UserInfo, contractId: number, rawSlots: unknown
 /** Cancelar: sale el contrato (pendiente o con días) y, con él, todas sus clases. */
 function cancelContract(adult: UserInfo, contractId: number): Out {
   const c = findOwn(adult, contractId)
-  if (!c) return fail('Esa contratación ya no estaba: puede que se haya cancelado desde otra pestaña.')
+  if (!c) return fail(tx('Esa contratación ya no estaba: puede que se haya cancelado desde otra pestaña.', 'That booking was already gone: it may have been canceled from another tab.'))
   const i = store.contracts.indexOf(c)
   store.contracts.splice(i, 1)
   if (!save()) {
     store.contracts.splice(i, 0, c)
-    return { status: 500, body: { ok: false, error: 'No pude guardar el cambio. Probá de nuevo.' } }
+    return { status: 500, body: { ok: false, error: tx('No pude guardar el cambio. Probá de nuevo.', 'I couldn’t save the change. Try again.') } }
   }
   console.log(`[mentors] contrato #${c.id} cancelado: ${teacherDef(c.teacherId)?.name ?? c.teacherId} para ${c.beneficiary}${c.slots.length ? ` (${slotsEvery(c.slots)}): sus clases salen del calendario` : ' (estaba pendiente de días)'}`)
   return { status: 200, body: { ok: true } }
@@ -483,7 +502,7 @@ export async function teachersRoutes(req: IncomingMessage, res: ServerResponse, 
   }
   if (path !== '/api/mentors' && !path.startsWith('/api/mentors/')) return send(res, 404, { error: 'not found' })
   // Mentores: SOLO con un adulto como usuario activo (la sesión implícita de Familia). Un chico no ve precios ni contrata.
-  if (!isAdultReq(req)) return send(res, 401, { error: 'Solo para adultos.' })
+  if (!isAdultReq(req)) return send(res, 401, { error: tx('Solo para adultos.', 'Adults only.') })
   const adult = actingUser(req)
   if (path === '/api/mentors') {
     if (method !== 'GET') return send(res, 405, { error: 'Método no permitido: usá GET.' })
