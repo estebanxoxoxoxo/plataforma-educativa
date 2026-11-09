@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { IcCoin } from '../../../shared/components/icons';
 import { fmtEc } from '../lib/format';
 import { HeartInline } from './Heart';
+import { L } from '../../../shared/lib/lang';
 
 const reduceMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -45,29 +46,29 @@ export function WalletHero({ ec, wishCount, pending, onPractice, onWishes, onRed
   return (
     <section className="st-hero" aria-labelledby="st-hero-k">
       <div className="st-hero-main">
-        <span className="st-kicker" id="st-hero-k">Tu billetera</span>
+        <span className="st-kicker" id="st-hero-k">{L('Tu billetera', 'Your wallet')}</span>
         <p className="st-bal">
           <IcCoin className="st-bal-bolt" aria-hidden="true" />
           <b className="st-bal-num" data-ec={ec}>{fmtEc(shown)}</b>
         </p>
         <span className="st-unit">Energy Coins</span>
         <p className="st-earn">
-          Los ganás practicando.{' '}
-          <a className="st-link" href="/aprender" onClick={(e) => { e.preventDefault(); onPractice(); }}>Ir a Aprender →</a>
+          {L('Los ganás practicando.', 'You earn them by practicing.')}{' '}
+          <a className="st-link" href="/aprender" onClick={(e) => { e.preventDefault(); onPractice(); }}>{L('Ir a Aprender →', 'Go to Learn →')}</a>
         </p>
       </div>
 
       <div className="st-hero-side">
         <a className="st-pill st-pill--wish" href="/tienda?vista=deseos" data-count={wishCount}
           onClick={(e) => { e.preventDefault(); onWishes(); }}>
-          <HeartInline /> Tu lista de deseos ({wishCount}) →
+          <HeartInline /> {L('Tu lista de deseos', 'Your wishlist')} ({wishCount}) →
         </a>
         <a className={`st-pill${pending > 0 ? ' st-pill--pend' : ''}`} href="/tienda?vista=canjes"
           onClick={(e) => { e.preventDefault(); onRedemptions(); }}>
-          📦 Tus canjes{pending > 0 && ` (${pending === 1 ? '1 pendiente' : `${pending} pendientes`})`} →
+          📦 {L('Tus canjes', 'Your redemptions')}{pending > 0 && ` (${pending === 1 ? L('1 pendiente', '1 pending') : L(`${pending} pendientes`, `${pending} pending`)})`} →
         </a>
         <a className="st-pill" href="/tienda?vista=movimientos" onClick={(e) => { e.preventDefault(); onMoves(); }}>
-          🧾 Tus movimientos →
+          🧾 {L('Tus movimientos', 'Your activity')} →
         </a>
       </div>
     </section>

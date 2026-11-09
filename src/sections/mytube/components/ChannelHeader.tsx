@@ -1,6 +1,7 @@
 import { IcCheck } from '../../../shared/components/icons';
 import type { MtChannel } from '../../../api/types';
 import { IcMtPlus } from './MtIcons';
+import { L } from '../../../shared/lib/lang';
 
 /** Cabecera de la vista de canal (ChannelView del POC): avatar, título (o «Canal»), @handle, Seguir/Siguiendo y la
  *  descripción curada en dos líneas que se expande al tocarla. Sin suscriptores (el POC no los muestra).
@@ -16,11 +17,11 @@ export function ChannelHeader({ channel, followed, descOpen, onFollow, onToggleD
           ? <img className="mt-chav big" src={channel.thumb} alt="" referrerPolicy="no-referrer" />
           : <span className="mt-chav big" />}
         <div className="mt-chmeta">
-          <h2>{channel?.title ?? 'Canal'}</h2>
+          <h2>{channel?.title ?? L('Canal', 'Channel')}</h2>
           {channel?.handle && <p className="mt-handle">{channel.handle}</p>}
           {onFollow && (
             <button type="button" className={`mt-follow${followed ? ' on' : ''}`} aria-pressed={followed} onClick={onFollow}>
-              {followed ? <><IcCheck />Siguiendo</> : <><IcMtPlus />Seguir</>}
+              {followed ? <><IcCheck />{L('Siguiendo', 'Following')}</> : <><IcMtPlus />{L('Seguir', 'Follow')}</>}
             </button>
           )}
         </div>

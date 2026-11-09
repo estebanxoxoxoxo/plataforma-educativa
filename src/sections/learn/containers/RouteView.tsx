@@ -11,6 +11,7 @@ import { MODULE_COLORS } from '../lib/moduleColors';
 import { ActivityOverlay } from './ActivityOverlay';
 import { ReadingView } from './ReadingView';
 import { VideoReadingView } from './VideoReadingView';
+import { L } from '../../../shared/lib/lang';
 
 /* Vista de una Ruta estilo Duolingo: un camino de postas (zig-zag). El estado de cada
    posta (lograda/disponible/bloqueada + estrellas) se DERIVA de la maestría del objetivo
@@ -74,7 +75,7 @@ export function RouteView({ route, onBack }: { route: LearnRoute; onBack: () => 
   return (
     <section className="view ln-ruta" id="v-ruta">
       <header className="ln-rhead">
-        <button type="button" onClick={onBack} aria-label="Volver a rutas" className="ln-back">
+        <button type="button" onClick={onBack} aria-label={L('Volver a rutas', 'Back to routes')} className="ln-back">
           <IcArrowLeft strokeWidth={1.85} />
         </button>
         <span className="ln-remoji" aria-hidden="true">{route.emoji}</span>
@@ -133,7 +134,7 @@ export function RouteView({ route, onBack }: { route: LearnRoute; onBack: () => 
           <VideoReadingView
             videoId={content.source.videoId}
             title={content.source.title}
-            ctaLabel="✕ Cerrar"
+            ctaLabel={L('✕ Cerrar', '✕ Close')}
             onCta={() => setContent(null)}
             onClose={() => setContent(null)}
           />
@@ -142,7 +143,7 @@ export function RouteView({ route, onBack }: { route: LearnRoute; onBack: () => 
             url={content.source.url}
             title={content.source.title}
             trusted
-            ctaLabel="✕ Cerrar"
+            ctaLabel={L('✕ Cerrar', '✕ Close')}
             onCta={() => setContent(null)}
             onClose={() => setContent(null)}
           />
@@ -154,10 +155,10 @@ export function RouteView({ route, onBack }: { route: LearnRoute; onBack: () => 
       {pending && createPortal(
         <div className="shov ln-pend" onClick={() => setPending(null)}>
           <div className="ln-pend-card" onClick={(e) => e.stopPropagation()}>
-            <button type="button" onClick={() => setPending(null)} aria-label="Cerrar" className="ln-ib ln-pend-x"><IcX /></button>
+            <button type="button" onClick={() => setPending(null)} aria-label={L('Cerrar', 'Close')} className="ln-ib ln-pend-x"><IcX /></button>
             <div className="ln-pend-emoji" aria-hidden="true">{route.emoji}</div>
             <h2 className="ln-pend-t">{pending.title}</h2>
-            <p className="ln-pend-p">Acá se va a abrir la actividad. <br /><span>(próximo paso: enchufar el motor de actividades)</span></p>
+            <p className="ln-pend-p">{L('Acá se va a abrir la actividad.', 'The activity will open here.')} <br /><span>{L('(próximo paso: enchufar el motor de actividades)', '(next step: plug in the activity engine)')}</span></p>
           </div>
         </div>,
         document.body,

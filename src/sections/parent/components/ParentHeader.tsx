@@ -4,6 +4,7 @@ import type { FamilyMember } from '../../../api/types';
 import { listEs } from '../lib/format';
 import { famTo } from '../lib/member';
 import { MemberPicker } from './MemberPicker';
+import { L } from '../../../shared/lib/lang';
 
 /** Teléfono (tanda T5): de qué lado de la fila de solapas queda más para deslizar. Lo marca en `data-fade` y parent.css
  *  esfuma ESE borde (con 11 solapas en una fila, 7 quedan afuera: que se note que hay más). Sin desborde → vacío. */
@@ -32,27 +33,28 @@ function revealInline(el: HTMLElement, tab: HTMLElement) {
 /** Secciones de Familia (la ex Zona de padres; rutas, no solapas de estado: cada una tiene su URL). Primero lo que se
  *  configura, después lo que se mira. Cada link lleva el integrante elegido (`?m=`): la elección sobrevive al cambiar de
  *  solapa. NavLink compara solo el pathname, así que la solapa activa se marca igual. */
-const TABS = [
-  { to: '/familia', label: 'Funcionalidades', end: true },
-  { to: '/familia/temas', label: 'Temas y palabras', end: false },
+// i18n: función (no constante de módulo) para que L() resuelva con el idioma actual.
+const TABS = () => [
+  { to: '/familia', label: L('Funcionalidades', 'Features'), end: true },
+  { to: '/familia/temas', label: L('Temas y palabras', 'Topics and words'), end: false },
   // Protecciones justo después de Temas y palabras (pedido de Esteban, 29-oct; antes iba última): lo que protege, junto.
-  { to: '/familia/protecciones', label: 'Protecciones', end: false },
+  { to: '/familia/protecciones', label: L('Protecciones', 'Protections'), end: false },
   // MyTube (F2, 28-oct; ex «YouTube», /familia/youtube redirige): la MISMA grilla de canales que ve el chico + el agregar por
   // URL (porte W5: videos, playlists y canales de YouTube que se suman al catálogo). De toda la familia.
   // «Mis videos» (30-oct, pedido de Esteban: MyTube pasa a llamarse así en todo lo visible; la ruta queda).
-  { to: '/familia/mytube', label: 'Mis videos', end: false },
+  { to: '/familia/mytube', label: L('Mis videos', 'My videos'), end: false },
   // Ciclo del día (F2, docs/USUARIOS.md §11): rangos horarios y qué secciones hay en cada uno, por integrante.
   // Orden MyTube · Ciclo · After Day · Límites: pedido de Esteban, 29-oct.
-  { to: '/familia/ciclo', label: 'Ciclo del día', end: false },
+  { to: '/familia/ciclo', label: L('Ciclo del día', 'Daily cycle'), end: false },
   // After Day con solapa propia (F2; antes vivía al pie de YouTube): la misma grilla del chico + agregar/quitar.
   { to: '/familia/afterday', label: 'After Day', end: false },
   // Límites = topes de volumen + la zona horaria de la familia.
-  { to: '/familia/limites', label: 'Límites', end: false },
-  { to: '/familia/avisos', label: 'Avisos', end: false },
-  { to: '/familia/premios', label: 'Premios', end: false },
+  { to: '/familia/limites', label: L('Límites', 'Limits'), end: false },
+  { to: '/familia/avisos', label: L('Avisos', 'Alerts'), end: false },
+  { to: '/familia/premios', label: L('Premios', 'Rewards'), end: false },
   // Mentorías (tanda U2): lo contratado en Buscar → Mentores, para el adulto y sus dependientes (antes, "Profesores").
-  { to: '/familia/mentorias', label: 'Mentorías', end: false },
-  { to: '/familia/actividad', label: 'Actividad', end: false },
+  { to: '/familia/mentorias', label: L('Mentorías', 'Mentorships'), end: false },
+  { to: '/familia/actividad', label: L('Actividad', 'Activity'), end: false },
 ];
 
 /** Cabecera de Familia (U3 · M2): a quién se configura —"Cuenta de {integrante}", o "Toda la familia" en las solapas que son
@@ -74,7 +76,7 @@ export function ParentHeader({ member, members, note, onPick, unseenBy, pending,
   crisis: boolean;
 }) {
   const family = note !== null;
-  const who = members.filter((m) => (unseenBy[m.id] ?? 0) > 0).map((m) => `${unseenBy[m.id]} sobre ${m.name}`);
+  const who = members.filter((m) => (unseenBy[m.id] ?? 0) > 0).map((m) => L(`${unseenBy[m.id]} sobre ${m.name}`, `${unseenBy[m.id]} about ${m.name}`));
   // Teléfono (T5, docs/RESPONSIVE.md §4.6): las 11 solapas van en UNA fila deslizable (parent.css). La activa se trae al
   // centro de la fila al entrar, al cambiar de solapa y cuando llegan los contadores (corren las solapas que siguen), y los
   // bordes se esfuman según quede más de cada lado. Donde las solapas bajan de línea (tablet y escritorio) la fila no
@@ -129,22 +131,22 @@ export function ParentHeader({ member, members, note, onPick, unseenBy, pending,
     <header className="pz-head">
       <div className="pz-head-top">
         <div className="pz-head-id">
-          <p className="pz-kicker">Familia</p>
-          <h2 className="pz-title">{family ? 'Toda la familia' : `Cuenta de ${member.name}`}</h2>
+          <p className="pz-kicker">{L('Familia', 'Family')}</p>
+          <h2 className="pz-title">{family ? L('Toda la familia', 'Whole family') : L(`Cuenta de ${member.name}`, `${member.name}’s account`)}</h2>
           {family && <p className="pz-mem-note">{note}</p>}
         </div>
         {members.length > 0 && <MemberPicker members={members} selected={member.id} unseenBy={unseenBy} disabled={family} onPick={onPick} />}
       </div>
-      <nav className="pz-tabs" aria-label="Secciones de Familia" ref={nav}>
-        {TABS.map((t) => (
+      <nav className="pz-tabs" aria-label={L('Secciones de Familia', 'Family sections')} ref={nav}>
+        {TABS().map((t) => (
           <NavLink key={t.to} to={famTo(t.to, member.id)} end={t.end} className={({ isActive }) => `pz-tab${isActive ? ' is-on' : ''}`}>
             {t.label}
             {t.to === '/familia/premios' && pending > 0 && (
-              <span className="pz-count" aria-label={`, ${pending} ${pending === 1 ? 'canje pendiente' : 'canjes pendientes'} de ${member.name}`}>{pending}</span>
+              <span className="pz-count" aria-label={L(`, ${pending} ${pending === 1 ? 'canje pendiente' : 'canjes pendientes'} de ${member.name}`, `, ${pending} pending ${pending === 1 ? 'redemption' : 'redemptions'} from ${member.name}`)}>{pending}</span>
             )}
             {t.to === '/familia/avisos' && alerts > 0 && (
               <span className={`pz-count${crisis ? ' is-alert' : ''}`}
-                aria-label={`, ${alerts} ${alerts === 1 ? 'aviso sin ver' : 'avisos sin ver'}${who.length ? ` (${listEs(who)})` : ''}${crisis ? ', hay uno de crisis' : ''}`}>{alerts}</span>
+                aria-label={L(`, ${alerts} ${alerts === 1 ? 'aviso sin ver' : 'avisos sin ver'}${who.length ? ` (${listEs(who)})` : ''}${crisis ? ', hay uno de crisis' : ''}`, `, ${alerts} unseen ${alerts === 1 ? 'alert' : 'alerts'}${who.length ? ` (${listEs(who)})` : ''}${crisis ? ', one is a crisis' : ''}`)}>{alerts}</span>
             )}
           </NavLink>
         ))}

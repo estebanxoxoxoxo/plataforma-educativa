@@ -16,6 +16,7 @@ import {
   type RouteEditorial,
 } from '../lib/routeDraft';
 import { parseYtUrl } from '../lib/youtube';
+import { L } from '../../../shared/lib/lang';
 
 /* Crear (/crear) — el creador de rutas del porte Smarty: port EXACTO de smarty-poc app/src/zones/child/RouteCreator.tsx
    (vista SÁBANA, MÓDULO-CÉNTRICA). La ruta se compone como una SECUENCIA DE MÓDULOS: cada módulo = 1 contenido (fuente) →
@@ -123,18 +124,18 @@ export function CreatePage() {
     state.modules.some((m) => m.source.url.trim() || m.source.title.trim() || m.comprehension || m.profundizacion.length > 0);
 
   async function newRoute() {
-    if (hasDraftContent() && !isEditing && !(await askConfirm('Vas a descartar lo que tenés sin guardar. ¿Empezar una ruta nueva?'))) return;
+    if (hasDraftContent() && !isEditing && !(await askConfirm(L('Vas a descartar lo que tenés sin guardar. ¿Empezar una ruta nueva?', "You'll discard what you haven't saved. Start a new route?")))) return;
     setState(blankCreatorState());
     setMsg(null);
   }
   async function loadRoute(routeId: string) {
     if (routeId === state.routeId) return;
-    if (hasDraftContent() && !isEditing && !(await askConfirm('Vas a descartar lo que tenés sin guardar. ¿Cargar la otra ruta?'))) return;
+    if (hasDraftContent() && !isEditing && !(await askConfirm(L('Vas a descartar lo que tenés sin guardar. ¿Cargar la otra ruta?', "You'll discard what you haven't saved. Load the other route?")))) return;
     let row: Awaited<ReturnType<typeof api.learnRoute>>;
     try {
       row = await api.learnRoute(routeId);
     } catch (e) {
-      setMsg({ ok: false, text: e instanceof ApiError && e.status === 404 ? 'No encontré esa ruta.' : `No pude abrir la ruta: ${(e as Error).message}` });
+      setMsg({ ok: false, text: e instanceof ApiError && e.status === 404 ? L('No encontré esa ruta.', "I couldn't find that route.") : L(`No pude abrir la ruta: ${(e as Error).message}`, `I couldn't open the route: ${(e as Error).message}`) });
       return;
     }
     // editorial viaja opaco por el contrato; acá es la forma del creador (RouteEditorial)
@@ -144,16 +145,16 @@ export function CreatePage() {
   async function deleteRoute() {
     if (!isEditing) return;
     const routeId = state.routeId;
-    const name = editable.find((r) => r.id === routeId)?.title || 'esta ruta';
-    if (!(await askConfirm(`Vas a eliminar "${name}" y sus actividades. No se puede deshacer. ¿Borrar?`, { label: 'Borrar', danger: true }))) return;
+    const name = editable.find((r) => r.id === routeId)?.title || L('esta ruta', 'this route');
+    if (!(await askConfirm(L(`Vas a eliminar "${name}" y sus actividades. No se puede deshacer. ¿Borrar?`, `You're about to delete "${name}" and its activities. This can't be undone. Delete?`), { label: L('Borrar', 'Delete'), danger: true }))) return;
     try {
       await api.deleteLearnRoute(routeId); // borra ruta + definiciones (los resultados quedan)
     } catch (e) {
-      setMsg({ ok: false, text: `No pude borrar la ruta: ${(e as Error).message}` });
+      setMsg({ ok: false, text: L(`No pude borrar la ruta: ${(e as Error).message}`, `I couldn't delete the route: ${(e as Error).message}`) });
       return;
     }
     setState(blankCreatorState());
-    setMsg({ ok: true, text: `Ruta "${name}" eliminada.` });
+    setMsg({ ok: true, text: L(`Ruta "${name}" eliminada.`, `Route "${name}" deleted.`) });
     void refreshCatalog();
   }
 
@@ -225,14 +226,14 @@ export function CreatePage() {
     if (!src) {
       patchModule(mid, {
         error: ref?.type === 'playlist'
-          ? 'Una playlist entera no sirve como fuente: pegá el link de UN video.'
-          : isVideo ? 'Falta la URL del video.' : 'Agregá el contenido (URL o título) antes de generar.',
+          ? L('Una playlist entera no sirve como fuente: pegá el link de UN video.', "A whole playlist can't be a source: paste the link to ONE video.")
+          : isVideo ? L('Falta la URL del video.', 'The video URL is missing.') : L('Agregá el contenido (URL o título) antes de generar.', 'Add the content (URL or title) before generating.'),
       });
       return;
     }
     if (m.comprehension || m.profundizacion.length) {
-      const extra = isEditing ? ' y puede reiniciar el progreso de este módulo (cambian los conceptos)' : '';
-      if (!(await askConfirm(`Regenerar reemplaza la comprensión y la profundización de este módulo (perdés ediciones manuales)${extra}. ¿Seguir?`))) return;
+      const extra = isEditing ? L(' y puede reiniciar el progreso de este módulo (cambian los conceptos)', ' and may reset the progress on this module (the concepts change)') : '';
+      if (!(await askConfirm(L(`Regenerar reemplaza la comprensión y la profundización de este módulo (perdés ediciones manuales)${extra}. ¿Seguir?`, `Regenerating replaces this module's comprehension and going-deeper parts (you lose manual edits)${extra}. Continue?`)))) return;
     }
     patchModule(mid, { generating: true, error: null });
     rememberRouteLabUrl(url);
@@ -250,7 +251,7 @@ export function CreatePage() {
         ...mm,
         generating: false,
         error: null,
-        title: mm.title && mm.title !== 'Nuevo módulo' ? mm.title : (data.module.title || mm.title),
+        title: mm.title && mm.title !== 'Nuevo módulo' && mm.title !== 'New module' ? mm.title : (data.module.title || mm.title),
         emoji: mm.emoji || data.module.emoji,
         source: data.module.source ?? mm.source,
         captionKind: data.meta?.captionKind ?? null,
@@ -260,7 +261,7 @@ export function CreatePage() {
         profundizacion: prof,
       }));
     } catch (e) {
-      patchModule(mid, { generating: false, error: `No pude generar: ${(e as Error).message} (¿corre route-lab en ${base}?)` });
+      patchModule(mid, { generating: false, error: L(`No pude generar: ${(e as Error).message} (¿corre route-lab en ${base}?)`, `I couldn't generate: ${(e as Error).message} (is route-lab running at ${base}?)`) });
     }
   }
 
@@ -273,14 +274,14 @@ export function CreatePage() {
     for (const c of inv.concepts) {
       if (!conceptChecked(m.id, c)) continue;
       const chosen = inv.facts.filter((f) => f.concept === c.id && factChecked(m.id, f));
-      if (chosen.length < 2) { warnings.push(`«${c.label}» necesita ≥2 datos (tiene ${chosen.length})`); continue; }
+      if (chosen.length < 2) { warnings.push(L(`«${c.label}» necesita ≥2 datos (tiene ${chosen.length})`, `“${c.label}” needs ≥2 facts (it has ${chosen.length})`)); continue; }
       specs.push({
         postaId: `${m.id}.t.${c.id}`, defId: `${state.routeId}.${m.id}.d.${c.id}`, target: `${state.routeId}.t.${c.id}`,
         title: c.label, idPrefix: `${m.id}.${c.id}`, factIds: chosen.map((f) => f.id), conceptId: c.id,
       });
     }
     if (!specs.length) {
-      patchModule(m.id, { error: 'No hay conceptos con ≥2 datos evaluados para armar profundización.' });
+      patchModule(m.id, { error: L('No hay conceptos con ≥2 datos evaluados para armar profundización.', 'There are no concepts with ≥2 tested facts to build the going-deeper part.') });
       return;
     }
     setApplying(m.id);
@@ -307,10 +308,10 @@ export function CreatePage() {
       });
       setCurOverride((o) => Object.fromEntries(Object.entries(o).filter(([k]) => !k.startsWith(`${m.id}:`))));
       const failed = (data.definitions ?? []).filter((d) => !d.definition);
-      const extra = [...warnings, ...failed.map((d) => `«${d.title}» no rindió preguntas`)].join(' · ');
-      setMsg({ ok: true, text: `✓ Profundización re-generada: ${newProf.length} posta(s)${extra ? ' — ' + extra : ''}` });
+      const extra = [...warnings, ...failed.map((d) => L(`«${d.title}» no rindió preguntas`, `“${d.title}” didn't yield questions`))].join(' · ');
+      setMsg({ ok: true, text: L(`✓ Profundización re-generada: ${newProf.length} posta(s)${extra ? ' — ' + extra : ''}`, `✓ Going-deeper regenerated: ${newProf.length} step(s)${extra ? ' — ' + extra : ''}`) });
     } catch (e) {
-      patchModule(m.id, { error: `No pude aplicar la selección: ${(e as Error).message} (¿corre route-lab en ${base}?)` });
+      patchModule(m.id, { error: L(`No pude aplicar la selección: ${(e as Error).message} (¿corre route-lab en ${base}?)`, `I couldn't apply the selection: ${(e as Error).message} (is route-lab running at ${base}?)`) });
     } finally {
       setApplying(null);
     }
@@ -329,7 +330,7 @@ export function CreatePage() {
       );
       setOpenAudit((s) => new Set(s).add(f.id));
     } catch (e) {
-      setMsg({ ok: false, text: `Auditoría: ${(e as Error).message}` });
+      setMsg({ ok: false, text: L(`Auditoría: ${(e as Error).message}`, `Audit: ${(e as Error).message}`) });
     } finally {
       setAuditingFact(null);
     }
@@ -340,7 +341,7 @@ export function CreatePage() {
     const inv = m.inventory;
     if (!inv || batchAudit || auditingFact) return;
     const targets = inv.facts.filter((f) => isRisky(f) && !f.audit);
-    if (!targets.length) { setMsg({ ok: true, text: 'No hay datos riesgosos sin auditar en este módulo.' }); return; }
+    if (!targets.length) { setMsg({ ok: true, text: L('No hay datos riesgosos sin auditar en este módulo.', 'There are no unaudited risky facts in this module.') }); return; }
     setBatchAudit({ mid: m.id, done: 0, total: targets.length });
     let done = 0, failed = 0;
     for (const f of targets) {
@@ -358,7 +359,7 @@ export function CreatePage() {
     }
     setAuditingFact(null);
     setBatchAudit(null);
-    setMsg({ ok: failed === 0, text: `Auditoría del módulo: ${done - failed}/${targets.length} datos auditados${failed ? ` · ${failed} con error` : ''}.` });
+    setMsg({ ok: failed === 0, text: L(`Auditoría del módulo: ${done - failed}/${targets.length} datos auditados${failed ? ` · ${failed} con error` : ''}.`, `Module audit: ${done - failed}/${targets.length} facts audited${failed ? ` · ${failed} with errors` : ''}.`) });
   }
 
   // ---------- guardar ----------
@@ -367,14 +368,14 @@ export function CreatePage() {
     if (err) { setMsg({ ok: false, text: err }); return; }
     // aviso NO bloqueante: datos que la auditoría marcó CONTRADICHOS y siguen en las postas
     const contradichos = state.modules.flatMap((m) => (m.inventory?.facts ?? []).filter((f) => f.selected && f.audit?.status === 'contradicho'));
-    if (contradichos.length && !(await askConfirm(`⚠ La auditoría marcó ${contradichos.length} dato(s) como CONTRADICHO(S) por las fuentes y siguen en las postas. Podés corregirlos o sacarlos antes. ¿Guardar igual?`, { label: 'Guardar igual' }))) return;
+    if (contradichos.length && !(await askConfirm(L(`⚠ La auditoría marcó ${contradichos.length} dato(s) como CONTRADICHO(S) por las fuentes y siguen en las postas. Podés corregirlos o sacarlos antes. ¿Guardar igual?`, `⚠ The audit flagged ${contradichos.length} fact(s) as CONTRADICTED by the sources and they're still in the steps. You can fix or remove them first. Save anyway?`), { label: L('Guardar igual', 'Save anyway') }))) return;
     setMsg(null);
     try {
       const flat = flatten(state);
       const bundle: CreatorBundle = { kind: 'smarty-route-bundle', schemaVersion: 1, route: flat.route, definitions: flat.definitions, editorial: flat.editorial };
       const r = (await api.importRouteBundle(bundle)) as ImportResultX;
-      if (!r.ok) throw new Error(r.error || 'No se pudo guardar la ruta.');
-      setMsg({ ok: true, text: `✓ Guardada «${r.title ?? flat.route.title}» — ya aparece en Aprender (${r.postas ?? flat.route.postas.length} postas).` });
+      if (!r.ok) throw new Error(r.error || L('No se pudo guardar la ruta.', "Couldn't save the route."));
+      setMsg({ ok: true, text: L(`✓ Guardada «${r.title ?? flat.route.title}» — ya aparece en Aprender (${r.postas ?? flat.route.postas.length} postas).`, `✓ Saved “${r.title ?? flat.route.title}” — it now shows up in Learn (${r.postas ?? flat.route.postas.length} steps).`) });
       void refreshCatalog();
     } catch (e) {
       setMsg({ ok: false, text: (e as Error).message });
@@ -388,7 +389,7 @@ export function CreatePage() {
       const dataUrl = await cropToCover(file); // recorta 16:9 + comprime, sin backend
       setState((s) => ({ ...s, cover: dataUrl }));
     } catch (e) {
-      setMsg({ ok: false, text: `No pude procesar la imagen: ${(e as Error).message}` });
+      setMsg({ ok: false, text: L(`No pude procesar la imagen: ${(e as Error).message}`, `I couldn't process the image: ${(e as Error).message}`) });
     }
   }
   const clearCover = () => setState((s) => ({ ...s, cover: undefined }));
@@ -431,8 +432,8 @@ export function CreatePage() {
   return (
     <section className="view cr-view" id="v-create">
       <header className="cr-head">
-        <h2 className="h2">{isEditing ? 'Editar ruta' : 'Crear ruta'}</h2>
-        <p className="lede">Armá la ruta por módulos: cada módulo es un contenido que se vuelve la lectura inicial + sus actividades. Generá cada módulo con route-lab, editá y guardá.</p>
+        <h2 className="h2">{isEditing ? L('Editar ruta', 'Edit route') : L('Crear ruta', 'Create route')}</h2>
+        <p className="lede">{L('Armá la ruta por módulos: cada módulo es un contenido que se vuelve la lectura inicial + sus actividades. Generá cada módulo con route-lab, editá y guardá.', 'Build the route in modules: each module is a piece of content that becomes the opening reading + its activities. Generate each module with route-lab, edit, and save.')}</p>
       </header>
 
       {/* la ruta: nueva o una guardada para editar + identidad, categoría y portada */}
@@ -458,12 +459,12 @@ export function CreatePage() {
         {state.modules.map((m, i) => (
           <ModuleCard key={m.id} m={m} index={i} total={state.modules.length} h={handlers} inv={invView(m)} />
         ))}
-        <button type="button" className="cr-btn cr-btn--ghost cr-addmod" onClick={addModule}><IcCrPlus /> Módulo</button>
+        <button type="button" className="cr-btn cr-btn--ghost cr-addmod" onClick={addModule}><IcCrPlus /> {L('Módulo', 'Module')}</button>
       </div>
 
       {/* guardar */}
       <div className="cr-save">
-        <button type="button" className="cr-btn cr-btn--lg" onClick={() => void save()}><IcCrSave /> {isEditing ? 'Guardar cambios' : 'Guardar ruta'}</button>
+        <button type="button" className="cr-btn cr-btn--lg" onClick={() => void save()}><IcCrSave /> {isEditing ? L('Guardar cambios', 'Save changes') : L('Guardar ruta', 'Save route')}</button>
         {msg && <p className={`cr-msg ${msg.ok ? 'is-ok' : 'is-err'}`} role={msg.ok ? 'status' : 'alert'}>{msg.text}</p>}
       </div>
 

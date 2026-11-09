@@ -1,20 +1,23 @@
 import type { AssignedLeague, CloseWeekResult } from '../../../api/types';
+import { L, isEn } from '../../../shared/lib/lang';
+import { ordEn } from './format';
 
 /** Ciclo semanal de la liga (VISION §7, capa 4): cómo se nombran el cierre y las medallas.
  *  Lo usan el hero de Ligas y las noticias de liga del Feed, así los dos dicen lo mismo con las mismas palabras. */
 export type Medal = NonNullable<NonNullable<AssignedLeague['lastWeek']>['medal']>;
 
 export const MEDAL_INFO: Record<Medal, { emoji: string; name: string; pos: number }> = {
-  oro: { emoji: '🥇', name: 'Medalla de oro', pos: 1 },
-  plata: { emoji: '🥈', name: 'Medalla de plata', pos: 2 },
-  bronce: { emoji: '🥉', name: 'Medalla de bronce', pos: 3 },
+  // Getters: el nombre se resuelve al leerlo (en el render), no al importar (si no, quedaría en el idioma de la carga).
+  oro: { emoji: '🥇', get name() { return L('Medalla de oro', 'Gold medal'); }, pos: 1 },
+  plata: { emoji: '🥈', get name() { return L('Medalla de plata', 'Silver medal'); }, pos: 2 },
+  bronce: { emoji: '🥉', get name() { return L('Medalla de bronce', 'Bronze medal'); }, pos: 3 },
 };
 
 /** 0 → "¡Cierra hoy!" · 1 → "Cierra en 1 día" · N → "Cierra en N días". */
-export const closesLabel = (days: number) => (days <= 0 ? '¡Cierra hoy!' : `Cierra en ${days} ${days === 1 ? 'día' : 'días'}`);
+export const closesLabel = (days: number) => (days <= 0 ? L('¡Cierra hoy!', 'Closes today!') : L(`Cierra en ${days} ${days === 1 ? 'día' : 'días'}`, `Closes in ${days} ${days === 1 ? 'day' : 'days'}`));
 
 /** "2º la semana pasada" */
-export const lastWeekLabel = (pos: number) => `${pos}º la semana pasada`;
+export const lastWeekLabel = (pos: number) => L(`${pos}º la semana pasada`, `${ordEn(pos)} last week`);
 
 /** Evento de ventana que dispara Ligas después de cada cierre (botón de demo "Simular cierre de semana"); `detail` = el
  *  CloseWeekResult. Para lo que muestra el ciclo fuera de Ligas y quiera volver a pedirlo en el acto. */
@@ -28,8 +31,14 @@ export const LEAGUE_WEEK_CLOSED = 'innerith:league-week-closed';
 export function closeCopy(r: CloseWeekResult): { title: string; result: string; move: string; cheer: string | null } {
   const m = r.closed.medal ? MEDAL_INFO[r.closed.medal] : null;
   const next = r.next.league.name;
-  const xp = r.closed.xp > 0 ? ` con ${r.closed.xp.toLocaleString('es-AR')} XP` : '';
+  const xp = r.closed.xp > 0 ? L(` con ${r.closed.xp.toLocaleString('es-AR')} XP`, ` with ${r.closed.xp.toLocaleString('en-US')} XP`) : '';
   const { movement } = r.next;
+  if (isEn()) return {
+    title: m ? `The week is over and you won the ${m.name.toLowerCase()}!` : 'The week is over!',
+    result: `You finished ${ordEn(r.closed.pos)} of ${r.closed.total} in the ${r.closed.league.name}${xp}.`,
+    move: movement === 'sube' ? `You move up to the ${next}` : movement === 'baja' ? `This week you’re in the ${next}` : m ? `You stay in the ${next}, the top one` : `You stay in the ${next}`,
+    cheer: movement === 'baja' ? 'Let’s earn XP to move back up!' : movement === 'queda' && !m ? 'This week let’s go for the podium!' : null,
+  };
   return {
     title: m ? `¡Cerró la semana y ganaste la ${m.name.toLowerCase()}!` : '¡Cerró la semana!',
     result: `Saliste ${r.closed.pos}º de ${r.closed.total} en la ${r.closed.league.name}${xp}.`,

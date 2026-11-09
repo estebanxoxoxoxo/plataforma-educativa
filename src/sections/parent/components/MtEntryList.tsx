@@ -1,5 +1,6 @@
 import type { MtEntry } from '../../../api/types';
 import { ENTRY_TYPE_LABEL } from '../lib/mytubeAdmin';
+import { L } from '../../../shared/lib/lang';
 
 /** Las entradas de YouTube que sumó la familia (un video, una playlist o un canal cada una) con su mantenimiento:
  *  Reingestar (vuelve a tomar el snapshot: nombre y descripciones nuevas) y Eliminar (el contenedor pide la confirmación).
@@ -20,13 +21,13 @@ export function MtEntryList({ entries, reingId, removing, locked, onReingest, on
           <span className="pz-yt-type">{ENTRY_TYPE_LABEL[e.type] ?? e.type}</span>
           <span className="pz-mt-entry-txt">
             <span className="pz-cell-title">{e.title}</span>
-            <span className="pz-cell-sub">{e.videos} {e.videos === 1 ? 'video' : 'videos'} · {e.url}</span>
+            <span className="pz-cell-sub">{e.videos} {e.videos === 1 ? L('video', 'video') : L('videos', 'videos')} · {e.url}</span>
           </span>
           <span className="pz-mt-entry-act">
             <button type="button" className="pz-link" disabled={locked} onClick={() => onReingest(e)}
-              title="Volver a importar: actualiza el nombre y las descripciones">{reingId === e.id ? 'Reingestando…' : 'Reingestar'}</button>
-            <button type="button" className="pz-link pz-yt-del" disabled={locked} aria-label={`Eliminar ${e.title}`}
-              onClick={() => onRemove(e)}>{removing === e.id ? 'Eliminando…' : 'Eliminar'}</button>
+              title={L('Volver a importar: actualiza el nombre y las descripciones', 'Import again: updates the name and descriptions')}>{reingId === e.id ? L('Reingestando…', 'Re-importing…') : L('Reingestar', 'Re-import')}</button>
+            <button type="button" className="pz-link pz-yt-del" disabled={locked} aria-label={L(`Eliminar ${e.title}`, `Remove ${e.title}`)}
+              onClick={() => onRemove(e)}>{removing === e.id ? L('Eliminando…', 'Removing…') : L('Eliminar', 'Remove')}</button>
           </span>
         </li>
       ))}

@@ -1,8 +1,10 @@
+import { L } from '../../../shared/lib/lang';
+
 /** Esqueleto de carga de la Tienda: billetera + premios (mismas medidas que lo real, sin saltos). */
 export function StoreSkeleton() {
   return (
     // El mismo armado que lo real (30-oct): billetera en la columna lateral (derecha en el escritorio), premios en la principal.
-    <div className="st-skel st-layout" role="status" aria-label="Cargando la Tienda">
+    <div className="st-skel st-layout" role="status" aria-label={L('Cargando la Tienda', 'Loading the Store')}>
       <div className="st-aside"><span className="st-sk st-sk-hero" /></div>
       <div className="st-main">
         <div className="st-grid">

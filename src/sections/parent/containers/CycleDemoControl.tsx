@@ -5,6 +5,7 @@ import type { CycleRange, User } from '../../../api/types';
 import { CycleDemoPicker } from '../components/CycleDemoPicker';
 import { adoptCycle, refreshCycle, useCycle, useMemberCycle } from '../lib/cycle';
 import { pickMember, useFamilyMembers } from '../lib/member';
+import { L } from '../../../shared/lib/lang';
 
 /** El selector "Ciclo (demo)" de la página de Configuración (antes vivía en el Sidebar; pedido de Esteban, 30-oct:
  *  «pasá lo de ciclo demo al perfil del usuario»). Tanda F2, docs/USUARIOS.md §11: para la demo, en qué rango del día está el
@@ -47,7 +48,7 @@ function KidCycleDemo() {
   const s = useCycle();
   const { busy, failed, choose } = useChoose();
   if (!s.ranges?.length) return null;
-  return <CycleDemoPicker caption="Ciclo (demo)" ranges={s.ranges} value={s.demoRange} busy={busy} failed={failed} onChoose={(id) => void choose(id)} />;
+  return <CycleDemoPicker caption={L('Ciclo (demo)', 'Cycle (demo)')} ranges={s.ranges} value={s.demoRange} busy={busy} failed={failed} onChoose={(id) => void choose(id)} />;
 }
 
 function AdultCycleDemo({ adultId }: { adultId: string }) {
@@ -58,6 +59,6 @@ function AdultCycleDemo({ adultId }: { adultId: string }) {
   const { busy, failed, choose } = useChoose(member?.id);
   const ranges: CycleRange[] = cycle?.ranges ?? [];
   if (!member || !ranges.length) return null;
-  return <CycleDemoPicker caption={`Ciclo de ${member.name} (demo)`} ranges={ranges} value={cycle?.demoRange ?? null}
+  return <CycleDemoPicker caption={L(`Ciclo de ${member.name} (demo)`, `${member.name}’s cycle (demo)`)} ranges={ranges} value={cycle?.demoRange ?? null}
     busy={busy} failed={failed} onChoose={(id) => void choose(id)} />;
 }

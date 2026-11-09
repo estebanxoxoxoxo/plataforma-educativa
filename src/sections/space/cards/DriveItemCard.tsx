@@ -3,11 +3,13 @@ import type { DriveItem } from '../../../api/types';
 import { IcPlay, IcResImg, IcResLect, IcResVideo } from '../../../shared/components/icons';
 import { DotMenu } from '../components/DotMenu';
 import { readingSource, titleIfCut } from '../lib/drive';
+import { L } from '../../../shared/lib/lang';
 
+// Getters: el rótulo se resuelve al leerlo (en el render), no al importar (si no, quedaría en el idioma de la carga).
 const KIND = {
-  video: { label: 'Video', Icon: IcResVideo },
-  articulo: { label: 'Lectura', Icon: IcResLect },
-  imagen: { label: 'Imagen', Icon: IcResImg },
+  video: { get label() { return L('Video', 'Video'); }, Icon: IcResVideo },
+  articulo: { get label() { return L('Lectura', 'Reading'); }, Icon: IcResLect },
+  imagen: { get label() { return L('Imagen', 'Image'); }, Icon: IcResImg },
 } as const;
 
 /** Tarjeta de un contenido guardado (video / lectura / imagen), como los «Archivos sugeridos» de Google Drive (pedido de
@@ -42,8 +44,8 @@ export function DriveItemCard({ it, onOpen, onMove, onTrash }: {
           <span className="sp-sr">{k.label}: </span>
           <b className="spf-name" onMouseEnter={titleIfCut(it.title)}>{it.title}</b>
           {onTrash && <DotMenu actions={[
-            { label: 'Mover a…', onClick: onMove },
-            { label: 'Mandar a la papelera', danger: true, onClick: onTrash },
+            { label: L('Mover a…', 'Move to…'), onClick: onMove },
+            { label: L('Mandar a la papelera', 'Move to trash'), danger: true, onClick: onTrash },
           ]} />}
         </span>
         {it.subtitle && <small className="spf-sub" onMouseEnter={titleIfCut(it.subtitle)}>{it.subtitle}</small>}

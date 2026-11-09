@@ -1,5 +1,6 @@
 import { useId, useRef, useState } from 'react';
 import { useReturnFocus, useSheetKeys, useVeil } from '../../store/lib/sheet';
+import { L } from '../../../shared/lib/lang';
 
 /** Formulario de carpeta (crear o renombrar): solo el nombre — todas las carpetas se ven iguales.
  *  Teclado como las hojas de la casa (store/lib/sheet): Esc cierra (salvo mientras guarda), Tab queda adentro, el foco
@@ -29,10 +30,10 @@ export function FolderForm({ title, initial, cta, onSubmit, onClose }: {
         <h3 className="shtitle" id={titleId}>{title}</h3>
         <div className="shnew solo">
           <input autoFocus data-autofocus value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && submit()}
-            placeholder="Nombre de la carpeta" maxLength={40} />
+            placeholder={L('Nombre de la carpeta', 'Folder name')} maxLength={40} />
         </div>
         <div className="shbtns end">
-          <button className="sbtn ghost" onClick={onClose}>Cancelar</button>
+          <button className="sbtn ghost" onClick={onClose}>{L('Cancelar', 'Cancel')}</button>
           <button className="sbtn" disabled={!name.trim() || busy} onClick={submit}>{cta}</button>
         </div>
       </div>

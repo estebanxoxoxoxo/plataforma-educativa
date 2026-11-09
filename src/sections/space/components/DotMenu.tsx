@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { IcDots } from '../../../shared/components/icons';
+import { L } from '../../../shared/lib/lang';
 
 /** Menú ⋯ chiquito por tarjeta (Renombrar / Mover / Borrar…). Se cierra al clickear afuera. */
 export function DotMenu({ actions }: { actions: { label: string; danger?: boolean; onClick: () => void }[] }) {
@@ -13,7 +14,7 @@ export function DotMenu({ actions }: { actions: { label: string; danger?: boolea
   }, [open]);
   return (
     <div className="dmenu" ref={box} onClick={(e) => e.stopPropagation()}>
-      <button className="dm-btn" aria-label="Más acciones" onClick={() => setOpen((o) => !o)}><IcDots /></button>
+      <button className="dm-btn" aria-label={L('Más acciones', 'More actions')} onClick={() => setOpen((o) => !o)}><IcDots /></button>
       {open && (
         <div className="dm-pop">
           {actions.map((a) => (

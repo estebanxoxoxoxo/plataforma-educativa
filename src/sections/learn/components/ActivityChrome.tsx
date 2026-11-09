@@ -4,6 +4,7 @@ import { ensureAudio } from '../../../learn/audio/service';
 import type { ActivityInstance, CommonSnapshot } from '../../../learn/activity';
 import { useActivityClock, useActivitySnapshot } from '../../../learn/react/useActivity';
 import { IcFlag, IcPause, IcPlay, IcRotateCcw, IcX } from './LearnIcons';
+import { L } from '../../../shared/lib/lang';
 
 /* El MARCO (chrome) del overlay de una actividad — piezas de ActivityOverlay.tsx del POC con sus MISMOS textos, tiempos y
    reglas: Lobby ("Arrancá cuando quieras." + "▶ Empezar", que desbloquea el audio) → cuenta 3-2-1-"¡Ya!" (700 ms por número
@@ -45,7 +46,7 @@ function Countdown({ onDone }: { onDone: () => void }) {
         );
       }}
       className="ln-countdown">
-      {n > 0 ? n : '¡Ya!'}
+      {n > 0 ? n : L('¡Ya!', 'Go!')}
     </div>
   );
 }
@@ -59,9 +60,9 @@ function Lobby({ title, onStart }: { title: string; onStart: () => void }) {
       ) : (
         <>
           <h2 className="ln-lobby-t">{title}</h2>
-          <p className="ln-lobby-p">Arrancá cuando quieras.</p>
+          <p className="ln-lobby-p">{L('Arrancá cuando quieras.', 'Start whenever you want.')}</p>
           <button type="button" className="ln-btn ln-btn-go" onClick={() => { void ensureAudio(); setCounting(true); }}>
-            ▶ Empezar
+            {L('▶ Empezar', '▶ Start')}
           </button>
         </>
       )}
@@ -79,7 +80,7 @@ function Result({ instance, awardedEc, onPlayAgain, onClose }: {
   return (
     <div className="ln-result">
       <div className="ln-result-emoji" aria-hidden="true">{r.outcome === 'completed' ? '🏆' : '🏁'}</div>
-      <h2 className="ln-result-t">{r.outcome === 'completed' ? 'Lo lograste' : 'Terminó'}</h2>
+      <h2 className="ln-result-t">{r.outcome === 'completed' ? L('Lo lograste', 'You did it') : L('Terminó', "It's over")}</h2>
       <div className="ln-result-score">
         {r.score}
         <span> / {r.maxScore}</span>
@@ -93,10 +94,10 @@ function Result({ instance, awardedEc, onPlayAgain, onClose }: {
       </div>
       <div className="ln-result-acts">
         <button type="button" className="ln-btn ln-btn-go" onClick={onPlayAgain}>
-          <IcRotateCcw /> Jugar de nuevo
+          <IcRotateCcw /> {L('Jugar de nuevo', 'Play again')}
         </button>
         <button type="button" className="ln-btn ln-btn-quiet" onClick={onClose}>
-          Cerrar
+          {L('Cerrar', 'Close')}
         </button>
       </div>
     </div>
@@ -118,7 +119,7 @@ export function Runner({ instance, Board, title, awardedEc, onPlayAgain, onClose
   return (
     <div className="ln-run">
       <header className="ln-run-head">
-        <button type="button" onClick={onClose} aria-label="Cerrar" className="ln-ib">
+        <button type="button" onClick={onClose} aria-label={L('Cerrar', 'Close')} className="ln-ib">
           <IcX strokeWidth={1.85} />
         </button>
         <h1 className="ln-run-t">{title}</h1>
@@ -129,15 +130,15 @@ export function Runner({ instance, Board, title, awardedEc, onPlayAgain, onClose
               <span> / {snap.maxScore}</span>
             </span>
             {snap.status === 'running' ? (
-              <button type="button" onClick={() => instance.pause()} aria-label="Pausar" className="ln-ib">
+              <button type="button" onClick={() => instance.pause()} aria-label={L('Pausar', 'Pause')} className="ln-ib">
                 <IcPause />
               </button>
             ) : (
-              <button type="button" onClick={() => instance.resume()} aria-label="Reanudar" className="ln-ib">
+              <button type="button" onClick={() => instance.resume()} aria-label={L('Reanudar', 'Resume')} className="ln-ib">
                 <IcPlay fill="currentColor" />
               </button>
             )}
-            <button type="button" onClick={() => instance.abort()} aria-label="Rendirse" className="ln-ib is-flag">
+            <button type="button" onClick={() => instance.abort()} aria-label={L('Rendirse', 'Give up')} className="ln-ib is-flag">
               <IcFlag />
             </button>
           </>

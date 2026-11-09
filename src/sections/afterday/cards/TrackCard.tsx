@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { AfterDayTrack } from '../../../api/types';
 import { IcAdMusic } from '../components/AdIcons';
 import { trackLabel, type TrackAudio } from '../lib/trackAudio';
+import { L } from '../../../shared/lib/lang';
 
 /** Tarjeta de un track de After Day: miniatura, título (o "Audio") y el disco de play/pausa encima. Tocarla la escucha SOLO
  *  como audio de fondo (como el POC) y, desde el 29-oct (pedido de Esteban: «no lo puedo frenar»), es un PLAY/PAUSA: `audio`
@@ -23,10 +24,10 @@ export function TrackCard({ track, audio, onPlay, onWatch, corner }: {
           {track.thumb && <img src={track.thumb} alt="" loading="lazy" />}
           <span className="ad-play" aria-hidden="true"><IcAdMusic /></span>
         </span>
-        <span className="ad-t">{track.title || 'Audio'}</span>
+        <span className="ad-t">{track.title || L('Audio', 'Audio')}</span>
       </button>
-      <button type="button" className="ad-watch" onClick={onWatch} aria-label={`Ver ${track.title || 'el video'}`}>
-        Ver ▸
+      <button type="button" className="ad-watch" onClick={onWatch} aria-label={L(`Ver ${track.title || 'el video'}`, `Watch ${track.title || 'the video'}`)}>
+        {L('Ver ▸', 'Watch ▸')}
       </button>
       {corner && <span className="ad-corner">{corner}</span>}
     </div>

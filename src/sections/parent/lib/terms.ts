@@ -4,6 +4,8 @@
 // muestra: rejectedReason de adultGate.ts); acá se avisa ANTES de mandar, sin ida y vuelta, y con las mismas palabras.
 // Mismo criterio de "repetido" que el filtro de palabras: sin tildes, sin mayúsculas, espacios colapsados.
 
+import { L } from '../../../shared/lib/lang';
+
 export type TermKind = 'tema' | 'palabra';
 export const TERM_LIMITS = { topics: 30, words: 100, topicLen: 60, wordLen: 40 } as const;
 
@@ -17,9 +19,10 @@ const TOPIC_STOP = new Set(['de', 'del', 'la', 'el', 'los', 'las', 'un', 'una', 
 /** null = válido; si no, el motivo (rioplatense, registro adulto). */
 export function termError(t: string, kind: TermKind, kid: string): string | null {
   const max = kind === 'tema' ? TERM_LIMITS.topicLen : TERM_LIMITS.wordLen;
-  if (t.length < 2 || t.length > max) return `Cada ${kind} tiene que tener entre 2 y ${max} caracteres («${t.slice(0, 50)}»).`;
-  if ((t.match(/[\p{L}\p{N}]/gu) ?? []).length < 2) return `«${t}» no ${kind === 'tema' ? 'es un tema válido' : 'es una palabra válida'}: tiene que tener letras.`;
-  if (kind === 'palabra' && TOO_COMMON.has(termKey(t))) return `«${t}» es demasiado común: bloquearía casi todo lo que lee ${kid}.`;
-  if (kind === 'tema' && !termKey(t).split(/[^a-z0-9]+/).some((w) => w && !TOPIC_STOP.has(w))) return `«${t}» no dice de qué tema se trata.`;
+  const en = kind === 'tema' ? 'topic' : 'word';
+  if (t.length < 2 || t.length > max) return L(`Cada ${kind} tiene que tener entre 2 y ${max} caracteres («${t.slice(0, 50)}»).`, `Each ${en} must be 2 to ${max} characters long (“${t.slice(0, 50)}”).`);
+  if ((t.match(/[\p{L}\p{N}]/gu) ?? []).length < 2) return L(`«${t}» no ${kind === 'tema' ? 'es un tema válido' : 'es una palabra válida'}: tiene que tener letras.`, `“${t}” isn’t a valid ${en}: it needs letters.`);
+  if (kind === 'palabra' && TOO_COMMON.has(termKey(t))) return L(`«${t}» es demasiado común: bloquearía casi todo lo que lee ${kid}.`, `“${t}” is too common: it would block almost everything ${kid} reads.`);
+  if (kind === 'tema' && !termKey(t).split(/[^a-z0-9]+/).some((w) => w && !TOPIC_STOP.has(w))) return L(`«${t}» no dice de qué tema se trata.`, `“${t}” doesn’t say what the topic is.`);
   return null;
 }

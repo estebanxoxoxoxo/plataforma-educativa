@@ -3,6 +3,7 @@
 // cantidad del perfil. PURO: sin fetch ni estado (lo usan ProfileCard, MedalsSheet, el Feed y ActivityPanel).
 // Las cinco reglas de §5.1 viven en el server (el catálogo no viaja nunca): acá no hay total, ni "N de 13", ni "te falta".
 import type { EarnedMedal } from '../../api/types';
+import { L, isEn } from './lang';
 import { wallDate } from './zonedClock';
 
 /** Evento de ventana "puede haber medallas nuevas": lo dispara el Feed cuando le llega una noticia de medalla (al cargar o
@@ -19,19 +20,20 @@ export const hasMedalNews = (items: readonly { kind: string; id: string }[]) =>
 
 /** aria-label del chip: "Tus medallas: 5" · "Tus medallas: 5, 1 nueva" · "Tus medallas: 6, 2 nuevas". */
 export function chipLabel(count: number, unseen: number): string {
-  const fresh = unseen > 0 ? `, ${unseen} ${unseen === 1 ? 'nueva' : 'nuevas'}` : '';
-  return `Tus medallas: ${count}${fresh}`;
+  const fresh = unseen > 0 ? L(`, ${unseen} ${unseen === 1 ? 'nueva' : 'nuevas'}`, `, ${unseen} new`) : '';
+  return L(`Tus medallas: ${count}${fresh}`, `Your medals: ${count}${fresh}`);
 }
 
 const DAY_MONTH = { day: 'numeric', month: 'long' } as const;
 const DAY_MONTH_YEAR = { day: 'numeric', month: 'long', year: 'numeric' } as const;
 const fmts = new Map<string, Intl.DateTimeFormat>();
 function inTz(withYear: boolean, tz?: string | null): Intl.DateTimeFormat {
-  const key = `${withYear ? 'dmy' : 'dm'}|${tz ?? ''}`;
+  const loc = isEn() ? 'en-US' : 'es-AR'; // i18n: «23 de octubre» / «October 23»
+  const key = `${loc}|${withYear ? 'dmy' : 'dm'}|${tz ?? ''}`;
   let f = fmts.get(key);
   if (!f) {
     const opts = withYear ? DAY_MONTH_YEAR : DAY_MONTH;
-    try { f = new Intl.DateTimeFormat('es-AR', tz ? { ...opts, timeZone: tz } : opts); } catch { f = new Intl.DateTimeFormat('es-AR', opts); }
+    try { f = new Intl.DateTimeFormat(loc, tz ? { ...opts, timeZone: tz } : opts); } catch { f = new Intl.DateTimeFormat(loc, opts); }
     fmts.set(key, f);
   }
   return f;
@@ -42,7 +44,8 @@ function inTz(withYear: boolean, tz?: string | null): Intl.DateTimeFormat {
  *  pared que la barra superior; sin zona —o una que este navegador no conoce— la local (como wallClock). */
 export function sinceText(at: number | null | undefined, now: Date = new Date(), tz?: string | null): string | null {
   if (typeof at !== 'number' || !Number.isFinite(at)) return null;
-  return `Desde el ${inTz(wallDate(at, tz).y !== wallDate(now.getTime(), tz).y, tz).format(at)}`;
+  const when = inTz(wallDate(at, tz).y !== wallDate(now.getTime(), tz).y, tz).format(at);
+  return L(`Desde el ${when}`, `Since ${when}`);
 }
 
 /** "×3": solo las repetibles que se ganaron 2 o más veces (el server manda `times` solo así); si no, null. */
@@ -52,8 +55,9 @@ export const timesText = (times: number | undefined): string | null =>
 /** La nota de Familia → Actividad para una medalla que el integrante NO ve por un candado (el adulto ve todas):
  *  "(Ligas apagadas: Luna no la ve)" · "(Amigos apagado: Ian no la ve)" (los nombres de los on-off, como en Familia). */
 export function hiddenNote(hidden: 'ligas' | 'amigos', kid: string): string {
-  return `(${hidden === 'ligas' ? 'Ligas apagadas' : 'Amigos apagado'}: ${kid} no la ve)`;
+  return L(`(${hidden === 'ligas' ? 'Ligas apagadas' : 'Amigos apagado'}: ${kid} no la ve)`,
+    `(${hidden === 'ligas' ? 'Leagues off' : 'Friends off'}: ${kid} can't see it)`);
 }
 
 /** Título de la noticia del Feed: "Ganaste la medalla «Primera posta»". */
-export const newsTitle = (m: Pick<EarnedMedal, 'title'>) => `Ganaste la medalla «${m.title}»`;
+export const newsTitle = (m: Pick<EarnedMedal, 'title'>) => L(`Ganaste la medalla «${m.title}»`, `You earned the “${m.title}” medal`);

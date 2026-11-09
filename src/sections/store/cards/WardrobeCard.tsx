@@ -5,6 +5,7 @@ import { MyAvatar } from '../../../shared/components/ProfileCard';
 import { IcCoin } from '../../../shared/components/icons';
 import { Faltan } from '../components/CoinBits';
 import { faltan, fmtEc, missingFor, pctOf, sourceText, tintFor } from '../lib/format';
+import { L } from '../../../shared/lib/lang';
 
 /** En qué está una prenda para el chico: comprar · ponérsela (ya es suya) · puesta (la tiene ahora). */
 export type WearState = 'comprar' | 'poner' | 'puesta';
@@ -41,24 +42,24 @@ export function WardrobeCard({ item, ec, me, state, wearing, giftOn, onBuy, onWe
       <div className="st-meta">
         <span className="st-price"><IcCoin aria-hidden="true" /> {fmtEc(item.price)}<span className="st-sr"> Energy Coins</span></span>
         {/* solo si de verdad está en el guardarropas (tras recargar, la puesta puede no estar: el look persiste, las compras no) */}
-        {item.owned && <span className="st-wtag" title="Está en tu guardarropas">✓ {acc ? yoursLabel(acc) : 'Es tuya'}</span>}
+        {item.owned && <span className="st-wtag" title={L('Está en tu guardarropas', 'It’s in your wardrobe')}>✓ {acc ? yoursLabel(acc) : L('Es tuya', 'It’s yours')}</span>}
       </div>
       <div className="st-wbtns">
         {state === 'puesta' ? (
-          <button type="button" className="st-btn is-worn" disabled>✓ {acc ? wornLabel(acc) : 'Puesta'}</button>
+          <button type="button" className="st-btn is-worn" disabled>✓ {acc ? wornLabel(acc) : L('Puesta', 'Wearing')}</button>
         ) : state === 'poner' ? (
           <button type="button" className={`st-btn st-btn--wear${wearing ? ' is-busy' : ''}`} disabled={wearing} aria-busy={wearing} onClick={onWear}>
-            {wearing ? <><span className="st-spin" aria-hidden="true" />Poniendo…</> : acc ? putOnLabel(acc) : 'Ponérsela'}
+            {wearing ? <><span className="st-spin" aria-hidden="true" />{L('Poniendo…', 'Putting on…')}</> : acc ? putOnLabel(acc) : L('Ponérsela', 'Put it on')}
           </button>
         ) : missing > 0 ? (
           <button type="button" className="st-btn is-short" disabled style={{ '--pct': `${Math.max(6, pct)}%` } as CSSProperties}><Faltan n={missing} /></button>
         ) : (
-          <button type="button" className="st-btn" onClick={(e) => onBuy(e.currentTarget)}>Comprar</button>
+          <button type="button" className="st-btn" onClick={(e) => onBuy(e.currentTarget)}>{L('Comprar', 'Buy')}</button>
         )}
         {giftOn && (
-          <button type="button" className="st-btn st-btn--ghost st-gift" disabled={missing > 0} title={missing > 0 ? faltan(missing) : `Regalarle ${item.title.toLowerCase()} a un amigo`}
+          <button type="button" className="st-btn st-btn--ghost st-gift" disabled={missing > 0} title={missing > 0 ? faltan(missing) : L(`Regalarle ${item.title.toLowerCase()} a un amigo`, `Gift ${item.title.toLowerCase()} to a friend`)}
             onClick={(e) => onGift(e.currentTarget)}>
-            <span aria-hidden="true">🎁</span> Regalar
+            <span aria-hidden="true">🎁</span> {L('Regalar', 'Gift')}
           </button>
         )}
       </div>

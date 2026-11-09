@@ -7,6 +7,7 @@ import { FolderSheet } from '../../../shared/components/FolderSheet';
 import { IcBookmark } from '../../../shared/components/icons';
 import { ModerationOverlay, type ModState } from '../components/ModerationOverlay';
 import { WikiArticle } from '../components/WikiArticle';
+import { L } from '../../../shared/lib/lang';
 
 export function ArticlePage() {
   const { id = '' } = useParams();
@@ -15,7 +16,7 @@ export function ArticlePage() {
   const st = loc.state as { article?: Article; backTo?: string; backLabel?: string } | null;
   const pre = st?.article;
   // Si se llegó desde un curso de Aprender, "volver" lleva al curso (y se conserva al seguir links).
-  const back = st?.backTo ? { to: st.backTo, label: st.backLabel ?? '‹ Volver' } : { to: lastSearch.url, label: '‹ Resultados' };
+  const back = st?.backTo ? { to: st.backTo, label: st.backLabel ?? L('‹ Volver', '‹ Back') } : { to: lastSearch.url, label: L('‹ Resultados', '‹ Results') };
   const [article, setArticle] = useState<Article | undefined>(pre);
   const [mod, setMod] = useState<ModState>(pre ? 'none' : 'check');
   const [blockedOnOpen, setBlockedOnOpen] = useState(false);
@@ -54,7 +55,7 @@ export function ArticlePage() {
       <div className="abar">
         <button className="back" style={{ color: '#0B6B66' }} onClick={() => go(back.to)}>{back.label}</button>
         <div className="abar-acts">
-          <button className="asave" disabled={!article} onClick={() => setSaving(true)}><IcBookmark />Guardar</button>
+          <button className="asave" disabled={!article} onClick={() => setSaving(true)}><IcBookmark />{L('Guardar', 'Save')}</button>
         </div>
       </div>
       <div className="aview">
@@ -63,11 +64,11 @@ export function ArticlePage() {
         </div>
         <ModerationOverlay state={mod} onOk={() => (blockedOnOpen && !article ? go(back.to) : setMod('none'))} />
       </div>
-      {article && <FolderSheet open={saving} title="¿Dónde lo guardás?" cta="Guardar acá"
+      {article && <FolderSheet open={saving} title={L('¿Dónde lo guardás?', 'Where do you want to save it?')} cta={L('Guardar acá', 'Save here')}
         onPick={async (folderId, folderName) => {
           const r = await api.saveItem({ folderId, article: { url: article.id, title: article.title, source: article.siteName } }).catch(() => null);
-          if (!r) return { error: 'No se pudo guardar ahora.' };
-          return { done: r.existed ? `Ya estaba en ${folderName}` : `Guardado en ${folderName}` };
+          if (!r) return { error: L('No se pudo guardar ahora.', 'Couldn’t save it right now.') };
+          return { done: r.existed ? L(`Ya estaba en ${folderName}`, `Already in ${folderName}`) : L(`Guardado en ${folderName}`, `Saved to ${folderName}`) };
         }} onClose={() => setSaving(false)} />}
     </section>
   );

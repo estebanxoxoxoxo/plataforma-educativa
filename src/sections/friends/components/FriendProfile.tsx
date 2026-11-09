@@ -1,6 +1,7 @@
 import type { Friend } from '../../../api/types';
 import { Avatar, accessoryArticle, accessoryById, lookFor, wornLabel } from '../../../shared/components/Avatar';
 import { IcChat, IcClose } from '../../../shared/components/icons';
+import { L, isEn } from '../../../shared/lib/lang';
 
 /** Perfil de un amigo (antes, el panel ⓘ de /amigos; desde el 12-oct vive en la hoja que abre el dock de Mensajes
  *  —FriendProfileSheet—): avatar, desde cuándo son amigos, XP/racha/liga y cursos en común. Si lleva ropa puesta (en el
@@ -13,24 +14,24 @@ export const FriendProfile = ({ f, headingId, onClose, onMessage, onGift }: {
   const wearing = accessoryById(f.accessory);
   return (
     <div className="fpbody">
-      <button className="fpx" type="button" title="Cerrar" aria-label={`Cerrar la información de ${f.nick}`} onClick={onClose}><IcClose /></button>
+      <button className="fpx" type="button" title={L('Cerrar', 'Close')} aria-label={L(`Cerrar la información de ${f.nick}`, `Close ${f.nick}’s info`)} onClick={onClose}><IcClose /></button>
       <div className="fprof">
         <Avatar name={f.nick} color={f.color} look={lookFor(f.nick)} accessory={f.accessory} />
         <div>
           <h3 id={headingId}>{f.nick}</h3>
-          <small>Amigos desde {f.since}</small>
-          {wearing && <span className="fwear" data-acc={wearing.id}><span aria-hidden="true">{wearing.emoji}</span> Tiene {wornLabel(wearing).toLowerCase()} {accessoryArticle(wearing)}</span>}
+          <small>{L(`Amigos desde ${f.since}`, `Friends since ${f.since}`)}</small>
+          {wearing && <span className="fwear" data-acc={wearing.id}><span aria-hidden="true">{wearing.emoji}</span> {isEn() ? `${wornLabel(wearing)} ${accessoryArticle(wearing)}` : `Tiene ${wornLabel(wearing).toLowerCase()} ${accessoryArticle(wearing)}`}</span>}
         </div>
       </div>
       <div className="fstats">
-        <div><b>{f.xp}</b><span>XP totales</span></div>
-        <div><b>{f.streak}</b><span>Racha</span></div>
-        <div><b>{f.league.replace('Liga ', '')}</b><span>Liga actual</span></div>
+        <div><b>{f.xp}</b><span>{L('XP totales', 'Total XP')}</span></div>
+        <div><b>{f.streak}</b><span>{L('Racha', 'Streak')}</span></div>
+        <div><b>{f.league.replace('Liga ', '').replace(/ League$/, '')}</b><span>{L('Liga actual', 'Current league')}</span></div>
       </div>
-      <div><span className="lbl">Cursos en común</span><div className="fchips">{f.commonCourses.map((c) => <span key={c}>{c}</span>)}</div></div>
+      <div><span className="lbl">{L('Cursos en común', 'Courses in common')}</span><div className="fchips">{f.commonCourses.map((c) => <span key={c}>{c}</span>)}</div></div>
       <div className="fpacts">
-        <button className="fpmsg" type="button" onClick={onMessage}><IcChat />Mandar mensaje</button>
-        {onGift && <button className="fpgift" type="button" onClick={onGift}><span aria-hidden="true">🎁</span>Regalale ropa</button>}
+        <button className="fpmsg" type="button" onClick={onMessage}><IcChat />{L('Mandar mensaje', 'Send a message')}</button>
+        {onGift && <button className="fpgift" type="button" onClick={onGift}><span aria-hidden="true">🎁</span>{L('Regalale ropa', 'Gift them clothes')}</button>}
       </div>
     </div>
   );

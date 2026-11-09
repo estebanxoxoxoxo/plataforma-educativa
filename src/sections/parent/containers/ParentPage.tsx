@@ -23,6 +23,7 @@ import { PresetsPanel } from './PresetsPanel';
 import { RewardsPanel } from './RewardsPanel';
 import { TimezoneControl } from './TimezoneControl';
 import { TopicsPanel } from './TopicsPanel';
+import { L } from '../../../shared/lib/lang';
 
 /** Familia (/familia/*; la ex Zona de padres, /padres/* redirige acá): el punto de menú del ADULTO, abajo de todo
  *  (docs/USUARIOS.md §5). SIN portón: la sesión es la del usuario activo (el server la da por buena si es un adulto). La
@@ -60,7 +61,7 @@ export function ParentPage() {
       <section className="view" id="v-parent">
         <div className="pz-page">
           <FamilyHeadOnly />
-          <section className="pz-panel"><p className="pz-muted">Todavía no hay integrantes en tu familia para configurar.</p></section>
+          <section className="pz-panel"><p className="pz-muted">{L('Todavía no hay integrantes en tu familia para configurar.', 'There are no family members to set up yet.')}</p></section>
         </div>
       </section>
     );
@@ -73,8 +74,8 @@ function FamilyHeadOnly() {
   return (
     <header className="pz-head">
       <div className="pz-head-id">
-        <p className="pz-kicker">Familia</p>
-        <h2 className="pz-title">Familia</h2>
+        <p className="pz-kicker">{L('Familia', 'Family')}</p>
+        <h2 className="pz-title">{L('Familia', 'Family')}</h2>
       </div>
     </header>
   );
@@ -149,7 +150,7 @@ function ParentZone({ members }: { members: FamilyMember[] }) {
   // La barra de crisis es de TODA la familia: nombra a cada chico con una crisis sin ver, aunque se esté mirando a otro.
   const crisisKids = members.filter((m) => unseen.some((a) => a.kind === 'crisis' && a.childId === m.id));
   const crisis = unseen.some((a) => a.kind === 'crisis');
-  const crisisNames = crisisKids.length ? listEs(crisisKids.map((m) => m.name)) : 'tu familia';
+  const crisisNames = crisisKids.length ? listEs(crisisKids.map((m) => m.name)) : L('tu familia', 'your family');
   const crisisTo = famTo('/familia/avisos', crisisKids[0]?.id ?? mid);
   const note = familyNoteFor(pathname);
   const home = famTo('/familia', mid);
@@ -161,8 +162,8 @@ function ParentZone({ members }: { members: FamilyMember[] }) {
         {crisis && pathname !== '/familia/avisos' && (
           <p className="pz-crisis-bar" role="alert">
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.8l7.6 13.4H2.4z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /><path d="M10 8v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /><circle cx="10" cy="14.3" r="1" fill="currentColor" /></svg>
-            Hay un aviso de crisis sin ver sobre {crisisNames}.
-            <Link to={crisisTo} className="pz-inline">Ver avisos</Link>
+            {L(`Hay un aviso de crisis sin ver sobre ${crisisNames}.`, `There’s an unseen crisis alert about ${crisisNames}.`)}
+            <Link to={crisisTo} className="pz-inline">{L('Ver avisos', 'See alerts')}</Link>
           </p>
         )}
         {/* key = el integrante: cambiarlo REMONTA los paneles (obligatorio: LimitsPanel guarda al desmontar los topes que

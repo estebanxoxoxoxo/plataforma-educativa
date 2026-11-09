@@ -1,6 +1,7 @@
 import type { FeedItem } from '../../../api/types';
 import { FeedCard } from '../components/FeedCard';
 import { IcBookLine } from '../components/feedIcons';
+import { L } from '../../../shared/lib/lang';
 
 type It = Extract<FeedItem, { kind: 'article' }>;
 
@@ -16,7 +17,7 @@ export const FeedArticleCard = ({ it, onOpen, onLess }: { it: It; onOpen: (url: 
   const snippet = it.snippet?.trim();
   const source = it.source?.trim();
   return (
-    <FeedCard family="lectura" icon={<IcBookLine />} label="Lectura" time={it.time} reason={it.reason} onLess={onLess} link
+    <FeedCard family="lectura" icon={<IcBookLine />} label={L('Lectura', 'Reading')} time={it.time} reason={it.reason} onLess={onLess} link
       thumb={(
         <span className="hf-th is-read">
           <IcBookLine />
@@ -26,7 +27,7 @@ export const FeedArticleCard = ({ it, onOpen, onLess }: { it: It; onOpen: (url: 
       title={it.title}
       meta={source}
       extra={snippet ? <p className="hf-sn">{snippet}</p> : undefined}
-      action={<button type="button" className="hf-cta is-quiet hf-stretch" aria-label={`Leer «${it.title}»`} onClick={() => onOpen(it.url)}>Leer</button>}
+      action={<button type="button" className="hf-cta is-quiet hf-stretch" aria-label={L(`Leer «${it.title}»`, `Read “${it.title}”`)} onClick={() => onOpen(it.url)}>{L('Leer', 'Read')}</button>}
     />
   );
 };

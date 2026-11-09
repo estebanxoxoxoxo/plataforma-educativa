@@ -9,16 +9,37 @@
 // serverTz`, sections/parent/lib/cycle.ts), que es donde el server ancla las clases; null llega solo si el server no mandó su
 // zona, y entonces (o con una zona que este navegador no conoce) rige la hora LOCAL del navegador, como antes.
 import type { MentorPlan, TakenSlot, Teacher, TeacherSlot } from '../../api/types';
+import { isEn } from './lang';
 import { isValidTimeZone, wallClock, wallDate } from './zonedClock';
 
 /** Zona IANA con la que se lee la pared: la de la familia o, en Automática, la del server (useCycle().tz); null = la del
  *  navegador (solo si el server no mandó la suya). */
 export type Tz = string | null;
 
-export const DAYS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'] as const;
-export const DAYS_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'] as const;
-const DAYS_PL = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados', 'domingos'] as const;
-const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'] as const;
+/** i18n: una lista cuyos elementos se leen en el idioma ACTUAL cada vez (getters por índice). Así DAYS[i] y DAYS.map()
+ *  siguen andando igual para quien los importa, sin quedar congelados en el idioma del primer import. */
+function bilingual(es: readonly string[], en: readonly string[]): readonly string[] {
+  const out: string[] = [];
+  es.forEach((_, i) => Object.defineProperty(out, i, { get: () => (isEn() ? en[i] : es[i]), enumerable: true }));
+  return out;
+}
+export const DAYS = bilingual(
+  ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'],
+  ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+);
+export const DAYS_SHORT = bilingual(
+  ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+  ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+);
+const DAYS_PL = bilingual(
+  ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados', 'domingos'],
+  ['Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays', 'Sundays'],
+);
+const MONTHS = bilingual(
+  ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'],
+  ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+);
+const loc = () => (isEn() ? 'en-US' : 'es-AR');
 /** Horas que ofrece la agenda (en punto): el mismo rango que acepta el server (9 a 19; la última termina a las 20). */
 export const HOURS: readonly number[] = Array.from({ length: 11 }, (_, i) => 9 + i);
 /** Los planes: clases (de una hora) por semana. */
@@ -27,21 +48,22 @@ export const PLANS: readonly MentorPlan[] = [1, 2, 3];
 export const CLASSES = 4;
 
 export const hourLabel = (h: number) => `${h}:00`;
-/** "los miércoles" · "los sábados" */
-export const everyDay = (weekday: number) => `los ${DAYS_PL[weekday]}`;
-/** "los miércoles a las 17:00" */
-export const slotEvery = (s: TeacherSlot) => `${everyDay(s.weekday)} a las ${hourLabel(s.hour)}`;
-/** "a, b y c" */
-export const listEs = (xs: readonly string[]) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} y ${xs[xs.length - 1]}`);
+/** "los miércoles" · "los sábados" (EN: "on Wednesdays") */
+export const everyDay = (weekday: number) => (isEn() ? `on ${DAYS_PL[weekday]}` : `los ${DAYS_PL[weekday]}`);
+/** "los miércoles a las 17:00" (EN: "on Wednesdays at 17:00") */
+export const slotEvery = (s: TeacherSlot) => `${everyDay(s.weekday)} ${isEn() ? 'at' : 'a las'} ${hourLabel(s.hour)}`;
+/** "a, b y c" (EN: "a, b and c") */
+export const listEs = (xs: readonly string[]) =>
+  (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} ${isEn() ? 'and' : 'y'} ${xs[xs.length - 1]}`);
 /** "los martes a las 10:00 y los jueves a las 10:00" (en el orden de la semana). */
 export const slotsEvery = (slots: readonly TeacherSlot[]) =>
   listEs([...slots].sort((a, b) => a.weekday - b.weekday || a.hour - b.hour).map(slotEvery));
 /** Como lo llama el chico (y como figura en el título de la clase): el primer nombre. */
 export const firstName = (name: string) => name.split(' ')[0];
 /** "USD 40" */
-export const usd = (n: number) => `USD ${Math.round(n).toLocaleString('es-AR')}`;
+export const usd = (n: number) => `USD ${Math.round(n).toLocaleString(loc())}`;
 /** 4.9 → "4,9" */
-export const ratingLabel = (r: number) => r.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+export const ratingLabel = (r: number) => r.toLocaleString(loc(), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 /* ---------- fechas de pared (wallDate vive en shared/lib/zonedClock, compartido con sections/calendar) ---------- */
 /** El instante en que el reloj de pared de `tz` marca esa fecha (el día del mes puede pasarse, como en new Date) a esa hora
@@ -61,19 +83,24 @@ function wallInstant(y: number, m: number, d: number, hour: number, tz: Tz): num
   return t;
 }
 
-/** "martes 13 de octubre a las 10:00", en la pared de `tz` (la zona de la familia; null = la del navegador). */
+/** "martes 13 de octubre a las 10:00", en la pared de `tz` (la zona de la familia; null = la del navegador).
+ *  EN: "Tuesday, October 13 at 10:00" (24 h, como en castellano). */
 export function dateLong(ts: number, tz: Tz = null): string {
   const d = wallDate(ts, tz), w = wallClock(new Date(ts), tz);
-  return `${DAYS[(d.wd + 6) % 7]} ${d.d} de ${MONTHS[d.m]} a las ${w.hour}:${String(w.minute).padStart(2, '0')}`;
+  const hm = `${w.hour}:${String(w.minute).padStart(2, '0')}`;
+  if (isEn()) return `${DAYS[(d.wd + 6) % 7]}, ${MONTHS[d.m]} ${d.d} at ${hm}`;
+  return `${DAYS[(d.wd + 6) % 7]} ${d.d} de ${MONTHS[d.m]} a las ${hm}`;
 }
 
 /* ---------- plan y precio ---------- */
 /** Precio semanal de un plan: cada clase dura una hora, así que es plan × precio por hora. */
 export const weeklyPrice = (rate: number, plan: MentorPlan) => rate * plan;
 /** "1 clase por semana" · "2 clases por semana" */
-export const planLabel = (plan: MentorPlan) => `${plan} ${plan === 1 ? 'clase' : 'clases'} por semana`;
+export const planLabel = (plan: MentorPlan) =>
+  isEn() ? `${plan} ${plan === 1 ? 'class' : 'classes'} per week` : `${plan} ${plan === 1 ? 'clase' : 'clases'} por semana`;
 /** "1 clase de 1 h" · "3 clases de 1 h" */
-export const planClasses = (plan: MentorPlan) => `${plan} ${plan === 1 ? 'clase' : 'clases'} de 1 h`;
+export const planClasses = (plan: MentorPlan) =>
+  isEn() ? `${plan} one-hour ${plan === 1 ? 'class' : 'classes'}` : `${plan} ${plan === 1 ? 'clase' : 'clases'} de 1 h`;
 
 /* ---------- horas ocupadas (MentorsResponse.taken del beneficiario) ---------- */
 /** Con quién tiene ocupada esa hora el beneficiario, o undefined si la tiene libre. */
@@ -84,17 +111,23 @@ export const takenBy = (taken: readonly TakenSlot[], weekday: number, hour: numb
    `me` = el adulto activo (el que contrata); `people` = MentorsResponse.people (él y sus dependientes: id → nombre). */
 export type People = Readonly<Record<string, string>>;
 /** "vos" si es el adulto mismo; si no, su nombre ("Ian"). */
-export const whoName = (id: string, me: string, people: People) => (id === me ? 'vos' : people[id] ?? 'alguien de tu familia');
+// i18n: cada rótulo tiene su versión en inglés ("you", "for Ian", "Ian's calendar"), elegida al llamar.
+export const whoName = (id: string, me: string, people: People) =>
+  (id === me ? (isEn() ? 'you' : 'vos') : people[id] ?? (isEn() ? 'someone in your family' : 'alguien de tu familia'));
 /** "para vos" · "para Ian" */
-export const forWho = (id: string, me: string, people: People) => `para ${whoName(id, me, people)}`;
+export const forWho = (id: string, me: string, people: People) => `${isEn() ? 'for' : 'para'} ${whoName(id, me, people)}`;
 /** El radio de "¿Para quién?": "Para mí" · "Para Ian" */
-export const pickWho = (id: string, me: string, people: People) => (id === me ? 'Para mí' : `Para ${whoName(id, me, people)}`);
+export const pickWho = (id: string, me: string, people: People) =>
+  (id === me ? (isEn() ? 'For me' : 'Para mí') : `${isEn() ? 'For' : 'Para'} ${whoName(id, me, people)}`);
 /** "Te da clases" · "Da clases a Ian" */
-export const teachesWho = (id: string, me: string, people: People) => (id === me ? 'Te da clases' : `Da clases a ${whoName(id, me, people)}`);
+export const teachesWho = (id: string, me: string, people: People) =>
+  (id === me ? (isEn() ? 'Teaches you' : 'Te da clases') : `${isEn() ? 'Teaches' : 'Da clases a'} ${whoName(id, me, people)}`);
 /** "tu calendario" · "el calendario de Ian" */
-export const calendarOf = (id: string, me: string, people: People) => (id === me ? 'tu calendario' : `el calendario de ${whoName(id, me, people)}`);
+export const calendarOf = (id: string, me: string, people: People) =>
+  (id === me ? (isEn() ? 'your calendar' : 'tu calendario') : isEn() ? `${whoName(id, me, people)}'s calendar` : `el calendario de ${whoName(id, me, people)}`);
 /** Con "de" adelante y la contracción bien hecha: "de tu calendario" · "del calendario de Ian" (nunca "de el"). */
-export const fromCalendarOf = (id: string, me: string, people: People) => (id === me ? 'de tu calendario' : `del calendario de ${whoName(id, me, people)}`);
+export const fromCalendarOf = (id: string, me: string, people: People) =>
+  (id === me ? (isEn() ? 'from your calendar' : 'de tu calendario') : isEn() ? `from ${whoName(id, me, people)}'s calendar` : `del calendario de ${whoName(id, me, people)}`);
 /** La familia en orden: el adulto primero y después sus dependientes. */
 export const familyIds = (me: string, people: People) => [me, ...Object.keys(people).filter((id) => id !== me)];
 

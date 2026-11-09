@@ -1,6 +1,7 @@
 import { Avatar, lookFor } from '../../../shared/components/Avatar';
 import { IcChat, IcClock } from '../../../shared/components/icons';
 import type { PersonResult } from '../../../api/types';
+import { L } from '../../../shared/lib/lang';
 
 /** Un chico encontrado en Buscar → Personas: su avatar (el look de siempre, con la ropa que tenga puesta), su nombre de
  *  usuario y su línea de estado —nada más: sin texto libre— y la acción según la relación con Ian:
@@ -18,20 +19,20 @@ export function PersonCard({ p, busy, onConnect, onAccept, onChat }: {
       <div className="ppl-txt">
         <b className="ppl-nick">{p.nick}</b>
         <span className="ppl-status">{p.status}</span>
-        {p.relation === 'incoming' && <span className="ppl-tag">Quiere contactarse con vos</span>}
+        {p.relation === 'incoming' && <span className="ppl-tag">{L('Quiere contactarse con vos', 'Wants to connect with you')}</span>}
       </div>
       {p.relation === 'friend' ? (
-        <button className="ppl-btn ppl-btn--friend" type="button" title={`Abrir la conversación con ${p.nick}`}
-          aria-label={`Ya son amigos: abrir la conversación con ${p.nick}`} onClick={onChat}><IcChat />Ya son amigos</button>
+        <button className="ppl-btn ppl-btn--friend" type="button" title={L(`Abrir la conversación con ${p.nick}`, `Open your chat with ${p.nick}`)}
+          aria-label={L(`Ya son amigos: abrir la conversación con ${p.nick}`, `You're already friends: open your chat with ${p.nick}`)} onClick={onChat}><IcChat />{L('Ya son amigos', 'Already friends')}</button>
       ) : p.relation === 'sent' ? (
-        <span className="ppl-btn ppl-btn--sent" role="status" title={`Esperando que ${p.nick} acepte`}><IcClock />Solicitud enviada</span>
+        <span className="ppl-btn ppl-btn--sent" role="status" title={L(`Esperando que ${p.nick} acepte`, `Waiting for ${p.nick} to accept`)}><IcClock />{L('Solicitud enviada', 'Request sent')}</span>
       ) : p.relation === 'incoming' ? (
-        <button className="ppl-btn ppl-btn--go" type="button" disabled={busy} aria-label={`Aceptar a ${p.nick}`} onClick={onAccept}>
-          {busy ? 'Aceptando…' : 'Aceptar'}
+        <button className="ppl-btn ppl-btn--go" type="button" disabled={busy} aria-label={L(`Aceptar a ${p.nick}`, `Accept ${p.nick}`)} onClick={onAccept}>
+          {busy ? L('Aceptando…', 'Accepting…') : L('Aceptar', 'Accept')}
         </button>
       ) : (
-        <button className="ppl-btn ppl-btn--go" type="button" disabled={busy} aria-label={`Quiero contactarlo: mandarle una solicitud a ${p.nick}`} onClick={onConnect}>
-          {busy ? 'Enviando…' : 'Quiero contactarlo'}
+        <button className="ppl-btn ppl-btn--go" type="button" disabled={busy} aria-label={L(`Quiero contactarlo: mandarle una solicitud a ${p.nick}`, `I want to connect: send ${p.nick} a request`)} onClick={onConnect}>
+          {busy ? L('Enviando…', 'Sending…') : L('Quiero contactarlo', 'I want to connect')}
         </button>
       )}
     </div>

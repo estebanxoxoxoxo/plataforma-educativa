@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import type { AvatarLook } from '../../api/types';
+import { L, isEn } from '../lib/lang';
 
 /* Identidad (visión §9 y §13: el avatar es un ACTIVO del chico). Dos formas de verse:
      · `look` dibujado: un personaje de este set (variant) en un color de la paleta. SVG propio, sin assets
@@ -330,8 +331,14 @@ const VARIANTS: Variant[] = [
     </> } },
 ];
 export const AVATAR_VARIANT_COUNT = VARIANTS.length;
+/** Los nombres en inglés, en el MISMO orden que VARIANTS (i18n: se elige al llamar, nunca al importar). */
+const VARIANT_NAMES_EN = [
+  'Motorcycle helmet', 'Backpacker', 'Fox', 'Glasses', 'Long hair', 'DJ', 'Gamer', 'Buzz cut',
+  'Robot', 'Turtleneck', 'Hoodie', 'Skater', 'Astronaut', 'Cap', 'Curls', 'Beanie',
+] as const;
 /** Nombre de cada personaje (para el selector y los títulos). */
-export const avatarVariantName = (v: number) => VARIANTS[v]?.name ?? 'Personaje';
+export const avatarVariantName = (v: number) =>
+  isEn() ? (VARIANTS[v] ? VARIANT_NAMES_EN[v] ?? VARIANTS[v].name : 'Character') : VARIANTS[v]?.name ?? 'Personaje';
 
 /* ---------- el 80/20 del demo: el look de los DEMÁS usuarios se deriva de su nick ----------
    hash estable (FNV-1a + mezcla final de murmur3) → ~20% iniciales (el default típico), ~80% un personaje en un
@@ -369,26 +376,29 @@ export type Accessory = {
   emoji: string;
   /** Género y número, para los textos ("ponérsela", "los anteojos de sol") */ fem: boolean; plural: boolean;
 };
+// i18n: `name` es un GETTER (se lee en el idioma actual cada vez: la constante de módulo no se re-evalúa al cambiar).
 export const ACCESSORIES: readonly Accessory[] = [
-  { id: 'gorra', name: 'Gorra', price: 80, emoji: '🧢', fem: true, plural: false },
-  { id: 'vincha', name: 'Vincha deportiva', price: 90, emoji: '🎽', fem: true, plural: false },
-  { id: 'lazo', name: 'Bandana', price: 120, emoji: '🧣', fem: true, plural: false },
-  { id: 'anteojos', name: 'Anteojos de sol', price: 150, emoji: '🕶️', fem: false, plural: true },
-  { id: 'auriculares', name: 'Auriculares', price: 220, emoji: '🎧', fem: false, plural: true },
-  { id: 'corona', name: 'Corona', price: 300, emoji: '👑', fem: true, plural: false },
+  { id: 'gorra', get name() { return L('Gorra', 'Cap'); }, price: 80, emoji: '🧢', fem: true, plural: false },
+  { id: 'vincha', get name() { return L('Vincha deportiva', 'Sports headband'); }, price: 90, emoji: '🎽', fem: true, plural: false },
+  { id: 'lazo', get name() { return L('Bandana', 'Bandana'); }, price: 120, emoji: '🧣', fem: true, plural: false },
+  { id: 'anteojos', get name() { return L('Anteojos de sol', 'Sunglasses'); }, price: 150, emoji: '🕶️', fem: false, plural: true },
+  { id: 'auriculares', get name() { return L('Auriculares', 'Headphones'); }, price: 220, emoji: '🎧', fem: false, plural: true },
+  { id: 'corona', get name() { return L('Corona', 'Crown'); }, price: 300, emoji: '👑', fem: true, plural: false },
 ];
 type WearId = 'gorra' | 'vincha' | 'lazo' | 'anteojos' | 'auriculares' | 'corona';
 const isWearId = (id: string): id is WearId => ACCESSORIES.some((a) => a.id === id);
 /** El accesorio del set con ese id (undefined = no es del set: no se dibuja nada). */
 export const accessoryById = (id: string | null | undefined): Accessory | undefined => (id ? ACCESSORIES.find((a) => a.id === id) : undefined);
-/** "la gorra", "la bandana", "los anteojos de sol" (minúscula, para meter en una frase). */
-export const accessoryArticle = (a: Accessory) => `${a.plural ? (a.fem ? 'las' : 'los') : a.fem ? 'la' : 'el'} ${a.name.toLowerCase()}`;
-/** Botón para equiparla: "Ponérsela" / "Ponérselo" / "Ponérselos". */
-export const putOnLabel = (a: Accessory) => `Ponérsel${a.fem ? 'a' : 'o'}${a.plural ? 's' : ''}`;
-/** Estado equipado: "Puesta" / "Puesto" / "Puestos". */
-export const wornLabel = (a: Accessory) => `Puest${a.fem ? 'a' : 'o'}${a.plural ? 's' : ''}`;
-/** Ya está en el guardarropas: "Es tuya" / "Es tuyo" / "Son tuyos". */
-export const yoursLabel = (a: Accessory) => (a.plural ? `Son tuy${a.fem ? 'as' : 'os'}` : `Es tuy${a.fem ? 'a' : 'o'}`);
+/** "la gorra", "la bandana", "los anteojos de sol" (minúscula, para meter en una frase). EN: "the cap", "the sunglasses". */
+export const accessoryArticle = (a: Accessory) =>
+  isEn() ? `the ${a.name.toLowerCase()}` : `${a.plural ? (a.fem ? 'las' : 'los') : a.fem ? 'la' : 'el'} ${a.name.toLowerCase()}`;
+/** Botón para equiparla: "Ponérsela" / "Ponérselo" / "Ponérselos". EN: "Put it on" / "Put them on". */
+export const putOnLabel = (a: Accessory) => (isEn() ? (a.plural ? 'Put them on' : 'Put it on') : `Ponérsel${a.fem ? 'a' : 'o'}${a.plural ? 's' : ''}`);
+/** Estado equipado: "Puesta" / "Puesto" / "Puestos". EN: "Wearing". */
+export const wornLabel = (a: Accessory) => (isEn() ? 'Wearing' : `Puest${a.fem ? 'a' : 'o'}${a.plural ? 's' : ''}`);
+/** Ya está en el guardarropas: "Es tuya" / "Es tuyo" / "Son tuyos". EN: "It's yours" / "They're yours". */
+export const yoursLabel = (a: Accessory) =>
+  isEn() ? (a.plural ? "They're yours" : "It's yours") : (a.plural ? `Son tuy${a.fem ? 'as' : 'os'}` : `Es tuy${a.fem ? 'a' : 'o'}`);
 
 /* ---------- colores de la ropa: fijos (la prenda es la misma en todos) y con un contorno fino de tinta para que se lea
    sobre cualquier personaje (son 8 colores de cuerpo + 4 tonos de piel) ---------- */

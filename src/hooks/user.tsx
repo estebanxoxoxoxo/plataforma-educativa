@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { actingUserId, api, consumeKeepDemo } from '../api';
 import type { User } from '../api/types';
+import { getLang } from '../shared/lib/lang';
 
 const UserCtx = createContext<User | undefined>(undefined);
 
@@ -10,7 +11,7 @@ let bootReset: Promise<void> | null = null;
 function resetForThisLoad(): Promise<void> {
   bootReset ??= consumeKeepDemo()
     ? Promise.resolve()
-    : fetch('/api/demo/reset', { method: 'POST', headers: { 'X-Innerith-User': actingUserId() } }).then(() => {}, () => {});
+    : fetch('/api/demo/reset', { method: 'POST', headers: { 'X-Innerith-User': actingUserId(), 'X-Smarty-Lang': getLang() } }).then(() => {}, () => {});
   return bootReset;
 }
 

@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import type { ChatMedia, ChatTurn } from '../../../api/types';
 import type { ChatMsg } from '../components/ChatBubble';
+import { L } from '../../../shared/lib/lang';
 
 /* ════ Los chats del Chat, CLIENT-SIDE (tanda BUSCARCHAT, 30-oct — decisión del coordinador, fiel al POC, que los guardaba
    en el navegador) ════
@@ -28,16 +29,19 @@ export const MAX_MSGS = 60;
 export const RESUME_MS = 30 * 60 * 1000;
 /** El fail-closed de siempre: el turno no se pudo revisar. */
 export const FAIL_CLOSED = 'No puedo revisar esto ahora mismo. Probemos de nuevo en un ratito 🙂';
+/** El fail-closed en el idioma actual (función: una constante con L() se congelaría al importar). En castellano es FAIL_CLOSED. */
+export const failClosed = () => L(FAIL_CLOSED, 'I can’t check this right now. Let’s try again in a bit 🙂');
 const KEY = (uid: string) => `innerith.chat.v1.${uid}`;
 const EMPTY: ChatStore = { convs: [] };
 
 /** Título de un chat a partir del primer mensaje (sin costo de LLM): las primeras 7 palabras, hasta 42 letras + «…». */
 export function deriveChatTitle(text: string): string {
   const words = text.replace(/\s+/g, ' ').trim().split(' ').slice(0, 7).join(' ');
-  return (words.length > 42 ? words.slice(0, 42).trim() + '…' : words) || 'Nuevo chat';
+  return (words.length > 42 ? words.slice(0, 42).trim() + '…' : words) || L('Nuevo chat', 'New chat');
 }
 
-/** El grupo del historial por día calendario local: Hoy / Ayer / Esta semana (hasta 7 días) / Antes. */
+/** El grupo del historial por día calendario local: Hoy / Ayer / Esta semana (hasta 7 días) / Antes. Son CLAVES (en
+ *  castellano): la etiqueta en inglés la pone ChatHistory al dibujar. */
 export function dayGroup(ts: number, now = Date.now()): 'Hoy' | 'Ayer' | 'Esta semana' | 'Antes' {
   const day = (t: number) => { const d = new Date(t); return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); };
   const diff = Math.round((day(now) - day(ts)) / 864e5);
@@ -66,7 +70,7 @@ function cleanMsg(v: unknown): ChatMsg | null {
   if (v.role === 'kid') return { id: v.id, role: 'kid', text: v.text };
   if (v.role !== 'ai') return null;
   // una respuesta que quedó a medio camino (F5 durante el turno) = no se pudo revisar: el fail-closed de siempre
-  if (v.pending) return { id: v.id, role: 'ai', text: FAIL_CLOSED };
+  if (v.pending) return { id: v.id, role: 'ai', text: failClosed() };
   const media = cleanMedia(v.media);
   return media ? { id: v.id, role: 'ai', text: v.text, media } : { id: v.id, role: 'ai', text: v.text };
 }

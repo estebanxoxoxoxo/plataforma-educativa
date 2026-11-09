@@ -22,6 +22,7 @@ import { WalletHero } from '../components/WalletHero';
 import { WardrobeSection } from '../components/WardrobeSection';
 import { WishlistView } from '../components/WishlistView';
 import { byPrice, wishedItems } from '../lib/format';
+import { L } from '../../../shared/lib/lang';
 
 type StoreData = {
   items: MarketItem[];
@@ -217,12 +218,12 @@ export function StorePage() {
         setFresh(r.redemption.id);
         setSheet({ item, phase: 'done', ec: r.ec });
       } else {
-        setSheet({ item, phase: 'error', message: r.error || 'No se pudo canjear. Probá de nuevo en un ratito.' });
+        setSheet({ item, phase: 'error', message: r.error || L('No se pudo canjear. Probá de nuevo en un ratito.', 'Couldn’t redeem it. Try again in a little bit.') });
       }
     } catch (e) {
       if (!alive.current) return;
       const gone = e instanceof ApiError && e.status === 404;
-      setSheet({ item, phase: 'error', message: gone ? 'Ese premio ya no está en la Tienda.' : 'No pude canjear ahora. Fijate en “Tus canjes” y probá de nuevo en un ratito.' });
+      setSheet({ item, phase: 'error', message: gone ? L('Ese premio ya no está en la Tienda.', 'That prize isn’t in the Store anymore.') : L('No pude canjear ahora. Fijate en “Tus canjes” y probá de nuevo en un ratito.', 'I couldn’t redeem it right now. Check “Your redemptions” and try again in a little bit.') });
     } finally {
       busy.current = false;
     }
@@ -245,11 +246,11 @@ export function StorePage() {
       const r = await api.redeem(item.id);
       if (!alive.current) return;
       setData((d) => (d ? { ...d, ec: r.ec, items: r.ok ? d.items.map((i) => (i.id === item.id ? { ...i, owned: true } : i)) : d.items } : d));
-      setBuy(r.ok ? { item, phase: 'done', ec: r.ec } : { item, phase: 'error', message: r.error || 'No se pudo comprar. Probá de nuevo en un ratito.' });
+      setBuy(r.ok ? { item, phase: 'done', ec: r.ec } : { item, phase: 'error', message: r.error || L('No se pudo comprar. Probá de nuevo en un ratito.', 'Couldn’t buy it. Try again in a little bit.') });
     } catch (e) {
       if (!alive.current) return;
       const gone = e instanceof ApiError && e.status === 404;
-      setBuy({ item, phase: 'error', message: gone ? 'Esa prenda ya no está en la Tienda.' : 'No pude comprar ahora. Fijate en “Movimientos” y probá de nuevo en un ratito.' });
+      setBuy({ item, phase: 'error', message: gone ? L('Esa prenda ya no está en la Tienda.', 'That item isn’t in the Store anymore.') : L('No pude comprar ahora. Fijate en “Movimientos” y probá de nuevo en un ratito.', 'I couldn’t buy it right now. Check “Activity” and try again in a little bit.') });
     } finally {
       busy.current = false;
     }
@@ -262,7 +263,7 @@ export function StorePage() {
     if (!look) { openAvatarPicker(item.accessoryId); return; }
     setWearing(item.accessoryId);
     try { await saveMyLook({ ...look, accessory: item.accessoryId }); }
-    catch { if (alive.current) showToast('No pude ponértela ahora. Probá de nuevo en un ratito.'); }
+    catch { if (alive.current) showToast(L('No pude ponértela ahora. Probá de nuevo en un ratito.', 'I couldn’t put it on you right now. Try again in a little bit.')); }
     finally { if (alive.current) setWearing(null); }
   };
   const wearFromSheet = () => {
@@ -298,12 +299,12 @@ export function StorePage() {
       } else {
         // Elegir otro amigo sirve si ESTE ya la tenía; si no alcanza el saldo, no (ningún amigo lo arregla).
         const short = typeof r.ec === 'number' && r.ec < item.price;
-        setGift({ item, phase: 'error', message: r.error || 'No se pudo regalar. Probá de nuevo en un ratito.', friendId, retry: !short });
+        setGift({ item, phase: 'error', message: r.error || L('No se pudo regalar. Probá de nuevo en un ratito.', 'Couldn’t send the gift. Try again in a little bit.'), friendId, retry: !short });
       }
     } catch (e) {
       if (!alive.current) return;
       const st = e instanceof ApiError ? e.status : 0;
-      const message = st === 404 ? 'Ese amigo ya no está en tu lista.' : st === 403 ? 'Ahora no se pueden hacer regalos.' : 'No pude regalarlo ahora. Fijate en “Movimientos” y probá de nuevo en un ratito.';
+      const message = st === 404 ? L('Ese amigo ya no está en tu lista.', 'That friend isn’t on your list anymore.') : st === 403 ? L('Ahora no se pueden hacer regalos.', 'Gifts aren’t available right now.') : L('No pude regalarlo ahora. Fijate en “Movimientos” y probá de nuevo en un ratito.', 'I couldn’t send the gift right now. Check “Activity” and try again in a little bit.');
       setGift({ item, phase: 'error', message, friendId, retry: st === 404 });
       if (st === 404) loadFriends();
     } finally {
@@ -349,14 +350,14 @@ export function StorePage() {
           /* Ícono + título, sin subtítulo, como Calendario y Aprender (pedido de Esteban, 30-oct). */
           <header className="st-head">
             <span className="st-tico" aria-hidden="true"><IcNavStore /></span>
-            <h2 className="h2">Tienda</h2>
+            <h2 className="h2">{L('Tienda', 'Store')}</h2>
           </header>
         )}
 
         {failed && (
           <div className="st-fail" role="alert">
-            <p>No pude cargar la Tienda ahora. Probemos de nuevo en un ratito.</p>
-            <button type="button" className="st-btn st-btn--ghost" onClick={() => void load(true)}>Reintentar</button>
+            <p>{L('No pude cargar la Tienda ahora. Probemos de nuevo en un ratito.', 'I couldn’t load the Store right now. Let’s try again in a little bit.')}</p>
+            <button type="button" className="st-btn st-btn--ghost" onClick={() => void load(true)}>{L('Reintentar', 'Try again')}</button>
           </div>
         )}
         {!data && !failed && <StoreSkeleton />}
@@ -383,7 +384,7 @@ export function StorePage() {
             <div className="st-main">
               {/* Sin cabecera de categoría (pedido de Esteban, 30-oct: «quitá las categorías de la tienda, premios y
                   ropa con sus subtítulos»): la grilla habla sola; el nombre queda para los lectores de pantalla. */}
-              <section className="st-sec" aria-label="Premios">
+              <section className="st-sec" aria-label={L('Premios', 'Prizes')}>
                 {premios.length > 0 ? (
                   <div className="st-grid">
                     {byPrice(premios).map((it) => (
@@ -393,13 +394,13 @@ export function StorePage() {
                   </div>
                 ) : user?.kind === 'adult' ? (
                   /* U3-D1: el adulto no ve premios de los chicos; los suyos no existen. */
-                  <p className="st-empty">Los premios viven en la cuenta de cada integrante: publicalos en Familia → Premios.</p>
+                  <p className="st-empty">{L('Los premios viven en la cuenta de cada integrante: publicalos en Familia → Premios.', 'Prizes live in each member’s account: publish them in Family → Prizes.')}</p>
                 ) : famPrize ? (
                   /* con el premio de la liga de la familia a la vista, "todavía no publicaron premios" se contradecía. Sin «el de
                      arriba»: en el escritorio la tarjeta va en la columna de la derecha (30-oct). */
-                  <p className="st-empty">Todavía no hay premios para canjear con <IcCoin className="ec-coin" aria-hidden="true" />. El premio de la semana de tu familia se gana en la liga.</p>
+                  <p className="st-empty">{L('Todavía no hay premios para canjear con', 'There are no prizes to redeem with')} <IcCoin className="ec-coin" aria-hidden="true" />{L('. El premio de la semana de tu familia se gana en la liga.', ' yet. Your family’s prize of the week is won in the league.')}</p>
                 ) : (
-                  <p className="st-empty">Tu familia todavía no publicó premios. Sumá <IcCoin className="ec-coin" aria-hidden="true" /> practicando mientras tanto.</p>
+                  <p className="st-empty">{L('Tu familia todavía no publicó premios. Sumá', 'Your family hasn’t published prizes yet. Earn')} <IcCoin className="ec-coin" aria-hidden="true" /> {L('practicando mientras tanto.', 'by practicing in the meantime.')}</p>
                 )}
               </section>
 
@@ -413,7 +414,7 @@ export function StorePage() {
         )}
       </div>
 
-      {wishError && <div className="st-toast" role="status">No pude guardar tu lista de deseos. Probá de nuevo.</div>}
+      {wishError && <div className="st-toast" role="status">{L('No pude guardar tu lista de deseos. Probá de nuevo.', 'I couldn’t save your wishlist. Try again.')}</div>}
       {toast && <div className="st-toast" role="status">{toast}</div>}
       {sheet && <RedeemSheet s={sheet} ec={data?.ec ?? 0} onConfirm={() => void confirm()} onClose={closeSheet} />}
       {buy && <BuySheet s={buy} ec={data?.ec ?? 0} me={myName} canWear={!!look} onConfirm={() => void confirmBuy()} onWear={wearFromSheet} onClose={closeBuy} />}

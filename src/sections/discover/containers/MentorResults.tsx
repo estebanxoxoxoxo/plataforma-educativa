@@ -6,9 +6,11 @@ import { firstClass, forWho, mentorMatches } from '../../../shared/lib/mentors';
 import { useCycle } from '../../parent/lib/cycle';
 import { MentorCard } from '../cards/MentorCard';
 import { MentorSheet, type MentorSheetState } from '../components/MentorSheet';
+import { isEn, L } from '../../../shared/lib/lang';
 
 type Sheet = { teacherId: string; state: MentorSheetState };
-const NET_ERR = 'No se pudo completar. Revisá la conexión y probá de nuevo.';
+/** Función: una constante con L() se congelaría al importar. */
+const netErr = () => L('No se pudo completar. Revisá la conexión y probá de nuevo.', 'Couldn’t finish. Check your connection and try again.');
 
 /** Buscar → Mentores (tanda U2, docs/USUARIOS.md §6; solo el ADULTO: lo monta SearchPage con un adulto activo). Contenedor:
  *  lee el catálogo con los contratos de la familia (api.mentors, al montar y al volver el foco) y filtra LOCAL por nombre,
@@ -75,8 +77,9 @@ export function MentorResults({ q, agendar, onAgendarUsed }: {
     const m = data.mentors.find((x) => x.contracts.some((c) => c.id === id));
     const c = m?.contracts.find((x) => x.id === id);
     if (m && c?.status === 'pending') setSheet({ teacherId: m.id, state: { phase: 'agenda', contract: c, justPaid: false, busy: false, error: null } });
-    else setNote(m && c ? `Las clases de ${m.subject} con ${m.name} ${forWho(c.beneficiary, me, data.people)} ya tienen sus días.`
-      : 'Esa contratación ya no está: puede que se haya cancelado.');
+    else setNote(m && c ? L(`Las clases de ${m.subject} con ${m.name} ${forWho(c.beneficiary, me, data.people)} ya tienen sus días.`,
+      `The ${m.subject} classes with ${m.name} ${forWho(c.beneficiary, me, data.people)} already have their days.`)
+      : L('Esa contratación ya no está: puede que se haya cancelado.', 'That booking isn’t there anymore: it may have been canceled.'));
     agendarUsed.current();
   }, [agendar, data, me]);
 
@@ -110,9 +113,9 @@ export function MentorResults({ q, agendar, onAgendarUsed }: {
       await load(); // la tarjeta ya muestra el contrato (o, si se rechazó, lo que cambió mientras tanto)
       if (!alive.current) return;
       if (r.ok && r.contract) setFor(id, { phase: 'agenda', contract: r.contract, justPaid: true, busy: false, error: null });
-      else setFor(id, { phase: 'plan', busy: false, error: r.error ?? 'No se pudo contratar. Probá de nuevo.' });
+      else setFor(id, { phase: 'plan', busy: false, error: r.error ?? L('No se pudo contratar. Probá de nuevo.', 'Couldn’t hire. Try again.') });
     } catch {
-      if (alive.current) setFor(id, { phase: 'plan', busy: false, error: NET_ERR });
+      if (alive.current) setFor(id, { phase: 'plan', busy: false, error: netErr() });
     } finally {
       inflight.current = false;
     }
@@ -129,7 +132,7 @@ export function MentorResults({ q, agendar, onAgendarUsed }: {
       const r = await api.mentorSchedule(st.contract.id, slots);
       if (!r.ok || !r.contract) {
         await load(); // las horas ocupadas al día (el motivo puede ser una clase agendada en otra pestaña)
-        if (alive.current) setFor(id, { ...st, busy: false, error: r.error ?? 'No se pudieron guardar los días. Probá de nuevo.' });
+        if (alive.current) setFor(id, { ...st, busy: false, error: r.error ?? L('No se pudieron guardar los días. Probá de nuevo.', 'Couldn’t save the days. Try again.') });
         return;
       }
       const c = r.contract;
@@ -138,7 +141,7 @@ export function MentorResults({ q, agendar, onAgendarUsed }: {
       const fromCal = cal?.events.filter((e) => e.teacherId === id).sort((a, b) => a.start - b.start)[0]?.start;
       setFor(id, { phase: 'done', contract: c, first: fromCal ?? firstClass(c.slots, Date.now(), tzNow.current) });
     } catch {
-      if (alive.current) setFor(id, { ...st, busy: false, error: NET_ERR });
+      if (alive.current) setFor(id, { ...st, busy: false, error: netErr() });
     } finally {
       inflight.current = false;
     }
@@ -148,13 +151,13 @@ export function MentorResults({ q, agendar, onAgendarUsed }: {
     if (failed) {
       return (
         <div className="smn-fail" role="alert">
-          <p>No pude traer los mentores ahora mismo. Probemos de nuevo en un ratito.</p>
-          <button type="button" className="smn-btn smn-btn--ghost" onClick={() => { setFailed(false); void load(); }}>Reintentar</button>
+          <p>{L('No pude traer los mentores ahora mismo. Probemos de nuevo en un ratito.', 'I couldn’t load the mentors right now. Let’s try again in a bit.')}</p>
+          <button type="button" className="smn-btn smn-btn--ghost" onClick={() => { setFailed(false); void load(); }}>{L('Reintentar', 'Try again')}</button>
         </div>
       );
     }
     return (
-      <div className="smn" role="status" aria-label="Buscando mentores">
+      <div className="smn" role="status" aria-label={L('Buscando mentores', 'Looking for mentors')}>
         {[0, 1, 2].map((i) => <div key={i} className="smn-card sk"><span className="ph-a" /><span className="ph-b"><i /><i /><i /></span></div>)}
       </div>
     );
@@ -165,10 +168,12 @@ export function MentorResults({ q, agendar, onAgendarUsed }: {
     <>
       {note && <p className="smn-msg" role="status">{note}</p>}
       {list.length === 0 ? (
-        <p className="sempty smn-empty">No encontré mentores de “{q}”.</p>
+        <p className="sempty smn-empty">{L(`No encontré mentores de “${q}”.`, `I didn’t find mentors for “${q}”.`)}</p>
       ) : (
         <>
-          <p className="smn-count">{q ? `${list.length} ${list.length === 1 ? 'mentor' : 'mentores'} para “${q}”` : `${list.length} mentores`}</p>
+          <p className="smn-count">{isEn()
+            ? q ? `${list.length} ${list.length === 1 ? 'mentor' : 'mentors'} for “${q}”` : `${list.length} mentors`
+            : q ? `${list.length} ${list.length === 1 ? 'mentor' : 'mentores'} para “${q}”` : `${list.length} mentores`}</p>
           <ul className="smn">
             {list.map((m) => (
               <MentorCard key={m.id} m={m} me={me} people={data.people} onHire={() => open(m)} onSchedule={(c) => openAgenda(m, c)} />

@@ -17,20 +17,22 @@ import { ModeratedResults } from '../components/ModeratedResults';
 import { PeopleNote } from '../components/PeopleNote';
 import { RelatedChips } from '../components/RelatedChips';
 import {
-  ALL_TAB, KNOWN_TABS, MENTORS_TAB, PEOPLE_TAB, SEARCH_TABS, SearchBar, isContentTab, type SearchTab,
+  KNOWN_TABS, SearchBar, allTab, isContentTab, mentorsTab, peopleTab, searchTabs, type SearchTab,
 } from '../components/SearchBar';
 import { SearchState } from '../components/SearchState';
 import { WhitelistNote } from '../components/WhitelistNote';
-import { SUGGESTED_TOPICS } from '../lib/suggestions';
+import { suggestedTopics } from '../lib/suggestions';
 import { MentorResults } from './MentorResults';
 import { PeopleResults } from './PeopleResults';
+import { L } from '../../../shared/lib/lang';
 
 type TabState<T> = { res: SearchResponse<T> | null; animate: boolean };
 type Results = { [K in Tab]: TabState<SearchMap[K]> };
 /** Caché por consulta: volver a una búsqueda ya hecha no re-anima. */
 const cache = new Map<string, { [K in Tab]?: SearchResponse<SearchMap[K]> }>();
 /** Cómo se nombra cada tipo en lo visible (el vacío y los grupos de Todo). */
-const NOUN: Record<Tab, string> = { videos: 'videos', images: 'imágenes', pages: 'artículos' };
+/** (función: L() se resuelve al dibujar, no al importar) */
+const noun = (t: Tab): string => ({ videos: L('videos', 'videos'), images: L('imágenes', 'images'), pages: L('artículos', 'articles') })[t];
 const MEDIA: Record<Tab, MediaKind> = { videos: 'videos', images: 'images', pages: 'articles' };
 /** El orden de los grupos de Todo (el del POC). */
 const ALL_ORDER: Tab[] = ['videos', 'images', 'pages'];
@@ -77,7 +79,7 @@ export function SearchPage() {
   const isPeople = tab === 'people';
   const isMentors = tab === 'mentors';
   const noContent = !isContentTab(tab);
-  const tabs = [ALL_TAB, ...SEARCH_TABS, ...(peopleOn ? [PEOPLE_TAB] : []), ...(adult ? [MENTORS_TAB] : [])];
+  const tabs = [allTab(), ...searchTabs(), ...(peopleOn ? [peopleTab()] : []), ...(adult ? [mentorsTab()] : [])];
   /** La home: sin consulta y en una solapa de contenido (Personas y Mentores se abren por link, p. ej. desde Familia). */
   const home = !q && !noContent;
   const [input, setInput] = useState(q);
@@ -153,8 +155,8 @@ export function SearchPage() {
     // (como antes: vacío = el server no trajo nada; si trajo y la moderación filtró todo, se ve esa animación)
     if (res && res.items.length === 0) {
       return res.error
-        ? <SearchState kind="error" text="No pude buscar ahora mismo. Probemos de nuevo en un ratito." />
-        : <SearchState kind="empty" text={`No encontré ${NOUN[t]} de «${q}».`} q={q} onPick={pickTopic} />;
+        ? <SearchState kind="error" text={L('No pude buscar ahora mismo. Probemos de nuevo en un ratito.', 'I couldn’t search right now. Let’s try again in a bit.')} />
+        : <SearchState kind="empty" text={L(`No encontré ${noun(t)} de «${q}».`, `I didn’t find ${noun(t)} for “${q}”.`)} q={q} onPick={pickTopic} />;
     }
     const items = res?.items ?? null;
     const animate = !!cur?.animate;
@@ -178,8 +180,8 @@ export function SearchPage() {
     const shown = ALL_ORDER.filter((t) => state(t) === 'ok' || state(t) === 'loading');
     if (!shown.length) {
       if (blocks[0]) return <SearchState kind="block" text={blocks[0].text} />;
-      if (ALL_ORDER.every((t) => state(t) === 'fail')) return <SearchState kind="error" text="No pude buscar ahora mismo. Probemos de nuevo en un ratito." />;
-      return <SearchState kind="empty" text={`No encontré nada de «${q}».`} q={q} onPick={pickTopic} />;
+      if (ALL_ORDER.every((t) => state(t) === 'fail')) return <SearchState kind="error" text={L('No pude buscar ahora mismo. Probemos de nuevo en un ratito.', 'I couldn’t search right now. Let’s try again in a bit.')} />;
+      return <SearchState kind="empty" text={L(`No encontré nada de «${q}».`, `I didn’t find anything for “${q}”.`)} q={q} onPick={pickTopic} />;
     }
     return (
       <div className="sx-all">
@@ -191,9 +193,9 @@ export function SearchPage() {
     );
   }
 
-  const homeSub = peopleOn ? 'Videos, imágenes, artículos y personas.'
-    : adult ? 'Videos, imágenes, artículos y mentores.'
-      : 'Videos, imágenes y artículos de lo que te interese.';
+  const homeSub = peopleOn ? L('Videos, imágenes, artículos y personas.', 'Videos, images, articles and people.')
+    : adult ? L('Videos, imágenes, artículos y mentores.', 'Videos, images, articles and mentors.')
+      : L('Videos, imágenes y artículos de lo que te interese.', 'Videos, images and articles about whatever you’re into.');
 
   return (
     <section className={`view${home ? ' sx-is-home' : ''}`} id="v-search" ref={view}>
@@ -201,13 +203,13 @@ export function SearchPage() {
         <div className="sx-home">
           <div className="sx-home-in">
             <LnSearch className="sx-home-ic" />
-            <h2 className="sx-home-t">Buscar</h2>
+            <h2 className="sx-home-t">{L('Buscar', 'Search')}</h2>
             <p className="sx-home-sub">{homeSub}</p>
             <SearchBar value={input} onChange={setInput} onSubmit={() => submit()} autoFocus />
             <div className="sx-chips">
-              {SUGGESTED_TOPICS.map((t) => <button key={t} type="button" className="sx-chip" onClick={() => pickTopic(t)}>{t}</button>)}
+              {suggestedTopics().map((t) => <button key={t} type="button" className="sx-chip" onClick={() => pickTopic(t)}>{t}</button>)}
             </div>
-            {adult && <button type="button" className="sx-also" onClick={() => setTab('mentors')}>Ver los mentores</button>}
+            {adult && <button type="button" className="sx-also" onClick={() => setTab('mentors')}>{L('Ver los mentores', 'See the mentors')}</button>}
           </div>
         </div>
       ) : (
@@ -215,7 +217,7 @@ export function SearchPage() {
           <div className="sx-head">
             <div className="sx-col">
               <SearchBar value={input} onChange={setInput} onSubmit={() => submit()}
-                placeholder={isPeople ? 'Buscá a alguien por su nombre de usuario' : isMentors ? 'Buscá un mentor por nombre o materia' : undefined} />
+                placeholder={isPeople ? L('Buscá a alguien por su nombre de usuario', 'Find someone by their username') : isMentors ? L('Buscá un mentor por nombre o materia', 'Find a mentor by name or subject') : undefined} />
               {/* key: cuando aparecen Personas o Mentores la tinta se vuelve a medir */}
               <UnderlineTabs key={tabs.length} tabs={tabs} value={tab} onChange={setTab} className="tabs sx-tabs" tabClass="tab" inkClass="ink" />
             </div>
@@ -231,11 +233,11 @@ export function SearchPage() {
           </div>
         </>
       )}
-      {savingImg && <FolderSheet open title="¿Dónde la guardás?" cta="Guardar acá"
+      {savingImg && <FolderSheet open title={L('¿Dónde la guardás?', 'Where do you want to save it?')} cta={L('Guardar acá', 'Save here')}
         onPick={async (folderId, folderName) => {
           const r = await api.saveItem({ folderId, image: { url: savingImg.img, caption: savingImg.caption, source: savingImg.source.name } }).catch(() => null);
-          if (!r) return { error: 'No se pudo guardar ahora.' };
-          return { done: r.existed ? `Ya estaba en ${folderName}` : `Guardada en ${folderName}` };
+          if (!r) return { error: L('No se pudo guardar ahora.', 'Couldn’t save it right now.') };
+          return { done: r.existed ? L(`Ya estaba en ${folderName}`, `Already in ${folderName}`) : L(`Guardada en ${folderName}`, `Saved to ${folderName}`) };
         }} onClose={() => setSavingImg(null)} />}
     </section>
   );

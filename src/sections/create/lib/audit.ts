@@ -1,4 +1,5 @@
 import type { AuditResult, FactInv } from './routeDraft';
+import { L } from '../../../shared/lib/lang';
 
 /* Auditoría de veracidad de un fact desde /crear → POST /api/create/audit (NUESTRO server corre el factAudit del POC: las
    claves de OpenAI/Serper jamás llegan al navegador). Formas ADITIVAS (el coordinador las formaliza en types.ts al cierre);
@@ -21,5 +22,5 @@ export const auditRequestFor = (f: FactInv): AuditFactRequest => ({
 export function auditResultOf(res: unknown): AuditResult {
   const r = res as Partial<{ ok: boolean; result: AuditResult; error: string }> | null;
   if (r?.ok && r.result) return r.result;
-  throw new Error(r?.error || 'El auditor no devolvió un veredicto.');
+  throw new Error(r?.error || L('El auditor no devolvió un veredicto.', "The auditor didn't return a verdict."));
 }

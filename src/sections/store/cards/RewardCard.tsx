@@ -4,6 +4,7 @@ import { IcCoin } from '../../../shared/components/icons';
 import { Faltan } from '../components/CoinBits';
 import { Heart } from '../components/Heart';
 import { fmtEc, isSoldOut, missingFor, pctOf, sourceText, stockText, tintFor } from '../lib/format';
+import { L } from '../../../shared/lib/lang';
 
 /** Premio de la Tienda: emoji grande, de quién es, precio en ⚡, stock si es finito, el corazón de la
  *  lista de deseos y el botón de canje — o por qué todavía no se puede (te faltan N ⚡ / agotado).
@@ -26,13 +27,13 @@ export function RewardCard({ item, ec, wished, progress = false, onRedeem, onWis
     <article className={`st-card${out ? ' is-out' : ''}`} data-item={item.id} tabIndex={-1} aria-labelledby={`st-item-${item.id}`}>
       <div className="st-art" style={{ '--tint': tintFor(item.id) } as CSSProperties}>
         <span className="st-emoji" aria-hidden="true">{item.emoji}</span>
-        {out && <span className="st-badge-out">Agotado</span>}
+        {out && <span className="st-badge-out">{L('Agotado', 'Sold out')}</span>}
         <button
           type="button"
           className={`st-heart${wished ? ' is-on' : ''}${pop ? ' is-pop' : ''}`}
           aria-pressed={wished}
-          aria-label={`Lista de deseos: ${item.title}`}
-          title={wished ? 'Sacar de tu lista de deseos' : 'Agregar a tu lista de deseos'}
+          aria-label={L(`Lista de deseos: ${item.title}`, `Wishlist: ${item.title}`)}
+          title={wished ? L('Sacar de tu lista de deseos', 'Remove from your wishlist') : L('Agregar a tu lista de deseos', 'Add to your wishlist')}
           onClick={(e) => { e.stopPropagation(); setPop(!wished); onWish(); }}
           onAnimationEnd={() => setPop(false)}
         >
@@ -51,17 +52,17 @@ export function RewardCard({ item, ec, wished, progress = false, onRedeem, onWis
       {progress && (
         <div className={`st-prog${out ? ' is-out' : missing === 0 ? ' is-ok' : ''}`}>
           <span className="st-prog-bar" aria-hidden="true"><i style={{ width: `${out ? 0 : pct}%` }} /></span>
-          <span className="st-prog-m">{out ? 'Agotado' : missing === 0 ? '¡Ya te alcanza!' : <Faltan n={missing} />}</span>
+          <span className="st-prog-m">{out ? L('Agotado', 'Sold out') : missing === 0 ? L('¡Ya te alcanza!', 'You have enough!') : <Faltan n={missing} />}</span>
         </div>
       )}
       {out ? (
-        <button type="button" className="st-btn" disabled>Agotado</button>
+        <button type="button" className="st-btn" disabled>{L('Agotado', 'Sold out')}</button>
       ) : missing > 0 ? (
         progress
-          ? <button type="button" className="st-btn" disabled>Canjear</button>
+          ? <button type="button" className="st-btn" disabled>{L('Canjear', 'Redeem')}</button>
           : <button type="button" className="st-btn is-short" disabled style={{ '--pct': `${Math.max(6, pct)}%` } as CSSProperties}><Faltan n={missing} /></button>
       ) : (
-        <button type="button" className="st-btn" onClick={(e) => onRedeem(e.currentTarget)}>Canjear</button>
+        <button type="button" className="st-btn" onClick={(e) => onRedeem(e.currentTarget)}>{L('Canjear', 'Redeem')}</button>
       )}
     </article>
   );

@@ -1,10 +1,11 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useVeil } from '../../store/lib/sheet';
+import { L } from '../../../shared/lib/lang';
 
 /** Confirmación de /crear (patrón global .shov/.shcard): el confirm() del POC con el sistema visual de Smarty. Muestra el
  *  MISMO texto y devuelve sí/no; la acción sigue solo con "sí". Teclado: Esc = no, Tab queda adentro. En lo destructivo
  *  (borrar la ruta) el foco arranca en "Cancelar". Pura: la respuesta la resuelve el contenedor. */
-export function ConfirmSheet({ text, confirmLabel = 'Aceptar', danger = false, onAnswer }: {
+export function ConfirmSheet({ text, confirmLabel = L('Aceptar', 'OK'), danger = false, onAnswer }: {
   text: string;
   confirmLabel?: string;
   danger?: boolean;
@@ -40,7 +41,7 @@ export function ConfirmSheet({ text, confirmLabel = 'Aceptar', danger = false, o
       <div className={`shcard cr-cf${danger ? ' is-danger' : ''}`} ref={card} tabIndex={-1} role="alertdialog" aria-modal="true" aria-describedby="cr-cf-t">
         <p className="cr-cf-t" id="cr-cf-t">{text}</p>
         <div className="cr-cf-btns">
-          <button type="button" className="cr-btn cr-btn--ghost" data-autofocus={danger ? true : undefined} onClick={() => onAnswer(false)}>Cancelar</button>
+          <button type="button" className="cr-btn cr-btn--ghost" data-autofocus={danger ? true : undefined} onClick={() => onAnswer(false)}>{L('Cancelar', 'Cancel')}</button>
           <button type="button" className={`cr-btn${danger ? ' cr-btn--danger' : ''}`} data-autofocus={danger ? undefined : true} onClick={() => onAnswer(true)}>
             {confirmLabel}
           </button>

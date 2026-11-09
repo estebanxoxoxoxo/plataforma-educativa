@@ -1,4 +1,5 @@
 import type { MtChannelCard } from '../../../api/types';
+import { L } from '../../../shared/lib/lang';
 
 /** Tarjeta de un canal seguido (MyTube.tsx del POC): avatar, título y "N videos". Sin botón de seguir: se sigue y se deja
  *  de seguir adentro del canal o desde el reproductor. El número va tal cual (también "1 videos", como el POC).
@@ -18,7 +19,7 @@ export function ChannelCard({ c, onOpen, counting = false }: { c: MtChannelCard;
       </span>
       <span className="mt-cbody">
         <b>{c.title}</b>
-        {counting ? <small aria-label="Contando videos">… videos</small> : <small>{c.videos} videos</small>}
+        {counting ? <small aria-label={L('Contando videos', 'Counting videos')}>… videos</small> : <small>{c.videos} videos</small>}
       </span>
     </button>
   );

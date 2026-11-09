@@ -12,6 +12,7 @@ import { parentCall } from '../lib/adultGate';
 import { famTo } from '../lib/member';
 import { forgetCounts } from '../lib/mtCounts';
 import { removeText, useEntryOps } from '../lib/mytubeAdmin';
+import { L } from '../../../shared/lib/lang';
 
 const FIRST = 40; // como el MyTube del chico: 40…
 const MORE = 60; // …y «Ver más» de a 60
@@ -115,35 +116,35 @@ export function FamilyChannelPanel({ member }: { member: string }) {
     setDescSt(r?.ok ? 'saved' : 'error');
   };
 
-  const play = (v: MtVideo) => go(videoPath(v.videoId), { state: { backTo: loc.pathname + loc.search, backLabel: '‹ Canal' } });
+  const play = (v: MtVideo) => go(videoPath(v.videoId), { state: { backTo: loc.pathname + loc.search, backLabel: L('‹ Canal', '‹ Channel') } });
   const back = famTo('/familia/mytube', member);
-  const title = detail?.channel?.title ?? 'Canal';
+  const title = detail?.channel?.title ?? L('Canal', 'Channel');
 
   return (
     <div className="pz-mt-ch">
-      <Link className="back" to={back}>‹ Mis videos</Link>
+      <Link className="back" to={back}>{L('‹ Mis videos', '‹ My videos')}</Link>
       {failed ? <section className="pz-panel"><PanelState failed onRetry={() => setRound((n) => n + 1)} /></section> : !detail ? <PanelState failed={false} onRetry={() => {}} /> : !detail.channel ? (
-        <p className="mt-empty">Este canal ya no tiene videos aprobados en Smarty.</p>
+        <p className="mt-empty">{L('Este canal ya no tiene videos aprobados en Smarty.', 'This channel no longer has approved videos in Smarty.')}</p>
       ) : (
         <>
           <ChannelHeader channel={{ ...detail.channel, desc: undefined }} followed={false} descOpen={false} onToggleDesc={() => {}} />
 
           <section className="pz-panel" aria-labelledby="pz-mt-ch-h">
             <header className="pz-panel-head">
-              <h3 id="pz-mt-ch-h">Cómo lo ve tu familia <span className="pz-mem-fam">Vale para toda la familia</span></h3>
-              <p>La descripción que acompaña a «{title}» en Mis videos de cada integrante. Se generó automática (limpia + resumen IA) al ingerir o la primera vez que alguien abrió el canal; ajustala como quieras.</p>
+              <h3 id="pz-mt-ch-h">{L('Cómo lo ve tu familia', 'How your family sees it')} <span className="pz-mem-fam">{L('Vale para toda la familia', 'For the whole family')}</span></h3>
+              <p>{L(`La descripción que acompaña a «${title}» en Mis videos de cada integrante. Se generó automática (limpia + resumen IA) al ingerir o la primera vez que alguien abrió el canal; ajustala como quieras.`, `The description shown with “${title}” in each member’s My videos. It was generated automatically (cleaned up + AI summary) on import or the first time someone opened the channel; adjust it however you like.`)}</p>
             </header>
-            <textarea className="pz-input pz-yt-desc" rows={3} value={desc.text} aria-label={`Descripción de ${title}`}
-              placeholder={detail.pending ? 'Preparando la descripción del canal…' : 'Sin descripción'}
+            <textarea className="pz-input pz-yt-desc" rows={3} value={desc.text} aria-label={L(`Descripción de ${title}`, `Description of ${title}`)}
+              placeholder={detail.pending ? L('Preparando la descripción del canal…', 'Preparing the channel description…') : L('Sin descripción', 'No description')}
               onChange={(e) => { setDesc({ text: e.target.value, touched: true }); setDescSt(null); }} />
             <div className="pz-yt-row">
-              <button type="button" className="pz-btn pz-btn--sm" disabled={descBusy} onClick={() => void saveDesc()}>{descBusy ? 'Guardando…' : 'Guardar descripción'}</button>
-              {descSt === 'saved' && <span className="pz-yt-ok" role="status">✓ Guardada: es la que ve tu familia.</span>}
-              {descSt === 'error' && <span className="pz-yt-err" role="alert">No se pudo guardar. Probá de nuevo.</span>}
+              <button type="button" className="pz-btn pz-btn--sm" disabled={descBusy} onClick={() => void saveDesc()}>{descBusy ? L('Guardando…', 'Saving…') : L('Guardar descripción', 'Save description')}</button>
+              {descSt === 'saved' && <span className="pz-yt-ok" role="status">{L('✓ Guardada: es la que ve tu familia.', '✓ Saved: it’s the one your family sees.')}</span>}
+              {descSt === 'error' && <span className="pz-yt-err" role="alert">{L('No se pudo guardar. Probá de nuevo.', 'Couldn’t save. Try again.')}</span>}
             </div>
             {entries && entries.length > 0 && (
               <div className="pz-block">
-                <h4 className="pz-block-h">Lo que sumó tu familia de este canal <span className="pz-block-n">{entries.length}</span></h4>
+                <h4 className="pz-block-h">{L('Lo que sumó tu familia de este canal', 'What your family added from this channel')} <span className="pz-block-n">{entries.length}</span></h4>
                 <MtEntryList entries={entries} reingId={ops.reingId} removing={ops.removing} locked={ops.locked}
                   onReingest={(e) => void ops.reingest(e)} onRemove={ops.ask} />
               </div>
@@ -152,15 +153,15 @@ export function FamilyChannelPanel({ member }: { member: string }) {
           </section>
 
           <section className="pz-mt-vids" aria-labelledby="pz-mt-v-h">
-            <h4 className="pz-block-h" id="pz-mt-v-h">Videos <span className="pz-block-n">{total}</span></h4>
-            {vFailed ? <p className="mt-empty">No pude cargar los videos ahora.</p>
+            <h4 className="pz-block-h" id="pz-mt-v-h">{L('Videos', 'Videos')} <span className="pz-block-n">{total}</span></h4>
+            {vFailed ? <p className="mt-empty">{L('No pude cargar los videos ahora.', 'I couldn’t load the videos right now.')}</p>
               : !vids ? <VideoListSkeleton />
                 : total > 0 ? <VideoList videos={vids.slice(0, limit)} remaining={total - limit} busy={more} onMore={() => void showMore()} onPlay={play} />
-                  : <p className="mt-empty">Todavía no hay videos aprobados de este canal.</p>}
+                  : <p className="mt-empty">{L('Todavía no hay videos aprobados de este canal.', 'There are no approved videos from this channel yet.')}</p>}
           </section>
         </>
       )}
-      {ops.askDel && <ConfirmSheet text={removeText(ops.askDel)} confirmLabel="Eliminar" danger onAnswer={ops.answer} />}
+      {ops.askDel && <ConfirmSheet text={removeText(ops.askDel)} confirmLabel={L('Eliminar', 'Remove')} danger onAnswer={ops.answer} />}
     </div>
   );
 }

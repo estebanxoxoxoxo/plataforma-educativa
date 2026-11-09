@@ -17,6 +17,7 @@ import { LEARN_CATEGORIES, progressByTarget, routeProgress, type LearnRoute } fr
 import { loadLearn, useLearnData } from '../lib/learnData';
 import { ActivityOverlay } from './ActivityOverlay';
 import { RouteView } from './RouteView';
+import { isEn, L } from '../../../shared/lib/lang';
 
 /* Sección "Aprender" (Learn) — BETA, gateada por settings.learnActivo.
    Grilla de Rutas (cards) AGRUPADA por categoría + entrada raíz "Active recall" (repaso
@@ -34,7 +35,14 @@ import { RouteView } from './RouteView';
    el botón raíz espera la HIDRATACIÓN del motor antes de decidir si aparece (trampa 16: en el POC, en frío, podía no
    aparecer). */
 
-const UNCATEGORIZED = 'Sin categoría';
+const UNCATEGORIZED = 'Sin categoría'; // clave interna del grupo; el rótulo visible se traduce al dibujar
+
+/** Ordinal en inglés (1st, 2nd, 3rd, 11th…) para la tabla de la liga. */
+const ordinalEn = (n: number) => {
+  const t = n % 100;
+  const s = t >= 11 && t <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[n % 10] ?? 'th';
+  return `${n}${s}`;
+};
 
 // El SceneDirector de Learn manda sobre la música de fondo del chico (el MiniPlayer real).
 bindLearnBgAudio();
@@ -112,12 +120,12 @@ export function LearnPage() {
         {/* Ícono + título, sin subtítulo, como Calendario (pedido de Esteban, 30-oct). */}
         <div className="lp-title">
           <span className="lp-tico" aria-hidden="true"><IcNavLearn /></span>
-          <h2 className="h2">Aprender</h2>
+          <h2 className="h2">{L('Aprender', 'Learn')}</h2>
         </div>
         {/* Crear vive DENTRO de Aprender (pedido 12-oct): botón a la altura del título, va a /crear. «+ Crear» con el azul
             de Active recall (pedido de Esteban, 30-oct): el + dice «hacé una ruta nueva» mejor que el ícono del menú. */}
         <button className="lp-create" onClick={() => go('/crear')}>
-          <IcPlus />Crear
+          <IcPlus />{L('Crear', 'Create')}
         </button>
       </div>
 
@@ -140,8 +148,8 @@ export function LearnPage() {
       {!routes ? (
         failed ? (
           <div className="ln-fail">
-            <p>No pude traer tus rutas. Probá de nuevo en un ratito.</p>
-            <button type="button" className="ln-btn ln-btn-quiet" onClick={() => void loadLearn()}>Reintentar</button>
+            <p>{L('No pude traer tus rutas. Probá de nuevo en un ratito.', "I couldn't load your routes. Try again in a bit.")}</p>
+            <button type="button" className="ln-btn ln-btn-quiet" onClick={() => void loadLearn()}>{L('Reintentar', 'Retry')}</button>
           </div>
         ) : (
           <div className="ln-grid">{Array.from({ length: 4 }, (_, i) => <RouteCardSkeleton key={i} />)}</div>
@@ -152,7 +160,7 @@ export function LearnPage() {
         groups.map(({ cat, routes: rs }) => (
           <section key={cat} className="ln-cat">
             <h3 className="ln-cat-h">
-              {cat} <span>· {rs.length}</span>
+              {cat === UNCATEGORIZED ? L('Sin categoría', 'Uncategorized') : cat} <span>· {rs.length}</span>
             </h3>
             <div className="ln-grid">{rs.map(card)}</div>
           </section>
@@ -200,7 +208,7 @@ function useLeagueBoard(): LeagueBoard | null {
 function LearnLeagueCard({ board }: { board: LeagueBoard }) {
   const { l, rows } = board;
   return (
-    <Link className="lp-league" to="/ligas" aria-label={`${l.name}: puesto ${l.pos} de ${l.total}. Ver las ligas`}>
+    <Link className="lp-league" to="/ligas" aria-label={L(`${l.name}: puesto ${l.pos} de ${l.total}. Ver las ligas`, `${l.name}: place ${l.pos} of ${l.total}. See the leagues`)}>
       <span className="lp-lg-head">
         <LeagueIcon color={l.color} />
         {/* Sin subtítulo (pedido de Esteban, 30-oct): el nombre solo; el puesto ya se ve en la tabla («Vos»). */}
@@ -212,14 +220,14 @@ function LearnLeagueCard({ board }: { board: LeagueBoard }) {
         <span className="lp-lg-rows">
           {rows.map((r) => (
             <span key={r.pos} className={`lp-lg-row${r.me ? ' is-me' : ''}`}>
-              <b>{r.pos}º</b>
-              <span className="lp-lg-nick">{r.me ? 'Vos' : r.nick}</span>
-              <small>{r.xp.toLocaleString('es-AR')} XP</small>
+              <b>{isEn() ? ordinalEn(r.pos) : `${r.pos}º`}</b>
+              <span className="lp-lg-nick">{r.me ? L('Vos', 'You') : r.nick}</span>
+              <small>{r.xp.toLocaleString(isEn() ? 'en-US' : 'es-AR')} XP</small>
             </span>
           ))}
         </span>
       )}
-      <span className="lp-lg-cta">Ver las ligas ▸</span>
+      <span className="lp-lg-cta">{L('Ver las ligas ▸', 'See the leagues ▸')}</span>
     </Link>
   );
 }

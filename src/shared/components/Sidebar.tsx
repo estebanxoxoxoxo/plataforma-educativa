@@ -9,6 +9,7 @@ import { featureAllows, useFeatures } from '../../sections/parent/lib/features';
 import { cycleAllows, useCycle } from '../../sections/parent/lib/cycle';
 import { BrandMark } from './BrandMark';
 import { ProfileCard } from './ProfileCard';
+import { L, isEn } from '../lib/lang';
 import {
   IcCoin, IcNavChat, IcNavFamily, IcNavMoon, IcNavMyTube, IcNavLearn,
   IcNavNews, IcNavSearch, IcNavSpace, IcNavStore,
@@ -21,11 +22,12 @@ function IcNavCalLeaf() {
   const tz = useCycle().tz;
   const d = new Date();
   let w: string, day: string;
+  const loc = isEn() ? 'en-US' : 'es-AR'; // i18n: «mié» / «Wed»
   try {
-    w = d.toLocaleDateString('es-AR', { weekday: 'short', timeZone: tz || undefined });
-    day = d.toLocaleDateString('es-AR', { day: 'numeric', timeZone: tz || undefined });
+    w = d.toLocaleDateString(loc, { weekday: 'short', timeZone: tz || undefined });
+    day = d.toLocaleDateString(loc, { day: 'numeric', timeZone: tz || undefined });
   } catch {
-    w = d.toLocaleDateString('es-AR', { weekday: 'short' });
+    w = d.toLocaleDateString(loc, { weekday: 'short' });
     day = String(d.getDate());
   }
   return <span className="nav-cal" aria-hidden="true"><small>{w.replace('.', '')}</small><b>{day}</b></span>;
@@ -39,29 +41,31 @@ export const NAV_ID = 'app-nav';
 // Calendario · Aprender · Tienda. After Day no lo nombró: decisión del coordinador = al fondo (después de Tienda, antes de
 // Familia), coherente con su tema «después del día». Familia sigue ABAJO DE TODO (solo adulto).
 // El orden de la barra inferior del teléfono sale de acá (BottomNav: MENU_ORDER = NAV); activeFrom no depende del orden.
+// i18n: `label` es un GETTER (se lee en el idioma actual cada vez; NAV es constante de módulo y la identidad de cada ítem
+// importa: Sidebar compara con items.includes(n)).
 export const NAV: readonly NavItem[] = [
   // Feed, de vuelta como punto de menú (30-oct, fue y volvió en la misma noche) y con ícono de NOTICIA (el diario).
-  { sec: 'home', label: 'Feed', to: '/', Icon: IcNavNews },
-  { sec: 'search', label: 'Buscar', to: '/buscar', Icon: IcNavSearch },
+  { sec: 'home', get label() { return L('Feed', 'Feed'); }, to: '/', Icon: IcNavNews },
+  { sec: 'search', get label() { return L('Buscar', 'Search'); }, to: '/buscar', Icon: IcNavSearch },
   // El chat es otra puerta para encontrar cosas, conversando. Sin submenús.
-  { sec: 'chat', label: 'Chat', to: '/chat', Icon: IcNavChat },
+  { sec: 'chat', get label() { return L('Chat', 'Chat'); }, to: '/chat', Icon: IcNavChat },
   // «Mis videos» (pedido de Esteban, 30-oct): el label visible del punto MyTube; sec 'mytube' y la ruta /mytube no cambian.
-  { sec: 'mytube', label: 'Mis videos', to: '/mytube', Icon: IcNavMyTube },
+  { sec: 'mytube', get label() { return L('Mis videos', 'My videos'); }, to: '/mytube', Icon: IcNavMyTube },
   // Mi espacio va directo a sus carpetas (sin submenú, pedido 12-oct).
-  { sec: 'space', label: 'Mi espacio', to: '/espacio/carpetas', Icon: IcNavSpace },
+  { sec: 'space', get label() { return L('Mi espacio', 'My space'); }, to: '/espacio/carpetas', Icon: IcNavSpace },
   // Calendario: las clases del usuario activo con sus mentores (los contrata el adulto en Buscar → Mentores).
   // Su ícono es el almanaque vivo estilo Apple con el día de HOY (IcNavCalLeaf, pedido 30-oct).
-  { sec: 'calendar', label: 'Calendario', to: '/calendario', Icon: IcNavCalLeaf },
+  { sec: 'calendar', get label() { return L('Calendario', 'Calendar'); }, to: '/calendario', Icon: IcNavCalLeaf },
   // Aprender = Learn (W3 del porte: aprender+practicar COLAPSADOS). Practicar y Repasar ya salieron del menú
   // (decisiones 12-oct): sus rutas redirigen a /aprender.
-  { sec: 'learn', label: 'Aprender', to: '/aprender', Icon: IcNavLearn },
+  { sec: 'learn', get label() { return L('Aprender', 'Learn'); }, to: '/aprender', Icon: IcNavLearn },
   // Tienda: a la derecha de su etiqueta, los Energy Coins (30-oct: se mudaron de la barra superior, que ya no existe).
-  { sec: 'store', label: 'Tienda', to: '/tienda', Icon: IcNavStore },
+  { sec: 'store', get label() { return L('Tienda', 'Store'); }, to: '/tienda', Icon: IcNavStore },
   // After Day: el audio/video de fondo curado por el padre (al fondo: decisión del coordinador, 30-oct).
   { sec: 'afterday', label: 'After Day', to: '/afterday', Icon: IcNavMoon },
   // Familia (línea 14-oct, docs/USUARIOS.md §5): el punto de menú propio del ADULTO, ABAJO DE TODO — la ex Zona de
   // padres, sin portón: ahí configura lo de sus dependientes. El chico no lo ve.
-  { sec: 'family', label: 'Familia', to: '/familia', Icon: IcNavFamily, adultOnly: true },
+  { sec: 'family', get label() { return L('Familia', 'Family'); }, to: '/familia', Icon: IcNavFamily, adultOnly: true },
 ];
 
 /** La sección del menú que marca la ruta (la usan la barra lateral y la inferior). */
@@ -196,8 +200,10 @@ export function Sidebar({ user, covered = false }: { user?: User; /** tapada por
     // y los coins tampoco (shell.css); el title/aria-label los dice igual.
     const coins = n.sec === 'store' && ec !== null ? ec : null;
     const hl = highlights[n.sec] ?? 0;
-    const name = (coins === null ? n.label : `${n.label}, tenés ${coins.toLocaleString('es-AR')} ${coins === 1 ? 'Energy Coin' : 'Energy Coins'}`)
-      + (hl > 0 ? `, ${hl} ${hl === 1 ? 'destacado' : 'destacados'}` : '');
+    const loc = isEn() ? 'en-US' : 'es-AR';
+    const name = (coins === null ? n.label : L(`${n.label}, tenés ${coins.toLocaleString(loc)} ${coins === 1 ? 'Energy Coin' : 'Energy Coins'}`,
+      `${n.label}, you have ${coins.toLocaleString(loc)} ${coins === 1 ? 'Energy Coin' : 'Energy Coins'}`))
+      + (hl > 0 ? L(`, ${hl} ${hl === 1 ? 'destacado' : 'destacados'}`, `, ${hl} ${hl === 1 ? 'highlight' : 'highlights'}`) : '');
     return (
       <button key={n.sec} className={`nav-item${on ? ' on' : ''}`} data-sec={n.sec} aria-current={on ? 'page' : undefined}
         title={name} aria-label={name} onClick={() => go(n.to)}>
@@ -205,7 +211,7 @@ export function Sidebar({ user, covered = false }: { user?: User; /** tapada por
         <n.Icon /><span>{n.label}</span>
         {coins !== null && (
           /* la MONEDA dorada con el rayo (IcCoin, 30-oct), la misma de la billetera y los precios de la Tienda */
-          <span className="nav-ec" aria-hidden="true"><IcCoin className="nav-bolt" />{coins.toLocaleString('es-AR')}</span>
+          <span className="nav-ec" aria-hidden="true"><IcCoin className="nav-bolt" />{coins.toLocaleString(loc)}</span>
         )}
         {/* el circulito de destacados (30-oct): cuántos ítems esperan en el menú contextual de la sección */}
         {hl > 0 && <span className="nav-hl" aria-hidden="true">{hl > 9 ? '9+' : hl}</span>}
@@ -216,7 +222,7 @@ export function Sidebar({ user, covered = false }: { user?: User; /** tapada por
   return (
     <aside className="side" id={NAV_ID} inert={covered} aria-hidden={covered || undefined}>
       <button className="brand" onClick={() => go('/')}><BrandMark />Smarty</button>
-      <nav aria-label="Secciones">
+      <nav aria-label={L('Secciones', 'Sections')}>
         {NAV.map((n) => (
           <div key={n.sec} className="nav-slot">
             {item(n)}

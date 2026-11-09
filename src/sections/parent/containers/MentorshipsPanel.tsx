@@ -7,8 +7,10 @@ import { calendarOf, forWho, usd, weeklyPrice } from '../../../shared/lib/mentor
 import { MentorshipRow } from '../cards/MentorshipRow';
 import { PanelState } from '../components/PanelState';
 import { parentCall, rejectedReason } from '../lib/adultGate';
+import { L } from '../../../shared/lib/lang';
 
-const NET_ERR = 'No se pudo completar. Revisá la conexión y probá de nuevo.';
+/** i18n: función (no constante de módulo) para que L() resuelva con el idioma actual. */
+const NET_ERR = () => L('No se pudo completar. Revisá la conexión y probá de nuevo.', 'Couldn’t complete it. Check your connection and try again.');
 
 /** "Mentorías" (tanda U2, docs/USUARIOS.md §5; la ex pantalla Profesores): YA NO es el marketplace — los mentores se buscan
  *  y se contratan en Buscar → Mentores. Acá el adulto administra lo contratado, para él y para sus dependientes: una fila
@@ -73,15 +75,15 @@ export function MentorshipsPanel() {
       if (r.ok) {
         const people = data?.people ?? {};
         setNotice(c.status === 'active'
-          ? `Listo: se cancelaron las clases de ${m.subject} con ${m.name} ${forWho(c.beneficiary, me, people)}. Ya no están en ${calendarOf(c.beneficiary, me, people)}.`
-          : `Listo: se canceló ${m.subject} con ${m.name} ${forWho(c.beneficiary, me, people)}.`);
+          ? L(`Listo: se cancelaron las clases de ${m.subject} con ${m.name} ${forWho(c.beneficiary, me, people)}. Ya no están en ${calendarOf(c.beneficiary, me, people)}.`, `Done: the ${m.subject} classes with ${m.name} ${forWho(c.beneficiary, me, people)} were canceled. They’re no longer in ${calendarOf(c.beneficiary, me, people)}.`)
+          : L(`Listo: se canceló ${m.subject} con ${m.name} ${forWho(c.beneficiary, me, people)}.`, `Done: ${m.subject} with ${m.name} ${forWho(c.beneficiary, me, people)} was canceled.`));
         // La fila ya no está: el foco va al título del panel (el aviso se anuncia solo).
         requestAnimationFrame(() => head.current?.focus());
       } else {
-        setErrors((e) => ({ ...e, [c.id]: r.error ?? 'Esa contratación ya no estaba (puede que se haya cancelado desde otra pestaña).' }));
+        setErrors((e) => ({ ...e, [c.id]: r.error ?? L('Esa contratación ya no estaba (puede que se haya cancelado desde otra pestaña).', 'That booking was already gone (it may have been canceled from another tab).') }));
       }
     } catch (err) {
-      if (alive.current) setErrors((e) => ({ ...e, [c.id]: rejectedReason(err) ?? NET_ERR }));
+      if (alive.current) setErrors((e) => ({ ...e, [c.id]: rejectedReason(err) ?? NET_ERR() }));
     } finally {
       inflight.current = false;
       if (alive.current) { setBusy(null); setConfirming(null); }
@@ -97,18 +99,18 @@ export function MentorshipsPanel() {
     <section className="pz-panel" aria-labelledby="pz-ms-h">
       <header className="pz-panel-head pz-panel-head--act">
         <div>
-          <h3 id="pz-ms-h" ref={head} tabIndex={-1}>Mentorías</h3>
-          <p>Las clases particulares que contrataste en Buscar → Mentores, para vos o para tu familia. Cada clase aparece en el calendario de quien la toma.</p>
+          <h3 id="pz-ms-h" ref={head} tabIndex={-1}>{L('Mentorías', 'Mentorships')}</h3>
+          <p>{L('Las clases particulares que contrataste en Buscar → Mentores, para vos o para tu familia. Cada clase aparece en el calendario de quien la toma.', 'The private classes you booked in Search → Mentors, for you or your family. Each class shows up in the calendar of whoever takes it.')}</p>
         </div>
-        <Link className="pz-btn" to="/buscar?tab=mentors">Buscar mentores</Link>
+        <Link className="pz-btn" to="/buscar?tab=mentors">{L('Buscar mentores', 'Find mentors')}</Link>
       </header>
       <p className={`pz-notice${notice ? '' : ' is-empty'}`} role="status">{notice}</p>
       {!data ? <PanelState failed={failed} onRetry={() => void load()} /> : rows.length === 0 ? (
-        <p className="pz-ms-empty">Todavía no hay mentorías. Buscá mentores en Buscar → Mentores.</p>
+        <p className="pz-ms-empty">{L('Todavía no hay mentorías. Buscá mentores en Buscar → Mentores.', 'No mentorships yet. Find mentors in Search → Mentors.')}</p>
       ) : (
         <>
           <p className="pz-ms-sum">
-            <b>{rows.length}</b> {rows.length === 1 ? 'mentoría' : 'mentorías'} · <b>{usd(weekly)}</b> por semana
+            <b>{rows.length}</b> {rows.length === 1 ? L('mentoría', 'mentorship') : L('mentorías', 'mentorships')} · <b>{usd(weekly)}</b> {L('por semana', 'per week')}
           </p>
           <ul className="pz-ms-list">
             {rows.map(({ m, c }) => (
@@ -118,7 +120,7 @@ export function MentorshipsPanel() {
           </ul>
         </>
       )}
-      <p className="pz-foot">En esta demo el mentor confirma al instante y no se cobra nada: los mensajes con el mentor y el pago todavía no están.</p>
+      <p className="pz-foot">{L('En esta demo el mentor confirma al instante y no se cobra nada: los mensajes con el mentor y el pago todavía no están.', 'In this demo the mentor confirms instantly and nothing is charged: messaging the mentor and payment aren’t available yet.')}</p>
     </section>
   );
 }

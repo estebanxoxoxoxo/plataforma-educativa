@@ -16,6 +16,7 @@ import { recordResult, useLearnData } from '../lib/learnData';
 import { useOverlay } from '../lib/overlayNav';
 import { ReadingView } from './ReadingView';
 import { VideoReadingView } from './VideoReadingView';
+import { L } from '../../../shared/lib/lang';
 
 /* Overlay a pantalla completa de una INSTANCIA de actividad desde una posta. La
    Definición (catálogo) dice el Tipo; el REGISTRY resuelve módulo+tablero. Marco
@@ -219,7 +220,7 @@ export function ActivityOverlay({
       <VideoReadingView
         videoId={reading.videoId}
         title={reading.title}
-        ctaLabel="Empezar preguntas →"
+        ctaLabel={L('Empezar preguntas →', 'Start questions →')}
         onCta={() => setPhase('activity')}
         onClose={() => setPhase('activity')}
       />
@@ -236,7 +237,7 @@ export function ActivityOverlay({
         url={reading.url}
         title={reading.title}
         trusted
-        ctaLabel="Empezar preguntas →"
+        ctaLabel={L('Empezar preguntas →', 'Start questions →')}
         onCta={() => setPhase('activity')}
         onClose={() => setPhase('activity')}
       />
@@ -248,9 +249,9 @@ export function ActivityOverlay({
       <div className="ln-ov ln-ov-err" style={{ zIndex: z }}>
         <div className="ln-err">
           <p className="ln-err-emoji" aria-hidden="true">🧩</p>
-          <p className="ln-err-t">No encontré esta actividad</p>
-          <p className="ln-err-p">La definición «{definitionId}» no está en el catálogo.</p>
-          <button type="button" className="ln-btn ln-btn-quiet" onClick={close}>Cerrar</button>
+          <p className="ln-err-t">{L('No encontré esta actividad', "I couldn't find this activity")}</p>
+          <p className="ln-err-p">{L(`La definición «${definitionId}» no está en el catálogo.`, `The definition “${definitionId}” isn't in the catalog.`)}</p>
+          <button type="button" className="ln-btn ln-btn-quiet" onClick={close}>{L('Cerrar', 'Close')}</button>
         </div>
       </div>,
       document.body,

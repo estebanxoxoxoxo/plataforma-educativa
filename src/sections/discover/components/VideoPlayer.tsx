@@ -3,6 +3,7 @@ import type { Video } from '../../../api/types';
 import { IcPCC, IcPFull, IcPGear, IcPNext, IcPPause, IcPPlay, IcPVol, IcPlayDark } from '../../../shared/components/icons';
 import { imgSrc } from '../../../shared/lib/img';
 import { parseYtError, parseYtMessage, ytCommand, ytEmbedUrl, ytSubscribe, type YtState } from '../../../shared/lib/ytBridge';
+import { L } from '../../../shared/lib/lang';
 
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
@@ -84,13 +85,13 @@ export function VideoPlayer({ v, onEnded, onError, onPlaying, onTime }: {
           <span className="buf" /><span className="pl" style={{ width: `${dur ? Math.min(100, (t / dur) * 100) : 0}%` }} />
         </div>
         <div className="prow">
-          <button aria-label={playing ? 'Pausar' : 'Reproducir'} onClick={toggle}>{playing ? <IcPPause /> : <IcPPlay />}</button>
-          <button aria-label="Adelantar 10 segundos" onClick={() => seek(Math.min(dur, t + 10))}><IcPNext /></button>
-          <button aria-label={muted ? 'Activar sonido' : 'Silenciar'} onClick={() => { ytCommand(frame.current, muted ? 'unMute' : 'mute'); setMuted(!muted); }} style={{ opacity: muted ? 0.5 : 1 }}><IcPVol /></button>
+          <button aria-label={playing ? L('Pausar', 'Pause') : L('Reproducir', 'Play')} onClick={toggle}>{playing ? <IcPPause /> : <IcPPlay />}</button>
+          <button aria-label={L('Adelantar 10 segundos', 'Skip ahead 10 seconds')} onClick={() => seek(Math.min(dur, t + 10))}><IcPNext /></button>
+          <button aria-label={muted ? L('Activar sonido', 'Unmute') : L('Silenciar', 'Mute')} onClick={() => { ytCommand(frame.current, muted ? 'unMute' : 'mute'); setMuted(!muted); }} style={{ opacity: muted ? 0.5 : 1 }}><IcPVol /></button>
           <span>{mmss(t)} / {mmss(dur)}</span>
           <IcPCC className="sp" />
           <IcPGear />
-          <button aria-label="Pantalla completa" onClick={() => (document.fullscreenElement ? document.exitFullscreen() : box.current?.requestFullscreen())}><IcPFull /></button>
+          <button aria-label={L('Pantalla completa', 'Full screen')} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : box.current?.requestFullscreen())}><IcPFull /></button>
         </div>
       </div>
     </div>

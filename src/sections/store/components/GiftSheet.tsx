@@ -5,6 +5,7 @@ import { Avatar, accessoryArticle, accessoryById, lookFor } from '../../../share
 import { Faltan } from './CoinBits';
 import { fmtEc, missingFor, tintFor } from '../lib/format';
 import { useSheetKeys, useVeil } from '../lib/sheet';
+import { L } from '../../../shared/lib/lang';
 
 export type GiftState =
   | { item: MarketItem; phase: 'pick' | 'busy'; friendId: string | null }
@@ -38,6 +39,8 @@ export function GiftSheet({ s, ec, friends, failed, onPick, onConfirm, onBack, o
   const name = acc ? accessoryArticle(acc) : item.title.toLowerCase();
   const lo = acc ? `${acc.fem ? 'la' : 'lo'}${acc.plural ? 's' : ''}` : 'la';
   const puesto = acc ? `puest${acc.fem ? 'a' : 'o'}${acc.plural ? 's' : ''}` : 'puesta';
+  /** EN: "it" / "them" */
+  const itEn = acc?.plural ? 'them' : 'it';
   const tint = { '--tint': tintFor(item.id) } as CSSProperties;
   const missing = missingFor(item.price, ec);
   const picked = s.phase === 'pick' || s.phase === 'busy' ? friends?.find((f) => f.id === s.friendId) ?? null : null;
@@ -52,15 +55,15 @@ export function GiftSheet({ s, ec, friends, failed, onPick, onConfirm, onBack, o
               <Avatar name={f.nick} color={f.color} look={lookFor(f.nick)} accessory={f.accessory} size={80} />
               <span className="st-burst" aria-hidden="true">{BURST.map((c, i) => <i key={c} style={{ '--c': c, '--a': `${i * 45}deg` } as CSSProperties} />)}</span>
             </div>
-            <h3 className="st-done-t" id="st-gift-t">🎁 ¡{f.nick} ya {lo} tiene {puesto}!</h3>
-            <p className="st-done-p" id="st-gift-d">Te va a escribir para darte las gracias.</p>
+            <h3 className="st-done-t" id="st-gift-t">🎁 {L(`¡${f.nick} ya ${lo} tiene ${puesto}!`, `${f.nick} is already wearing ${itEn}!`)}</h3>
+            <p className="st-done-p" id="st-gift-d">{L('Te va a escribir para darte las gracias.', 'They’ll write to you to say thanks.')}</p>
             <p className="st-done-bal">
-              <span>Le regalaste {name} por {fmtEc(item.price)} <IcCoin className="ec-coin" aria-hidden="true" /></span>{' '}
-              <span>Te quedan <b>{fmtEc(s.ec)} <IcCoin className="ec-coin" aria-hidden="true" /></b></span>
+              <span>{L(`Le regalaste ${name} por`, `You gifted ${name} for`)} {fmtEc(item.price)} <IcCoin className="ec-coin" aria-hidden="true" /></span>{' '}
+              <span>{L('Te quedan', 'You have')} <b>{fmtEc(s.ec)} <IcCoin className="ec-coin" aria-hidden="true" /></b></span>
             </p>
             <div className="st-sheet-btns">
-              <button type="button" className="st-btn st-btn--ghost" onClick={onClose}>Listo</button>
-              <button type="button" className="st-btn st-btn--gift" data-autofocus onClick={() => onChat(f.id)}>Ver su mensaje</button>
+              <button type="button" className="st-btn st-btn--ghost" onClick={onClose}>{L('Listo', 'Done')}</button>
+              <button type="button" className="st-btn st-btn--gift" data-autofocus onClick={() => onChat(f.id)}>{L('Ver su mensaje', 'See their message')}</button>
             </div>
           </div>
         </div>
@@ -73,11 +76,11 @@ export function GiftSheet({ s, ec, friends, failed, onPick, onConfirm, onBack, o
       <div className="shov st-ov" onMouseDown={veil}>
         <div className="shcard st-sheet st-gsheet" ref={card} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="st-gift-t" aria-describedby="st-gift-d" data-sheet="regalo">
           <div className="st-sheet-art is-dim" style={tint}><span aria-hidden="true">{item.emoji}</span></div>
-          <h3 className="st-sheet-q" id="st-gift-t">No se pudo regalar</h3>
+          <h3 className="st-sheet-q" id="st-gift-t">{L('No se pudo regalar', 'Couldn’t send the gift')}</h3>
           <p className="st-sheet-err" id="st-gift-d" role="alert">{s.message}</p>
           <div className="st-sheet-btns">
-            {s.retry && <button type="button" className="st-btn st-btn--ghost" onClick={onBack}>Elegir otro amigo</button>}
-            <button type="button" className="st-btn st-btn--ghost" data-autofocus onClick={onClose}>Entendido</button>
+            {s.retry && <button type="button" className="st-btn st-btn--ghost" onClick={onBack}>{L('Elegir otro amigo', 'Pick another friend')}</button>}
+            <button type="button" className="st-btn st-btn--ghost" data-autofocus onClick={onClose}>{L('Entendido', 'Got it')}</button>
           </div>
         </div>
       </div>
@@ -92,33 +95,33 @@ export function GiftSheet({ s, ec, friends, failed, onPick, onConfirm, onBack, o
             ? <Avatar name={picked.nick} color={picked.color} look={lookFor(picked.nick)} accessory={item.accessoryId} size={80} />
             : <span aria-hidden="true">{item.emoji}</span>}
         </div>
-        <h3 className="st-sheet-q" id="st-gift-t">¿A quién le regalás {name}?</h3>
+        <h3 className="st-sheet-q" id="st-gift-t">{L(`¿A quién le regalás ${name}?`, `Who do you want to gift ${name} to?`)}</h3>
         <p className="st-sheet-sub" id="st-gift-d">
-          <span>{picked ? `Así le quedaría a ${picked.nick}.` : `Se ${lo} pone al toque y te escribe para agradecerte.`}</span>{' '}
-          {missing === 0 && <span>Cuesta {fmtEc(item.price)} <IcCoin className="ec-coin" aria-hidden="true" /> · después te quedan <b>{fmtEc(ec - item.price)} <IcCoin className="ec-coin" aria-hidden="true" /></b></span>}
+          <span>{picked ? L(`Así le quedaría a ${picked.nick}.`, `This is how it would look on ${picked.nick}.`) : L(`Se ${lo} pone al toque y te escribe para agradecerte.`, `They put ${itEn} on right away and write to thank you.`)}</span>{' '}
+          {missing === 0 && <span>{L('Cuesta', 'It costs')} {fmtEc(item.price)} <IcCoin className="ec-coin" aria-hidden="true" /> · {L('después te quedan', 'after that you’ll have')} <b>{fmtEc(ec - item.price)} <IcCoin className="ec-coin" aria-hidden="true" /></b></span>}
         </p>
 
         {failed && !friends ? (
           <div className="st-gempty">
-            <p>No pude cargar a tus amigos ahora.</p>
-            <button type="button" className="st-btn st-btn--ghost" onClick={onRetry}>Reintentar</button>
+            <p>{L('No pude cargar a tus amigos ahora.', 'I couldn’t load your friends right now.')}</p>
+            <button type="button" className="st-btn st-btn--ghost" onClick={onRetry}>{L('Reintentar', 'Try again')}</button>
           </div>
         ) : !friends ? (
-          <div className="st-glist" role="status" aria-label="Cargando a tus amigos">
+          <div className="st-glist" role="status" aria-label={L('Cargando a tus amigos', 'Loading your friends')}>
             {[0, 1, 2].map((i) => <span key={i} className="st-gfr st-gfr--sk"><i /><b /></span>)}
           </div>
         ) : friends.length === 0 ? (
-          <p className="st-gempty">Todavía no tenés amigos en Smarty. Cuando aceptes una solicitud, vas a poder regalarles ropa.</p>
+          <p className="st-gempty">{L('Todavía no tenés amigos en Smarty. Cuando aceptes una solicitud, vas a poder regalarles ropa.', 'You don’t have friends on Smarty yet. Once you accept a request, you’ll be able to gift them clothes.')}</p>
         ) : (
           <fieldset className="st-glist" disabled={busy}>
-            <legend className="st-sr">Elegí a qué amigo</legend>
+            <legend className="st-sr">{L('Elegí a qué amigo', 'Pick a friend')}</legend>
             {friends.map((f) => {
               const has = f.accessory === item.accessoryId;
               return (
                 <label key={f.id} className={`st-gfr${has ? ' is-has' : ''}`} data-friend={f.id}>
                   <input type="radio" name="st-gift-to" value={f.id} checked={s.friendId === f.id} disabled={has} onChange={() => onPick(f.id)} />
                   <Avatar name={f.nick} color={f.color} look={lookFor(f.nick)} accessory={f.accessory} />
-                  <span className="st-gfr-nm"><b>{f.nick}</b><small>{has ? `Ya ${lo} tiene ${puesto}` : f.status}</small></span>
+                  <span className="st-gfr-nm"><b>{f.nick}</b><small>{has ? L(`Ya ${lo} tiene ${puesto}`, `Already wearing ${itEn}`) : f.status}</small></span>
                   <span className="st-gfr-ok" aria-hidden="true" />
                 </label>
               );
@@ -127,12 +130,12 @@ export function GiftSheet({ s, ec, friends, failed, onPick, onConfirm, onBack, o
         )}
 
         <div className="st-sheet-btns">
-          <button type="button" className="st-btn st-btn--ghost" data-autofocus={busy ? undefined : true} disabled={busy} onClick={onClose}>Cancelar</button>
+          <button type="button" className="st-btn st-btn--ghost" data-autofocus={busy ? undefined : true} disabled={busy} onClick={onClose}>{L('Cancelar', 'Cancel')}</button>
           {missing > 0 ? (
             <button type="button" className="st-btn" disabled><Faltan n={missing} /></button>
           ) : (
             <button type="button" className={`st-btn st-btn--gift${busy ? ' is-busy' : ''}`} disabled={busy || !picked} aria-busy={busy} onClick={onConfirm}>
-              {busy ? <><span className="st-spin" aria-hidden="true" />Regalando…</> : <>Regalar · {fmtEc(item.price)} <IcCoin className="ec-coin" aria-hidden="true" /></>}
+              {busy ? <><span className="st-spin" aria-hidden="true" />{L('Regalando…', 'Gifting…')}</> : <>{L('Regalar', 'Gift')} · {fmtEc(item.price)} <IcCoin className="ec-coin" aria-hidden="true" /></>}
             </button>
           )}
         </div>

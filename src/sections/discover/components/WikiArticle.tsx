@@ -1,4 +1,5 @@
 import type { Article } from '../../../api/types';
+import { L } from '../../../shared/lib/lang';
 
 /** Artículo moderado con tipografía de Wikipedia. El HTML ya viene saneado del backend.
  *  Cada link del cuerpo se intercepta: no navega, se manda a moderar (onLink). */
@@ -14,7 +15,7 @@ export function WikiArticle({ a, onLink }: { a: Article; onLink: (url: string, t
     }}>
       <h1 className="wk-title">{a.title}</h1>
       {isWiki
-        ? <div className="wk-tabs"><span className="on">Artículo</span><span>Discusión</span><span className="r on">Leer</span></div>
+        ? <div className="wk-tabs"><span className="on">{L('Artículo', 'Article')}</span><span>{L('Discusión', 'Talk')}</span><span className="r on">{L('Leer', 'Read')}</span></div>
         : <div className="wk-tabs"><span className="on">{a.siteName ?? new URL(a.url).hostname.replace(/^www\./, '')}</span></div>}
       <div className="wk-body">
         {a.hero && <div className="wk-thumb wk-hero"><img src={a.hero} alt="" referrerPolicy="no-referrer" /></div>}

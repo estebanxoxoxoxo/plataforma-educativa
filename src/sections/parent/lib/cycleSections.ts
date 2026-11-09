@@ -4,6 +4,7 @@
 // la ruta de cada sección y el mapa ruta → sección (venía de scheduleRules.ts, el espejo viejo de los horarios por sección).
 import type { SectionKey } from '../../../api/types';
 import { SECTION_KEYS, SECTION_LABEL } from '../../../shared/lib/cycleRules';
+import { L } from '../../../shared/lib/lang';
 
 /** La ruta del menú de cada sección (la que usa el Sidebar). */
 const ROUTE: Record<SectionKey, string> = {
@@ -11,9 +12,17 @@ const ROUTE: Record<SectionKey, string> = {
   tienda: '/tienda', calendario: '/calendario', espacio: '/espacio/carpetas', afterday: '/afterday',
 };
 
+/** El nombre en inglés de cada sección (el castellano es SECTION_LABEL). */
+const LABEL_EN: Record<SectionKey, string> = {
+  chat: 'Chat', buscar: 'Search', mytube: 'My videos', aprender: 'Learn',
+  tienda: 'Store', calendario: 'Calendar', espacio: 'My space', afterday: 'After Day',
+};
+
 /** Las secciones del ciclo en el orden del menú, con su nombre y su ruta (el Feed no está: nunca se cierra). */
 export const CYCLE_SECTIONS: readonly { key: SectionKey; label: string; route: string }[] =
-  SECTION_KEYS.map((key) => ({ key, label: SECTION_LABEL[key], route: ROUTE[key] }));
+  // i18n: `label` es un getter (resuelve L() en cada acceso, no se congela al importar). SECTION_LABEL (shared/cycleRules)
+  // queda en castellano porque también lo importa el server; el inglés vive acá, coherente con el menú.
+  SECTION_KEYS.map((key) => ({ key, get label() { return L(SECTION_LABEL[key], LABEL_EN[key]); }, route: ROUTE[key] }));
 
 /** La sección del ciclo a la que pertenece una RUTA del chico (null = ninguna: siempre se muestra). Mismo mapa que tenían
  *  los horarios por sección (el featureForPath del POC con las rutas de Smarty):

@@ -1,3 +1,4 @@
+import { L } from '../../../shared/lib/lang';
 export type RowStatus = { kind: 'saved' | 'error'; text: string } | null;
 
 /** Un gran on-off: nombre, UNA línea de descripción, estado en texto (no solo color) y el switch.
@@ -19,7 +20,7 @@ export function FeatureRow({ id, label, desc, on, pending, status, onToggle }: {
       </div>
       <div className="pz-feat-ctl">
         <span className={`pz-feat-msg${status?.kind === 'error' ? ' is-err' : ''}`} role="status">{status?.text ?? ''}</span>
-        <span className="pz-feat-state" aria-hidden="true">{shown === undefined ? '…' : shown ? 'Prendida' : 'Apagada'}</span>
+        <span className="pz-feat-state" aria-hidden="true">{shown === undefined ? '…' : shown ? L('Prendida', 'On') : L('Apagada', 'Off')}</span>
         <button
           type="button"
           role="switch"

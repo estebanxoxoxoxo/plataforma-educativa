@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { LearnRoute } from '../lib/learn';
 import { nextCoverOnError, routeCover } from '../lib/routeCover';
 import { IcChevronRight, IcStar } from '../components/LearnIcons';
+import { L } from '../../../shared/lib/lang';
 
 /** Tarjeta de una ruta en el mosaico (RouteCard del POC): portada 16:9 (la subida en /crear, o la miniatura del primer
  *  contenido si es un video; si no, el emoji), título, descripción si tiene, barra de progreso y "★ N/M postas".
@@ -25,7 +26,7 @@ export function RouteCard({ route, done, total, index, onOpen }: { route: LearnR
         {route.description && <span className="ln-card-desc">{route.description}</span>}
         <span className="ln-bar" aria-hidden="true"><i style={{ width: `${pct}%` }} /></span>
         <span className="ln-card-foot">
-          <IcStar className="ln-star" fill="currentColor" strokeWidth={0} /> {done}/{total} postas
+          <IcStar className="ln-star" fill="currentColor" strokeWidth={0} /> {done}/{total} {L('postas', 'steps')}
           <IcChevronRight className="ln-go" />
         </span>
       </span>

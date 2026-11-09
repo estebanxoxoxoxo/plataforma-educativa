@@ -3,6 +3,7 @@ import { ApiError, api } from '../../../api';
 import type { PersonRelation, PersonResult } from '../../../api/types';
 import { chatAwait, chatFriendsChanged, openChat, useChatDock } from '../../friends/lib/chatDock';
 import { PersonCard } from '../cards/PersonCard';
+import { L } from '../../../shared/lib/lang';
 
 /** Largo mínimo de una búsqueda de personas (en letras, sin contar espacios): el mismo que exige el server
  *  (GET /api/friends/search, server/src/friendsFake.ts). */
@@ -51,7 +52,7 @@ export function PeopleResults({ q }: { q: string }) {
       else if (r.relation === 'friend' && r.ok) { chatFriendsChanged(); openChat(p.id); }
       if (!r.ok && r.error) setNote(r.error);
     } catch (e) {
-      setNote(e instanceof ApiError && e.status === 404 ? 'Ese chico ya no está en Smarty.' : 'No pude mandar tu solicitud ahora. Probá de nuevo en un ratito.');
+      setNote(e instanceof ApiError && e.status === 404 ? L('Ese chico ya no está en Smarty.', 'That person isn’t on Smarty anymore.') : L('No pude mandar tu solicitud ahora. Probá de nuevo en un ratito.', 'I couldn’t send your request right now. Try again in a bit.'));
     } finally {
       setBusy(null);
     }
@@ -66,24 +67,24 @@ export function PeopleResults({ q }: { q: string }) {
       openChat(p.id);
     } catch (e) {
       if (e instanceof ApiError && e.status === 404) chatFriendsChanged(); // ya se respondió en otro lado: se vuelve a buscar
-      else setNote('No pude aceptar ahora. Probá de nuevo en un ratito.');
+      else setNote(L('No pude aceptar ahora. Probá de nuevo en un ratito.', 'I couldn’t accept right now. Try again in a bit.'));
     } finally {
       setBusy(null);
     }
   };
 
-  if (!q) return <p className="sempty ppl-empty">Escribí el nombre de usuario de otra persona de Smarty para encontrarla.</p>;
-  if (short) return <p className="sempty ppl-empty">Escribí al menos {PEOPLE_MIN} letras de su nombre de usuario.</p>;
+  if (!q) return <p className="sempty ppl-empty">{L('Escribí el nombre de usuario de otra persona de Smarty para encontrarla.', 'Type the username of another person on Smarty to find them.')}</p>;
+  if (short) return <p className="sempty ppl-empty">{L(`Escribí al menos ${PEOPLE_MIN} letras de su nombre de usuario.`, `Type at least ${PEOPLE_MIN} letters of their username.`)}</p>;
   const people = res?.q === q ? res.people : null;
-  if (failed && !people) return <p className="sempty ppl-empty">No pude buscar ahora mismo. Probemos de nuevo en un ratito.</p>;
+  if (failed && !people) return <p className="sempty ppl-empty">{L('No pude buscar ahora mismo. Probemos de nuevo en un ratito.', 'I couldn’t search right now. Let’s try again in a bit.')}</p>;
   if (!people) {
     return (
-      <div className="ppl" role="status" aria-label="Buscando personas con ese nombre">
+      <div className="ppl" role="status" aria-label={L('Buscando personas con ese nombre', 'Looking for people with that name')}>
         {[0, 1, 2].map((i) => <div key={i} className="ppl-row sk"><span className="ph-a" /><span className="ph-b"><i /><i /></span></div>)}
       </div>
     );
   }
-  if (!people.length) return <p className="sempty ppl-empty">No encontré a nadie con ese nombre de usuario. Fijate si está bien escrito.</p>;
+  if (!people.length) return <p className="sempty ppl-empty">{L('No encontré a nadie con ese nombre de usuario. Fijate si está bien escrito.', 'I didn’t find anyone with that username. Check that it’s spelled right.')}</p>;
   return (
     <div className="ppl">
       {note && <p className="ppl-msg" role="status">{note}</p>}

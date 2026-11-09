@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { ParentAlert } from '../../../api/types';
 import { useCycle } from '../lib/cycle';
 import { ALERT_TITLE, capFirst, fmtFull, fmtWhen, isoOf } from '../lib/format';
+import { L } from '../../../shared/lib/lang';
 
 const ICON: Record<ParentAlert['kind'], ReactNode> = {
   crisis: <svg viewBox="0 0 20 20"><path d="M10 2.8l7.6 13.4H2.4z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /><path d="M10 8v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /><circle cx="10" cy="14.3" r="1" fill="currentColor" /></svg>,
@@ -20,15 +21,15 @@ export function AlertRow({ a, who, busy, onSeen }: { a: ParentAlert; who: string
       <div className="pz-alert-main">
         <p className="pz-alert-t">
           {ALERT_TITLE[a.kind]}
-          {who && <span className="pz-alert-who">Sobre {who}</span>}
-          {!a.seen && <span className="pz-alert-new">Nuevo</span>}
+          {who && <span className="pz-alert-who">{L(`Sobre ${who}`, `About ${who}`)}</span>}
+          {!a.seen && <span className="pz-alert-new">{L('Nuevo', 'New')}</span>}
         </p>
         <p className="pz-alert-text">{a.text}</p>
         <p className="pz-alert-meta">{capFirst(a.source)} · <time dateTime={isoOf(a.ts)} title={fmtFull(a.ts, tz)}>{fmtWhen(a.ts, undefined, tz)}</time></p>
       </div>
       <div className="pz-alert-act">
-        {a.seen ? <span className="pz-alert-seen">Visto</span> : (
-          <button type="button" className="pz-btn pz-btn--ghost pz-btn--sm" disabled={busy} onClick={onSeen}>Marcar como visto</button>
+        {a.seen ? <span className="pz-alert-seen">{L('Visto', 'Seen')}</span> : (
+          <button type="button" className="pz-btn pz-btn--ghost pz-btn--sm" disabled={busy} onClick={onSeen}>{L('Marcar como visto', 'Mark as seen')}</button>
         )}
       </div>
     </li>

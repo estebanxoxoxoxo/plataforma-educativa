@@ -3,6 +3,7 @@ import { actingUserId, api } from '../../api';
 import type { FolderNode } from '../../api/types';
 import { useReturnFocus, useVeil } from '../../sections/store/lib/sheet';
 import { IcFolderWin } from './icons';
+import { L } from '../lib/lang';
 
 const LAST_KEY = 'innerith.lastFolder';
 /** U4 (docs/USUARIOS.md §10): Mi espacio es de cada usuario, así que la "última carpeta usada" también (con ids únicos en
@@ -72,7 +73,7 @@ export function FolderSheet({ open, title, cta, excludeId, allowRoot = false, on
     path.unshift(f); id = f.parentId;
   }
   const here = all.filter((f) => f.parentId === at && !banned.has(f.id));
-  const hereName = at === ROOT ? 'Mis carpetas' : path[path.length - 1]?.name ?? 'Carpeta';
+  const hereName = at === ROOT ? L('Mis carpetas', 'My folders') : path[path.length - 1]?.name ?? L('Carpeta', 'Folder');
   const rootBlocked = !allowRoot && at === ROOT; // los archivos viven adentro de carpetas
 
   const create = async () => {
@@ -95,7 +96,7 @@ export function FolderSheet({ open, title, cta, excludeId, allowRoot = false, on
       setDone(r.done);
       setTimeout(onClose, 900);
     } catch {
-      setError('No se pudo ahora. Probá de nuevo.');
+      setError(L('No se pudo ahora. Probá de nuevo.', "That didn't work right now. Try again."));
     } finally { setBusy(false); }
   };
 
@@ -105,7 +106,7 @@ export function FolderSheet({ open, title, cta, excludeId, allowRoot = false, on
         {done ? <p className="shdone">✓ {done}</p> : <>
           <h3 className="shtitle">{title}</h3>
           <div className="shcrumb">
-            <button className={`crumb${at === ROOT ? ' on' : ''}`} onClick={() => setAt(ROOT)}><IcFolderWin className="cfold" />Mis carpetas</button>
+            <button className={`crumb${at === ROOT ? ' on' : ''}`} onClick={() => setAt(ROOT)}><IcFolderWin className="cfold" />{L('Mis carpetas', 'My folders')}</button>
             {path.map((f) => <button key={f.id} className={`crumb${f.id === at ? ' on' : ''}`} onClick={() => setAt(f.id)}>{f.name}</button>)}
           </div>
           <div className="shlist">
@@ -115,24 +116,24 @@ export function FolderSheet({ open, title, cta, excludeId, allowRoot = false, on
                 <b>{f.name}</b><span className="shgo">›</span>
               </button>
             ))}
-            {here.length === 0 && !creating && <p className="shempty">No hay carpetas acá adentro.</p>}
+            {here.length === 0 && !creating && <p className="shempty">{L('No hay carpetas acá adentro.', 'No folders in here.')}</p>}
             {creating ? (
               <div className="shnew">
                 <input autoFocus value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()}
-                  placeholder="Nombre de la carpeta" maxLength={40} />
+                  placeholder={L('Nombre de la carpeta', 'Folder name')} maxLength={40} />
                 <div className="shbtns">
-                  <button className="sbtn ghost" onClick={() => setCreating(false)}>Cancelar</button>
-                  <button className="sbtn" disabled={!name.trim() || busy} onClick={create}>Crear</button>
+                  <button className="sbtn ghost" onClick={() => setCreating(false)}>{L('Cancelar', 'Cancel')}</button>
+                  <button className="sbtn" disabled={!name.trim() || busy} onClick={create}>{L('Crear', 'Create')}</button>
                 </div>
               </div>
             ) : (
-              <button className="shadd" onClick={() => setCreating(true)}>＋ Carpeta nueva</button>
+              <button className="shadd" onClick={() => setCreating(true)}>{L('＋ Carpeta nueva', '＋ New folder')}</button>
             )}
           </div>
-          {rootBlocked && !creating && <p className="shhint">Los archivos viven adentro de una carpeta: entrá a una o creá una nueva.</p>}
+          {rootBlocked && !creating && <p className="shhint">{L('Los archivos viven adentro de una carpeta: entrá a una o creá una nueva.', 'Files live inside a folder: open one or create a new one.')}</p>}
           {error && <p className="sherr">{error}</p>}
           <div className="shbtns end">
-            <button className="sbtn ghost" onClick={onClose}>Cancelar</button>
+            <button className="sbtn ghost" onClick={onClose}>{L('Cancelar', 'Cancel')}</button>
             <button className="sbtn" disabled={busy || banned.has(at) || rootBlocked} onClick={pick}>{cta} · {hereName}</button>
           </div>
         </>}

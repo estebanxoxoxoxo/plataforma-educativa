@@ -1,6 +1,7 @@
 import { useActivitySnapshot } from './react/useActivity'
 import { type FlashcardsEngine } from './activities/flashcards'
 import './learn-engine.css'
+import { L } from '../shared/lib/lang'
 
 /* Vista app-native (Tailwind) de flashcards, sobre el motor portado. Mirá el frente,
    pensá la respuesta, dala vuelta y autocalificate (¿la sabías?). Sin CSS del lab.
@@ -14,7 +15,7 @@ export default function FlashcardsBoard({ engine }: { engine: FlashcardsEngine }
   return (
     <div className="lrn-fc">
       <p className="lrn-count">
-        Tarjeta {Math.min(snap.index + 1, snap.total)} / {snap.total}
+        {L('Tarjeta', 'Card')} {Math.min(snap.index + 1, snap.total)} / {snap.total}
       </p>
       {card ? (
         <>
@@ -29,7 +30,7 @@ export default function FlashcardsBoard({ engine }: { engine: FlashcardsEngine }
             ) : card.hint ? (
               <div className="lrn-fc-hint">💡 {card.hint}</div>
             ) : (
-              <div className="lrn-fc-tap">tocá para dar vuelta</div>
+              <div className="lrn-fc-tap">{L('tocá para dar vuelta', 'tap to flip')}</div>
             )}
           </button>
 
@@ -40,14 +41,14 @@ export default function FlashcardsBoard({ engine }: { engine: FlashcardsEngine }
                 disabled={!playing}
                 onClick={() => engine.grade(false)}
                 className="lrn-btn lrn-btn-no">
-                No la sabía
+                {L('No la sabía', "Didn't know it")}
               </button>
               <button
                 type="button"
                 disabled={!playing}
                 onClick={() => engine.grade(true)}
                 className="lrn-btn lrn-btn-yes">
-                La sabía
+                {L('La sabía', 'Knew it')}
               </button>
             </div>
           ) : (
@@ -56,15 +57,15 @@ export default function FlashcardsBoard({ engine }: { engine: FlashcardsEngine }
               disabled={!playing}
               onClick={() => engine.reveal()}
               className="lrn-btn lrn-btn-flip">
-              Dar vuelta
+              {L('Dar vuelta', 'Flip')}
             </button>
           )}
         </>
       ) : (
-        <p className="lrn-done">Mazo completo ✓</p>
+        <p className="lrn-done">{L('Mazo completo ✓', 'Deck complete ✓')}</p>
       )}
       <p className="lrn-help">
-        {playing ? 'Pensá la respuesta, dala vuelta y decí si la sabías.' : ''}
+        {playing ? L('Pensá la respuesta, dala vuelta y decí si la sabías.', 'Think of the answer, flip it, and say if you knew it.') : ''}
       </p>
     </div>
   )

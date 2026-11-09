@@ -3,6 +3,7 @@ import { IcCoin } from '../../../shared/components/icons';
 import type { FamilyPrizeOptions, FamilyPrizeRequest, FamilyWeekPrize } from '../../../api/types';
 import { useSheetKeys, useVeil } from '../../store/lib/sheet';
 import { CONDITIONS, PRIZE_EMOJIS, draftFrom, prizeRequest, reconcileDraft, type PrizeDraft, type PrizeMode } from '../lib/familyWeek';
+import { L } from '../../../shared/lib/lang';
 
 /** U5 (§3.2): la hoja del ADULTO para poner (o cambiar) el premio de la semana de la familia, sobre el chasis global
  *  `.shov/.shcard`. Dos maneras: "De los premios de tus chicos" (los NO archivados de la Tienda de cada uno, agrupados "De la
@@ -50,13 +51,13 @@ export function FamilyPrizeSheet({ initial, options, busy, error, errorSeq, onSu
         <form onSubmit={submit} noValidate className="lgp-form"
           onFocus={(e) => { const el = e.target; if (el instanceof HTMLInputElement && el.type === 'radio') el.scrollIntoView({ block: 'nearest' }); }}>
           <header>
-            <h3 className="lgp-sheet-t" id={`${uid}-t`}>{initial ? 'Cambiar el premio de la semana' : 'El premio de esta semana'}</h3>
-            <p className="lgp-sheet-d" id={`${uid}-d`}>Lo ve toda la familia en Ligas. Se lo das vos cuando cierre la semana: no se compra con <IcCoin className="ec-coin" aria-hidden="true" /> ni se sortea.</p>
+            <h3 className="lgp-sheet-t" id={`${uid}-t`}>{initial ? L('Cambiar el premio de la semana', 'Change the prize of the week') : L('El premio de esta semana', 'This week’s prize')}</h3>
+            <p className="lgp-sheet-d" id={`${uid}-d`}>{L('Lo ve toda la familia en Ligas. Se lo das vos cuando cierre la semana: no se compra con', 'The whole family sees it in Leagues. You give it when the week closes: it isn’t bought with')} <IcCoin className="ec-coin" aria-hidden="true" /> {L('ni se sortea.', 'or raffled.')}</p>
           </header>
 
           <fieldset className="lgp-modes" disabled={busy}>
-            <legend className="lgp-legend">¿Qué premio?</legend>
-            {([['tienda', 'De los premios de tus chicos'], ['nuevo', 'Uno nuevo']] as [PrizeMode, string][]).map(([m, label]) => (
+            <legend className="lgp-legend">{L('¿Qué premio?', 'Which prize?')}</legend>
+            {([['tienda', L('De los premios de tus chicos', 'From your kids’ prizes')], ['nuevo', L('Uno nuevo', 'A new one')]] as [PrizeMode, string][]).map(([m, label]) => (
               <label key={m} className={`lgp-mode${d.mode === m ? ' is-on' : ''}`}>
                 <input type="radio" name={`${uid}-mode`} value={m} checked={d.mode === m} onChange={() => set({ mode: m })}
                   data-autofocus={focusMode && d.mode === m ? true : undefined} />
@@ -68,17 +69,17 @@ export function FamilyPrizeSheet({ initial, options, busy, error, errorSeq, onSu
           {d.mode === 'tienda' ? (
             <div className="lgp-pane" data-pane="tienda">
               {options === null ? (
-                <p className="lgp-note" role="status">Buscando los premios de tus chicos…</p>
+                <p className="lgp-note" role="status">{L('Buscando los premios de tus chicos…', 'Looking up your kids’ prizes…')}</p>
               ) : options === 'error' ? (
-                <p className="lgp-note">No pude traer los premios de la Tienda ahora. <button type="button" className="lgp-link" onClick={onRetryOptions}>Reintentar</button></p>
+                <p className="lgp-note">{L('No pude traer los premios de la Tienda ahora.', 'I couldn’t get the Store prizes right now.')} <button type="button" className="lgp-link" onClick={onRetryOptions}>{L('Reintentar', 'Try again')}</button></p>
               ) : !anyItem ? (
-                <p className="lgp-note">Tus chicos todavía no tienen premios en la Tienda. Elegí «Uno nuevo» y escribilo acá.</p>
+                <p className="lgp-note">{L('Tus chicos todavía no tienen premios en la Tienda. Elegí «Uno nuevo» y escribilo acá.', 'Your kids don’t have prizes in the Store yet. Pick “A new one” and write it here.')}</p>
               ) : (
                 groups.map((g) => (
                   <fieldset key={g.member} className="lgp-group" disabled={busy}>
-                    <legend className="lgp-legend">De la Tienda de {g.name}</legend>
+                    <legend className="lgp-legend">{L(`De la Tienda de ${g.name}`, `From ${g.name}’s Store`)}</legend>
                     {g.items.length === 0 ? (
-                      <p className="lgp-note">{g.name} todavía no tiene premios en su Tienda.</p>
+                      <p className="lgp-note">{L(`${g.name} todavía no tiene premios en su Tienda.`, `${g.name} doesn’t have prizes in their Store yet.`)}</p>
                     ) : (
                       g.items.map((it) => {
                         const key = `${g.member}:${it.itemId}`;
@@ -106,29 +107,29 @@ export function FamilyPrizeSheet({ initial, options, busy, error, errorSeq, onSu
                 <div className="lgp-emoji-row">
                   <input id={`${uid}-emoji`} className="lgp-input lgp-input--emoji" value={d.emoji} maxLength={16} autoComplete="off"
                     disabled={busy} onChange={(e) => set({ emoji: e.target.value })} />
-                  <div className="lgp-emoji-sugs" role="group" aria-label="Sugerencias de emoji">
+                  <div className="lgp-emoji-sugs" role="group" aria-label={L('Sugerencias de emoji', 'Emoji suggestions')}>
                     {PRIZE_EMOJIS.map((em) => (
                       <button key={em} type="button" className={`lgp-emoji-sug${d.emoji.trim() === em ? ' is-on' : ''}`} aria-pressed={d.emoji.trim() === em}
-                        aria-label={`Usar ${em}`} disabled={busy} onClick={() => set({ emoji: em })}>{em}</button>
+                        aria-label={L(`Usar ${em}`, `Use ${em}`)} disabled={busy} onClick={() => set({ emoji: em })}>{em}</button>
                     ))}
                   </div>
                 </div>
               </div>
               <div className="lgp-field">
-                <label htmlFor={`${uid}-title`}>Título</label>
+                <label htmlFor={`${uid}-title`}>{L('Título', 'Title')}</label>
                 <input id={`${uid}-title`} className="lgp-input" value={d.title} maxLength={80} autoComplete="off" disabled={busy}
-                  placeholder="Por ejemplo: Salida a escalar el sábado" onChange={(e) => set({ title: e.target.value })} />
+                  placeholder={L('Por ejemplo: Salida a escalar el sábado', 'For example: Climbing trip on Saturday')} onChange={(e) => set({ title: e.target.value })} />
               </div>
               <div className="lgp-field">
-                <label htmlFor={`${uid}-desc`}>Descripción <span className="lgp-opt-t">(opcional)</span></label>
+                <label htmlFor={`${uid}-desc`}>{L('Descripción', 'Description')} <span className="lgp-opt-t">{L('(opcional)', '(optional)')}</span></label>
                 <input id={`${uid}-desc`} className="lgp-input" value={d.desc} maxLength={160} autoComplete="off" disabled={busy}
-                  placeholder="Cuándo o cómo se lo das" onChange={(e) => set({ desc: e.target.value })} />
+                  placeholder={L('Cuándo o cómo se lo das', 'When or how you give it')} onChange={(e) => set({ desc: e.target.value })} />
               </div>
             </div>
           )}
 
           <fieldset className="lgp-conds" disabled={busy}>
-            <legend className="lgp-legend">¿Para quién es?</legend>
+            <legend className="lgp-legend">{L('¿Para quién es?', 'Who is it for?')}</legend>
             {CONDITIONS.map((c) => (
               <label key={c.id} className={`lgp-cnd${d.condition === c.id ? ' is-on' : ''}`}>
                 <input type="radio" name={`${uid}-cond`} value={c.id} checked={d.condition === c.id} onChange={() => set({ condition: c.id })} />
@@ -142,9 +143,9 @@ export function FamilyPrizeSheet({ initial, options, busy, error, errorSeq, onSu
 
           {error && <p className="lgp-err" role="alert" tabIndex={-1} data-autofocus>{error}</p>}
           <div className="lgp-sheet-btns">
-            <button type="button" className="lgp-btn lgp-btn--ghost" onClick={onClose} disabled={busy}>Cancelar</button>
+            <button type="button" className="lgp-btn lgp-btn--ghost" onClick={onClose} disabled={busy}>{L('Cancelar', 'Cancel')}</button>
             <button type="submit" className="lgp-btn" disabled={busy || !req} aria-busy={busy || undefined}>
-              {busy ? 'Guardando…' : initial ? 'Guardar el cambio' : 'Poner el premio'}
+              {busy ? L('Guardando…', 'Saving…') : initial ? L('Guardar el cambio', 'Save the change') : L('Poner el premio', 'Set the prize')}
             </button>
           </div>
         </form>

@@ -11,6 +11,7 @@ import { parentCall } from '../lib/adultGate';
 import { famTo } from '../lib/member';
 import { forgetCounts, useChannelCounts, wantCount } from '../lib/mtCounts';
 import { NET, channelMatches, explainYtError, groupChannels, parseBatch, removeText, useEntryOps } from '../lib/mytubeAdmin';
+import { L } from '../../../shared/lib/lang';
 
 /** La vista de un canal dentro de Familia → MyTube (conserva `?m=` con famTo). */
 export const familyChannelPath = (id: string) => `/familia/mytube/canal/${encodeURIComponent(id)}`;
@@ -74,19 +75,19 @@ export function FamilyMyTubePanel({ member }: { member: string }) {
     let ok = 0, vids = 0;
     const errs: string[] = [];
     for (let i = 0; i < items.length; i++) {
-      setProgress(`Procesando ${i + 1}/${items.length}…`);
+      setProgress(L(`Procesando ${i + 1}/${items.length}…`, `Processing ${i + 1}/${items.length}…`));
       try {
         const r = await parentCall(api.mtAdd(items[i]));
         if (r.ok) { ok++; vids += r.added; } else errs.push(`${items[i].slice(0, 48)} — ${explainYtError(r.error)}`);
       } catch {
-        errs.push(`${items[i].slice(0, 48)} — ${NET}`);
+        errs.push(`${items[i].slice(0, 48)} — ${NET()}`);
       }
     }
     if (!alive.current) return;
     setProgress(''); setBusy(false); setInput('');
     setMsg(ok
-      ? `✓ ${ok} agregada(s) · ${vids} video(s) aprobados${errs.length ? ` · ${errs.length} con error` : ''}`
-      : (errs.length ? `Ninguna se agregó (${errs.length} con error)` : ''));
+      ? L(`✓ ${ok} agregada(s) · ${vids} video(s) aprobados${errs.length ? ` · ${errs.length} con error` : ''}`, `✓ ${ok} added · ${vids} video(s) approved${errs.length ? ` · ${errs.length} with errors` : ''}`)
+      : (errs.length ? L(`Ninguna se agregó (${errs.length} con error)`, `None were added (${errs.length} with errors)`) : ''));
     setFails(errs);
     await changed();
   };
@@ -96,9 +97,9 @@ export function FamilyMyTubePanel({ member }: { member: string }) {
     setBackfilling(true); setMaintMsg('');
     try {
       const r = await parentCall(api.mtBackfill());
-      setMaintMsg(r.ok ? `✓ Mis videos actualizado: ${r.completados} video(s) completados · ${r.canales} canal(es).` : `Error al completar canales: ${explainYtError(r.error)}`);
+      setMaintMsg(r.ok ? L(`✓ Mis videos actualizado: ${r.completados} video(s) completados · ${r.canales} canal(es).`, `✓ My videos updated: ${r.completados} video(s) completed · ${r.canales} channel(s).`) : L(`Error al completar canales: ${explainYtError(r.error)}`, `Couldn’t complete channels: ${explainYtError(r.error)}`));
     } catch {
-      setMaintMsg(`Error al completar canales: ${NET}`);
+      setMaintMsg(L(`Error al completar canales: ${NET()}`, `Couldn’t complete channels: ${NET()}`));
     } finally {
       if (alive.current) setBackfilling(false);
     }
@@ -110,9 +111,9 @@ export function FamilyMyTubePanel({ member }: { member: string }) {
     setDedup(true); setMaintMsg('');
     try {
       const r = await parentCall(api.mtDedup());
-      setMaintMsg(r.ok ? (r.removed ? `✓ Quité ${r.removed} entrada(s) duplicada(s)` : 'No había entradas duplicadas') : `Error: ${explainYtError(r.error)}`);
+      setMaintMsg(r.ok ? (r.removed ? L(`✓ Quité ${r.removed} entrada(s) duplicada(s)`, `✓ Removed ${r.removed} duplicate entr${r.removed === 1 ? 'y' : 'ies'}`) : L('No había entradas duplicadas', 'There were no duplicate entries')) : `Error: ${explainYtError(r.error)}`);
     } catch {
-      setMaintMsg(`Error: ${NET}`);
+      setMaintMsg(`Error: ${NET()}`);
     } finally {
       if (alive.current) setDedup(false);
     }
@@ -124,9 +125,9 @@ export function FamilyMyTubePanel({ member }: { member: string }) {
     try {
       const r = await parentCall(api.mtSetCap(cap ?? ''));
       setCap(String(r.videoCap));
-      setCapMsg(r.videoCap ? `✓ Guardado: hasta ${r.videoCap} videos por entrada.` : '✓ Guardado: sin tope.');
+      setCapMsg(r.videoCap ? L(`✓ Guardado: hasta ${r.videoCap} videos por entrada.`, `✓ Saved: up to ${r.videoCap} videos per entry.`) : L('✓ Guardado: sin tope.', '✓ Saved: no cap.'));
     } catch {
-      setCapMsg('No se pudo guardar. Probá de nuevo.');
+      setCapMsg(L('No se pudo guardar. Probá de nuevo.', 'Couldn’t save. Try again.'));
     }
   };
 
@@ -154,24 +155,24 @@ export function FamilyMyTubePanel({ member }: { member: string }) {
     <>
       <section className="pz-panel" aria-labelledby="pz-mt-h">
         <header className="pz-panel-head">
-          <h3 id="pz-mt-h">Mis videos <span className="pz-mem-fam">Vale para toda la familia</span></h3>
-          <p>Videos, playlists y canales de YouTube que aprobás para tu familia. Se suman al catálogo aprobado de Smarty y cada integrante los puede seguir en Mis videos. Abajo, los canales como los ve tu familia.</p>
+          <h3 id="pz-mt-h">{L('Mis videos', 'My videos')} <span className="pz-mem-fam">{L('Vale para toda la familia', 'For the whole family')}</span></h3>
+          <p>{L('Videos, playlists y canales de YouTube que aprobás para tu familia. Se suman al catálogo aprobado de Smarty y cada integrante los puede seguir en Mis videos. Abajo, los canales como los ve tu familia.', 'YouTube videos, playlists and channels you approve for your family. They join Smarty’s approved catalog and every member can follow them in My videos. Below, the channels as your family sees them.')}</p>
         </header>
         <div className="pz-block">
-          <h4 className="pz-block-h">Agregar</h4>
-          <textarea className="pz-input pz-yt-ta" rows={3} value={input} disabled={busy} aria-label="URLs de YouTube"
+          <h4 className="pz-block-h">{L('Agregar', 'Add')}</h4>
+          <textarea className="pz-input pz-yt-ta" rows={3} value={input} disabled={busy} aria-label={L('URLs de YouTube', 'YouTube URLs')}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void add(); } }}
-            placeholder={'Una URL por línea o separadas por ";" (video, playlist o canal @handle)\nhttps://youtu.be/dQw4w9WgXcQ\nhttps://www.youtube.com/@nombrecanal'} />
+            placeholder={L('Una URL por línea o separadas por ";" (video, playlist o canal @handle)\nhttps://youtu.be/dQw4w9WgXcQ\nhttps://www.youtube.com/@nombrecanal', 'One URL per line or separated by ";" (video, playlist or channel @handle)\nhttps://youtu.be/dQw4w9WgXcQ\nhttps://www.youtube.com/@channelname')} />
           <div className="pz-yt-row">
-            <button type="button" className="pz-btn" disabled={busy || !input.trim()} onClick={() => void add()}>{busy ? '…' : 'Agregar'}</button>
-            <span className="pz-yt-hint" role="status">{busy ? progress : 'Una línea o «;» = una URL · ⌘/Ctrl+Enter'}</span>
+            <button type="button" className="pz-btn" disabled={busy || !input.trim()} onClick={() => void add()}>{busy ? '…' : L('Agregar', 'Add')}</button>
+            <span className="pz-yt-hint" role="status">{busy ? progress : L('Una línea o «;» = una URL · ⌘/Ctrl+Enter', 'One line or “;” = one URL · ⌘/Ctrl+Enter')}</span>
           </div>
           {msg && <p className="pz-yt-msg" role="status">{msg}</p>}
           {fails.length > 0 && <ul className="pz-yt-fails">{fails.map((f, i) => <li key={i}>{f}</li>)}</ul>}
           <p className="pz-muted pz-yt-snap">
-            Modo snapshot: se aprueban los videos ACTUALES de la playlist/canal — los videos futuros no entran solos.
-            {st && <> Total aprobados: <b>{st.total}</b>.</>}
+            {L('Modo snapshot: se aprueban los videos ACTUALES de la playlist/canal — los videos futuros no entran solos.', 'Snapshot mode: the CURRENT videos of the playlist/channel are approved; future videos aren’t added automatically.')}
+            {st && <> {L('Total aprobados:', 'Total approved:')} <b>{st.total}</b>.</>}
           </p>
         </div>
       </section>
@@ -179,30 +180,30 @@ export function FamilyMyTubePanel({ member }: { member: string }) {
       {!groups ? <section className="pz-panel"><PanelState failed={failed} onRetry={() => void load()} /></section> : (
         <>
           <div className="pz-mt-bar">
-            <h3 className="pz-mt-bar-t">Canales <span className="pz-block-n">{groups.family.length + groups.catalog.length}</span></h3>
+            <h3 className="pz-mt-bar-t">{L('Canales', 'Channels')} <span className="pz-block-n">{groups.family.length + groups.catalog.length}</span></h3>
             <input className="pz-input pz-mt-q" type="search" value={q} onChange={(e) => setQ(e.target.value)}
-              placeholder="Buscar un canal" aria-label="Buscar un canal por nombre o @handle" />
+              placeholder={L('Buscar un canal', 'Search for a channel')} aria-label={L('Buscar un canal por nombre o @handle', 'Search for a channel by name or @handle')} />
           </div>
 
           <section className="pz-mt-sec" aria-labelledby="pz-mt-fam-h">
-            <h4 className="pz-block-h" id="pz-mt-fam-h">Sumados por tu familia <span className="pz-block-n">{famCount}</span></h4>
+            <h4 className="pz-block-h" id="pz-mt-fam-h">{L('Sumados por tu familia', 'Added by your family')} <span className="pz-block-n">{famCount}</span></h4>
             {ops.note && (ops.note.err
               ? <p className="pz-form-err" role="alert">{ops.note.text}</p>
               : <p className="pz-yt-msg" role="status">{ops.note.text}</p>)}
             {famCount === 0 ? (
-              <p className="pz-muted">Todavía no sumaste nada. Además del catálogo de Smarty, tu familia solo puede ver en Mis videos lo que agregues arriba.</p>
+              <p className="pz-muted">{L('Todavía no sumaste nada. Además del catálogo de Smarty, tu familia solo puede ver en Mis videos lo que agregues arriba.', 'You haven’t added anything yet. Besides Smarty’s catalog, your family can only see in My videos what you add above.')}</p>
             ) : familyShown.length + orphansShown.length === 0 ? (
-              <p className="pz-muted">Ningún canal sumado coincide con «{q.trim()}».</p>
+              <p className="pz-muted">{L(`Ningún canal sumado coincide con «${q.trim()}».`, `No added channel matches “${q.trim()}”.`)}</p>
             ) : (
               <div className="mt-chgrid">
                 {familyShown.map(({ channel: c, entries }) => (
                   <ChannelTile key={c.channelId} id={c.channelId} title={c.title} thumb={c.thumb} count={counts.get(c.channelId)}
-                    onOpen={() => open(c.channelId)} menuLabel={`Opciones de ${c.title} (${entries.length} ${entries.length === 1 ? 'entrada' : 'entradas'})`}
+                    onOpen={() => open(c.channelId)} menuLabel={L(`Opciones de ${c.title} (${entries.length} ${entries.length === 1 ? 'entrada' : 'entradas'})`, `Options for ${c.title} (${entries.length} ${entries.length === 1 ? 'entry' : 'entries'})`)}
                     onMenu={() => { ops.clearNote(); setMenu(c.channelId); }} />
                 ))}
                 {orphansShown.map((e) => (
                   <ChannelTile key={`entry:${e.id}`} id={null} title={e.title} count={e.videos}
-                    onOpen={() => { ops.clearNote(); setMenu(`entry:${e.id}`); }} menuLabel={`Opciones de ${e.title}`}
+                    onOpen={() => { ops.clearNote(); setMenu(`entry:${e.id}`); }} menuLabel={L(`Opciones de ${e.title}`, `Options for ${e.title}`)}
                     onMenu={() => { ops.clearNote(); setMenu(`entry:${e.id}`); }} />
                 ))}
               </div>
@@ -210,9 +211,9 @@ export function FamilyMyTubePanel({ member }: { member: string }) {
           </section>
 
           <section className="pz-mt-sec" aria-labelledby="pz-mt-cat-h">
-            <h4 className="pz-block-h" id="pz-mt-cat-h">Del catálogo de Smarty <span className="pz-block-n">{groups.catalog.length}</span></h4>
-            <p className="pz-help pz-mt-help">Los canales aprobados de fábrica. Tocá uno para ver sus videos y ajustar cómo se le presenta a tu familia.</p>
-            {catalogShown.length === 0 ? <p className="pz-muted">{q.trim() ? `Ningún canal del catálogo coincide con «${q.trim()}».` : 'No hay canales en el catálogo.'}</p> : (
+            <h4 className="pz-block-h" id="pz-mt-cat-h">{L('Del catálogo de Smarty', 'From Smarty’s catalog')} <span className="pz-block-n">{groups.catalog.length}</span></h4>
+            <p className="pz-help pz-mt-help">{L('Los canales aprobados de fábrica. Tocá uno para ver sus videos y ajustar cómo se le presenta a tu familia.', 'The built-in approved channels. Tap one to see its videos and adjust how it’s presented to your family.')}</p>
+            {catalogShown.length === 0 ? <p className="pz-muted">{q.trim() ? L(`Ningún canal del catálogo coincide con «${q.trim()}».`, `No catalog channel matches “${q.trim()}”.`) : L('No hay canales en el catálogo.', 'There are no channels in the catalog.')}</p> : (
               <div className="mt-chgrid">
                 {catalogShown.map((c) => (
                   <ChannelTile key={c.channelId} id={c.channelId} title={c.title} thumb={c.thumb} count={counts.get(c.channelId)} onOpen={() => open(c.channelId)} />
@@ -222,27 +223,27 @@ export function FamilyMyTubePanel({ member }: { member: string }) {
           </section>
 
           <details className="pz-panel pz-mt-maint">
-            <summary className="pz-mt-maint-s">Mantenimiento</summary>
+            <summary className="pz-mt-maint-s">{L('Mantenimiento', 'Maintenance')}</summary>
             <div className="pz-yt-maint">
               <button type="button" className="pz-btn pz-btn--ghost pz-btn--sm" disabled={backfilling} onClick={() => void backfill()}>
-                {backfilling ? 'Completando…' : '↻ Completar canales (Mis videos)'}
+                {backfilling ? L('Completando…', 'Completing…') : L('↻ Completar canales (Mis videos)', '↻ Complete channels (My videos)')}
               </button>
-              <span className="pz-yt-hint">Rellena el canal y la duración de los videos que les falte (para encender listas viejas en Mis videos). Necesita la API key de YouTube.</span>
+              <span className="pz-yt-hint">{L('Rellena el canal y la duración de los videos que les falte (para encender listas viejas en Mis videos). Necesita la API key de YouTube.', 'Fills in the channel and duration of videos missing them (to turn on old lists in My videos). Needs the YouTube API key.')}</span>
               <button type="button" className="pz-btn pz-btn--ghost pz-btn--sm" disabled={dedup} onClick={() => void quitarDuplicados()}
-                title="Quita entradas repetidas (mismo canal/playlist/video), conservando la más vieja y sus videos">
-                {dedup ? 'Limpiando…' : '⧉ Quitar duplicados'}
+                title={L('Quita entradas repetidas (mismo canal/playlist/video), conservando la más vieja y sus videos', 'Removes repeated entries (same channel/playlist/video), keeping the oldest one and its videos')}>
+                {dedup ? L('Limpiando…', 'Cleaning up…') : L('⧉ Quitar duplicados', '⧉ Remove duplicates')}
               </button>
             </div>
             {maintMsg && <p className="pz-yt-msg" role="status">{maintMsg}</p>}
             <div className="pz-field pz-yt-cap">
-              <label htmlFor="pz-yt-cap">Tope de videos por canal/lista (0 = sin tope)</label>
+              <label htmlFor="pz-yt-cap">{L('Tope de videos por canal/lista (0 = sin tope)', 'Video cap per channel/list (0 = no cap)')}</label>
               <div className="pz-yt-row">
                 <input id="pz-yt-cap" className="pz-input pz-input--num" type="number" min={0} inputMode="numeric" value={cap ?? ''}
                   onChange={(e) => { setCap(e.target.value); setCapMsg(''); }} onKeyDown={(e) => { if (e.key === 'Enter') void saveCap(); }} />
-                <button type="button" className="pz-btn pz-btn--sm" onClick={() => void saveCap()}>Guardar</button>
+                <button type="button" className="pz-btn pz-btn--sm" onClick={() => void saveCap()}>{L('Guardar', 'Save')}</button>
                 {capMsg && <span className="pz-yt-ok" role="status">{capMsg}</span>}
               </div>
-              <span className="pz-field-help">Cuántos videos importar de cada canal/playlist al agregarlo o reingestarlo. La API de YouTube es gratis (1 unidad de cuota por cada 50 videos); el límite real es el almacenamiento del catálogo. <b>0 = traer todos.</b> Cambiá el valor y reingestá una entrada para aplicarlo.</span>
+              <span className="pz-field-help">{L('Cuántos videos importar de cada canal/playlist al agregarlo o reingestarlo. La API de YouTube es gratis (1 unidad de cuota por cada 50 videos); el límite real es el almacenamiento del catálogo.', 'How many videos to import from each channel/playlist when adding or re-importing it. The YouTube API is free (1 quota unit per 50 videos); the real limit is the catalog’s storage.')} <b>{L('0 = traer todos.', '0 = bring them all.')}</b> {L('Cambiá el valor y reingestá una entrada para aplicarlo.', 'Change the value and re-import an entry to apply it.')}</span>
             </div>
           </details>
         </>
@@ -252,7 +253,7 @@ export function FamilyMyTubePanel({ member }: { member: string }) {
         <MtEntriesSheet title={sheet.title} entries={sheet.entries} note={ops.note} reingId={ops.reingId} removing={ops.removing} locked={ops.locked}
           onReingest={(e) => void ops.reingest(e)} onRemove={(e: MtEntry) => { setMenu(null); ops.ask(e); }} onClose={() => setMenu(null)} />
       )}
-      {ops.askDel && <ConfirmSheet text={removeText(ops.askDel)} confirmLabel="Eliminar" danger onAnswer={ops.answer} />}
+      {ops.askDel && <ConfirmSheet text={removeText(ops.askDel)} confirmLabel={L('Eliminar', 'Remove')} danger onAnswer={ops.answer} />}
     </>
   );
 }
@@ -277,7 +278,7 @@ function ChannelTile({ id, title, thumb, count, onOpen, onMenu, menuLabel }: {
   return (
     <div className={`pz-mt-tile${onMenu ? ' has-menu' : ''}`} ref={ref}>
       <ChannelCard c={{ channelId: id ?? title, title, thumb, videos: count ?? 0 }} counting={count === undefined} onOpen={onOpen} />
-      {onMenu && <button type="button" className="pz-mt-dots" aria-label={menuLabel} title="Reingestar o eliminar" onClick={onMenu}><IcDots /></button>}
+      {onMenu && <button type="button" className="pz-mt-dots" aria-label={menuLabel} title={L('Reingestar o eliminar', 'Re-import or remove')} onClick={onMenu}><IcDots /></button>}
     </div>
   );
 }

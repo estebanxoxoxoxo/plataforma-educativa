@@ -3,6 +3,7 @@
 // __tests__/cycleDraft.test.ts). LA VALIDACIÓN ES DEL SERVER: el editor manda la lista entera tal cual (también una hora
 // vacía) y muestra el motivo del 400 en sus palabras («Tarde»: las horas tienen que ser HH:MM…); acá no se duplica.
 import type { CycleRange, CycleSaveRequest, SectionKey } from '../../../api/types';
+import { L } from '../../../shared/lib/lang';
 import { CYCLE_LIMITS, SECTION_KEYS, hhmm, parseHHMM, rangeCovers } from '../../../shared/lib/cycleRules';
 
 /** Un rango en el editor. `key` = identidad estable para React (los nuevos todavía no tienen `id`: lo pone el server). */
@@ -20,15 +21,16 @@ export function toDrafts(ranges: readonly CycleRange[]): RangeDraft[] {
  *  sin secciones (el padre elige cuáles). */
 export function newRange(drafts: readonly RangeDraft[]): RangeDraft {
   const names = new Set(drafts.map((d) => d.name.trim().toLowerCase()));
+  const base = L('Rango', 'Range');
   let n = drafts.length + 1;
-  while (names.has(`rango ${n}`)) n++;
+  while (names.has(`${base.toLowerCase()} ${n}`)) n++;
   const keys = new Set(drafts.map((d) => d.key));
   let k = drafts.length + 1;
   while (keys.has(`new:${k}`)) k++;
   const lastTo = parseHHMM(drafts[drafts.length - 1]?.to);
   const from = lastTo ?? 8 * 60;
   const to = lastTo == null ? 12 * 60 : (lastTo + 180) % 1440;
-  return { key: `new:${k}`, name: `Rango ${n}`, from: hhmm(from), to: hhmm(to), sections: [] };
+  return { key: `new:${k}`, name: `${base} ${n}`, from: hhmm(from), to: hhmm(to), sections: [] };
 }
 
 /** Prende o apaga una sección en el rango, conservando el orden del menú. */
@@ -54,15 +56,15 @@ export function isDirty(drafts: readonly RangeDraft[], saved: readonly CycleRang
 export function spanLabel(from: string, to: string): string | null {
   const a = parseHHMM(from), b = parseHHMM(to);
   if (a == null || b == null) return null;
-  if (a === b) return 'todo el día';
-  return `de ${hhmm(a)} a ${hhmm(b)}${b < a ? ' (cruza la medianoche)' : ''}`;
+  if (a === b) return L('todo el día', 'all day');
+  return L(`de ${hhmm(a)} a ${hhmm(b)}${b < a ? ' (cruza la medianoche)' : ''}`, `from ${hhmm(a)} to ${hhmm(b)}${b < a ? ' (past midnight)' : ''}`);
 }
 
 /** El rótulo corto de un rango para el selector de la demo: "Tarde · 14:00–18:00" / "Noche · todo el día". */
 export function rangeOptionLabel(r: Pick<CycleRange, 'name' | 'from' | 'to'>): string {
   const a = parseHHMM(r.from), b = parseHHMM(r.to);
   if (a == null || b == null) return r.name;
-  return a === b ? `${r.name} · todo el día` : `${r.name} · ${hhmm(a)}–${hhmm(b)}`;
+  return a === b ? `${r.name} · ${L('todo el día', 'all day')}` : `${r.name} · ${hhmm(a)}–${hhmm(b)}`;
 }
 
 /** ¿El rango cubre el minuto `cur`? Solo con horas válidas (para marcar "ahora"; la regla fail-open es otra cosa). */

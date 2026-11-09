@@ -1,9 +1,10 @@
 import type { Video } from '../../../api/types';
 import { IcBookmark, IcHeadphones, IcPlusList } from '../../../shared/components/icons';
+import { L } from '../../../shared/lib/lang';
 
 // Íconos de la fila de acciones de YouTube (Material, 24px)
 const IcVerified = () => (
-  <svg viewBox="0 0 24 24" aria-label="Verificado"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zM9.8 17.3l-4.2-4.1L7 11.8l2.8 2.7L17 7.4l1.4 1.4-8.6 8.5z" /></svg>
+  <svg viewBox="0 0 24 24" aria-label={L('Verificado', 'Verified')}><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zM9.8 17.3l-4.2-4.1L7 11.8l2.8 2.7L17 7.4l1.4 1.4-8.6 8.5z" /></svg>
 );
 
 /** Avatar + nombre + suscriptores del canal. Dentro del chip-botón van como <span> (un botón solo admite contenido de
@@ -32,15 +33,15 @@ export const VideoInfo = ({ v, followed, onFollow, onChannel, onBg, onSave, onLi
     <div className="yt-row">
       <div className="yt-owner">
         {onChannel
-          ? <button type="button" className="yt-chip" onClick={onChannel} title="Ver el canal" aria-label={`Ver el canal ${v.channel}`}><Owner v={v} Tag="span" /></button>
+          ? <button type="button" className="yt-chip" onClick={onChannel} title={L('Ver el canal', 'See the channel')} aria-label={L(`Ver el canal ${v.channel}`, `See the channel ${v.channel}`)}><Owner v={v} Tag="span" /></button>
           : <Owner v={v} Tag="div" />}
-        <button className={`yt-sub${followed ? ' on' : ''}`} onClick={onFollow}>{followed ? 'Suscripto ✓' : 'Suscribirse'}</button>
+        <button className={`yt-sub${followed ? ' on' : ''}`} onClick={onFollow}>{followed ? L('Suscripto ✓', 'Subscribed ✓') : L('Suscribirse', 'Subscribe')}</button>
       </div>
       <div className="yt-actions">
         {/* Sin Me gusta / No me gusta (pedido de Esteban, 30-oct): eran decorativos, acá no se vota. */}
-        <button className="yt-btn" onClick={onBg} title="El audio sigue sonando mientras navegás"><IcHeadphones />Escuchar de fondo</button>
-        <button className="yt-btn" onClick={onSave}><IcBookmark />Guardar</button>
-        <button className="yt-btn" onClick={onList} aria-label="Agregar a una lista"><IcPlusList />Lista</button>
+        <button className="yt-btn" onClick={onBg} title={L('El audio sigue sonando mientras navegás', 'The audio keeps playing while you browse')}><IcHeadphones />{L('Escuchar de fondo', 'Listen in background')}</button>
+        <button className="yt-btn" onClick={onSave}><IcBookmark />{L('Guardar', 'Save')}</button>
+        <button className="yt-btn" onClick={onList} aria-label={L('Agregar a una lista', 'Add to a list')}><IcPlusList />{L('Lista', 'List')}</button>
       </div>
     </div>
   </div>

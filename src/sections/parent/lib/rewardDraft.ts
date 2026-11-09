@@ -1,6 +1,7 @@
 // Borrador del formulario "Publicar premio" / "Editar premio": validación espejo de la del server
 // (server/src/parent.ts) para avisar antes de mandar, y el patch mínimo de una edición.
 import type { NewMarketItem } from '../../../api/types';
+import { L } from '../../../shared/lib/lang';
 import type { ParentItemPatch, ParentItemView } from './types';
 
 export type Draft = { emoji: string; title: string; desc: string; price: string; stock: string };
@@ -26,18 +27,18 @@ export function validateDraft(d: Draft): { errors: DraftErrors; value?: NewMarke
   const emoji = d.emoji.trim();
   const n = count(emoji);
   if (!(n >= 1 && n <= 2 && emoji.length <= 16 && (/\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(emoji) || emoji.includes(KEYCAP)))) {
-    errors.emoji = 'Elegí un emoji (podés tocar una de las sugerencias).';
+    errors.emoji = L('Elegí un emoji (podés tocar una de las sugerencias).', 'Pick an emoji (you can tap one of the suggestions).');
   }
   const title = clean(d.title);
-  if (title.length < 2 || title.length > LIMITS.title) errors.title = `Escribí un título de 2 a ${LIMITS.title} caracteres.`;
+  if (title.length < 2 || title.length > LIMITS.title) errors.title = L(`Escribí un título de 2 a ${LIMITS.title} caracteres.`, `Write a title of 2 to ${LIMITS.title} characters.`);
   const desc = clean(d.desc);
-  if (desc.length > LIMITS.desc) errors.desc = `La descripción admite hasta ${LIMITS.desc} caracteres.`;
+  if (desc.length > LIMITS.desc) errors.desc = L(`La descripción admite hasta ${LIMITS.desc} caracteres.`, `The description can be up to ${LIMITS.desc} characters.`);
   const p = d.price.trim();
   const price = /^\d{1,9}$/.test(p) ? Number(p) : NaN;
-  if (!(price >= 1 && price <= LIMITS.price)) errors.price = 'Poné un precio entero entre 1 y 100.000.';
+  if (!(price >= 1 && price <= LIMITS.price)) errors.price = L('Poné un precio entero entre 1 y 100.000.', 'Enter a whole-number price between 1 and 100,000.');
   const s = d.stock.trim();
   const stock = s === '' ? null : /^\d{1,9}$/.test(s) ? Number(s) : NaN;
-  if (stock !== null && !(stock >= 0 && stock <= LIMITS.stock)) errors.stock = 'Dejalo vacío (sin límite) o poné un número entero.';
+  if (stock !== null && !(stock >= 0 && stock <= LIMITS.stock)) errors.stock = L('Dejalo vacío (sin límite) o poné un número entero.', 'Leave it empty (no limit) or enter a whole number.');
   if (Object.keys(errors).length) return { errors };
   return { errors, value: { emoji, title, ...(desc ? { desc } : {}), price, stock } };
 }

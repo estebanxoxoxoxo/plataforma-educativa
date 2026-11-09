@@ -9,22 +9,23 @@ import type {
   FamilyWeekPrize,
 } from '../../../api/types';
 import { closeCopy } from './cycle';
+import { L, isEn } from '../../../shared/lib/lang';
 
-const fmt = (n: number) => n.toLocaleString('es-AR');
+const fmt = (n: number) => n.toLocaleString(isEn() ? 'en-US' : 'es-AR');
 /** "la semana pasada" → "La semana pasada" (el rótulo lo arma el server por posición). */
 export const capFirst = (s: string) => (s ? s[0].toLocaleUpperCase('es-AR') + s.slice(1) : s);
 
 /** "Ian" · "Ian y Luna" · "Ian, Luna y Andrés" */
 export function namesList(names: string[]): string {
   if (names.length <= 1) return names[0] ?? '';
-  return `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]}`;
+  return `${names.slice(0, -1).join(', ')} ${L('y', 'and')} ${names[names.length - 1]}`;
 }
 
 /* ---------- la fila en vivo (§4.5) ---------- */
 /** Días del reto, entero de 0 a 7 (un dato raro no rompe los puntitos). */
 export const clampDays = (n: number | undefined): number => (typeof n === 'number' && Number.isFinite(n) ? Math.max(0, Math.min(7, Math.floor(n))) : 0);
 /** "5 de 7 días" (D2: el reto cuenta días de la semana, no seguidos). */
-export const daysText = (n: number) => `${clampDays(n)} de 7 días`;
+export const daysText = (n: number) => L(`${clampDays(n)} de 7 días`, `${clampDays(n)} of 7 days`);
 /** ↑ "superó su semana": SOLO cuando se logró (`prevXp != null && xp > prevXp`); mientras no, no hay nada que mostrar. */
 export const beatLastWeek = (r: Pick<FamilyLeagueRow, 'xp' | 'prevXp'>): boolean => r.prevXp != null && r.xp > r.prevXp;
 /** Con premio "supera su semana", el ↑ de un CHICO lleva el emoji del premio ("↑ 🚲": ya se lo ganó si nadie cierra antes;
@@ -42,22 +43,22 @@ export function cupOf(w: FamilyWeekClosed): { id: string; name: string; xp: numb
  *  hecho). Sin copa pero con XP (una tabla de uno): null. */
 export function cupLine(w: FamilyWeekClosed, when: 'esa' | 'esta' = 'esa'): string | null {
   const c = cupOf(w);
-  if (c) return `🏆 Ganó ${c.name} · ${fmt(c.xp)} XP`;
-  return w.total === 0 ? `Nadie sumó ${when} semana.` : null;
+  if (c) return L(`🏆 Ganó ${c.name} · ${fmt(c.xp)} XP`, `🏆 ${c.name} won · ${fmt(c.xp)} XP`);
+  return w.total === 0 ? L(`Nadie sumó ${when} semana.`, `Nobody scored ${when === 'esta' ? 'this' : 'that'} week.`) : null;
 }
 export type MarkChip = { id: string; name: string; text: string };
 /** Las marcas alcanzables por TODOS (↑ superó su semana · ✨ los 7 días), una ficha por integrante que logró alguna, en el
  *  orden de la tabla al cerrar. La copa va aparte (cupLine). Quien no logró ninguna no aparece: nada negativo. */
 export function marksOf(w: FamilyWeekClosed): MarkChip[] {
   return w.rows.flatMap((r) => {
-    const parts = [r.marks.includes('supero') && '↑ superó su semana', r.marks.includes('siete') && '✨ los 7 días'].filter(Boolean) as string[];
+    const parts = [r.marks.includes('supero') && L('↑ superó su semana', '↑ beat their week'), r.marks.includes('siete') && L('✨ los 7 días', '✨ all 7 days')].filter(Boolean) as string[];
     return parts.length ? [{ id: r.id, name: r.name, text: parts.join(' · ') }] : [];
   });
 }
 /** "Ian ↑ superó su semana · Andrés ✨ los 7 días" (una línea; '' si nadie logró ninguna). */
 export const marksText = (w: FamilyWeekClosed) => marksOf(w).map((m) => `${m.name} ${m.text}`).join(' · ');
 /** La línea cooperativa (G10: feedback sin premio). */
-export const totalLine = (total: number) => `Entre todos sumaron ${fmt(total)} XP`;
+export const totalLine = (total: number) => L(`Entre todos sumaron ${fmt(total)} XP`, `Together you all earned ${fmt(total)} XP`);
 /** La línea del premio de una semana cerrada: "🚲 1 hora de bici → para Luna (se lo da Andrés)" · sin premio, null · sin
  *  ganadores, según `prizeInPlay` (revisión de U5, lo manda el server): "🚲 1 hora de bici sigue en juego" SOLO si sigue
  *  en juego HOY y es la última semana cerrada (`latest`: history[0] o el cierre recién hecho); si no —el adulto lo cambió
@@ -68,33 +69,38 @@ export function closedPrizeLine(w: FamilyWeekClosed, meId?: string, latest = tru
   const p = w.prize;
   if (!p) return null;
   if (!p.winners.length) {
-    if (w.prizeInPlay === undefined || (w.prizeInPlay && latest)) return `${p.emoji} ${p.title} sigue en juego`;
-    return `${p.emoji} ${p.title} pasó a la semana siguiente`;
+    if (w.prizeInPlay === undefined || (w.prizeInPlay && latest)) return L(`${p.emoji} ${p.title} sigue en juego`, `${p.emoji} ${p.title} is still up for grabs`);
+    return L(`${p.emoji} ${p.title} pasó a la semana siguiente`, `${p.emoji} ${p.title} moved on to the next week`);
   }
-  const nameOf = (id: string) => (id === meId ? 'vos' : w.rows.find((r) => r.id === id)?.name ?? id);
+  const nameOf = (id: string) => (id === meId ? L('vos', 'you') : w.rows.find((r) => r.id === id)?.name ?? id);
   // "vos" al final ("Luna y vos"), como se dice.
   const ids = [...p.winners.filter((id) => id !== meId), ...p.winners.filter((id) => id === meId)];
-  const by = p.by.id === meId ? 'se lo das vos' : `se lo da ${p.by.name}`;
-  return `${p.emoji} ${p.title} → para ${namesList(ids.map(nameOf))} (${by})`;
+  const by = p.by.id === meId ? L('se lo das vos', 'you give it') : L(`se lo da ${p.by.name}`, `${p.by.name} gives it`);
+  return L(`${p.emoji} ${p.title} → para ${namesList(ids.map(nameOf))} (${by})`, `${p.emoji} ${p.title} → for ${namesList(ids.map(nameOf))} (${by})`);
 }
 
 /* ---------- el premio en juego (§3.2-§3.3) ---------- */
 /** D1: arranca preseleccionada "para todos los que superen su semana" ("el que gane la semana" a un toque). */
 export const DEFAULT_CONDITION: FamilyPrizeCondition = 'supera-su-semana';
 export const CONDITIONS: { id: FamilyPrizeCondition; label: string; help: string }[] = [
-  { id: 'supera-su-semana', label: 'Para todos los que superen su semana anterior', help: 'Cada chico compite contra su propia semana: lo pueden ganar todos.' },
-  { id: 'gana-la-semana', label: 'Para el que gane la semana', help: 'Se lo lleva el chico que más sume (si empatan, los dos).' },
+  // Getters: el texto se resuelve al LEERLO (en el render), no al importar el módulo (si no, quedaría congelado en el idioma de la carga).
+  { id: 'supera-su-semana',
+    get label() { return L('Para todos los que superen su semana anterior', 'For everyone who beats their last week'); },
+    get help() { return L('Cada chico compite contra su propia semana: lo pueden ganar todos.', 'Each kid competes against their own week: everyone can win it.'); } },
+  { id: 'gana-la-semana',
+    get label() { return L('Para el que gane la semana', 'For whoever wins the week'); },
+    get help() { return L('Se lo lleva el chico que más sume (si empatan, los dos).', 'The kid who scores the most takes it (if they tie, both do).'); } },
 ];
 /** La condición en palabras: para un chico "Si superás tu semana anterior" / "Si ganás la semana"; para el adulto, la
  *  etiqueta de la hoja ("Para todos los que superen su semana anterior" / "Para el que gane la semana"). */
 export function conditionText(c: FamilyPrizeCondition, audience: 'child' | 'adult'): string {
-  if (audience === 'child') return c === 'supera-su-semana' ? 'Si superás tu semana anterior' : 'Si ganás la semana';
+  if (audience === 'child') return c === 'supera-su-semana' ? L('Si superás tu semana anterior', 'If you beat your last week') : L('Si ganás la semana', 'If you win the week');
   return CONDITIONS.find((x) => x.id === c)?.label ?? '';
 }
 /** "Te lo da Andrés" (chico) · "Lo prometiste vos" / "Lo prometió Andrés" (adulto). */
 export function prizeByText(p: FamilyWeekPrize, audience: 'child' | 'adult', meId?: string): string {
-  if (audience === 'child') return `Te lo da ${p.by.name}`;
-  return p.by.id === meId ? 'Lo prometiste vos' : `Lo prometió ${p.by.name}`;
+  if (audience === 'child') return L(`Te lo da ${p.by.name}`, `${p.by.name} gives it to you`);
+  return p.by.id === meId ? L('Lo prometiste vos', 'You promised it') : L(`Lo prometió ${p.by.name}`, `${p.by.name} promised it`);
 }
 /** ¿El premio de hoy es el mismo que quedó sin ganadores la semana pasada? ("Sigue en juego"). Con `prizeInPlay` (lo manda
  *  el server) manda ese dato; sin el campo (server viejo), la misma identidad que usa el server: sin ganadores y mismo setAt. */
@@ -182,11 +188,11 @@ export function prizeRequest(d: PrizeDraft): FamilyPrizeRequest | null {
 export function familyCloseCopy(r: FamilyCloseResult, meId?: string) {
   const mine = closeCopy(r.mine).result;
   return {
-    title: '¡Cerró la semana de la familia!',
+    title: L('¡Cerró la semana de la familia!', 'The family week is over!'),
     cup: cupLine(r.closed, 'esta'),
     marks: marksOf(r.closed),
     total: totalLine(r.closed.total),
     prize: closedPrizeLine(r.closed, meId),
-    mine: `Tu liga también cerró: ${mine.charAt(0).toLocaleLowerCase('es-AR')}${mine.slice(1)}`,
+    mine: L(`Tu liga también cerró: ${mine.charAt(0).toLocaleLowerCase('es-AR')}${mine.slice(1)}`, `Your league closed too: ${mine.charAt(0).toLocaleLowerCase('en-US')}${mine.slice(1)}`),
   };
 }

@@ -8,14 +8,22 @@
 // verano "mañana" sigue siendo mañana.
 import type { CalendarEvent } from '../../../api/types';
 import { wallClock, wallDate } from '../../../shared/lib/zonedClock';
+import { L, isEn } from '../../../shared/lib/lang';
 
 /** Zona IANA de la familia; null = la del navegador. */
 export type Tz = string | null;
 
 const DAY_MS = 86_400_000;
-const WD = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'] as const; // orden de Date.getDay()
-const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'] as const;
-const MONTHS_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'] as const;
+const WD_ES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'] as const; // orden de Date.getDay()
+const WD_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
+const MONTHS_ES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'] as const;
+const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] as const;
+const MONTHS_SHORT_ES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'] as const;
+const MONTHS_SHORT_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
+// Las tablas se eligen al LLAMAR (idioma actual), no al importar el módulo.
+const WD = (): readonly string[] => (isEn() ? WD_EN : WD_ES);
+const MONTHS = (): readonly string[] => (isEn() ? MONTHS_EN : MONTHS_ES);
+const MONTHS_SHORT = (): readonly string[] => (isEn() ? MONTHS_SHORT_EN : MONTHS_SHORT_ES);
 
 /* ---------- fechas de pared (wallDate vive en shared/lib/zonedClock, compartido con mentors.ts) ---------- */
 /** El día de pared como número (medianoche UTC de esa fecha): dos instantes del mismo día dan lo mismo. */
@@ -31,17 +39,28 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 /** "miércoles 14" · "martes 3 de noviembre" (el mes solo si no es el de hoy; el año, solo si no es este). */
 function dateName(t: number, now: number, tz: Tz): string {
   const d = wallDate(t, tz), n = wallDate(now, tz);
-  const month = d.m !== n.m || d.y !== n.y ? ` de ${MONTHS[d.m]}` : '';
+  const other = d.m !== n.m || d.y !== n.y;
+  // EN: "Wednesday 14" · "Tuesday, November 3" · "Tuesday, November 3, 2027".
+  if (isEn()) return other ? `${WD()[d.wd]}, ${MONTHS()[d.m]} ${d.d}${d.y !== n.y ? `, ${d.y}` : ''}` : `${WD()[d.wd]} ${d.d}`;
+  const month = other ? ` de ${MONTHS()[d.m]}` : '';
   const year = d.y !== n.y ? ` de ${d.y}` : '';
-  return `${WD[d.wd]} ${d.d}${month}${year}`;
+  return `${WD()[d.wd]} ${d.d}${month}${year}`;
 }
 /** "Hoy" · "Mañana" · "Miércoles 14" · "Martes 3 de noviembre". */
 export function dayTitle(t: number, now: number, tz: Tz = null): string {
   const n = daysBetween(now, t, tz);
-  return n === 0 ? 'Hoy' : n === 1 ? 'Mañana' : cap(dateName(t, now, tz));
+  return n === 0 ? L('Hoy', 'Today') : n === 1 ? L('Mañana', 'Tomorrow') : cap(dateName(t, now, tz));
 }
 /** Cuánto falta para una clase de HOY, como lo diría un chico: "Empieza en 20 minutos" · "Falta una hora y media". */
 function inTime(mins: number): string {
+  if (isEn()) {
+    if (mins <= 1) return 'Starting now!';
+    if (mins < 60) return `Starts in ${mins} minutes`;
+    const h = Math.floor(mins / 60), m = mins % 60;
+    if (m >= 45) return `${h + 1} hours to go`;
+    if (h === 1) return m >= 15 ? 'An hour and a half to go' : 'One hour to go';
+    return m >= 15 ? `${h} and a half hours to go` : `${h} hours to go`;
+  }
   if (mins <= 1) return '¡Empieza ya!';
   if (mins < 60) return `Empieza en ${mins} minutos`;
   const h = Math.floor(mins / 60), m = mins % 60;
@@ -68,13 +87,13 @@ export type CalendarView = { hero: Hero | null; groups: DayGroup[] };
 function heroOf(e: CalendarEvent, now: number, tz: Tz): Hero {
   const d = wallDate(e.start, tz);
   const n = daysBetween(now, e.start, tz);
-  const leaf = { month: MONTHS_SHORT[d.m], day: d.d, weekday: n === 0 ? 'hoy' : n === 1 ? 'mañana' : WD[d.wd] };
+  const leaf = { month: MONTHS_SHORT()[d.m], day: d.d, weekday: n === 0 ? L('hoy', 'today') : n === 1 ? L('mañana', 'tomorrow') : WD()[d.wd] };
   if (isLive(e, now)) {
-    return { event: e, live: true, kicker: 'Ahora mismo', when: `Empezó a las ${hm(e.start, tz)} y termina a las ${hm(endOf(e), tz)}`, countdown: '¡Es ahora!', leaf };
+    return { event: e, live: true, kicker: L('Ahora mismo', 'Right now'), when: L(`Empezó a las ${hm(e.start, tz)} y termina a las ${hm(endOf(e), tz)}`, `Started at ${hm(e.start, tz)} and ends at ${hm(endOf(e), tz)}`), countdown: L('¡Es ahora!', 'It’s now!'), leaf };
   }
-  const when = `${dayTitle(e.start, now, tz)} a las ${hm(e.start, tz)}`;
-  const countdown = n === 0 ? inTime(Math.ceil((e.start - now) / 60_000)) : n === 1 ? '¡Es mañana!' : `Faltan ${n} días`;
-  return { event: e, live: false, kicker: 'Tu próxima clase', when, countdown, leaf };
+  const when = L(`${dayTitle(e.start, now, tz)} a las ${hm(e.start, tz)}`, `${dayTitle(e.start, now, tz)} at ${hm(e.start, tz)}`);
+  const countdown = n === 0 ? inTime(Math.ceil((e.start - now) / 60_000)) : n === 1 ? L('¡Es mañana!', 'It’s tomorrow!') : L(`Faltan ${n} días`, `${n} days to go`);
+  return { event: e, live: false, kicker: L('Tu próxima clase', 'Your next class'), when, countdown, leaf };
 }
 
 function groupByDay(events: CalendarEvent[], now: number, tz: Tz): DayGroup[] {

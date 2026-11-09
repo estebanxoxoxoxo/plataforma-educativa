@@ -10,6 +10,7 @@ import { parentCall, rejectedReason } from '../lib/adultGate';
 import { adoptCycle, effectiveTz, onMemberCycle } from '../lib/cycle';
 import { MAX_RANGES, type RangeDraft, coversNow, isDirty, newRange, toDrafts, toRequest, toggleSection } from '../lib/cycleDraft';
 import { famTo } from '../lib/member';
+import { L } from '../../../shared/lib/lang';
 
 /** «Ciclo del día» (tanda F2, 28-oct; docs/USUARIOS.md §11 — pedido del dueño: "rangos horarios y qué puntos de menú
  *  están disponibles en cada rango"). POR INTEGRANTE (`member`, el del selector de Familia; ParentZone remonta el panel al
@@ -84,9 +85,9 @@ export function CyclePanel({ kid, member }: { kid: string; member: string }) {
       if (!alive.current) return;
       take(r, sentAt, Date.now());
       const n = r.cycle.ranges.length;
-      setStatus({ kind: 'saved', text: n ? `✓ Guardado: ${n} ${n === 1 ? 'rango' : 'rangos'}. Ya rige para ${kid}.` : `✓ Guardado: ${kid} no tiene ciclo, todo el menú está disponible siempre.` });
+      setStatus({ kind: 'saved', text: n ? L(`✓ Guardado: ${n} ${n === 1 ? 'rango' : 'rangos'}. Ya rige para ${kid}.`, `✓ Saved: ${n} ${n === 1 ? 'range' : 'ranges'}. It now applies to ${kid}.`) : L(`✓ Guardado: ${kid} no tiene ciclo, todo el menú está disponible siempre.`, `✓ Saved: ${kid} has no cycle, the whole menu is always available.`) });
     } catch (e) {
-      if (alive.current) setStatus({ kind: 'error', text: rejectedReason(e) ?? 'No se pudo guardar. Probá de nuevo.' });
+      if (alive.current) setStatus({ kind: 'error', text: rejectedReason(e) ?? L('No se pudo guardar. Probá de nuevo.', 'Couldn’t save. Try again.') });
     } finally {
       if (alive.current) setBusy(false);
     }
@@ -99,17 +100,17 @@ export function CyclePanel({ kid, member }: { kid: string; member: string }) {
   return (
     <section className="pz-panel" aria-labelledby="pz-cy-h">
       <header className="pz-panel-head">
-        <h3 id="pz-cy-h">Ciclo del día de {kid}</h3>
-        <p>Armá los momentos del día de {kid} (la escuela, la tarde libre, la noche…) y elegí qué partes del menú tiene en cada uno. Los rangos rigen todos los días; lo que no está disponible se esconde del menú y se bloquea.</p>
+        <h3 id="pz-cy-h">{L(`Ciclo del día de ${kid}`, `${kid}’s daily cycle`)}</h3>
+        <p>{L(`Armá los momentos del día de ${kid} (la escuela, la tarde libre, la noche…) y elegí qué partes del menú tiene en cada uno. Los rangos rigen todos los días; lo que no está disponible se esconde del menú y se bloquea.`, `Set up ${kid}’s parts of the day (school, free afternoon, night…) and choose which parts of the menu they have in each one. Ranges apply every day; whatever isn’t available is hidden from the menu and blocked.`)}</p>
       </header>
-      <p className="pz-cy-rule"><b>Durante un rango, {kid} solo tiene lo que marcaste en ese rango</b> (si dos rangos se pisan, suma lo de los dos); fuera de todo rango, tiene lo que no está en ninguno. El Feed nunca se cierra.</p>
+      <p className="pz-cy-rule"><b>{L(`Durante un rango, ${kid} solo tiene lo que marcaste en ese rango`, `During a range, ${kid} only has what you checked in that range`)}</b>{L(' (si dos rangos se pisan, suma lo de los dos); fuera de todo rango, tiene lo que no está en ninguno. El Feed nunca se cierra.', ' (if two ranges overlap, it adds up both); outside every range, they have whatever isn’t in any of them. The Feed never closes.')}</p>
       <p className="pz-help pz-cy-tz">
-        Se calcula con la hora de la familia{cur != null && <> (ahora son las <b>{hhmm(cur)}</b>)</>}: la zona horaria se elige en <Link className="pz-inline pz-inline--tight" to={limites}>Límites</Link>.
+        {L('Se calcula con la hora de la familia', 'It’s calculated with the family’s time')}{cur != null && <>{L(' (ahora son las ', ' (it’s now ')}<b>{hhmm(cur)}</b>)</>}{L(': la zona horaria se elige en ', ': the time zone is chosen in ')}<Link className="pz-inline pz-inline--tight" to={limites}>{L('Límites', 'Limits')}</Link>.
       </p>
       {!drafts ? <PanelState failed={failed} onRetry={() => void load()} /> : (
         <>
           {drafts.length === 0 ? (
-            <p className="pz-muted pz-cy-empty">{kid} no tiene ciclo del día: todo el menú está disponible siempre. Agregá un rango para empezar.</p>
+            <p className="pz-muted pz-cy-empty">{L(`${kid} no tiene ciclo del día: todo el menú está disponible siempre. Agregá un rango para empezar.`, `${kid} has no daily cycle: the whole menu is always available. Add a range to get started.`)}</p>
           ) : (
             <ul className="pz-cy-list">
               {drafts.map((d, i) => (
@@ -123,17 +124,17 @@ export function CyclePanel({ kid, member }: { kid: string; member: string }) {
           )}
           <div className="pz-cy-foot">
             <button type="button" className="pz-btn pz-btn--ghost" disabled={busy || drafts.length >= MAX_RANGES} onClick={add}>
-              + Agregar rango
+              {L('+ Agregar rango', '+ Add range')}
             </button>
-            {drafts.length >= MAX_RANGES && <span className="pz-yt-hint">Hasta {MAX_RANGES} rangos.</span>}
+            {drafts.length >= MAX_RANGES && <span className="pz-yt-hint">{L(`Hasta ${MAX_RANGES} rangos.`, `Up to ${MAX_RANGES} ranges.`)}</span>}
             <span className="pz-cy-gap" />
-            {dirty && <button type="button" className="pz-link pz-link--quiet" disabled={busy} onClick={discard}>Descartar cambios</button>}
-            <button type="button" className="pz-btn" disabled={busy || !dirty} onClick={() => void save()}>{busy ? 'Guardando…' : 'Guardar ciclo'}</button>
+            {dirty && <button type="button" className="pz-link pz-link--quiet" disabled={busy} onClick={discard}>{L('Descartar cambios', 'Discard changes')}</button>}
+            <button type="button" className="pz-btn" disabled={busy || !dirty} onClick={() => void save()}>{busy ? L('Guardando…', 'Saving…') : L('Guardar ciclo', 'Save cycle')}</button>
           </div>
           <p className={`pz-cy-msg${status?.kind === 'error' ? ' is-err' : ''}`} role={status?.kind === 'error' ? 'alert' : 'status'}>
-            {status?.text ?? (dirty ? 'Hay cambios sin guardar.' : '')}
+            {status?.text ?? (dirty ? L('Hay cambios sin guardar.', 'There are unsaved changes.') : '')}
           </p>
-          <p className="pz-foot">Para la demo: con al menos un rango, el selector «Ciclo (demo)» del menú de la app elige en qué rango está {kid} (cada vez que {kid} recarga la página vuelve el reloj real).</p>
+          <p className="pz-foot">{L(`Para la demo: con al menos un rango, el selector «Ciclo (demo)» del menú de la app elige en qué rango está ${kid} (cada vez que ${kid} recarga la página vuelve el reloj real).`, `For the demo: with at least one range, the “Cycle (demo)” picker in the app menu chooses which range ${kid} is in (every time ${kid} reloads the page, the real clock comes back).`)}</p>
         </>
       )}
     </section>

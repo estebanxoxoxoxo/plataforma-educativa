@@ -1,6 +1,7 @@
 import { IcTrash } from '../../../shared/components/icons';
 import { LEARN_CATEGORIES } from '../lib/routeDraft';
 import { IcCrFilePlus, IcCrUpload } from './CreateIcons';
+import { L } from '../../../shared/lib/lang';
 
 /** Ruta: elegir una nueva o una guardada para editar (las del catálogo CON módulos) + Nueva / Borrar mientras se edita.
  *  Elegir "➕ Nueva ruta…" desde una guardada es "Nueva" (POC). Pura. */
@@ -15,17 +16,17 @@ export function RoutePicker({ routes, value, isEditing, onPick, onNew, onDelete 
 }) {
   return (
     <div className="cr-picker">
-      <label className="cr-label" htmlFor="cr-route">Ruta:</label>
+      <label className="cr-label" htmlFor="cr-route">{L('Ruta:', 'Route:')}</label>
       <select id="cr-route" className="cr-input cr-select cr-picker-sel" value={value} onChange={(e) => (e.target.value ? onPick(e.target.value) : onNew())}>
-        <option value="">➕ Nueva ruta…</option>
+        <option value="">{L('➕ Nueva ruta…', '➕ New route…')}</option>
         {routes.map((r) => (
-          <option key={r.id} value={r.id}>{r.emoji} {r.title || '(sin título)'}</option>
+          <option key={r.id} value={r.id}>{r.emoji} {r.title || L('(sin título)', '(untitled)')}</option>
         ))}
       </select>
       {isEditing && (
         <>
-          <button type="button" className="cr-btn cr-btn--ghost" onClick={onNew}><IcCrFilePlus /> Nueva</button>
-          <button type="button" className="cr-btn cr-btn--ghost is-danger" onClick={onDelete} title="Eliminar esta ruta"><IcTrash aria-hidden="true" /> Borrar</button>
+          <button type="button" className="cr-btn cr-btn--ghost" onClick={onNew}><IcCrFilePlus /> {L('Nueva', 'New')}</button>
+          <button type="button" className="cr-btn cr-btn--ghost is-danger" onClick={onDelete} title={L('Eliminar esta ruta', 'Delete this route')}><IcTrash aria-hidden="true" /> {L('Borrar', 'Delete')}</button>
         </>
       )}
     </div>
@@ -51,13 +52,13 @@ export function RouteIdentity({ emoji, title, category, cover, coverPreview, onE
   return (
     <>
       <div className="cr-ident">
-        <input className="cr-input cr-emoji cr-emoji--route" value={emoji} onChange={(e) => onEmoji(e.target.value)} aria-label="Emoji de la ruta" />
-        <input className="cr-input cr-title-in" value={title} onChange={(e) => onTitle(e.target.value)} placeholder="Título de la ruta" aria-label="Título de la ruta" />
+        <input className="cr-input cr-emoji cr-emoji--route" value={emoji} onChange={(e) => onEmoji(e.target.value)} aria-label={L('Emoji de la ruta', 'Route emoji')} />
+        <input className="cr-input cr-title-in" value={title} onChange={(e) => onTitle(e.target.value)} placeholder={L('Título de la ruta', 'Route title')} aria-label={L('Título de la ruta', 'Route title')} />
       </div>
 
       <div className="cr-field-row">
-        <label className="cr-label" htmlFor="cr-cat">Categoría</label>
-        <input id="cr-cat" className="cr-input" list="cr-cats" value={category} onChange={(e) => onCategory(e.target.value)} placeholder="Ej: Ciencias Naturales, Filosofía…" />
+        <label className="cr-label" htmlFor="cr-cat">{L('Categoría', 'Category')}</label>
+        <input id="cr-cat" className="cr-input" list="cr-cats" value={category} onChange={(e) => onCategory(e.target.value)} placeholder={L('Ej: Ciencias Naturales, Filosofía…', 'E.g. Natural Sciences, Philosophy…')} />
         <datalist id="cr-cats">{LEARN_CATEGORIES.map((c) => <option key={c} value={c} />)}</datalist>
       </div>
 
@@ -68,14 +69,14 @@ export function RouteIdentity({ emoji, title, category, cover, coverPreview, onE
             : <span className="cr-cover-emo" aria-hidden="true">{emoji}</span>}
         </div>
         <div className="cr-cover-txt">
-          <span className="cr-cover-h">Portada</span>
-          <span className="cr-cover-p">{cover ? 'Imagen subida (recortada 16:9).' : 'Se usa la imagen del 1er contenido (o el emoji).'}</span>
+          <span className="cr-cover-h">{L('Portada', 'Cover')}</span>
+          <span className="cr-cover-p">{cover ? L('Imagen subida (recortada 16:9).', 'Uploaded image (cropped 16:9).') : L('Se usa la imagen del 1er contenido (o el emoji).', 'Uses the image from the 1st content (or the emoji).')}</span>
           <div className="cr-cover-btns">
             <label className="cr-btn cr-btn--ghost cr-btn--sm cr-file">
-              <IcCrUpload /> Subir imagen
+              <IcCrUpload /> {L('Subir imagen', 'Upload image')}
               <input type="file" accept="image/*" className="cr-file-in" onChange={(e) => onCoverFile(e.target.files?.[0])} />
             </label>
-            {cover && <button type="button" className="cr-link is-danger" onClick={onClearCover}>Quitar</button>}
+            {cover && <button type="button" className="cr-link is-danger" onClick={onClearCover}>{L('Quitar', 'Remove')}</button>}
           </div>
         </div>
       </div>
@@ -96,20 +97,20 @@ export function GenConfig({ edad, nivel, url, onEdad, onNivel, onUrl }: {
   return (
     <div className="cr-gen">
       <label className="cr-gen-f">
-        <span className="cr-label">Edad</span>
+        <span className="cr-label">{L('Edad', 'Age')}</span>
         <input type="number" min={6} max={14} className="cr-input cr-num" value={edad} onChange={(e) => onEdad(e.target.value)} />
       </label>
       <label className="cr-gen-f">
-        <span className="cr-label">Nivel</span>
+        <span className="cr-label">{L('Nivel', 'Level')}</span>
         <select className="cr-input cr-select" value={nivel} onChange={(e) => onNivel(e.target.value)}>
-          <option value="basico">básico</option>
-          <option value="medio">medio</option>
-          <option value="avanzado">avanzado</option>
+          <option value="basico">{L('básico', 'basic')}</option>
+          <option value="medio">{L('medio', 'intermediate')}</option>
+          <option value="avanzado">{L('avanzado', 'advanced')}</option>
         </select>
       </label>
       <label className="cr-gen-f cr-gen-url">
         <span className="cr-label">route-lab</span>
-        <input className="cr-input cr-url" value={url} onChange={(e) => onUrl(e.target.value)} aria-label="URL de route-lab" placeholder="http://localhost:5203" spellCheck={false} />
+        <input className="cr-input cr-url" value={url} onChange={(e) => onUrl(e.target.value)} aria-label={L('URL de route-lab', 'route-lab URL')} placeholder="http://localhost:5203" spellCheck={false} />
       </label>
     </div>
   );

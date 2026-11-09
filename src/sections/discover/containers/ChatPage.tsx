@@ -8,10 +8,11 @@ import { ChatBubble, type ChatMediaHandlers } from '../components/ChatBubble';
 import { ChatHistory } from '../components/ChatHistory';
 import { LnArrowDown, LnArrowUp, LnHistory, LnPlus } from '../components/icons';
 import {
-  FAIL_CLOSED, clearAll, endTurn, getConv, patchAi, removeConv, resumeIfFirst, setContext, setOpenConv, startTurn,
+  clearAll, endTurn, getConv, patchAi, failClosed, removeConv, resumeIfFirst, setContext, setOpenConv, startTurn,
   useChatStore, useInflight, useOpenConv,
 } from '../lib/chatStore';
-import { SUGGESTED_TOPICS } from '../lib/suggestions';
+import { suggestedTopics } from '../lib/suggestions';
+import { L } from '../../../shared/lib/lang';
 
 /** FS-BASE-B (hallazgo web.ts:6): el contexto que viaja se recorta a los últimos CONTEXT_MAX mensajes. El server usa solo los
  *  últimos const.principalTurnos (12 de fábrica) y el juez, menos; antes crecía sin fin y, pasados los 200 KB del cuerpo,
@@ -97,7 +98,7 @@ export function ChatPage() {
     try {
       reply = await api.chat(context, q);
     } catch {
-      patchAi(uid, convId, aiId, { text: FAIL_CLOSED, pending: false }); // fail-closed
+      patchAi(uid, convId, aiId, { text: failClosed(), pending: false }); // fail-closed
       endTurn(uid, convId);
       return;
     }
@@ -124,25 +125,25 @@ export function ChatPage() {
 
   const name = user?.name?.split(' ')[0];
   const empty = msgs.length === 0;
-  const title = conv?.title ?? 'Nuevo chat';
+  const title = conv?.title ?? L('Nuevo chat', 'New chat');
 
   return (
     <section className="view" id="v-chat">
       <div className="cx-bar">
         <h2 className="cx-title" title={title}>{title}</h2>
-        <button type="button" className="cx-hist" aria-label="Historial de chats" title="Historial de chats" onClick={() => setHistory(true)}><LnHistory /></button>
-        <button type="button" className="cx-new" onClick={startNew} aria-label="Nuevo chat"><LnPlus />Nuevo</button>
+        <button type="button" className="cx-hist" aria-label={L('Historial de chats', 'Chat history')} title={L('Historial de chats', 'Chat history')} onClick={() => setHistory(true)}><LnHistory /></button>
+        <button type="button" className="cx-new" onClick={startNew} aria-label={L('Nuevo chat', 'New chat')}><LnPlus />{L('Nuevo', 'New')}</button>
       </div>
 
       <div className="cx-scroll" ref={list} onScroll={() => { stick.current = atBottom(); if (stick.current) setNewPill(false); }}>
         <div className={`cx-col${empty ? ' is-empty' : ''}`}>
           {empty ? (
             <div className="cx-empty">
-              <h3>¡Hola{name ? ` ${name}` : ''}! 👋</h3>
-              <p>¿Qué querés saber hoy?</p>
+              <h3>{L('¡Hola', 'Hi')}{name ? ` ${name}` : ''}! 👋</h3>
+              <p>{L('¿Qué querés saber hoy?', 'What do you want to know today?')}</p>
               <div className="cx-chips">
-                {SUGGESTED_TOPICS.slice(0, 3).map((t) => (
-                  <button key={t} type="button" className="sx-chip" onClick={() => void send(`Contame algo sobre ${t.toLowerCase()}`)}>{t}</button>
+                {suggestedTopics().slice(0, 3).map((t) => (
+                  <button key={t} type="button" className="sx-chip" onClick={() => void send(L(`Contame algo sobre ${t.toLowerCase()}`, `Tell me about ${t.toLowerCase()}`))}>{t}</button>
                 ))}
               </div>
             </div>
@@ -151,17 +152,17 @@ export function ChatPage() {
       </div>
 
       <div className="cx-foot">
-        {newPill && <button type="button" className="cx-newpill" onClick={toBottom}><LnArrowDown />Nueva respuesta</button>}
+        {newPill && <button type="button" className="cx-newpill" onClick={toBottom}><LnArrowDown />{L('Nueva respuesta', 'New reply')}</button>}
         <form className="cx-comp" onSubmit={(e) => { e.preventDefault(); void send(); }}>
-          <textarea ref={ta} value={text} rows={1} maxLength={MAX_INPUT} placeholder="Escribí tu pregunta…" aria-label="Tu pregunta"
+          <textarea ref={ta} value={text} rows={1} maxLength={MAX_INPUT} placeholder={L('Escribí tu pregunta…', 'Type your question…')} aria-label={L('Tu pregunta', 'Your question')}
             onChange={(e) => setText(e.target.value.slice(0, MAX_INPUT))}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void send(); }
             }} />
-          <button className="cx-send" type="submit" aria-label="Enviar" disabled={busy || !text.trim()}><LnArrowUp /></button>
+          <button className="cx-send" type="submit" aria-label={L('Enviar', 'Send')} disabled={busy || !text.trim()}><LnArrowUp /></button>
         </form>
         {text.length >= COUNT_FROM && <div className="cx-count" aria-live="polite">{text.length}/{MAX_INPUT}</div>}
-        <div className="cx-note"><IcShield />Respuestas y contenidos moderados para tu edad</div>
+        <div className="cx-note"><IcShield />{L('Respuestas y contenidos moderados para tu edad', 'Answers and content moderated for your age')}</div>
       </div>
 
       {history && (

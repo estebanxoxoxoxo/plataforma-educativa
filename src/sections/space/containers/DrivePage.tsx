@@ -8,6 +8,7 @@ import { IcFolderWin, IcNavSpace, IcTrash } from '../../../shared/components/ico
 import { DriveItemCard } from '../cards/DriveItemCard';
 import { FolderCard } from '../cards/FolderCard';
 import { FolderForm } from '../components/FolderForm';
+import { L } from '../../../shared/lib/lang';
 
 /** Carpetas (Drive): lo que el chico guarda, organizado en carpetas anidadas con breadcrumb.
  *  Contenedor puro: todo sale de /api/space/drive; cada acción escribe y recarga. */
@@ -29,8 +30,8 @@ export function DrivePage() {
 
   const here = at === 0 ? '/espacio/carpetas' : `/espacio/carpetas/${at}`;
   const openItem = (it: DriveItem) => {
-    if (it.target.type === 'video') go(`/buscar/video/${it.target.id}`, { state: { backTo: here, backLabel: '‹ Carpetas' } });
-    else if (it.target.type === 'article') go(`/buscar/articulo/${encodeURIComponent(it.target.url)}`, { state: { backTo: here, backLabel: '‹ Carpetas' } });
+    if (it.target.type === 'video') go(`/buscar/video/${it.target.id}`, { state: { backTo: here, backLabel: L('‹ Carpetas', '‹ Folders') } });
+    else if (it.target.type === 'article') go(`/buscar/articulo/${encodeURIComponent(it.target.url)}`, { state: { backTo: here, backLabel: L('‹ Carpetas', '‹ Folders') } });
     else setZoom(it);
   };
 
@@ -40,18 +41,18 @@ export function DrivePage() {
         {/* Ícono + título, sin subtítulo, como el resto de las secciones (pedido de Esteban, 30-oct). */}
         <div className="sp-title">
           <span className="sp-tico" aria-hidden="true"><IcNavSpace /></span>
-          <h2 className="h2">Mi espacio</h2>
+          <h2 className="h2">{L('Mi espacio', 'My space')}</h2>
         </div>
         <div className="sphead-acts">
-          <button className="sbtn ghost sp-trash" onClick={() => go('/espacio/papelera')}><IcTrash />Papelera</button>
-          <button className="sbtn" onClick={() => setForm('create')}>＋ Carpeta nueva</button>
+          <button className="sbtn ghost sp-trash" onClick={() => go('/espacio/papelera')}><IcTrash />{L('Papelera', 'Trash')}</button>
+          <button className="sbtn" onClick={() => setForm('create')}>{L('＋ Carpeta nueva', '＋ New folder')}</button>
         </div>
       </div>
 
       {/* Las migas están SIEMPRE, también en la raíz (pedido de Esteban, 30-oct): ahí «Mis carpetas» es la actual. */}
       {data && (
         <div className="shcrumb page">
-          <button className={`crumb${data.path.length === 0 ? ' on' : ''}`} onClick={() => go('/espacio/carpetas')}><IcFolderWin className="cfold" />Mis carpetas</button>
+          <button className={`crumb${data.path.length === 0 ? ' on' : ''}`} onClick={() => go('/espacio/carpetas')}><IcFolderWin className="cfold" />{L('Mis carpetas', 'My folders')}</button>
           {data.path.map((p) => (
             <button key={p.id} className={`crumb${p.id === at ? ' on' : ''}`} onClick={() => go(`/espacio/carpetas/${p.id}`)}>
               {p.name}
@@ -60,12 +61,12 @@ export function DrivePage() {
         </div>
       )}
 
-      {error && <p className="spempty">No pude cargar tus carpetas ahora. Probemos de nuevo en un ratito.</p>}
+      {error && <p className="spempty">{L('No pude cargar tus carpetas ahora. Probemos de nuevo en un ratito.', 'I couldn’t load your folders right now. Let’s try again in a little bit.')}</p>}
       {/* Como Google Drive (pedido de Esteban, 30-oct): carpetas y archivos en la MISMA grilla de columnas iguales (.spgrid),
           así una carpeta y un archivo miden lo mismo y nada baila según el nombre. Adentro de una carpeta, cada bloque con
           su rótulo («Carpetas» / «Archivos»); en la raíz solo hay carpetas y el título ya lo dice. */}
       {data && <>
-        {at !== 0 && data.folders.length > 0 && <h3 className="splbl">Carpetas</h3>}
+        {at !== 0 && data.folders.length > 0 && <h3 className="splbl">{L('Carpetas', 'Folders')}</h3>}
         {data.folders.length > 0 && (
           <div className="spgrid">
             {data.folders.map((f) => (
@@ -77,7 +78,7 @@ export function DrivePage() {
             ))}
           </div>
         )}
-        {at !== 0 && data.items.length > 0 && <h3 className="splbl">Archivos</h3>}
+        {at !== 0 && data.items.length > 0 && <h3 className="splbl">{L('Archivos', 'Files')}</h3>}
         {at !== 0 && data.items.length > 0 && (
           <div className="spgrid">
             {data.items.map((it) => (
@@ -88,32 +89,32 @@ export function DrivePage() {
           </div>
         )}
         {at === 0 && data.folders.length === 0 && (
-          <p className="spempty">Acá viven tus carpetas. Creá la primera con “＋ Carpeta nueva”: lo que guardes va siempre adentro de una carpeta.</p>
+          <p className="spempty">{L('Acá viven tus carpetas. Creá la primera con “＋ Carpeta nueva”: lo que guardes va siempre adentro de una carpeta.', 'Your folders live here. Create the first one with “＋ New folder”: whatever you save always goes inside a folder.')}</p>
         )}
         {at !== 0 && data.folders.length === 0 && data.items.length === 0 && (
-          <p className="spempty">Esta carpeta está vacía.</p>
+          <p className="spempty">{L('Esta carpeta está vacía.', 'This folder is empty.')}</p>
         )}
       </>}
 
       {form === 'create' && (
-        <FolderForm title="Carpeta nueva" cta="Crear"
+        <FolderForm title={L('Carpeta nueva', 'New folder')} cta={L('Crear', 'Create')}
           onSubmit={async (v) => { await api.createFolder(v.name, at); reload(); }}
           onClose={() => setForm('none')} />
       )}
       {typeof form === 'object' && (
-        <FolderForm title="Renombrar carpeta" cta="Guardar" initial={{ name: form.edit.name }}
+        <FolderForm title={L('Renombrar carpeta', 'Rename folder')} cta={L('Guardar', 'Save')} initial={{ name: form.edit.name }}
           onSubmit={async (v) => { await api.editFolder(form.edit.id, { name: v.name }); reload(); }}
           onClose={() => setForm('none')} />
       )}
       {moving && (
-        <FolderSheet open title={`Mover “${moving.name}” a…`} cta="Mover acá"
+        <FolderSheet open title={L(`Mover “${moving.name}” a…`, `Move “${moving.name}” to…`)} cta={L('Mover acá', 'Move here')}
           excludeId={moving.kind === 'folder' ? moving.id : undefined}
           allowRoot={moving.kind === 'folder'}
           onPick={async (dest, destName) => {
             const r = moving.kind === 'folder' ? await api.moveFolder(moving.id, dest) : await api.moveItem(moving.id, dest);
-            if (!r.ok) return { error: 'Ahí no se puede (ya estaba, o es la misma carpeta).' };
+            if (!r.ok) return { error: L('Ahí no se puede (ya estaba, o es la misma carpeta).', 'You can’t move it there (it’s already there, or it’s the same folder).') };
             reload();
-            return { done: `Movido a ${destName}` };
+            return { done: L(`Movido a ${destName}`, `Moved to ${destName}`) };
           }}
           onClose={() => setMoving(null)} />
       )}

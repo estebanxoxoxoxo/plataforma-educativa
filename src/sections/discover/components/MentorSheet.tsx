@@ -6,6 +6,7 @@ import {
   pickWho, planClasses, planLabel, slotsEvery, takenBy, usd, weeklyPrice, whoName, type People, type Tz,
 } from '../../../shared/lib/mentors';
 import { useVeil } from '../../store/lib/sheet';
+import { isEn, L } from '../../../shared/lib/lang';
 
 /** Estado de la hoja que maneja el contenedor (MentorResults):
  *  · plan   — cuántas clases por semana y para quién → "Contratar" (el pago del demo: instantáneo, sin cobrar nada).
@@ -69,11 +70,13 @@ export function MentorSheet({ mentor, me, people, taken, state, tz, onContract, 
   const veil = useVeil(onClose, busy);
   const short = firstName(mentor.name);
   const head = state.phase === 'plan'
-    ? { t: `Contratar a ${mentor.name}`, sub: `${mentor.subject} · ${usd(mentor.pricePerHour)} la hora` }
+    ? { t: L(`Contratar a ${mentor.name}`, `Hire ${mentor.name}`), sub: `${mentor.subject} · ${usd(mentor.pricePerHour)} ${L('la hora', 'per hour')}` }
     : state.phase === 'agenda'
-      ? { t: `${state.justPaid ? '¡Listo! Elegí' : 'Elegí'} ${state.contract.daysPerWeek === 1 ? 'el día' : 'los días'}`,
-        sub: `${mentor.subject} con ${short} ${forWho(state.contract.beneficiary, me, people)} · ${planLabel(state.contract.daysPerWeek)}` }
-      : { t: `Clases con ${mentor.name}`, sub: `${mentor.subject} · ${planLabel(state.contract.daysPerWeek)}` };
+      ? { t: isEn()
+          ? `${state.justPaid ? 'Done! Pick' : 'Pick'} ${state.contract.daysPerWeek === 1 ? 'the day' : 'the days'}`
+          : `${state.justPaid ? '¡Listo! Elegí' : 'Elegí'} ${state.contract.daysPerWeek === 1 ? 'el día' : 'los días'}`,
+        sub: `${mentor.subject} ${L('con', 'with')} ${short} ${forWho(state.contract.beneficiary, me, people)} · ${planLabel(state.contract.daysPerWeek)}` }
+      : { t: L(`Clases con ${mentor.name}`, `Classes with ${mentor.name}`), sub: `${mentor.subject} · ${planLabel(state.contract.daysPerWeek)}` };
 
   return (
     <div className="shov smn-ov" onMouseDown={veil}>
@@ -85,7 +88,7 @@ export function MentorSheet({ mentor, me, people, taken, state, tz, onContract, 
             <h3 className="smn-sh-t" id="smn-sh-t">{head.t}</h3>
             <p className="smn-sh-sub">{head.sub}</p>
           </div>
-          <button type="button" className="smn-x" aria-label="Cerrar" disabled={busy} onClick={onClose}>
+          <button type="button" className="smn-x" aria-label={L('Cerrar', 'Close')} disabled={busy} onClick={onClose}>
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
           </button>
         </div>
@@ -127,36 +130,37 @@ function PlanStep({ mentor, me, people, busy, error, onContract, onCancel }: Com
   const nobody = family.every((id) => holderOf(id));
   const price = plan === null ? null : weeklyPrice(mentor.pricePerHour, plan);
   const ready = plan !== null && pickedWho !== null;
-  const pending = nobody ? `Ya hay clases con ${short} para toda tu familia.`
-    : plan === null && pickedWho === null ? 'Elegí cuántas clases por semana y para quién.'
-    : plan === null ? 'Ahora elegí cuántas clases por semana.'
-    : 'Ahora elegí para quién son.';
+  const pending = nobody ? L(`Ya hay clases con ${short} para toda tu familia.`, `There are already classes with ${short} for your whole family.`)
+    : plan === null && pickedWho === null ? L('Elegí cuántas clases por semana y para quién.', 'Pick how many classes per week and who they’re for.')
+    : plan === null ? L('Ahora elegí cuántas clases por semana.', 'Now pick how many classes per week.')
+    : L('Ahora elegí para quién son.', 'Now pick who they’re for.');
 
   return (
     <>
-      <p className="smn-lede" id="smn-sh-d">Elegí cuántas clases por semana y para quién. Después del pago elegís los días y las horas.</p>
+      <p className="smn-lede" id="smn-sh-d">{L('Elegí cuántas clases por semana y para quién. Después del pago elegís los días y las horas.', 'Pick how many classes per week and who they’re for. After paying, you pick the days and times.')}</p>
       <fieldset className="smn-set" disabled={busy}>
-        <legend className="smn-legend">¿Cuántas clases por semana?</legend>
+        <legend className="smn-legend">{L('¿Cuántas clases por semana?', 'How many classes per week?')}</legend>
         <div className="smn-plans">
           {PLANS.map((p) => (
             <label key={p} className="smn-plan" data-plan={p}>
               <input type="radio" name="smn-plan" value={p} checked={plan === p} onChange={() => { setPlan(p); dropError(); }} />
               <span className="smn-plan-box">
                 <span className="smn-plan-n">{p}</span>
-                <span className="smn-plan-t">{p === 1 ? 'clase por semana' : 'clases por semana'}</span>
-                <span className="smn-plan-p">{planClasses(p)} · <b>{usd(weeklyPrice(mentor.pricePerHour, p))}</b> por semana</span>
+                <span className="smn-plan-t">{p === 1 ? L('clase por semana', 'class per week') : L('clases por semana', 'classes per week')}</span>
+                <span className="smn-plan-p">{planClasses(p)} · <b>{usd(weeklyPrice(mentor.pricePerHour, p))}</b> {L('por semana', 'per week')}</span>
               </span>
             </label>
           ))}
         </div>
       </fieldset>
       <fieldset className="smn-set" disabled={busy}>
-        <legend className="smn-legend">¿Para quién?</legend>
+        <legend className="smn-legend">{L('¿Para quién?', 'Who is it for?')}</legend>
         <div className="smn-whos">
           {family.map((id) => {
             const c = holderOf(id);
             const why = !c ? null
-              : c.status === 'pending' ? 'Pagado: falta elegir los días'
+              : c.status === 'pending' ? L('Pagado: falta elegir los días', 'Paid: days still to pick')
+              : isEn() ? `${id === me ? 'You already have' : 'Already has'} classes with ${short}`
               : `Ya ${id === me ? 'tenés' : 'tiene'} clases con ${short}`;
             return (
               <label key={id} className="smn-who" data-who={id}>
@@ -173,22 +177,24 @@ function PlanStep({ mentor, me, people, busy, error, onContract, onCancel }: Com
       <div className="smn-sum" aria-live="polite">
         {ready && price !== null ? (
           <>
-            <p className="smn-sum-main"><b>{mentor.subject} con {short}</b> {forWho(pickedWho, me, people)} · {planLabel(plan)}</p>
+            <p className="smn-sum-main"><b>{mentor.subject} {L('con', 'with')} {short}</b> {forWho(pickedWho, me, people)} · {planLabel(plan)}</p>
             <p className="smn-sum-sub">
-              {usd(price)} por semana ({planClasses(plan)} a {usd(mentor.pricePerHour)} la hora). Después del pago elegís {plan === 1 ? 'el día' : `los ${plan} días`} y la hora.
+              {isEn()
+                ? <>{usd(price)} per week ({planClasses(plan)} at {usd(mentor.pricePerHour)} per hour). After paying, you pick {plan === 1 ? 'the day' : `the ${plan} days`} and the time.</>
+                : <>{usd(price)} por semana ({planClasses(plan)} a {usd(mentor.pricePerHour)} la hora). Después del pago elegís {plan === 1 ? 'el día' : `los ${plan} días`} y la hora.</>}
             </p>
           </>
         ) : <p className="smn-sum-empty">{pending}</p>}
       </div>
       {error && !errGone && <p className="smn-err" role="alert">{error}</p>}
       <div className="smn-btns">
-        <button type="button" className="smn-btn smn-btn--ghost" disabled={busy} onClick={onCancel}>Cancelar</button>
+        <button type="button" className="smn-btn smn-btn--ghost" disabled={busy} onClick={onCancel}>{L('Cancelar', 'Cancel')}</button>
         <button type="button" className="smn-btn smn-go" disabled={!ready || busy} aria-busy={busy}
           onClick={() => { if (plan !== null && pickedWho !== null) onContract(plan, pickedWho); }}>
-          {busy ? 'Contratando…' : price !== null && ready ? `Contratar · ${usd(price)} por semana` : 'Contratar'}
+          {busy ? L('Contratando…', 'Hiring…') : price !== null && ready ? L(`Contratar · ${usd(price)} por semana`, `Hire · ${usd(price)} per week`) : L('Contratar', 'Hire')}
         </button>
       </div>
-      <p className="smn-demo">Demo: el pago es instantáneo y no se cobra nada.</p>
+      <p className="smn-demo">{L('Demo: el pago es instantáneo y no se cobra nada.', 'Demo: payment is instant and nothing is charged.')}</p>
     </>
   );
 }
@@ -215,21 +221,21 @@ function AgendaStep({ mentor, me, people, contract, justPaid, taken, busy, error
     ? picked.map((r) => ({ weekday: r.day as number, hour: r.hour as number }))
     : null;
   const missing = picked.findIndex((r) => r.day === null || r.hour === null);
-  const which = n === 1 ? 'de la clase' : `de la clase ${missing + 1}`;
-  const pending = missing < 0 ? '' : picked[missing].day === null ? `Elegí el día ${which}.` : `Ahora elegí la hora ${which}.`;
+  const which = isEn() ? (n === 1 ? 'for the class' : `for class ${missing + 1}`) : n === 1 ? 'de la clase' : `de la clase ${missing + 1}`;
+  const pending = missing < 0 ? '' : picked[missing].day === null ? L(`Elegí el día ${which}.`, `Pick the day ${which}.`) : L(`Ahora elegí la hora ${which}.`, `Now pick the time ${which}.`);
   // Con plan 1 es UN día con su hora (nada de "cada uno"); con 2-3, los N días, cada uno con su hora.
   const ask = n === 1
-    ? `el día y la hora de ${mentor.subject} ${forWho(contract.beneficiary, me, people)}`
-    : `los ${n} días de ${mentor.subject} ${forWho(contract.beneficiary, me, people)}, cada uno con su hora`;
+    ? L(`el día y la hora de ${mentor.subject} ${forWho(contract.beneficiary, me, people)}`, `the day and time for ${mentor.subject} ${forWho(contract.beneficiary, me, people)}`)
+    : L(`los ${n} días de ${mentor.subject} ${forWho(contract.beneficiary, me, people)}, cada uno con su hora`, `the ${n} days for ${mentor.subject} ${forWho(contract.beneficiary, me, people)}, each with its time`);
 
   return (
     <>
       {justPaid ? (
         <p className="smn-lede smn-paid" id="smn-sh-d" role="status">
-          <b>Pagado.</b> Ahora elegí {ask}. Cada clase dura una hora.
+          <b>{L('Pagado.', 'Paid.')}</b> {L(`Ahora elegí ${ask}. Cada clase dura una hora.`, `Now pick ${ask}. Each class lasts one hour.`)}
         </p>
       ) : (
-        <p className="smn-lede" id="smn-sh-d">Elegí {ask}. Cada clase dura una hora.</p>
+        <p className="smn-lede" id="smn-sh-d">{L(`Elegí ${ask}. Cada clase dura una hora.`, `Pick ${ask}. Each class lasts one hour.`)}</p>
       )}
       <div className="smn-rows">
         {picked.map((r, i) => {
@@ -238,29 +244,29 @@ function AgendaStep({ mentor, me, people, contract, justPaid, taken, busy, error
           return (
             <fieldset key={i} className="smn-row" disabled={busy} data-row={i}>
               <legend className="smn-legend">
-                Clase {i + 1}
+                {L('Clase', 'Class')} {i + 1}
                 {r.day !== null && r.hour !== null && <span className="smn-row-pick"> · {DAYS[r.day]} {hourLabel(r.hour)}</span>}
               </legend>
-              <div className="smn-opts" role="group" aria-label={`Día de la clase ${i + 1}`}>
+              <div className="smn-opts" role="group" aria-label={L(`Día de la clase ${i + 1}`, `Day for class ${i + 1}`)}>
                 {DAYS_SHORT.map((d, wd) => {
                   const other = dayOf(wd);
                   return (
-                    <label key={wd} className="smn-opt" data-day={wd} title={other >= 0 ? `Ya lo elegiste para la clase ${other + 1}` : undefined}>
+                    <label key={wd} className="smn-opt" data-day={wd} title={other >= 0 ? L(`Ya lo elegiste para la clase ${other + 1}`, `You already picked it for class ${other + 1}`) : undefined}>
                       <input type="radio" name={`smn-day-${i}`} value={wd} checked={r.day === wd} disabled={other >= 0} onChange={() => set(i, { day: wd })} />
-                      <span className="smn-chip"><span aria-hidden="true">{d}</span><span className="smn-sr">{DAYS[wd]}{other >= 0 ? ' (ya elegido para otra clase)' : ''}</span></span>
+                      <span className="smn-chip"><span aria-hidden="true">{d}</span><span className="smn-sr">{DAYS[wd]}{other >= 0 ? L(' (ya elegido para otra clase)', ' (already picked for another class)') : ''}</span></span>
                     </label>
                   );
                 })}
               </div>
               {r.day !== null && (
-                <div className="smn-opts smn-opts--hours" role="group" aria-label={`Hora de la clase ${i + 1}`}>
+                <div className="smn-opts smn-opts--hours" role="group" aria-label={L(`Hora de la clase ${i + 1}`, `Time for class ${i + 1}`)}>
                   {HOURS.map((h) => {
                     const by = takenBy(taken, r.day as number, h);
                     return (
                       <label key={h} className="smn-opt" data-hour={h}
-                        title={by ? `Ocupado: ${self ? 'tenés' : `${name} tiene`} ${by.subject} con ${firstName(by.mentorName)}` : undefined}>
+                        title={by ? (isEn() ? `Busy: ${self ? 'you have' : `${name} has`} ${by.subject} with ${firstName(by.mentorName)}` : `Ocupado: ${self ? 'tenés' : `${name} tiene`} ${by.subject} con ${firstName(by.mentorName)}`) : undefined}>
                         <input type="radio" name={`smn-hour-${i}`} value={h} checked={r.hour === h} disabled={!!by} onChange={() => set(i, { hour: h })} />
-                        <span className="smn-chip">{hourLabel(h)}{by && <span className="smn-sr"> (ocupado)</span>}</span>
+                        <span className="smn-chip">{hourLabel(h)}{by && <span className="smn-sr">{L(' (ocupado)', ' (busy)')}</span>}</span>
                       </label>
                     );
                   })}
@@ -268,9 +274,14 @@ function AgendaStep({ mentor, me, people, contract, justPaid, taken, busy, error
               )}
               {busyThatDay.length > 0 && r.day !== null && (
                 <p className="smn-taken">
-                  {busyThatDay.length === 1 ? 'Tachada: la hora que' : 'Tachadas: las horas que'} {self ? 'ya tenés' : `${name} ya tiene`}{' '}
-                  {busyThatDay.length === 1 ? 'ocupada' : 'ocupadas'} {everyDay(r.day)} (
-                  {listEs(busyThatDay.map(({ h, by }) => `${by.subject} con ${firstName(by.mentorName)} a las ${hourLabel(h)}`))}).
+                  {isEn() ? <>
+                    Crossed out: {busyThatDay.length === 1 ? 'the time' : 'the times'} {self ? 'you already have' : `${name} already has`} booked {everyDay(r.day)} (
+                    {listEs(busyThatDay.map(({ h, by }) => `${by.subject} with ${firstName(by.mentorName)} at ${hourLabel(h)}`))}).
+                  </> : <>
+                    {busyThatDay.length === 1 ? 'Tachada: la hora que' : 'Tachadas: las horas que'} {self ? 'ya tenés' : `${name} ya tiene`}{' '}
+                    {busyThatDay.length === 1 ? 'ocupada' : 'ocupadas'} {everyDay(r.day)} (
+                    {listEs(busyThatDay.map(({ h, by }) => `${by.subject} con ${firstName(by.mentorName)} a las ${hourLabel(h)}`))}).
+                  </>}
                 </p>
               )}
             </fieldset>
@@ -280,21 +291,23 @@ function AgendaStep({ mentor, me, people, contract, justPaid, taken, busy, error
       <div className="smn-sum" aria-live="polite">
         {slots ? (
           <>
-            <p className="smn-sum-main"><b>{mentor.subject} con {short}</b> {forWho(contract.beneficiary, me, people)} · {slotsEvery(slots)}</p>
+            <p className="smn-sum-main"><b>{mentor.subject} {L('con', 'with')} {short}</b> {forWho(contract.beneficiary, me, people)} · {slotsEvery(slots)}</p>
             <p className="smn-sum-sub">
-              {usd(weeklyPrice(mentor.pricePerHour, n))} por semana. Las próximas {CLASSES} clases de {n === 1 ? 'ese día' : 'cada día'} aparecen en {calendarOf(contract.beneficiary, me, people)}.
+              {isEn()
+                ? <>{usd(weeklyPrice(mentor.pricePerHour, n))} per week. The next {CLASSES} classes {n === 1 ? 'on that day' : 'on each day'} show up in {calendarOf(contract.beneficiary, me, people)}.</>
+                : <>{usd(weeklyPrice(mentor.pricePerHour, n))} por semana. Las próximas {CLASSES} clases de {n === 1 ? 'ese día' : 'cada día'} aparecen en {calendarOf(contract.beneficiary, me, people)}.</>}
             </p>
           </>
         ) : <p className="smn-sum-empty">{pending}</p>}
       </div>
       {error && !errGone && <p className="smn-err" role="alert">{error}</p>}
       <div className="smn-btns">
-        <button type="button" className="smn-btn smn-btn--ghost" disabled={busy} onClick={onLater}>Elegir más tarde</button>
+        <button type="button" className="smn-btn smn-btn--ghost" disabled={busy} onClick={onLater}>{L('Elegir más tarde', 'Pick later')}</button>
         <button type="button" className="smn-btn smn-go" disabled={!slots || busy} aria-busy={busy} onClick={() => { if (slots) onSchedule(slots); }}>
-          {busy ? 'Guardando…' : n === 1 ? 'Confirmar el día' : 'Confirmar los días'}
+          {busy ? L('Guardando…', 'Saving…') : n === 1 ? L('Confirmar el día', 'Confirm the day') : L('Confirmar los días', 'Confirm the days')}
         </button>
       </div>
-      <p className="smn-later">Podés elegir los días más tarde desde esta tarjeta o desde Familia → Mentorías: la compra no se pierde.</p>
+      <p className="smn-later">{L('Podés elegir los días más tarde desde esta tarjeta o desde Familia → Mentorías: la compra no se pierde.', 'You can pick the days later from this card or from Family → Mentoring: your purchase won’t be lost.')}</p>
     </>
   );
 }
@@ -311,15 +324,17 @@ function DoneStep({ mentor, me, people, contract, first, tz, onClose }: Common &
         <svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
       </span>
       <p className="smn-done-t" id="smn-sh-d">
-        Listo: {self ? 'tenés' : `${whoName(contract.beneficiary, me, people)} tiene`} {mentor.subject} con {short} {slotsEvery(contract.slots)}.
+        {isEn()
+          ? <>Done: {self ? 'you have' : `${whoName(contract.beneficiary, me, people)} has`} {mentor.subject} with {short} {slotsEvery(contract.slots)}.</>
+          : <>Listo: {self ? 'tenés' : `${whoName(contract.beneficiary, me, people)} tiene`} {mentor.subject} con {short} {slotsEvery(contract.slots)}.</>}
       </p>
       <p className="smn-done-p">
-        Las clases ya están en {calendarOf(contract.beneficiary, me, people)}.
-        {first !== null && <> La primera es el {dateLong(first, tz)}.</>}
+        {L('Las clases ya están en', 'The classes are already in')} {calendarOf(contract.beneficiary, me, people)}.
+        {first !== null && (isEn() ? <> The first one is on {dateLong(first, tz)}.</> : <> La primera es el {dateLong(first, tz)}.</>)}
       </p>
       <div className="smn-btns">
-        {self && <Link className="smn-btn" to="/calendario">Ver calendario</Link>}
-        <button type="button" className={`smn-btn${self ? ' smn-btn--ghost' : ''}`} data-autofocus onClick={onClose}>Listo</button>
+        {self && <Link className="smn-btn" to="/calendario">{L('Ver calendario', 'See calendar')}</Link>}
+        <button type="button" className={`smn-btn${self ? ' smn-btn--ghost' : ''}`} data-autofocus onClick={onClose}>{L('Listo', 'Done')}</button>
       </div>
     </div>
   );

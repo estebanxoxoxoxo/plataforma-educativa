@@ -3,11 +3,15 @@
 // ~10 s de ruido) → GainNode → destino; se mezclan en paralelo entre sí y con la música de YouTube.
 // El AudioContext arranca suspendido hasta un GESTO de usuario (lo dispara el toggle del MiniPlayer).
 
+import { L } from '../lib/lang';
+
 export type AmbientKey = 'blanco' | 'marron' | 'rosa';
-export const AMBIENTS: { key: AmbientKey; label: string; emoji: string }[] = [
-  { key: 'blanco', label: 'Ruido blanco', emoji: '🌫️' },
-  { key: 'marron', label: 'Ruido marrón', emoji: '🌧️' },
-  { key: 'rosa', label: 'Ruido rosa', emoji: '🌸' },
+/** `label` y `short` son GETTERS (i18n): se leen en el idioma actual cada vez (una constante de módulo con L() quedaría
+ *  congelada en el idioma del primer import). `short` = el nombre sin «Ruido» («blanco»), para los chips. */
+export const AMBIENTS: { key: AmbientKey; readonly label: string; readonly short: string; emoji: string }[] = [
+  { key: 'blanco', get label() { return L('Ruido blanco', 'White noise'); }, get short() { return L('blanco', 'white'); }, emoji: '🌫️' },
+  { key: 'marron', get label() { return L('Ruido marrón', 'Brown noise'); }, get short() { return L('marrón', 'brown'); }, emoji: '🌧️' },
+  { key: 'rosa', get label() { return L('Ruido rosa', 'Pink noise'); }, get short() { return L('rosa', 'pink'); }, emoji: '🌸' },
 ];
 
 let ctx: AudioContext | null = null;

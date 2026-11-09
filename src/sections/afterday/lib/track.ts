@@ -2,12 +2,13 @@
 import type { AfterDayTrack } from '../../../api/types';
 import { getBgState, pauseMusic, playTrack, resumeMusic, type BgTrack } from '../../../shared/audio/bgAudio';
 import { trackAudio, trackTap } from './trackAudio';
+import { L } from '../../../shared/lib/lang';
 
 const ytThumb = (videoId: string) => `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 
 /** Sin nombre, en el MiniPlayer suena como "Música" (la tarjeta dice "Audio"): los dos textos del POC, tal cual. */
 export function trackToBg(t: AfterDayTrack): BgTrack {
-  return { id: t.videoId, title: t.title || 'Música', img: t.thumb || ytThumb(t.videoId) };
+  return { id: t.videoId, title: t.title || L('Música', 'Music'), img: t.thumb || ytThumb(t.videoId) };
 }
 
 /** Tocar una tarjeta (el After Day del chico y Familia → After Day, 29-oct): play/pausa del audio de fondo. Sin el fondo →

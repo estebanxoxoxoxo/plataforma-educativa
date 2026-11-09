@@ -5,6 +5,7 @@ import {
   firstName, forWho, fromCalendarOf, planLabel, slotsEvery, usd, weeklyPrice, type People,
 } from '../../../shared/lib/mentors';
 import { capFirst } from '../lib/format';
+import { L } from '../../../shared/lib/lang';
 
 /** Una mentoría de Familia → Mentorías (un CONTRATO): el emoji de la materia sobre el color del mentor, "{materia} con
  *  {mentor}", para quién, el plan con su precio semanal y los días — o "Falta elegir los días" con "Elegir los días", que
@@ -41,17 +42,17 @@ export function MentorshipRow({ m, c, me, people, confirming, busy, error, onAsk
 
   const pending = c.status === 'pending';
   const who = forWho(c.beneficiary, me, people);
-  const what = `${m.subject} con ${m.name} ${who}`;
+  const what = L(`${m.subject} con ${m.name} ${who}`, `${m.subject} with ${m.name} ${who}`);
   return (
     <li ref={row} className={`pz-ms${pending ? ' is-pending' : ''}`} data-contract={c.id} data-status={c.status}>
       <span className="pz-ms-emo" style={{ '--mc': m.color } as CSSProperties} aria-hidden="true">{m.emoji}</span>
       <div className="pz-ms-main">
-        <p className="pz-ms-t"><b>{m.subject} con {m.name}</b> <span className="pz-ms-who">{who}</span></p>
-        <p className="pz-ms-plan">{planLabel(c.daysPerWeek)} · <b>{usd(weeklyPrice(m.pricePerHour, c.daysPerWeek))}</b> por semana</p>
+        <p className="pz-ms-t"><b>{L(`${m.subject} con ${m.name}`, `${m.subject} with ${m.name}`)}</b> <span className="pz-ms-who">{who}</span></p>
+        <p className="pz-ms-plan">{planLabel(c.daysPerWeek)} · <b>{usd(weeklyPrice(m.pricePerHour, c.daysPerWeek))}</b> {L('por semana', 'per week')}</p>
         {pending ? (
           <p className="pz-ms-days is-pending">
             <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.2" fill="none" stroke="currentColor" strokeWidth="1.8" /><path d="M10 6.3V10l2.6 1.7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            Falta elegir los días
+            {L('Falta elegir los días', 'Days not chosen yet')}
           </p>
         ) : (
           <p className="pz-ms-days">{capFirst(slotsEvery(c.slots))}</p>
@@ -60,21 +61,21 @@ export function MentorshipRow({ m, c, me, people, confirming, busy, error, onAsk
       {!confirming && (
         <div className="pz-ms-acts">
           {pending && (
-            <Link className="pz-btn pz-btn--sm" to={`/buscar?tab=mentors&agendar=${c.id}`} aria-label={`Elegir los días de ${what}`}>Elegir los días</Link>
+            <Link className="pz-btn pz-btn--sm" to={`/buscar?tab=mentors&agendar=${c.id}`} aria-label={L(`Elegir los días de ${what}`, `Choose the days for ${what}`)}>{L('Elegir los días', 'Choose the days')}</Link>
           )}
           <button ref={act} type="button" className="pz-btn pz-btn--ghost pz-btn--sm" data-ms-act disabled={busy}
-            aria-label={`Cancelar ${what}`} onClick={onAskCancel}>Cancelar</button>
+            aria-label={L(`Cancelar ${what}`, `Cancel ${what}`)} onClick={onAskCancel}>{L('Cancelar', 'Cancel')}</button>
         </div>
       )}
       {confirming && (
-        <div className="pz-ms-confirm" role="group" aria-label={`Cancelar ${what}`}>
+        <div className="pz-ms-confirm" role="group" aria-label={L(`Cancelar ${what}`, `Cancel ${what}`)}>
           <p>
-            ¿Cancelás {m.subject} con {firstName(m.name)} {who}?{' '}
-            {pending ? 'Todavía no tenía días elegidos.' : `Las próximas clases salen ${fromCalendarOf(c.beneficiary, me, people)}.`}
+            {L(`¿Cancelás ${m.subject} con ${firstName(m.name)} ${who}?`, `Cancel ${m.subject} with ${firstName(m.name)} ${who}?`)}{' '}
+            {pending ? L('Todavía no tenía días elegidos.', 'No days had been chosen yet.') : L(`Las próximas clases salen ${fromCalendarOf(c.beneficiary, me, people)}.`, `The upcoming classes are removed ${fromCalendarOf(c.beneficiary, me, people)}.`)}
           </p>
           <div className="pz-form-btns">
-            <button type="button" className="pz-btn pz-btn--sm" disabled={busy} aria-busy={busy} onClick={onConfirmCancel}>{busy ? 'Cancelando…' : 'Sí, cancelar'}</button>
-            <button ref={keep} type="button" className="pz-btn pz-btn--ghost pz-btn--sm" disabled={busy} onClick={onKeep}>No, mantener</button>
+            <button type="button" className="pz-btn pz-btn--sm" disabled={busy} aria-busy={busy} onClick={onConfirmCancel}>{busy ? L('Cancelando…', 'Canceling…') : L('Sí, cancelar', 'Yes, cancel')}</button>
+            <button ref={keep} type="button" className="pz-btn pz-btn--ghost pz-btn--sm" disabled={busy} onClick={onKeep}>{L('No, mantener', 'No, keep it')}</button>
           </div>
         </div>
       )}

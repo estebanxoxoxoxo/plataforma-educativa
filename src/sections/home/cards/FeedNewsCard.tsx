@@ -6,6 +6,7 @@ import { LessButton, WhyChip } from '../components/FeedBits';
 import { IcUsersLine } from '../components/feedIcons';
 import { ReactionBar } from '../components/ReactionBar';
 import { newsFace, type NewsItem } from '../lib/news';
+import { L } from '../../../shared/lib/lang';
 
 /** NOTICIA que atraviesa el hilo (estilo C del mock v6): lo de las ligas — la tarjeta de la liga de la semana y las
  *  medallas/ascensos/carrera, propias y de los amigos. Fondo con el tinte de la sección (o el de la medalla) al blanco,
@@ -19,13 +20,13 @@ export function FeedNewsCard({ it, mine, fresh, onReact, onLeague, onLess }: {
   const friend = it.kind === 'friend' ? it : null;
   const league = it.kind === 'league' ? it : null;
   const face = friend ? newsFace(friend.text) : newsFace(league?.desc ?? '', true);
-  const kicker = friend ? (mine ? 'Tu medalla' : 'Noticia · Ligas') : 'Tu liga de la semana';
+  const kicker = friend ? (mine ? L('Tu medalla', 'Your medal') : L('Noticia · Ligas', 'News · Leagues')) : L('Tu liga de la semana', 'Your league this week');
   const titleId = `hf-nt-${it.id}`;
   return (
     <section className={`hf-news${fresh ? ' is-fresh' : ''}`} data-tint={face.medal ?? 'liga'} data-mine={mine || undefined} aria-labelledby={titleId}>
       <LessButton onClick={onLess} className="hf-news-x" />
       <div className="hf-big">
-        <span className="hf-big-em" role="img" aria-label={face.medal ? MEDAL_INFO[face.medal].name : 'Noticia de ligas'}>{face.emoji}</span>
+        <span className="hf-big-em" role="img" aria-label={face.medal ? MEDAL_INFO[face.medal].name : L('Noticia de ligas', 'League news')}>{face.emoji}</span>
         {friend && (mine
           ? <MyAvatar name={friend.friend.nick} size={30} />
           : <Avatar name={friend.friend.nick} color={friend.friend.color} look={lookFor(friend.friend.nick)} size={30} />)}
@@ -33,12 +34,12 @@ export function FeedNewsCard({ it, mine, fresh, onReact, onLeague, onLess }: {
       <div className="hf-nx">
         <p className="hf-k"><IcTrophyLine aria-hidden="true" />{kicker}<span className="hf-k-time">· {it.time}</span></p>
         <h3 className="hf-nt" id={titleId}>
-          {friend ? <><b>{friend.friend.nick}</b>{mine && <span className="hf-you">Vos</span>} {face.text}</> : league?.name}
+          {friend ? <><b>{friend.friend.nick}</b>{mine && <span className="hf-you">{L('Vos', 'You')}</span>} {face.text}</> : league?.name}
         </h3>
-        {friend ? mine && <p className="hf-np">Tus amigos lo ven en su feed</p> : face.text && <p className="hf-np">{face.text}</p>}
+        {friend ? mine && <p className="hf-np">{L('Tus amigos lo ven en su feed', 'Your friends see it in their feed')}</p> : face.text && <p className="hf-np">{face.text}</p>}
         <div className="hf-act">
           {friend && <ReactionBar reactions={friend.reactions} onReact={(e) => onReact(friend.id, e)} />}
-          <button type="button" className="hf-cta is-quiet" onClick={onLeague}>{friend ? 'Ver la liga' : 'Ver mi liga'}</button>
+          <button type="button" className="hf-cta is-quiet" onClick={onLeague}>{friend ? L('Ver la liga', 'See the league') : L('Ver mi liga', 'See my league')}</button>
           {it.reason && <WhyChip reason={it.reason} icon={friend && !mine ? <IcUsersLine /> : undefined} />}
         </div>
       </div>

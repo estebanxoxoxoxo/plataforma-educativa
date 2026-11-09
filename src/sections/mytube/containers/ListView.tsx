@@ -8,6 +8,7 @@ import { ConfirmSheet } from '../../create/components/ConfirmSheet';
 import { IcMtNext, IcMtPrev } from '../components/MtIcons';
 import { ListActionSheet, NameSheet } from '../components/Sheets';
 import { listPath, useMtBack, videoPath } from '../lib/nav';
+import { L, isEn } from '../../../shared/lib/lang';
 
 type Sheet = 'none' | 'menu' | 'rename' | 'confirm';
 
@@ -49,9 +50,9 @@ export function ListView() {
   };
 
   const videos = data?.videos ?? [];
-  const name = data?.name ?? 'Lista';
+  const name = data?.name ?? L('Lista', 'List');
   const tracks: BgTrack[] = videos.map((v) => ({ id: v.id, title: v.title, img: v.img }));
-  const back = { backTo: listPath(lid), backLabel: '‹ Mi lista' };
+  const back = { backTo: listPath(lid), backLabel: L('‹ Mi lista', '‹ My list') };
   // La cola del reproductor: ids + los videos (miniatura/título/duración) para su panel «En la lista», como el POC.
   const playAll = () => go(videoPath(videos[0].id), { state: { ...back, queue: videos.map((v) => v.id), qi: 0, qvideos: videos } });
   const listen = () => { playQueue(tracks, 0, 0); close(); };
@@ -59,21 +60,23 @@ export function ListView() {
 
   return (
     <section className="view mt-view">
-      <button type="button" className="back" onClick={close}>‹ Volver</button>
+      <button type="button" className="back" onClick={close}>{L('‹ Volver', '‹ Back')}</button>
       <div className="mt-lhead">
         <h2>{name}</h2>
-        {data && <button type="button" className="mt-dots" aria-label="Opciones de la lista" onClick={() => setSheet('menu')}><IcDots /></button>}
+        {data && <button type="button" className="mt-dots" aria-label={L('Opciones de la lista', 'List options')} onClick={() => setSheet('menu')}><IcDots /></button>}
       </div>
-      {failed && !data ? <p className="mt-empty">No pude cargar esta lista ahora.</p> : (data || missing) && (
+      {failed && !data ? <p className="mt-empty">{L('No pude cargar esta lista ahora.', 'I couldn’t load this list right now.')}</p> : (data || missing) && (
         <>
           {videos.length > 0 && (
             <div className="mt-acts">
-              <button type="button" className="mt-btn" onClick={playAll}><IcPlay />Reproducir todo</button>
-              <button type="button" className="mt-btn mt-btn--soft" onClick={listen}><IcHeadphones />Escuchar de fondo</button>
+              <button type="button" className="mt-btn" onClick={playAll}><IcPlay />{L('Reproducir todo', 'Play all')}</button>
+              <button type="button" className="mt-btn mt-btn--soft" onClick={listen}><IcHeadphones />{L('Escuchar de fondo', 'Listen in the background')}</button>
             </div>
           )}
           {videos.length === 0 ? (
-            <p className="mt-none">Esta lista está vacía.<br />Agregá videos desde el reproductor con <b>＋ Lista</b>.</p>
+            isEn()
+              ? <p className="mt-none">This list is empty.<br />Add videos from the player with <b>＋ List</b>.</p>
+              : <p className="mt-none">Esta lista está vacía.<br />Agregá videos desde el reproductor con <b>＋ Lista</b>.</p>
           ) : (
             // La tarjeta de video común (30-oct, pedido de Esteban: todas del mismo tamaño, imagen a sangre): miniatura y
             // título tocan para reproducir; abajo, en el lugar de la línea de dato, antes / después y ✕. En grilla «antes»
@@ -87,12 +90,12 @@ export function ListView() {
                   </button>
                   <span className="mt-lctl">
                     <span className="mt-ord">
-                      <button type="button" className="mt-ib" aria-label="Subir" disabled={i === 0 || busy}
+                      <button type="button" className="mt-ib" aria-label={L('Subir', 'Move up')} disabled={i === 0 || busy}
                         onClick={() => void act(() => api.playlistSwap(lid, v.id, videos[i - 1].id))}><IcMtPrev /></button>
-                      <button type="button" className="mt-ib" aria-label="Bajar" disabled={i === videos.length - 1 || busy}
+                      <button type="button" className="mt-ib" aria-label={L('Bajar', 'Move down')} disabled={i === videos.length - 1 || busy}
                         onClick={() => void act(() => api.playlistSwap(lid, v.id, videos[i + 1].id))}><IcMtNext /></button>
                     </span>
-                    <button type="button" className="mt-ib del" aria-label="Quitar de la lista" disabled={busy}
+                    <button type="button" className="mt-ib del" aria-label={L('Quitar de la lista', 'Remove from the list')} disabled={busy}
                       onClick={() => void act(() => api.playlistRemove(lid, v.id))}><IcClose /></button>
                   </span>
                 </div>
@@ -106,11 +109,11 @@ export function ListView() {
         <ListActionSheet name={data.name} onRename={() => setSheet('rename')} onDelete={() => setSheet('confirm')} onClose={() => setSheet('none')} />
       )}
       {sheet === 'rename' && data && (
-        <NameSheet title="Renombrar lista" cta="Guardar" initial={data.name} busy={busy} onClose={() => setSheet('none')}
+        <NameSheet title={L('Renombrar lista', 'Rename list')} cta={L('Guardar', 'Save')} initial={data.name} busy={busy} onClose={() => setSheet('none')}
           onSubmit={(n) => void act(async () => { await api.renamePlaylist(lid, n); setSheet('none'); })} />
       )}
       {sheet === 'confirm' && data && (
-        <ConfirmSheet text={`¿Borrar la lista "${data.name}"? Los videos no se borran.`} confirmLabel="Borrar lista" danger
+        <ConfirmSheet text={L(`¿Borrar la lista "${data.name}"? Los videos no se borran.`, `Delete the list "${data.name}"? The videos won’t be deleted.`)} confirmLabel={L('Borrar lista', 'Delete list')} danger
           onAnswer={(yes) => {
             setSheet('none');
             if (yes) void api.deletePlaylist(lid).then(close, () => void load());

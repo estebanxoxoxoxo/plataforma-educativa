@@ -4,6 +4,7 @@ import { imgSrc } from '../../../shared/lib/img';
 import { WhyChip } from '../components/FeedBits';
 import { IcPlayLine } from '../components/feedIcons';
 import type { ShelfItem } from '../lib/extras';
+import { L } from '../../../shared/lib/lang';
 
 /** Bloque de VIDEOS (estilo D del mock v6): un lugar del hilo = una grilla de videos del catálogo aprobado + el total del
  *  tema y "Ver todos →" (el buscador de videos con ese tema). Tocar un video abre el reproductor. El «por qué», en su pie
@@ -14,14 +15,14 @@ export function FeedVideoShelf({ it, onOpen, onAll }: { it: ShelfItem; onOpen: (
       <div className="hf-shelf-h">
         <IcPlayLine />
         <h3 id="hf-shelf-t">{it.title}</h3>
-        <span className="hf-co" title={`${it.total} videos de este tema en Buscar`}>{it.total}</span>
+        <span className="hf-co" title={L(`${it.total} videos de este tema en Buscar`, `${it.total} videos on this topic in Search`)}>{it.total}</span>
         <span className="hf-sp" />
-        <button type="button" className="hf-tl" onClick={onAll}>Ver todos<IcArrowRight aria-hidden="true" /></button>
+        <button type="button" className="hf-tl" onClick={onAll}>{L('Ver todos', 'See all')}<IcArrowRight aria-hidden="true" /></button>
       </div>
       <ul className="hf-vgrid">
         {it.videos.map((v) => (
           <li key={v.id}>
-            <button type="button" className="hf-vid" aria-label={`Mirar «${v.title}»`} onClick={() => onOpen(v)}>
+            <button type="button" className="hf-vid" aria-label={L(`Mirar «${v.title}»`, `Watch “${v.title}”`)} onClick={() => onOpen(v)}>
               <span className="hf-vthumb">
                 <img src={imgSrc(v.img)} alt="" referrerPolicy="no-referrer" loading="lazy" />
                 <span className="hf-vpl" aria-hidden="true"><IcPlay /></span>

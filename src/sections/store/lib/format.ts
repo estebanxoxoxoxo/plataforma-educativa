@@ -2,18 +2,19 @@
 // las filas de la lista de deseos.
 import type { MarketItem } from '../../../api/types';
 import { wallDate, type WallDate } from '../../../shared/lib/zonedClock';
+import { L, isEn } from '../../../shared/lib/lang';
 
 /** Saldo y precios en formato es-AR: 1.240 */
-export const fmtEc = (n: number) => Math.round(n).toLocaleString('es-AR');
+export const fmtEc = (n: number) => Math.round(n).toLocaleString(isEn() ? 'en-US' : 'es-AR');
 
 /** Cuánto falta para pagar `price` con `ec` (0 si alcanza). */
 export const missingFor = (price: number, ec: number) => Math.max(0, price - ec);
 /** Mismo texto que devuelve el server cuando rechaza un canje por saldo. */
-export const faltan = (n: number) => `Te faltan ${fmtEc(n)} ⚡`;
+export const faltan = (n: number) => L(`Te faltan ${fmtEc(n)} ⚡`, `You need ${fmtEc(n)} more ⚡`);
 
 export const isSoldOut = (it: MarketItem) => it.stock !== null && it.stock <= 0;
-export const stockText = (stock: number) => (stock === 1 ? 'Queda 1' : `Quedan ${fmtEc(stock)}`);
-export const sourceText = (s: MarketItem['source']) => (s === 'padre' ? 'De tu familia' : 'De Smarty');
+export const stockText = (stock: number) => (stock === 1 ? L('Queda 1', '1 left') : L(`Quedan ${fmtEc(stock)}`, `${fmtEc(stock)} left`));
+export const sourceText = (s: MarketItem['source']) => (s === 'padre' ? L('De tu familia', 'From your family') : L('De Smarty', 'From Smarty'));
 
 /** Fondo suave del recuadro del emoji (tonos de la paleta de la app), estable por premio. */
 const TINTS = ['#FFF1D6', '#E7ECFD', '#FDEBE3', '#E2F5F3', '#EFE8FE', '#FBE9F0', '#E8F6D8', '#E3F3FB'];
@@ -41,10 +42,11 @@ const DAY_MONTH_YEAR = { day: 'numeric', month: 'short', year: 'numeric' } as co
 const FULL = { dateStyle: 'full', timeStyle: 'short', hourCycle: 'h23' } as const;
 const fmts = new Map<string, Intl.DateTimeFormat>();
 function inTz(kind: string, opts: Intl.DateTimeFormatOptions, tz?: string | null): Intl.DateTimeFormat {
-  const key = `${kind}|${tz ?? ''}`;
+  const loc = isEn() ? 'en-US' : 'es-AR';
+  const key = `${loc}|${kind}|${tz ?? ''}`;
   let f = fmts.get(key);
   if (!f) {
-    try { f = new Intl.DateTimeFormat('es-AR', tz ? { ...opts, timeZone: tz } : opts); } catch { f = new Intl.DateTimeFormat('es-AR', opts); }
+    try { f = new Intl.DateTimeFormat(loc, tz ? { ...opts, timeZone: tz } : opts); } catch { f = new Intl.DateTimeFormat(loc, opts); }
     fmts.set(key, f);
   }
   return f;
@@ -54,8 +56,8 @@ const isDay = (w: WallDate, y: number, m: number, d: number) => w.y === y && w.m
 export function fmtWhen(ts: number, now = new Date(), tz?: string | null): string {
   const d = wallDate(ts, tz), n = wallDate(now.getTime(), tz);
   const ayer = new Date(Date.UTC(n.y, n.m, n.d - 1));
-  const day = isDay(d, n.y, n.m, n.d) ? 'Hoy'
-    : isDay(d, ayer.getUTCFullYear(), ayer.getUTCMonth(), ayer.getUTCDate()) ? 'Ayer'
+  const day = isDay(d, n.y, n.m, n.d) ? L('Hoy', 'Today')
+    : isDay(d, ayer.getUTCFullYear(), ayer.getUTCMonth(), ayer.getUTCDate()) ? L('Ayer', 'Yesterday')
     : d.y === n.y ? inTz('dm', DAY_MONTH, tz).format(ts) : inTz('dmy', DAY_MONTH_YEAR, tz).format(ts);
   return `${day} · ${inTz('hm', HHMM, tz).format(ts)}`;
 }

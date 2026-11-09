@@ -11,6 +11,7 @@ import { channelPath, videoPath, type MtDetailState } from '../../mytube/lib/nav
 import { VideoInfo } from '../components/VideoInfo';
 import { VideoPlayer } from '../components/VideoPlayer';
 import { VideoSidePanel } from '../components/VideoSidePanel';
+import { L } from '../../../shared/lib/lang';
 
 /** Estado de la entrada del reproductor. `queue` (ids) + `qi` = la COLA de «Reproducir todo» de una lista (ListView de
  *  MyTube); `qvideos` = esos mismos videos con miniatura/título/duración para el panel «En la lista». */
@@ -55,8 +56,8 @@ export function VideoPage() {
 
   // Desde un curso de Aprender se vuelve al curso; si no, a la solapa Videos de la última búsqueda.
   const back = st?.backTo
-    ? { to: st.backTo, label: st.backLabel ?? '‹ Volver' }
-    : { to: lastSearch.url.includes('tab=') ? lastSearch.url.replace(/tab=\w+/, 'tab=videos') : lastSearch.url, label: '‹ Videos' };
+    ? { to: st.backTo, label: st.backLabel ?? L('‹ Volver', '‹ Back') }
+    : { to: lastSearch.url.includes('tab=') ? lastSearch.url.replace(/tab=\w+/, 'tab=videos') : lastSearch.url, label: L('‹ Videos', '‹ Videos') };
   const origin = { backTo: st?.backTo, backLabel: st?.backLabel };
 
   /* COLA en primer plano ("Reproducir todo" de una lista), EXACTA al VideoPlayer del POC: al TERMINAR o si el video NO está
@@ -91,7 +92,7 @@ export function VideoPage() {
   // de vuelta a este video con el state con el que se abrió (su propio «Volver» y su cola), como cerrar el overlay del POC.
   // Sin channelId el chip no es botón.
   const openChannel = v?.channelId
-    ? () => go(channelPath(v.channelId), { state: { backTo: loc.pathname + loc.search, backLabel: '‹ Volver', backState: st ?? undefined } satisfies MtDetailState })
+    ? () => go(channelPath(v.channelId), { state: { backTo: loc.pathname + loc.search, backLabel: L('‹ Volver', '‹ Back'), backState: st ?? undefined } satisfies MtDetailState })
     : undefined;
 
   return (
@@ -99,9 +100,9 @@ export function VideoPage() {
       {/* «Crear ruta» con este video ya cargado en el 1er módulo: el id de la URL alcanza, no espera a que cargue `v` (pedido 4-nov) */}
       <div className="phead">
         <button className="back" onClick={() => go(back.to)}>{back.label}</button>
-        <button className="pcreate" onClick={() => go('/crear?video=' + encodeURIComponent(id))}>+ Crear ruta</button>
+        <button className="pcreate" onClick={() => go('/crear?video=' + encodeURIComponent(id))}>{L('+ Crear ruta', '+ Create path')}</button>
       </div>
-      {queue.length > 1 && <p className="pqueue">Lista · video {qi + 1} de {queue.length}</p>}
+      {queue.length > 1 && <p className="pqueue">{L(`Lista · video ${qi + 1} de ${queue.length}`, `List · video ${qi + 1} of ${queue.length}`)}</p>}
       <div className="pmain">
         {v ? <>
           <VideoPlayer key={v.id} v={v} onEnded={onEnded} onError={onError} onPlaying={onPlaying} onTime={(t) => { pos.current = t; }} />
@@ -118,11 +119,11 @@ export function VideoPage() {
       {v && (enLista
         ? <VideoSidePanel mode="list" videos={qvideos} current={qi} onPick={goTrack} />
         : <VideoSidePanel mode="related" videos={related} current={-1} onPick={(i) => openRelated(related[i])} />)}
-      {v && <FolderSheet open={sheet === 'save'} title="¿Dónde lo guardás?" cta="Guardar acá"
+      {v && <FolderSheet open={sheet === 'save'} title={L('¿Dónde lo guardás?', 'Where do you want to save it?')} cta={L('Guardar acá', 'Save here')}
         onPick={async (folderId, folderName) => {
           const r = await api.saveItem({ folderId, video: { id: v.id } }).catch(() => null);
-          if (!r) return { error: 'No se pudo guardar ahora.' };
-          return { done: r.existed ? `Ya estaba en ${folderName}` : `Guardado en ${folderName}` };
+          if (!r) return { error: L('No se pudo guardar ahora.', 'Couldn’t save it right now.') };
+          return { done: r.existed ? L(`Ya estaba en ${folderName}`, `Already in ${folderName}`) : L(`Guardado en ${folderName}`, `Saved to ${folderName}`) };
         }} onClose={() => setSheet('none')} />}
       {v && <ListSheet open={sheet === 'list'} videoId={v.id} onClose={() => setSheet('none')} />}
     </section>

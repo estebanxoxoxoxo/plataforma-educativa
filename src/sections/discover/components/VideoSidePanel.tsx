@@ -1,5 +1,6 @@
 import type { VideoResult } from '../../../api/types';
 import { IcPlay } from '../../../shared/components/icons';
+import { L } from '../../../shared/lib/lang';
 
 /** Panel del reproductor, como el VideoPlayer del POC: reproduciendo una LISTA (cola de más de un video) muestra la lista
  *  con la pista actual marcada ("En la lista": "Reproduciendo" / "Pista N"; tocar otra salta a esa pista y sigue la cola);
@@ -11,8 +12,8 @@ export function VideoSidePanel({ mode, videos, current, onPick }: {
   if (!videos.length) return null;
   const enLista = mode === 'list';
   return (
-    <aside className="prel" aria-label={enLista ? 'En la lista' : 'Relacionados'}>
-      <h4 className="prel-h">{enLista ? 'En la lista' : 'Relacionados'}</h4>
+    <aside className="prel" aria-label={enLista ? L('En la lista', 'In this list') : L('Relacionados', 'Related')}>
+      <h4 className="prel-h">{enLista ? L('En la lista', 'In this list') : L('Relacionados', 'Related')}</h4>
       <div className="prel-list">
         {videos.map((v, i) => {
           const on = enLista && i === current;
@@ -26,7 +27,7 @@ export function VideoSidePanel({ mode, videos, current, onPick }: {
               </span>
               <span className="prel-tx">
                 <b>{v.title}</b>
-                {enLista ? <small>{on ? 'Reproduciendo' : `Pista ${i + 1}`}</small> : v.channel && <small>{v.channel}</small>}
+                {enLista ? <small>{on ? L('Reproduciendo', 'Playing') : L(`Pista ${i + 1}`, `Track ${i + 1}`)}</small> : v.channel && <small>{v.channel}</small>}
               </span>
             </button>
           );

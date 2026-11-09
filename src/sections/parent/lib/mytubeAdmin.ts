@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { api } from '../../../api';
 import type { MtAdminChannel, MtEntry, MtEntryType } from '../../../api/types';
 import { parentCall } from './adultGate';
+import { L } from '../../../shared/lib/lang';
 
 /** Parte un texto de lote en entradas: una por línea o separadas por ";" (parseBatch del POC). */
 export function parseBatch(text: string): string[] {
@@ -14,23 +15,29 @@ export function parseBatch(text: string): string[] {
 
 /** explainYtError del POC (la key vive en el server, no en Ajustes). */
 export function explainYtError(err: string): string {
-  if (err.includes('SIN_KEY_YOUTUBE')) return 'necesita API key de YouTube (falta en el servidor)';
-  if (err.includes('URL_INVALIDA')) return 'URL no reconocida';
-  if (err.includes('YA_EXISTE')) return 'ya está en la lista (no se duplicó)';
+  if (err.includes('SIN_KEY_YOUTUBE')) return L('necesita API key de YouTube (falta en el servidor)', 'needs a YouTube API key (missing on the server)');
+  if (err.includes('URL_INVALIDA')) return L('URL no reconocida', 'URL not recognized');
+  if (err.includes('YA_EXISTE')) return L('ya está en la lista (no se duplicó)', 'already on the list (not duplicated)');
   return err.replace(/^Error:\s*/, '').slice(0, 80);
 }
-export const NET = 'no hubo respuesta del servidor';
+/** i18n: función (no constante) para que resuelva el idioma al usarse. */
+export const NET = () => L('no hubo respuesta del servidor', 'the server didn’t respond');
 
 /** La confirmación de "Eliminar": borrar una entrada es irreversible y en CASCADA (removeYtEntry de server/src/mytube.ts:
  *  se van sus videos del catálogo aprobado y, si su canal se queda sin videos, el canal sale de MyTube). */
 export function removeText(e: Pick<MtEntry, 'title' | 'videos'>): string {
-  const vids = e.videos === 0 ? 'No tiene videos aprobados.'
-    : e.videos === 1 ? 'Se borra su video de Smarty: nadie de tu familia lo va a poder ver.'
-      : `Se borran sus ${e.videos} videos de Smarty: nadie de tu familia los va a poder ver.`;
-  return `¿Eliminar «${e.title}»? ${vids} Si su canal no tiene otros videos aprobados, también sale de MyTube. No se puede deshacer.`;
+  const vids = e.videos === 0 ? L('No tiene videos aprobados.', 'It has no approved videos.')
+    : e.videos === 1 ? L('Se borra su video de Smarty: nadie de tu familia lo va a poder ver.', 'Its video is removed from Smarty: no one in your family will be able to watch it.')
+      : L(`Se borran sus ${e.videos} videos de Smarty: nadie de tu familia los va a poder ver.`, `Its ${e.videos} videos are removed from Smarty: no one in your family will be able to watch them.`);
+  return L(`¿Eliminar «${e.title}»? ${vids} Si su canal no tiene otros videos aprobados, también sale de MyTube. No se puede deshacer.`,
+    `Remove “${e.title}”? ${vids} If its channel has no other approved videos, it also leaves MyTube. This can’t be undone.`);
 }
 
-export const ENTRY_TYPE_LABEL: Record<MtEntryType, string> = { video: 'Video', playlist: 'Playlist', canal: 'Canal' };
+export const ENTRY_TYPE_LABEL: Record<MtEntryType, string> = {
+  get video() { return L('Video', 'Video'); },
+  get playlist() { return L('Playlist', 'Playlist'); },
+  get canal() { return L('Canal', 'Channel'); },
+};
 
 export type FamilyChannel = { channel: MtAdminChannel; entries: MtEntry[] };
 export type ChannelGroups = {
@@ -80,9 +87,9 @@ export function useEntryOps(after: () => Promise<void> | void) {
     setReingId(e.id); setNote(null);
     try {
       const r = await parentCall(api.mtReingest(e.id));
-      setNote(r.ok ? { text: `✓ Reingestada: ${r.title} · ${r.added} video(s)`, err: false } : { text: `Error al reingestar: ${explainYtError(r.error)}`, err: true });
+      setNote(r.ok ? { text: L(`✓ Reingestada: ${r.title} · ${r.added} video(s)`, `✓ Re-imported: ${r.title} · ${r.added} video(s)`), err: false } : { text: L(`Error al reingestar: ${explainYtError(r.error)}`, `Couldn’t re-import: ${explainYtError(r.error)}`), err: true });
     } catch {
-      setNote({ text: `Error al reingestar: ${NET}`, err: true });
+      setNote({ text: L(`Error al reingestar: ${NET()}`, `Couldn’t re-import: ${NET()}`), err: true });
     } finally {
       setReingId(null);
     }
@@ -96,10 +103,10 @@ export function useEntryOps(after: () => Promise<void> | void) {
     try {
       const r = await parentCall(api.mtRemove(e.id));
       setNote(r.ok
-        ? { text: `✓ Eliminada: «${e.title}»${e.videos === 1 ? ' y su video' : e.videos ? ` y sus ${e.videos} videos` : ''}.`, err: false }
-        : { text: `Error al eliminar «${e.title}». Probá de nuevo.`, err: true });
+        ? { text: L(`✓ Eliminada: «${e.title}»${e.videos === 1 ? ' y su video' : e.videos ? ` y sus ${e.videos} videos` : ''}.`, `✓ Removed: “${e.title}”${e.videos === 1 ? ' and its video' : e.videos ? ` and its ${e.videos} videos` : ''}.`), err: false }
+        : { text: L(`Error al eliminar «${e.title}». Probá de nuevo.`, `Couldn’t remove “${e.title}”. Try again.`), err: true });
     } catch {
-      setNote({ text: `Error al eliminar «${e.title}»: ${NET}. Probá de nuevo.`, err: true });
+      setNote({ text: L(`Error al eliminar «${e.title}»: ${NET()}. Probá de nuevo.`, `Couldn’t remove “${e.title}”: ${NET()}. Try again.`), err: true });
     } finally {
       setRemoving(null);
     }

@@ -1,5 +1,6 @@
 import type { CycleRange } from '../../../api/types';
 import { rangeOptionLabel } from '../lib/cycleDraft';
+import { L } from '../../../shared/lib/lang';
 
 /** El selector de DEMO del Ciclo del día (regla 9 de docs/AGENTS.md: chip discreto que solo dispara un endpoint de demo del
  *  server): "Reloj real" + los rangos del integrante. Vive abajo del menú del Sidebar, con el lenguaje de los chips de demo
@@ -16,14 +17,14 @@ export function CycleDemoPicker({ caption, ranges, value, busy, failed, onChoose
 }) {
   const current = value && ranges.some((r) => r.id === value) ? value : '';
   return (
-    <div className="cyd" title="Botón de demo: elegí en qué rango del día está (al recargar la página del chico vuelve el reloj real)">
+    <div className="cyd" title={L('Botón de demo: elegí en qué rango del día está (al recargar la página del chico vuelve el reloj real)', 'Demo button: pick which part of the day it is (reloading the kid’s page brings back the real clock)')}>
       <label className="cyd-lbl" htmlFor="cyd-sel">{caption}</label>
       <select id="cyd-sel" className="cyd-sel" value={current} disabled={busy} aria-busy={busy || undefined}
         onChange={(e) => onChoose(e.target.value || null)}>
-        <option value="">Reloj real</option>
+        <option value="">{L('Reloj real', 'Real clock')}</option>
         {ranges.map((r) => <option key={r.id} value={r.id}>{rangeOptionLabel(r)}</option>)}
       </select>
-      {failed && <span className="cyd-err" role="status">No pude cambiarlo. Probá de nuevo.</span>}
+      {failed && <span className="cyd-err" role="status">{L('No pude cambiarlo. Probá de nuevo.', 'I couldn’t change it. Try again.')}</span>}
     </div>
   );
 }

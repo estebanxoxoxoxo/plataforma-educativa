@@ -3,6 +3,7 @@ import type { CloseWeekResult } from '../../../api/types';
 import { IcArrowRight, IcClose, IcCoin, IcDownSm, IcUpSm } from '../../../shared/components/icons';
 import { MEDAL_INFO, closeCopy, closesLabel } from '../lib/cycle';
 import { LeagueIcon } from './LeagueIcon';
+import { L } from '../../../shared/lib/lang';
 
 /** Las chispas del festejo (colores de la paleta de la app). */
 const SPARKS = ['#F2A81D', '#3A5BD9', '#13A39A', '#E5487A', '#8A5CF5', '#F26B3A', '#FFC23D', '#18A957'];
@@ -37,11 +38,11 @@ export function CloseBanner({ r, coins, onDismiss, onFeed }: { r: CloseWeekResul
           {c.cheer && <span className="lwk-cheer">{c.cheer}</span>}
         </p>
         <p className="lwk-note">
-          Arrancó la semana nueva: tu XP vuelve a 0{coins && <> y tus <IcCoin className="ec-coin" aria-hidden="true" />{'\u00A0'}Energy Coins siguen en tu billetera</>}. {closesLabel(days)}{days > 0 && '.'}
+          {L('Arrancó la semana nueva: tu XP vuelve a 0', 'A new week started: your XP goes back to 0')}{coins && <> {L('y tus', 'and your')} <IcCoin className="ec-coin" aria-hidden="true" />{'\u00A0'}Energy Coins {L('siguen en tu billetera', 'stay in your wallet')}</>}. {closesLabel(days)}{days > 0 && '.'}
         </p>
-        {r.feedAdded > 0 && <button className="lwk-go" onClick={onFeed}>Ver las novedades del cierre en el Feed<IcArrowRight /></button>}
+        {r.feedAdded > 0 && <button className="lwk-go" onClick={onFeed}>{L('Ver las novedades del cierre en el Feed', 'See the week’s results in the Feed')}<IcArrowRight /></button>}
       </div>
-      <button className="lwk-x" onClick={onDismiss} aria-label="Cerrar el aviso del cierre"><IcClose /></button>
+      <button className="lwk-x" onClick={onDismiss} aria-label={L('Cerrar el aviso del cierre', 'Close the week-end notice')}><IcClose /></button>
     </section>
   );
 }

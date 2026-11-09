@@ -1,6 +1,7 @@
 import type { CalendarEvent } from '../../../api/types';
 import { ClassRow } from '../cards/ClassRow';
 import { isLive, type DayGroup, type Tz } from '../lib/calendar';
+import { L } from '../../../shared/lib/lang';
 
 /** "Próximas clases": TODAS las que vienen, agrupadas por día ("Hoy", "Mañana", "Martes 13"…) en un solo
  *  listado que scrollea con la página (pedido 11-oct: sin tira semanal ni "Ver más"). Pura. */
@@ -15,7 +16,7 @@ export function UpcomingList({ groups, nextId, now, tz }: {
     <section className="cal-sec" aria-labelledby="cal-up-t">
       <div className="cal-sechead">
         {/* Sin el «Tenés N clases por delante» (pedido de Esteban, 30-oct). */}
-        <h3 id="cal-up-t">Próximas clases</h3>
+        <h3 id="cal-up-t">{L('Próximas clases', 'Upcoming classes')}</h3>
       </div>
       <div className="cal-days">
         {groups.map((g) => (

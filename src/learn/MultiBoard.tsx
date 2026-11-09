@@ -2,6 +2,7 @@ import { useActivitySnapshot } from './react/useActivity'
 import { type MultiEngine } from './activities/multi'
 import { renderBoard } from './registry'
 import './learn-engine.css'
+import { L } from '../shared/lib/lang'
 
 /* Vista del Tipo Multi-actividad: progreso + el tablero del HIJO actual, resuelto
    por typeId desde el REGISTRY (única fuente de verdad typeId→Board → un multi
@@ -17,10 +18,12 @@ export default function MultiBoard({ engine }: { engine: MultiEngine }) {
         {/* subtitle (aditivo 4-nov): en el recall, el CURSO del que viene la pregunta */}
         <span className="lrn-multi-left">
           {snap.childSubtitle && <span className="lrn-multi-course">{snap.childSubtitle}</span>}
-          <span className="lrn-multi-title">{snap.childTitle ?? 'Repaso'}</span>
+          <span className="lrn-multi-title">{snap.childTitle ?? L('Repaso', 'Review')}</span>
         </span>
         <span className="lrn-multi-count">
-          {snap.total != null ? `Ejercicio ${snap.childIndex + 1} de ${snap.total}` : `Ejercicio ${snap.childIndex + 1}`}
+          {snap.total != null
+            ? L(`Ejercicio ${snap.childIndex + 1} de ${snap.total}`, `Exercise ${snap.childIndex + 1} of ${snap.total}`)
+            : L(`Ejercicio ${snap.childIndex + 1}`, `Exercise ${snap.childIndex + 1}`)}
         </span>
       </div>
       {child && renderBoard(child.typeId, child.instance)}

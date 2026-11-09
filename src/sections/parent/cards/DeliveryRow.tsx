@@ -2,6 +2,7 @@ import type { Redemption } from '../../../api/types';
 import { IcCoin } from '../../../shared/components/icons';
 import { useCycle } from '../lib/cycle';
 import { fmtDay, fmtFull, fmtNum, fmtWhen, isoOf } from '../lib/format';
+import { L } from '../../../shared/lib/lang';
 
 /** Un canje del chico visto por el padre. Pendiente → "Ya se lo di" · Entregado → tachado.
  *  U5 (spec §3.4.5): el premio de la semana de la LIGA DE LA FAMILIA llega como un canje con `origin: 'liga-familia'`
@@ -20,7 +21,7 @@ export function DeliveryRow({ r, busy, onDeliver }: { r: Redemption; busy: boole
         <span className="pz-dl-meta">
           {r.origin === 'liga-familia' ? (
             <>
-              <span aria-hidden="true">🏆</span> De la liga de la familia · cerró el{' '}
+              <span aria-hidden="true">🏆</span> {L('De la liga de la familia · cerró el', 'From the family league · closed on')}{' '}
               <time dateTime={isoOf(closedAt)} title={fmtFull(closedAt, tz)}>{fmtDay(closedAt, tz)}</time>
             </>
           ) : (
@@ -32,9 +33,9 @@ export function DeliveryRow({ r, busy, onDeliver }: { r: Redemption; busy: boole
         </span>
       </span>
       {done ? (
-        <span className="pz-state is-done">Entregado</span>
+        <span className="pz-state is-done">{L('Entregado', 'Delivered')}</span>
       ) : (
-        <button type="button" className="pz-btn pz-btn--sm" disabled={busy} onClick={onDeliver} aria-label={`Ya se lo di: ${r.title}`}>Ya se lo di</button>
+        <button type="button" className="pz-btn pz-btn--sm" disabled={busy} onClick={onDeliver} aria-label={L(`Ya se lo di: ${r.title}`, `Already gave it: ${r.title}`)}>{L('Ya se lo di', 'Already gave it')}</button>
       )}
     </li>
   );

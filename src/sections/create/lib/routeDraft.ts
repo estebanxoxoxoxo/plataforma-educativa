@@ -1,4 +1,5 @@
 import type { DefinitionRecipeData, LearnModule, LearnPosta, LearnRouteData, RouteBundle } from '../../../api/types';
+import { L } from '../../../shared/lib/lang';
 
 /* Port EXACTO de smarty-poc app/src/learn/routeDraft.ts: estado INTERNO del creador de rutas módulo-céntrico + aplanado al
    modelo persistido. El creador trabaja ANIDADO (un módulo = contenido→comprensión + profundización + repaso) por
@@ -223,7 +224,7 @@ export function unflatten(route: LearnRouteData & { version?: number }, definiti
 export function newModule(): DraftModule {
   return {
     id: `m-${uid()}`,
-    title: 'Nuevo módulo',
+    title: L('Nuevo módulo', 'New module'),
     emoji: '📖',
     source: { url: '', title: '' },
     passThreshold: 0.7,
@@ -245,12 +246,12 @@ export function newManualProfundizacion(routeId: string): DraftPosta {
   const card: Card = { id: `c-${uid()}`, front: '', back: '', skill: target };
   return {
     id: `p-${uid()}`,
-    title: 'Nueva actividad',
+    title: L('Nueva actividad', 'New activity'),
     target,
     def: {
       id: defId,
       typeId: 'flashcards',
-      title: 'Nueva actividad',
+      title: L('Nueva actividad', 'New activity'),
       target,
       generatorId: 'static',
       params: { cards: [card] },
@@ -260,10 +261,10 @@ export function newManualProfundizacion(routeId: string): DraftPosta {
   };
 }
 
-function assertUnique(ids: string[], label: string): void {
+function assertUnique(ids: string[], label: string, labelEn: string): void {
   const seen = new Set<string>();
   for (const id of ids) {
-    if (seen.has(id)) throw new Error(`Hay un id de ${label} duplicado: "${id}" (bug del generador). Regenerá ese módulo.`);
+    if (seen.has(id)) throw new Error(L(`Hay un id de ${label} duplicado: "${id}" (bug del generador). Regenerá ese módulo.`, `There's a duplicate ${labelEn} id: "${id}" (generator bug). Regenerate that module.`));
     seen.add(id);
   }
 }
@@ -309,12 +310,12 @@ export function flatten(s: CreatorState): FlatBundle {
 
     // REPASO de módulo (opcional) — recall sin definición, acotado a su módulo en la ruta
     if (m.recall) {
-      postas.push({ id: `r-${m.id}`, title: `Repaso — ${m.title}`, kind: 'recall', target: `${s.routeId}.m.${m.id}.recall`, moduleId: m.id });
+      postas.push({ id: `r-${m.id}`, title: L(`Repaso — ${m.title}`, `Review — ${m.title}`), kind: 'recall', target: `${s.routeId}.m.${m.id}.recall`, moduleId: m.id });
     }
   }
 
-  assertUnique(postas.map((p) => p.id), 'posta');
-  assertUnique(definitions.map((d) => d.id), 'definición');
+  assertUnique(postas.map((p) => p.id), 'posta', 'step');
+  assertUnique(definitions.map((d) => d.id), 'definición', 'definition');
 
   return {
     route: { id: s.routeId, title: s.title, description: s.description, emoji: s.emoji, version: s.version, postas, modules, cover: s.cover, category: s.category },
@@ -325,13 +326,13 @@ export function flatten(s: CreatorState): FlatBundle {
 
 /** Valida el estado antes de guardar. Devuelve el mensaje de error, o null si está OK. */
 export function validateForSave(s: CreatorState): string | null {
-  if (!s.modules.length) return 'Agregá al menos un módulo.';
-  if (!s.title.trim()) return 'Poné un título a la ruta.';
+  if (!s.modules.length) return L('Agregá al menos un módulo.', 'Add at least one module.');
+  if (!s.title.trim()) return L('Poné un título a la ruta.', 'Give the route a title.');
   for (const m of s.modules) {
     if (!m.source.url.trim() || !m.source.title.trim())
-      return `El módulo «${m.title}» no tiene contenido (URL + título). Agregalo o quitá el módulo.`;
+      return L(`El módulo «${m.title}» no tiene contenido (URL + título). Agregalo o quitá el módulo.`, `The module “${m.title}” has no content (URL + title). Add it or remove the module.`);
     if (!m.comprehension)
-      return `Generá el módulo «${m.title}» (o quitalo) antes de guardar.`;
+      return L(`Generá el módulo «${m.title}» (o quitalo) antes de guardar.`, `Generate the module “${m.title}” (or remove it) before saving.`);
   }
   return null;
 }
@@ -367,9 +368,10 @@ export const LEARN_CATEGORIES = [
 ];
 
 /** Tipos de actividad que se pueden generar (GEN_TYPES del POC): quiz y dominó, "próximamente" (deshabilitados). */
+/* El `label` es un GETTER (i18n): resuelve el idioma al dibujar, no al importar (una constante con L() se congelaría). */
 export const GEN_TYPES = [
-  { id: 'flashcards', label: 'flashcards', on: true },
-  { id: 'multiplechoice', label: 'opción múltiple', on: true },
-  { id: 'quiz', label: 'quiz', on: false },
-  { id: 'domino', label: 'dominó', on: false },
+  { id: 'flashcards', get label() { return L('flashcards', 'flashcards'); }, on: true },
+  { id: 'multiplechoice', get label() { return L('opción múltiple', 'multiple choice'); }, on: true },
+  { id: 'quiz', get label() { return L('quiz', 'quiz'); }, on: false },
+  { id: 'domino', get label() { return L('dominó', 'dominoes'); }, on: false },
 ];

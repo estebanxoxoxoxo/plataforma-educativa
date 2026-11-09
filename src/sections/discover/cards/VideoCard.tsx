@@ -1,5 +1,6 @@
 import type { VideoResult } from '../../../api/types';
 import { imgSrc } from '../../../shared/lib/img';
+import { L } from '../../../shared/lib/lang';
 
 export const VideoItem = ({ v, onOpen }: { v: VideoResult; onOpen: () => void }) => (
   <>
@@ -12,7 +13,7 @@ export const VideoItem = ({ v, onOpen }: { v: VideoResult; onOpen: () => void })
         <span className="gdur">{v.duration}</span>
       </span>
       <div className="g-vtxt">
-        <div className="g-snip">{v.subtitle}. Un video para aprender sobre el tema, pensado para tu edad ...</div>
+        <div className="g-snip">{v.subtitle}. {L('Un video para aprender sobre el tema, pensado para tu edad ...', 'A video to learn about the topic, made for your age ...')}</div>
         <div className="g-meta">YouTube · {v.channel} · {v.date}</div>
       </div>
     </div>

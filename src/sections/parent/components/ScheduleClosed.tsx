@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { L } from '../../../shared/lib/lang';
 
 /** Lo que ve el chico si entra (por URL, un link del Feed, la barra superior…) a una sección FUERA DE SU HORARIO. Port del
  *  ClosedSection del POC con sus MISMOS textos (copy.fueraDeHorario de fábrica y "Se abre de nuevo a las HH:MM." solo si hoy
@@ -14,9 +15,9 @@ export function ScheduleClosed({ opensAt }: { opensAt: string | null }) {
             <path d="M12 7.5V12l3 2" />
           </svg>
         </span>
-        <p className="pz-off-t" id="pz-closed-t">Esta parte está descansando ahora. Probá otra opción del menú 🙂</p>
-        {opensAt && <p className="pz-off-sub">Se abre de nuevo a las {opensAt}.</p>}
-        <Link className="pz-btn" to="/">Ir al Feed</Link>
+        <p className="pz-off-t" id="pz-closed-t">{L('Esta parte está descansando ahora. Probá otra opción del menú 🙂', 'This part is taking a break right now. Try another option from the menu 🙂')}</p>
+        {opensAt && <p className="pz-off-sub">{L(`Se abre de nuevo a las ${opensAt}.`, `It opens again at ${opensAt}.`)}</p>}
+        <Link className="pz-btn" to="/">{L('Ir al Feed', 'Go to Feed')}</Link>
       </div>
     </section>
   );

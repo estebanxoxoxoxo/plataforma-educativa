@@ -7,6 +7,7 @@ import { ChannelHeader } from '../components/ChannelHeader';
 import { PlaylistRow } from '../components/PlaylistRow';
 import { VideoList, VideoListSkeleton } from '../components/VideoList';
 import { channelPath, useMtBack, videoPath } from '../lib/nav';
+import { L } from '../../../shared/lib/lang';
 
 type CTab = 'videos' | 'playlists';
 const FIRST = 40; // VideoList del POC: dibuja 40…
@@ -113,12 +114,12 @@ export function ChannelView() {
     }
   };
 
-  const play = (v: MtVideo) => go(videoPath(v.videoId), { state: { backTo: channelPath(id), backLabel: '‹ Canal' } });
+  const play = (v: MtVideo) => go(videoPath(v.videoId), { state: { backTo: channelPath(id), backLabel: L('‹ Canal', '‹ Channel') } });
 
   return (
     <section className="view mt-view">
-      <button type="button" className="back" onClick={back}>‹ Volver</button>
-      {failed ? <p className="mt-empty">No pude cargar este canal ahora.</p> : !detail ? <HeaderSkeleton /> : (
+      <button type="button" className="back" onClick={back}>{L('‹ Volver', '‹ Back')}</button>
+      {failed ? <p className="mt-empty">{L('No pude cargar este canal ahora.', 'I couldn’t load this channel right now.')}</p> : !detail ? <HeaderSkeleton /> : (
         <>
           <ChannelHeader channel={detail.channel} followed={followed} descOpen={descOpen}
             onFollow={() => void follow()} onToggleDesc={() => setDescOpen((o) => !o)} />
@@ -126,10 +127,10 @@ export function ChannelView() {
             tabs={[{ id: 'videos', label: `Videos (${total})` }, { id: 'playlists', label: `Playlists (${detail.playlists.length})` }]}
             className="mt-tabs" tabClass="mt-tab" inkClass="mt-ink" />
           {tab === 'videos' ? (
-            vFailed ? <p className="mt-empty">No pude cargar los videos ahora.</p>
+            vFailed ? <p className="mt-empty">{L('No pude cargar los videos ahora.', 'I couldn’t load the videos right now.')}</p>
               : !vids ? <VideoListSkeleton />
                 : total > 0 ? <VideoList videos={vids.slice(0, limit)} remaining={total - limit} busy={more} onMore={() => void showMore()} onPlay={play} />
-                  : <p className="mt-empty">Todavía no hay videos aprobados de este canal.</p>
+                  : <p className="mt-empty">{L('Todavía no hay videos aprobados de este canal.', 'There are no approved videos from this channel yet.')}</p>
           ) : (
             detail.playlists.length ? (
               <div className="mt-pls">
@@ -144,8 +145,8 @@ export function ChannelView() {
                 })}
               </div>
             ) : detail.pending
-              ? <p className="mt-empty is-wait">Buscando las playlists del canal…</p>
-              : <p className="mt-empty">Este canal no tiene playlists aprobadas.</p>
+              ? <p className="mt-empty is-wait">{L('Buscando las playlists del canal…', 'Looking for the channel’s playlists…')}</p>
+              : <p className="mt-empty">{L('Este canal no tiene playlists aprobadas.', 'This channel has no approved playlists.')}</p>
           )}
         </>
       )}

@@ -1,4 +1,5 @@
 import { IcChevronRight, IcRefreshCw } from './LearnIcons';
+import { L } from '../../../shared/lib/lang';
 
 /** Entrada raíz de Active recall (Learn.tsx del POC): aparece con ≥1 objetivo ya jugado que tiene Definición hoja;
  *  `count` = esos objetivos. Abre el repaso SIN FIN entre todas las rutas. Pura. */
@@ -7,7 +8,7 @@ export const RecallRootButton = ({ count, onOpen }: { count: number; onOpen: () 
     <IcRefreshCw />
     <span className="ln-recall-t">
       <b>Active recall</b>
-      <small>Repasá lo que más necesitás · {count} {count === 1 ? 'tema' : 'temas'}</small>
+      <small>{L('Repasá lo que más necesitás', 'Review what you need most')} · {count} {count === 1 ? L('tema', 'topic') : L('temas', 'topics')}</small>
     </span>
     <IcChevronRight className="ln-go" />
   </button>

@@ -3,6 +3,7 @@ import { IcMinus as Minus } from './icons'
 import { useActivitySnapshot } from './react/useActivity'
 import { type MultipleChoiceEngine, type MCOption } from './activities/multiplechoice'
 import './learn-engine.css'
+import { L } from '../shared/lib/lang'
 
 /* Vista app-native (Tailwind) del multiple choice. Submit DIFERIDO: elegís (una o varias), y
    recién al "Comprobar" se corrige y las cards se DAN VUELTA (flip 3D) mostrando el resultado.
@@ -71,7 +72,7 @@ function OptionCard({
             {verdict === 'skip' && <Minus width={18} height={18} strokeWidth={3} className="lrn-mc-skipicon" />}
           </span>
           <span className="lrn-mc-text">{opt.text}</span>
-          {verdict === 'missed' && <span className="lrn-mc-was">era correcta</span>}
+          {verdict === 'missed' && <span className="lrn-mc-was">{L('era correcta', 'was correct')}</span>}
         </span>
       </button>
     </div>
@@ -91,13 +92,13 @@ export default function MultipleChoiceBoard({ engine }: { engine: MultipleChoice
   return (
     <div className="lrn-mc">
       <p className="lrn-count is-center">
-        Pregunta {Math.min(snap.index + 1, snap.total)} / {snap.total}
+        {L('Pregunta', 'Question')} {Math.min(snap.index + 1, snap.total)} / {snap.total}
       </p>
       {q ? (
         <>
           <h2 className="lrn-mc-prompt">{q.prompt}</h2>
           <p className="lrn-mc-modehint">
-            {snap.mode === 'single' ? 'Elegí una respuesta' : 'Podés elegir varias'}
+            {snap.mode === 'single' ? L('Elegí una respuesta', 'Pick one answer') : L('Podés elegir varias', 'You can pick more than one')}
           </p>
 
           {/* Atajos "Todas"/"Ninguna" — sólo en múltiple, antes de comprobar. */}
@@ -108,14 +109,14 @@ export default function MultipleChoiceBoard({ engine }: { engine: MultipleChoice
                 disabled={!playing}
                 onClick={() => engine.selectAll()}
                 className={`lrn-chip ${allSelected ? 'is-on' : ''}`}>
-                Todas
+                {L('Todas', 'All')}
               </button>
               <button
                 type="button"
                 disabled={!playing}
                 onClick={() => engine.clear()}
                 className={`lrn-chip ${noneSelected ? 'is-on' : ''}`}>
-                Ninguna
+                {L('Ninguna', 'None')}
               </button>
             </div>
           )}
@@ -140,7 +141,7 @@ export default function MultipleChoiceBoard({ engine }: { engine: MultipleChoice
                 disabled={!playing || !canCommit}
                 onClick={() => engine.commit()}
                 className={`lrn-cta ${canCommit ? '' : 'is-off'}`}>
-                Comprobar
+                {L('Comprobar', 'Check')}
               </button>
             ) : (
               <button
@@ -148,13 +149,13 @@ export default function MultipleChoiceBoard({ engine }: { engine: MultipleChoice
                 disabled={!playing}
                 onClick={() => engine.next()}
                 className="lrn-cta">
-                {isLast ? 'Terminar' : 'Continuar'} →
+                {isLast ? L('Terminar', 'Finish') : L('Continuar', 'Continue')} →
               </button>
             )}
           </div>
         </>
       ) : (
-        <p className="lrn-done">Listo ✓</p>
+        <p className="lrn-done">{L('Listo ✓', 'Done ✓')}</p>
       )}
     </div>
   )

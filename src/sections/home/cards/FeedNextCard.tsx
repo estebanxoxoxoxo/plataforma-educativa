@@ -2,6 +2,7 @@ import type { FeedItem } from '../../../api/types';
 import { IcArrowRight, IcSpark } from '../../../shared/components/icons';
 import { Coins, WhyChip } from '../components/FeedBits';
 import { IcRouteLine } from '../components/feedIcons';
+import { L } from '../../../shared/lib/lang';
 
 type It = Extract<FeedItem, { kind: 'next' }>;
 
@@ -13,7 +14,7 @@ export const FeedNextCard = ({ it, onGo }: { it: It; onGo: (to: string) => void 
   <section className="hf-next" aria-labelledby="hf-next-t">
     <span className="hf-next-ic" aria-hidden="true"><IcRouteLine /></span>
     <div className="hf-next-tx">
-      <p className="hf-k"><IcSpark aria-hidden="true" />Fijado · tu siguiente paso</p>
+      <p className="hf-k"><IcSpark aria-hidden="true" />{L('Fijado · tu siguiente paso', 'Pinned · your next step')}</p>
       <h3 className="hf-next-t" id="hf-next-t">{it.title}</h3>
       <p className="hf-next-mt"><Coins text={it.meta} /></p>
       <div className="hf-row">

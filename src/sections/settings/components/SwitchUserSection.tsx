@@ -7,6 +7,7 @@ import { IcArrowRight, IcCheck } from '../../../shared/components/icons';
 import { MyAvatar } from '../../../shared/components/ProfileCard';
 import { ageTag } from '../lib/user';
 import { CfgSection } from './CfgSection';
+import { L } from '../../../shared/lib/lang';
 
 /** Cambiar de usuario (DEMO, docs/USUARIOS.md §2). Tanda CONFIG, 30-oct: la barra superior que tenía el switch se va (tanda
  *  SHELL-2) y este es su nuevo hogar. Misma lógica que tenía la barra: GET /api/users, el activo con MyAvatar (su look
@@ -18,9 +19,9 @@ export function SwitchUserSection({ user }: { user?: User }) {
   const pick = (id: string) => { setGoing(id); setActingUser(id); };
 
   return (
-    <CfgSection title="Cambiar de usuario" lede="Entrá como otra persona de la familia. Lo que estaban haciendo sigue donde estaba.">
+    <CfgSection title={L('Cambiar de usuario', 'Switch user')} lede={L('Entrá como otra persona de la familia. Lo que estaban haciendo sigue donde estaba.', 'Sign in as someone else in the family. Whatever they were doing stays right where it was.')}>
       {users.loading && (
-        <ul className="cfg-users" aria-busy="true" aria-label="Cargando los usuarios">
+        <ul className="cfg-users" aria-busy="true" aria-label={L('Cargando los usuarios', 'Loading users')}>
           {[0, 1, 2].map((i) => (
             <li key={i} className="cfg-urow cfg-sk" aria-hidden="true"><i className="cfg-sk-av" /><i className="cfg-sk-tx" /></li>
           ))}
@@ -28,8 +29,8 @@ export function SwitchUserSection({ user }: { user?: User }) {
       )}
       {!users.loading && users.error && (
         <div className="cfg-fail" role="alert">
-          <p>No pude traer los usuarios. Probá de nuevo en un ratito.</p>
-          <button type="button" className="cfg-btn cfg-btn--ghost" onClick={users.reload}>Reintentar</button>
+          <p>{L('No pude traer los usuarios. Probá de nuevo en un ratito.', "I couldn't load the users. Try again in a little while.")}</p>
+          <button type="button" className="cfg-btn cfg-btn--ghost" onClick={users.reload}>{L('Reintentar', 'Retry')}</button>
         </div>
       )}
       {users.data && (
@@ -42,14 +43,14 @@ export function SwitchUserSection({ user }: { user?: User }) {
                 {me ? (
                   <div className="cfg-urow is-on" aria-current="true">
                     <MyAvatar name={u.name} size={40} />
-                    <span className="cfg-utx"><b>{u.name}</b><small>{tag} · usuario activo</small></span>
+                    <span className="cfg-utx"><b>{u.name}</b><small>{tag} · {L('usuario activo', 'active user')}</small></span>
                     <IcCheck className="cfg-ucheck" aria-hidden="true" />
                   </div>
                 ) : (
                   <button type="button" className="cfg-urow" disabled={going !== null} aria-busy={going === u.id || undefined}
-                    aria-label={`Cambiar a ${u.name}, ${tag}`} onClick={() => pick(u.id)}>
+                    aria-label={L(`Cambiar a ${u.name}, ${tag}`, `Switch to ${u.name}, ${tag}`)} onClick={() => pick(u.id)}>
                     <Avatar name={u.name} color="#9AA5C4" look={lookFor(u.nick)} size={40} />
-                    <span className="cfg-utx"><b>{u.name}</b><small>{going === u.id ? 'Entrando…' : tag}</small></span>
+                    <span className="cfg-utx"><b>{u.name}</b><small>{going === u.id ? L('Entrando…', 'Signing in…') : tag}</small></span>
                     <IcArrowRight className="cfg-ugo" aria-hidden="true" />
                   </button>
                 )}
@@ -58,7 +59,7 @@ export function SwitchUserSection({ user }: { user?: User }) {
           })}
         </ul>
       )}
-      <p className="cfg-note">Cambiar de usuario (demo)</p>
+      <p className="cfg-note">{L('Cambiar de usuario (demo)', 'Switch user (demo)')}</p>
     </CfgSection>
   );
 }

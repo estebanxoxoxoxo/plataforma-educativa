@@ -1,5 +1,6 @@
 import { fmtDuration, fmtFecha } from '../lib/fmt';
 import type { MtVideo } from '../../../api/types';
+import { L } from '../../../shared/lib/lang';
 
 /** Lista de videos de a tandas (VideoList del POC: 40 y «Ver más (N restantes)» de a 60; la tanda la maneja quien la usa).
  *  `remaining` = los que quedan sin dibujar. Desde el 30-oct (pedido de Esteban: todas las cards de video del mismo tamaño)
@@ -11,7 +12,7 @@ export function VideoList({ videos, remaining, busy, onMore, onPlay }: {
     <div className="mt-vlist">
       {videos.map((v) => <VideoCard key={v.videoId} v={v} onPlay={() => onPlay(v)} />)}
       {remaining > 0 && (
-        <button type="button" className="mt-more" disabled={busy} onClick={onMore}>Ver más ({remaining} restantes)</button>
+        <button type="button" className="mt-more" disabled={busy} onClick={onMore}>{L(`Ver más (${remaining} restantes)`, `See more (${remaining} left)`)}</button>
       )}
     </div>
   );
@@ -27,7 +28,7 @@ export function VideoCard({ v, onPlay }: { v: MtVideo; onPlay: () => void }) {
       </span>
       <span className="mt-cbody">
         <b>{v.title}</b>
-        {!!v.addedAt && <small>agregado {fmtFecha(v.addedAt)}</small>}
+        {!!v.addedAt && <small>{L('agregado', 'added')} {fmtFecha(v.addedAt)}</small>}
       </span>
     </button>
   );

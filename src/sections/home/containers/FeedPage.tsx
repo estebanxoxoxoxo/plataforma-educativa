@@ -33,6 +33,7 @@ import { mergeFresh } from '../lib/merge';
 import { effectiveMotion, useReducedMotion } from '../lib/motion';
 import { isNews } from '../lib/news';
 import { MIN_VISIBLE, feedItemVisible } from '../lib/visibility';
+import { L } from '../../../shared/lib/lang';
 
 /** Páginas que la PRIMERA carga pide sola, seguidas, si los flags dejaron menos de MIN_VISIBLE (tope anti-bucle). */
 const AUTO_MAX = 4;
@@ -270,7 +271,9 @@ export function FeedPage() {
     let added: number;
     try { ({ added } = await api.simulateNpcs()); } catch { setNpc({ busy: false, note: null, failed: true }); return; }
     if (added > 0) setPill((p) => ({ count: p && p.count === null ? null : (p?.count ?? 0) + added }));
-    setNpc({ busy: false, note: added > 0 ? `+${added} ${added === 1 ? 'novedad espera' : 'novedades esperan'} arriba` : 'Esta vez no hubo novedades', failed: false });
+    setNpc({ busy: false, note: added > 0
+      ? L(`+${added} ${added === 1 ? 'novedad espera' : 'novedades esperan'} arriba`, `+${added} ${added === 1 ? 'new post is' : 'new posts are'} waiting at the top`)
+      : L('Esta vez no hubo novedades', 'No news this time'), failed: false });
     noteTimer.current = window.setTimeout(() => setNpc((s) => ({ ...s, note: null })), NOTE_MS);
   };
 
@@ -374,8 +377,8 @@ export function FeedPage() {
           </div>
           {error && (
             <div className="hf-empty">
-              <p>No pude cargar las novedades ahora mismo.</p>
-              <button type="button" className="hf-cta" onClick={load}>Reintentar</button>
+              <p>{L('No pude cargar las novedades ahora mismo.', 'I couldn’t load the news right now.')}</p>
+              <button type="button" className="hf-cta" onClick={load}>{L('Reintentar', 'Retry')}</button>
             </div>
           )}
           {!items && !error && <FeedSkeleton />}

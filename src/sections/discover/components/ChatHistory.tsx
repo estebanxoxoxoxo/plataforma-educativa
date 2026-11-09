@@ -3,9 +3,12 @@ import { createPortal } from 'react-dom';
 import { useReturnFocus, useSheetKeys, useVeil } from '../../store/lib/sheet';
 import { dayGroup, type ChatConv } from '../lib/chatStore';
 import { LnChat, LnPlus, LnSearch, LnTrash, LnX } from './icons';
+import { isEn, L } from '../../../shared/lib/lang';
 
+/** La etiqueta visible de cada grupo (dayGroup devuelve la clave castellana: se traduce al dibujar). */
+const groupLabel = (g: string) => (isEn() ? ({ Hoy: 'Today', Ayer: 'Yesterday', 'Esta semana': 'This week', Antes: 'Earlier' } as Record<string, string>)[g] ?? g : g);
 const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-const when = (ts: number) => new Date(ts).toLocaleString('es-AR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+const when = (ts: number) => new Date(ts).toLocaleString(isEn() ? 'en-US' : 'es-AR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 
 /** El HISTORIAL del Chat, a un click y a la DERECHA (tanda BUSCARCHAT; ChatHistory.tsx del POC): cajón fijo de 320 (88 % como
  *  mucho) sobre un velo, encima de todo (portal a <body>: .view es un contexto de apilamiento). «Tus chats», «+ Nuevo chat»,
@@ -37,37 +40,37 @@ export function ChatHistory({ convs, currentId, onPick, onNew, onRemove, onClear
     if (g) g.rows.push(c); else groups.push({ label, rows: [c] });
   }
 
-  const remove = (c: ChatConv) => { if (window.confirm('¿Sacar este chat de tu lista?')) onRemove(c.id); };
-  const clearAll = () => { if (window.confirm('¿Borrar todo el historial de chats?')) onClearAll(); };
+  const remove = (c: ChatConv) => { if (window.confirm(L('¿Sacar este chat de tu lista?', 'Remove this chat from your list?'))) onRemove(c.id); };
+  const clearAll = () => { if (window.confirm(L('¿Borrar todo el historial de chats?', 'Delete your whole chat history?'))) onClearAll(); };
 
   return createPortal(
     <div className="chx-ov" onMouseDown={veil}>
       <div className="chx" ref={card} role="dialog" aria-modal="true" aria-labelledby="chx-t" tabIndex={-1}>
         <div className="chx-h">
-          <h2 id="chx-t">Tus chats</h2>
-          <button type="button" className="chx-x" aria-label="Cerrar el historial" onClick={onClose} data-autofocus><LnX /></button>
+          <h2 id="chx-t">{L('Tus chats', 'Your chats')}</h2>
+          <button type="button" className="chx-x" aria-label={L('Cerrar el historial', 'Close history')} onClick={onClose} data-autofocus><LnX /></button>
         </div>
         <div className="chx-top">
-          <button type="button" className="chx-new" onClick={onNew}><LnPlus />Nuevo chat</button>
+          <button type="button" className="chx-new" onClick={onNew}><LnPlus />{L('Nuevo chat', 'New chat')}</button>
           <label className="chx-find">
             <LnSearch />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar en tus chats…" aria-label="Buscar en tus chats" enterKeyHint="search" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={L('Buscar en tus chats…', 'Search your chats…')} aria-label={L('Buscar en tus chats', 'Search your chats')} enterKeyHint="search" />
           </label>
         </div>
         <div className="chx-list">
-          {!rows.length && <p className="chx-empty">{q.trim() ? 'Nada con eso.' : 'Todavía no hay chats.'}</p>}
+          {!rows.length && <p className="chx-empty">{q.trim() ? L('Nada con eso.', 'Nothing matches that.') : L('Todavía no hay chats.', 'No chats yet.')}</p>}
           {groups.map((g) => (
             <div key={g.label} className="chx-g">
-              <p className="chx-gl">{g.label}</p>
+              <p className="chx-gl">{groupLabel(g.label)}</p>
               {g.rows.map((c) => {
                 const cur = c.id === currentId;
                 return (
                   <div key={c.id} className={`chx-row${cur ? ' on' : ''}`}>
                     <button type="button" className="chx-pick" onClick={() => onPick(c.id)} aria-current={cur || undefined}>
                       <LnChat className="chx-ic" />
-                      <span className="chx-tx"><b>{c.title}</b><small>{when(c.updatedAt)}{cur ? ' · actual' : ''}</small></span>
+                      <span className="chx-tx"><b>{c.title}</b><small>{when(c.updatedAt)}{cur ? L(' · actual', ' · current') : ''}</small></span>
                     </button>
-                    <button type="button" className="chx-del" aria-label={`Sacar «${c.title}» de tu lista`} onClick={() => remove(c)}><LnTrash /></button>
+                    <button type="button" className="chx-del" aria-label={L(`Sacar «${c.title}» de tu lista`, `Remove “${c.title}” from your list`)} onClick={() => remove(c)}><LnTrash /></button>
                   </div>
                 );
               })}
@@ -76,7 +79,7 @@ export function ChatHistory({ convs, currentId, onPick, onNew, onRemove, onClear
         </div>
         {convs.length > 0 && (
           <div className="chx-foot">
-            <button type="button" className="chx-all" onClick={clearAll}><LnTrash />Borrar todo el historial</button>
+            <button type="button" className="chx-all" onClick={clearAll}><LnTrash />{L('Borrar todo el historial', 'Delete all history')}</button>
           </div>
         )}
       </div>

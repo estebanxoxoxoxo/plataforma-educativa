@@ -3,6 +3,7 @@ import { MyAvatar } from '../../../shared/components/ProfileCard';
 import { IcMedal } from '../../../shared/components/icons';
 import { newsTitle } from '../../../shared/lib/medals';
 import { WhyChip } from '../components/FeedBits';
+import { L } from '../../../shared/lib/lang';
 
 export type MedalNewsItem = Extract<FeedItem, { kind: 'medal' }>;
 
@@ -21,11 +22,11 @@ export function FeedMedalCard({ it, name, onOpen }: { it: MedalNewsItem; name: s
         <MyAvatar name={name} size={30} />
       </div>
       <div className="hf-nx">
-        <p className="hf-k"><IcMedal aria-hidden="true" />Tu medalla<span className="hf-k-time">· {it.time}</span></p>
+        <p className="hf-k"><IcMedal aria-hidden="true" />{L('Tu medalla', 'Your medal')}<span className="hf-k-time">· {it.time}</span></p>
         <h3 className="hf-nt" id={titleId}>{newsTitle(it.medal)}</h3>
         <p className="hf-np">{it.medal.text}</p>
         <div className="hf-act">
-          <button type="button" className="hf-cta is-quiet" aria-haspopup="dialog" onClick={onOpen}>Ver tus medallas</button>
+          <button type="button" className="hf-cta is-quiet" aria-haspopup="dialog" onClick={onOpen}>{L('Ver tus medallas', 'See your medals')}</button>
           {it.reason && <WhyChip reason={it.reason} />}
         </div>
       </div>

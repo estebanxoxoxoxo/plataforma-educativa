@@ -4,6 +4,7 @@ import { MyAvatar, openAvatarPicker, useMyIdentity } from '../../../shared/compo
 import { useFeatures } from '../../parent/lib/features';
 import { ageTag } from '../lib/user';
 import { CfgSection } from './CfgSection';
+import { L } from '../../../shared/lib/lang';
 
 /** Perfil → «Tu avatar» (tanda CONFIG, 30-oct; pedido de Esteban: «agregale toda la parte que tenemos de edición del avatar
  *  como un punto más de configuración»). El avatar grande con la ropa puesta (MyAvatar lee el store de identidad: al guardar
@@ -17,7 +18,7 @@ export function ProfileSection({ user }: { user?: User }) {
   const helpId = useId();
   const name = user?.name ?? id?.nick ?? '';
   return (
-    <CfgSection title="Perfil">
+    <CfgSection title={L('Perfil', 'Profile')}>
       <div className="cfg-me">
         <span className="cfg-me-av"><MyAvatar name={name} size={80} /></span>
         <div className="cfg-me-tx">
@@ -27,18 +28,18 @@ export function ProfileSection({ user }: { user?: User }) {
       </div>
       <div className="cfg-row">
         <div className="cfg-row-tx">
-          <span className="cfg-row-t">Tu avatar</span>
+          <span className="cfg-row-t">{L('Tu avatar', 'Your avatar')}</span>
           <p className="cfg-help" id={helpId}>
             {tienda
-              ? 'Tu personaje, su color y la ropa que conseguiste en la Tienda. Así te ven los demás en Smarty.'
-              : 'Tu personaje y su color. Así te ven los demás en Smarty.'}
+              ? L('Tu personaje, su color y la ropa que conseguiste en la Tienda. Así te ven los demás en Smarty.', 'Your character, its color and the clothes you got in the Store. This is how others see you on Smarty.')
+              : L('Tu personaje y su color. Así te ven los demás en Smarty.', 'Your character and its color. This is how others see you on Smarty.')}
           </p>
         </div>
         {/* Con la prenda PUESTA como preset: openAvatarPicker() a secas manda `null` = «Nada» y la hoja abría sin la ropa
             que tiene (y con Guardar ya habilitado: guardar le sacaba la prenda). Así abre igual que desde la tarjeta. */}
         <button type="button" className="cfg-btn" aria-haspopup="dialog" aria-describedby={helpId}
           onClick={() => openAvatarPicker(id?.look?.accessory ?? null)}>
-          Cambiar<span className="cfg-sr"> tu avatar</span>
+          {L('Cambiar', 'Change')}<span className="cfg-sr">{L(' tu avatar', ' your avatar')}</span>
         </button>
       </div>
     </CfgSection>

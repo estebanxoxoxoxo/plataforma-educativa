@@ -1,6 +1,7 @@
 import { useActivitySnapshot } from './react/useActivity'
 import { type QuizEngine } from './activities/quiz'
 import './learn-engine.css'
+import { L } from '../shared/lib/lang'
 
 /* Vista app-native (Tailwind) del quiz, sobre el motor portado. Elegí la respuesta;
    si fallás, esa opción se descarta y seguís en la misma pregunta. Sin CSS del lab.
@@ -14,7 +15,7 @@ export default function QuizBoard({ engine }: { engine: QuizEngine }) {
   return (
     <div className="lrn-quiz">
       <p className="lrn-count">
-        Pregunta {Math.min(snap.index + 1, snap.total)} / {snap.total}
+        {L('Pregunta', 'Question')} {Math.min(snap.index + 1, snap.total)} / {snap.total}
       </p>
       {q ? (
         <>
@@ -37,10 +38,10 @@ export default function QuizBoard({ engine }: { engine: QuizEngine }) {
           </div>
         </>
       ) : (
-        <p className="lrn-done">Quiz completo ✓</p>
+        <p className="lrn-done">{L('Quiz completo ✓', 'Quiz complete ✓')}</p>
       )}
       <p className="lrn-help">
-        {playing ? 'Tocá la respuesta correcta. Si fallás, esa opción se descarta.' : ''}
+        {playing ? L('Tocá la respuesta correcta. Si fallás, esa opción se descarta.', "Tap the right answer. If you miss, that option is ruled out.") : ''}
       </p>
     </div>
   )

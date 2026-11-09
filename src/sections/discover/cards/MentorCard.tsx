@@ -4,6 +4,7 @@ import { IcClock } from '../../../shared/components/icons';
 import {
   familyIds, forWho, ratingLabel, slotsEvery, teachesWho, usd, type People,
 } from '../../../shared/lib/mentors';
+import { L } from '../../../shared/lib/lang';
 
 /** Un mentor en Buscar → Mentores (solo el adulto): el emoji de su materia sobre su color, nombre, materia y calificación,
  *  la línea de quién es, el precio por hora bien visible y, por cada contrato de la familia, su estado con el nombre del
@@ -32,7 +33,7 @@ export function MentorCard({ m, me, people, onHire, onSchedule }: {
           <span className="smn-rate">
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.9l2.45 5.1 5.6.75-4.08 3.9 1 5.55L10 14.55 5.03 17.2l1-5.55-4.08-3.9 5.6-.75z" fill="currentColor" /></svg>
             <span aria-hidden="true">{ratingLabel(m.rating)}</span>
-            <span className="smn-sr">Calificación {ratingLabel(m.rating)} de 5</span>
+            <span className="smn-sr">{L(`Calificación ${ratingLabel(m.rating)} de 5`, `Rated ${ratingLabel(m.rating)} out of 5`)}</span>
           </span>
         </p>
         <p className="smn-bio">{m.bio}</p>
@@ -48,9 +49,9 @@ export function MentorCard({ m, me, people, onHire, onSchedule }: {
                 ) : (
                   <>
                     <IcClock />
-                    <span>Pagado {forWho(c.beneficiary, me, people)} · falta elegir los días</span>
+                    <span>{L(`Pagado ${forWho(c.beneficiary, me, people)} · falta elegir los días`, `Paid ${forWho(c.beneficiary, me, people)} · days still to pick`)}</span>
                     <button type="button" className="smn-btn smn-btn--ghost smn-btn--sm" data-smn-agenda
-                      aria-label={`Elegir los días de ${m.subject} ${forWho(c.beneficiary, me, people)}`} onClick={() => onSchedule(c)}>Elegir los días</button>
+                      aria-label={L(`Elegir los días de ${m.subject} ${forWho(c.beneficiary, me, people)}`, `Pick the days for ${m.subject} ${forWho(c.beneficiary, me, people)}`)} onClick={() => onSchedule(c)}>{L('Elegir los días', 'Pick the days')}</button>
                   </>
                 )}
               </li>
@@ -59,11 +60,11 @@ export function MentorCard({ m, me, people, onHire, onSchedule }: {
         )}
       </div>
       <div className="smn-side">
-        <p className="smn-price"><b>{usd(m.pricePerHour)}</b> la hora</p>
+        <p className="smn-price"><b>{usd(m.pricePerHour)}</b> {L('la hora', 'per hour')}</p>
         {free ? (
-          <button type="button" className="smn-btn" data-smn-act aria-label={`Contratar a ${m.name}`} onClick={onHire}>Contratar</button>
+          <button type="button" className="smn-btn" data-smn-act aria-label={L(`Contratar a ${m.name}`, `Hire ${m.name}`)} onClick={onHire}>{L('Contratar', 'Hire')}</button>
         ) : (
-          <span className="smn-full">Ya contratado para toda tu familia</span>
+          <span className="smn-full">{L('Ya contratado para toda tu familia', 'Already hired for your whole family')}</span>
         )}
       </div>
     </li>

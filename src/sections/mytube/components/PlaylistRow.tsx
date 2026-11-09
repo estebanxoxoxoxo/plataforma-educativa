@@ -1,6 +1,7 @@
 import { IcListMusic } from '../../../shared/components/icons';
 import type { MtVideo } from '../../../api/types';
 import { VideoList } from './VideoList';
+import { L } from '../../../shared/lib/lang';
 
 /** nombreLista del POC: «Lista X (12 videos)» (el título de una entrada 'playlist') → «X». */
 export function nombreLista(t: string): string {
@@ -24,12 +25,12 @@ export function PlaylistRow({ title, open, videos, failed = false, limit, onTogg
       {open && (
         <div className="mt-pl-body">
           {failed
-            ? <p className="mt-pl-msg">No pude cargar esta lista ahora.</p>
+            ? <p className="mt-pl-msg">{L('No pude cargar esta lista ahora.', 'I couldn’t load this list right now.')}</p>
             : videos === null
-            ? <p className="mt-pl-msg">Cargando…</p>
+            ? <p className="mt-pl-msg">{L('Cargando…', 'Loading…')}</p>
             : videos.length
               ? <VideoList videos={videos.slice(0, limit)} remaining={videos.length - limit} onMore={onMore} onPlay={onPlay} />
-              : <p className="mt-pl-msg">Sin videos aprobados en esta lista.</p>}
+              : <p className="mt-pl-msg">{L('Sin videos aprobados en esta lista.', 'No approved videos in this list.')}</p>}
         </div>
       )}
     </div>

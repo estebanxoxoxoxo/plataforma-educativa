@@ -5,6 +5,7 @@ import { getBgState, pauseMusic, resumeMusic } from '../../../shared/audio/bgAud
 import { ytCommand, ytSubscribe } from '../../../shared/lib/ytBridge';
 import { useReturnFocus } from '../../store/lib/sheet';
 import { resumeAfterWatch } from '../lib/trackAudio';
+import { L } from '../../../shared/lib/lang';
 
 /** "Ver" un track de After Day (extensión Smarty, pedido 14-oct: "pueden ser audios o videos" — el POC
  *  era SOLO audio en todas sus superficies). Overlay contenido con la MISMA jaula que los videos de Learn:
@@ -60,17 +61,17 @@ export function AdWatch({ track, onClose }: { track: AfterDayTrack; onClose: () 
   const origin = encodeURIComponent(location.origin);
   const src = `https://www.youtube-nocookie.com/embed/${track.videoId}?enablejsapi=1&origin=${origin}&autoplay=1&rel=0&playsinline=1&iv_load_policy=3&modestbranding=1`;
   return createPortal(
-    <div className="adw" role="dialog" aria-modal="true" aria-label={track.title || 'Video'}>
+    <div className="adw" role="dialog" aria-modal="true" aria-label={track.title || L('Video', 'Video')}>
       <header className="adw-head">
-        <button type="button" className="adw-x" ref={closeRef} onClick={onClose}>✕ Cerrar</button>
-        <p className="adw-t">{track.title || 'Video'}</p>
+        <button type="button" className="adw-x" ref={closeRef} onClick={onClose}>{L('✕ Cerrar', '✕ Close')}</button>
+        <p className="adw-t">{track.title || L('Video', 'Video')}</p>
       </header>
       <div className="adw-stage">
         <div className="adw-frame">
           <iframe
             ref={iframeRef}
             src={src}
-            title={track.title || 'Video'}
+            title={track.title || L('Video', 'Video')}
             allow="autoplay; encrypted-media; picture-in-picture"
             sandbox="allow-scripts allow-same-origin allow-presentation"
             referrerPolicy="strict-origin-when-cross-origin"

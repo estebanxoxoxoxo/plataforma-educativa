@@ -5,10 +5,12 @@ import { IcNavMyTube } from '../../../shared/components/icons';
 import type { MtHomeState, MtTab } from '../lib/nav';
 import { ChannelsPane } from './ChannelsPane';
 import { ListsPane } from './ListsPane';
+import { L } from '../../../shared/lib/lang';
 
-const TABS: { id: MtTab; label: string }[] = [
-  { id: 'canales', label: 'Canales' },
-  { id: 'listas', label: 'Mis listas' },
+// Función: los rótulos dependen del idioma y se arman en el render (una constante de módulo quedaría en el de la carga).
+const tabs = (): { id: MtTab; label: string }[] => [
+  { id: 'canales', label: L('Canales', 'Channels') },
+  { id: 'listas', label: L('Mis listas', 'My lists') },
 ];
 
 /** MyTube (porte EXACTO de MyTube.tsx del POC): dos solapas, Canales | Mis listas, en estado LOCAL (no en la URL) que
@@ -29,9 +31,9 @@ export function MyTubePage() {
       {/* Ícono + título, sin subtítulo, como el resto de las secciones (pedido de Esteban, 30-oct). */}
       <div className="mt-title">
         <span className="mt-tico" aria-hidden="true"><IcNavMyTube /></span>
-        <h2 className="h2">Mis videos</h2>
+        <h2 className="h2">{L('Mis videos', 'My videos')}</h2>
       </div>
-      <UnderlineTabs tabs={TABS} value={tab} onChange={change} className="mt-tabs" tabClass="mt-tab" inkClass="mt-ink" />
+      <UnderlineTabs tabs={tabs()} value={tab} onChange={change} className="mt-tabs" tabClass="mt-tab" inkClass="mt-ink" />
       {tab === 'listas' ? <ListsPane /> : <ChannelsPane />}
     </section>
   );

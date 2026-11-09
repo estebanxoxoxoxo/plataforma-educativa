@@ -3,6 +3,7 @@
    - cropToCover: recorte de la imagen subida al estándar de la card (16:9, center-crop / cover-fit) comprimida a data URL
      JPEG 0.82 de 640×360, sin backend. La portada viaja en route.cover. (La resolución completa de portadas del mosaico
      —maxres del video, imagen del artículo de Wikipedia— es de Learn, no del creador.) */
+import { L } from '../../../shared/lib/lang';
 
 /** Miniatura 16:9 SIEMPRE disponible (320×180, sin barras). */
 export function mqThumb(videoId: string): string {
@@ -14,7 +15,7 @@ function loadImage(file: File): Promise<HTMLImageElement> {
     const img = new Image();
     const src = URL.createObjectURL(file);
     img.onload = () => { URL.revokeObjectURL(src); resolve(img); };
-    img.onerror = () => { URL.revokeObjectURL(src); reject(new Error('no se pudo leer la imagen')); };
+    img.onerror = () => { URL.revokeObjectURL(src); reject(new Error(L('no se pudo leer la imagen', "couldn't read the image"))); };
     img.src = src;
   });
 }
@@ -26,7 +27,7 @@ export async function cropToCover(file: File, w = 640, h = 360): Promise<string>
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('canvas no disponible');
+  if (!ctx) throw new Error(L('canvas no disponible', 'canvas not available'));
   const scale = Math.max(w / img.width, h / img.height); // llena la card, recorta el excedente
   const dw = img.width * scale;
   const dh = img.height * scale;

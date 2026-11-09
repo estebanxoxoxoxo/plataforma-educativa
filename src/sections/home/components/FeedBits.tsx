@@ -1,20 +1,21 @@
 import type { ReactNode } from 'react';
 import { IcClock, IcClose, IcCoin } from '../../../shared/components/icons';
+import { L } from '../../../shared/lib/lang';
 
 /** Chip "por qué" (mock v6): el algoritmo se muestra. `title` = el motivo (tooltip nativo) y, al tocarlo o enfocarlo, la
  *  misma frase en un globito (en una tablet no hay hover). FEED-3 (30-oct): va SIEMPRE en la esquina INFERIOR DERECHA de
  *  su card, en todos los tipos — el último del pie, empujado a la derecha por home.css —, así que el globito se abre
  *  SIEMPRE hacia la izquierda (`is-end`; si no, se saldría del borde). No navega a ningún lado. Puro. */
 export const WhyChip = ({ reason, icon }: { reason: string; icon?: ReactNode }) => (
-  <button type="button" className="hf-why is-end" title={reason} data-why={reason} aria-label={`Por qué te lo muestro: ${reason}`}
+  <button type="button" className="hf-why is-end" title={reason} data-why={reason} aria-label={L(`Por qué te lo muestro: ${reason}`, `Why I’m showing you this: ${reason}`)}
     onClick={(e) => e.currentTarget.focus()} onKeyDown={(e) => { if (e.key === 'Escape') e.currentTarget.blur(); }}>
-    {icon ?? <IcClock aria-hidden="true" />}por qué
+    {icon ?? <IcClock aria-hidden="true" />}{L('por qué', 'why')}
   </button>
 );
 
 /** ✕ "Ver menos de esto" (reversible: lo reemplaza un "Listo… Deshacer"). Puro. */
 export const LessButton = ({ onClick, className }: { onClick: () => void; className?: string }) => (
-  <button type="button" className={`hf-less${className ? ` ${className}` : ''}`} aria-label="Ver menos de esto" title="Ver menos de esto" onClick={onClick}>
+  <button type="button" className={`hf-less${className ? ` ${className}` : ''}`} aria-label={L('Ver menos de esto', 'Show less of this')} title={L('Ver menos de esto', 'Show less of this')} onClick={onClick}>
     <IcClose aria-hidden="true" />
   </button>
 );

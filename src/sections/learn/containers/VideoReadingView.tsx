@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { ytCommand, ytSubscribe } from '../../../shared/lib/ytBridge';
 import { useOverlay } from '../lib/overlayNav';
+import { L } from '../../../shared/lib/lang';
 
 /* Fase "video" del overlay de actividad (Opción B para módulos de video): reproduce un video de
    YouTube por videoId SIN ingestarlo (no necesita db.ytVideos) como 1ª posta del módulo, con la
@@ -54,7 +55,7 @@ export function VideoReadingView({ videoId, title, onClose, ctaLabel, onCta }: {
   return createPortal(
     <div className="ln-ov ln-vid" style={{ zIndex: z }}>
       <header className="ln-vid-head">
-        <button type="button" className="ln-vid-cta" onClick={advance}>{ctaLabel ?? '✕ Volver'}</button>
+        <button type="button" className="ln-vid-cta" onClick={advance}>{ctaLabel ?? L('✕ Volver', '✕ Back')}</button>
         <p className="ln-vid-t">{title}</p>
       </header>
 
@@ -73,9 +74,9 @@ export function VideoReadingView({ videoId, title, onClose, ctaLabel, onCta }: {
       </div>
 
       <footer className="ln-vid-foot">
-        <span>Mirá el video y después seguí con las preguntas</span>
+        <span>{L('Mirá el video y después seguí con las preguntas', 'Watch the video, then move on to the questions')}</span>
         <button type="button" className="ln-btn ln-btn-go" onClick={advance}>
-          {ctaLabel ?? 'Empezar preguntas →'}
+          {ctaLabel ?? L('Empezar preguntas →', 'Start questions →')}
         </button>
       </footer>
     </div>,

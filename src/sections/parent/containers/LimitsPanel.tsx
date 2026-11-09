@@ -7,11 +7,13 @@ import { VolumePreview } from '../components/VolumePreview';
 import { parentCall, rejectedReason } from '../lib/adultGate';
 import { publishLimits } from '../lib/limits';
 import { savedTouchingPreset, useMemberConfig } from '../lib/memberConfig';
+import { L } from '../../../shared/lib/lang';
 
 type Key = keyof ParentVolume;
-const ROWS: { key: Key; name: string; what: 'la música' | 'los ruidos'; desc: (kid: string) => string }[] = [
-  { key: 'maxMusic', name: 'Música de fondo', what: 'la música', desc: (kid) => `Lo que suena con «Escuchar de fondo» y las listas de ${kid}, aunque cambie de sección.` },
-  { key: 'maxNoise', name: 'Ruidos para concentrarse', what: 'los ruidos', desc: () => 'Ruido blanco, marrón y rosa del reproductor de la barra lateral.' },
+// i18n: `name` es un getter (resuelve L() al leerse, no se congela al importar); `desc` ya es función.
+const ROWS: { key: Key; readonly name: string; what: 'la música' | 'los ruidos'; desc: (kid: string) => string }[] = [
+  { key: 'maxMusic', get name() { return L('Música de fondo', 'Background music'); }, what: 'la música', desc: (kid) => L(`Lo que suena con «Escuchar de fondo» y las listas de ${kid}, aunque cambie de sección.`, `What plays with “Listen in background” and ${kid}’s playlists, even when switching sections.`) },
+  { key: 'maxNoise', get name() { return L('Ruidos para concentrarse', 'Focus sounds'); }, what: 'los ruidos', desc: () => L('Ruido blanco, marrón y rosa del reproductor de la barra lateral.', 'White, brown and pink noise from the sidebar player.') },
 ];
 /** Espera desde el último movimiento del slider hasta guardar (no se manda un pedido por cada paso). */
 const SAVE_MS = 450;
@@ -59,14 +61,14 @@ export function LimitsPanel({ kid, member }: { kid: string; member: string }) {
       setSaved(r);
       setDraft((d) => (d ? { ...d, [key]: r[key] } : r));
       const v = r[key];
-      setStatus((s) => ({ ...s, [key]: { kind: 'saved', text: v >= 100 ? 'Guardado: sin tope.' : `Guardado: ya rige el tope de ${v}.` } }));
+      setStatus((s) => ({ ...s, [key]: { kind: 'saved', text: v >= 100 ? L('Guardado: sin tope.', 'Saved: no cap.') : L(`Guardado: ya rige el tope de ${v}.`, `Saved: the cap of ${v} now applies.`) } }));
       clearTimeout(clearers.current[key]);
       clearers.current[key] = setTimeout(() => { if (alive.current) setStatus((s) => ({ ...s, [key]: null })); }, 4000);
     } catch (e) {
       saving.current[key] = Math.max(0, (saving.current[key] ?? 1) - 1);
       if (!alive.current) return;
       setDraft((d) => (d && saved ? { ...d, [key]: saved[key] } : d));
-      setStatus((s) => ({ ...s, [key]: { kind: 'error', text: rejectedReason(e) ?? 'No se pudo guardar. Probá de nuevo.' } }));
+      setStatus((s) => ({ ...s, [key]: { kind: 'error', text: rejectedReason(e) ?? L('No se pudo guardar. Probá de nuevo.', 'Couldn’t save. Try again.') } }));
     }
   };
   const commitRef = useRef(commit);
@@ -95,11 +97,11 @@ export function LimitsPanel({ kid, member }: { kid: string; member: string }) {
     <section className="pz-panel" aria-labelledby="pz-lim-h">
       <header className="pz-panel-head pz-panel-head--act">
         <div>
-          <h3 id="pz-lim-h">Límites de volumen</h3>
-          <p>Hasta dónde puede subir {kid} el sonido de fondo. Es un techo: por debajo elige {kid}; si sonaba más fuerte, baja en el acto.</p>
+          <h3 id="pz-lim-h">{L('Límites de volumen', 'Volume limits')}</h3>
+          <p>{L(`Hasta dónde puede subir ${kid} el sonido de fondo. Es un techo: por debajo elige ${kid}; si sonaba más fuerte, baja en el acto.`, `How high ${kid} can turn up the background sound. It’s a ceiling: below it ${kid} chooses; if it was louder, it drops right away.`)}</p>
         </div>
         {draft && (draft.maxMusic < 100 || draft.maxNoise < 100) && (
-          <button type="button" className="pz-btn pz-btn--ghost pz-btn--sm" onClick={reset}>Quitar los topes</button>
+          <button type="button" className="pz-btn pz-btn--ghost pz-btn--sm" onClick={reset}>{L('Quitar los topes', 'Remove the caps')}</button>
         )}
       </header>
       {!draft ? <PanelState failed={failed} onRetry={() => void reload()} /> : (
@@ -111,12 +113,12 @@ export function LimitsPanel({ kid, member }: { kid: string; member: string }) {
               <li key={r.key} className="pz-lim" data-limit={r.key}>
                 <div className="pz-lim-top">
                   <label className="pz-lim-name" htmlFor={`pz-lim-${r.key}`}>{r.name}</label>
-                  <output className="pz-lim-val" htmlFor={`pz-lim-${r.key}`}>{v >= 100 ? 'Sin tope' : `Hasta ${v}`}</output>
+                  <output className="pz-lim-val" htmlFor={`pz-lim-${r.key}`}>{v >= 100 ? L('Sin tope', 'No cap') : L(`Hasta ${v}`, `Up to ${v}`)}</output>
                 </div>
                 <p className="pz-lim-desc" id={`pz-lim-${r.key}-d`}>{r.desc(kid)}</p>
                 <input id={`pz-lim-${r.key}`} className="pz-range" type="range" min={0} max={100} step={5} value={v}
                   style={{ '--pz-fill': `${v}%` } as CSSProperties}
-                  aria-describedby={`pz-lim-${r.key}-d`} aria-valuetext={v >= 100 ? 'Sin tope' : `Hasta ${v} de 100`}
+                  aria-describedby={`pz-lim-${r.key}-d`} aria-valuetext={v >= 100 ? L('Sin tope', 'No cap') : L(`Hasta ${v} de 100`, `Up to ${v} out of 100`)}
                   onChange={(e) => change(r.key, Number(e.target.value))} />
                 <VolumePreview kid={kid} cap={v} what={r.what} />
                 <p className={`pz-lim-msg${st?.kind === 'error' ? ' is-err' : ''}`} role="status">{st?.text ?? ''}</p>
@@ -125,7 +127,7 @@ export function LimitsPanel({ kid, member }: { kid: string; member: string }) {
           })}
         </ul>
       )}
-      <p className="pz-foot">El video que {kid} mira en pantalla completa sigue con su propio control de volumen.</p>
+      <p className="pz-foot">{L(`El video que ${kid} mira en pantalla completa sigue con su propio control de volumen.`, `The video ${kid} watches in full screen keeps its own volume control.`)}</p>
     </section>
   );
 }

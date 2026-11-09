@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { IcCoin } from '../../../shared/components/icons';
 import type { FamilyWeekPrize } from '../../../api/types';
 import { conditionText, prizeByText } from '../lib/familyWeek';
+import { L } from '../../../shared/lib/lang';
 
 /** U5 (§3.2-§3.3): el premio de la semana de la familia, arriba de la tabla.
  *  - Un CHICO (sin `manage`) lo ve si hay: "Si superás tu semana anterior: 🚲 1 hora de bici · Te lo da Andrés" (o "Si ganás
@@ -45,13 +46,13 @@ export function FamilyPrizeCard({ prize, carried, repeatable, manage, meId, busy
       <section className="lgp is-empty" aria-labelledby={id} data-lgp="empty">
         <span className="lgp-disc" aria-hidden="true">🎁</span>
         <div className="lgp-body">
-          <h4 className="lgp-k" id={id} tabIndex={-1} data-lgp-focus>Poné un premio para esta semana</h4>
-          <p className="lgp-sub">Lo elegís vos y se lo das vos: no se compra con <IcCoin className="ec-coin" aria-hidden="true" /> ni se sortea.</p>
+          <h4 className="lgp-k" id={id} tabIndex={-1} data-lgp-focus>{L('Poné un premio para esta semana', 'Set a prize for this week')}</h4>
+          <p className="lgp-sub">{L('Lo elegís vos y se lo das vos: no se compra con', 'You pick it and you give it: it isn’t bought with')} <IcCoin className="ec-coin" aria-hidden="true" /> {L('ni se sortea.', 'or raffled.')}</p>
           <div className="lgp-btns">
-            <button type="button" className="lgp-btn" onClick={(e) => onOpen(e.currentTarget)} disabled={!!busy}>Elegir un premio</button>
+            <button type="button" className="lgp-btn" onClick={(e) => onOpen(e.currentTarget)} disabled={!!busy}>{L('Elegir un premio', 'Pick a prize')}</button>
             {repeatable && (
               <button type="button" className="lgp-btn lgp-btn--ghost lgp-btn--rep" onClick={onRepeat} disabled={!!busy} aria-busy={busy === 'repeat' || undefined}>
-                {busy === 'repeat' ? 'Poniéndolo…' : <><span>Repetir el de la semana pasada</span><span className="lgp-rep">{repeatable.emoji} {repeatable.title}</span></>}
+                {busy === 'repeat' ? L('Poniéndolo…', 'Setting it…') : <><span>{L('Repetir el de la semana pasada', 'Repeat last week’s')}</span><span className="lgp-rep">{repeatable.emoji} {repeatable.title}</span></>}
               </button>
             )}
           </div>
@@ -67,8 +68,8 @@ export function FamilyPrizeCard({ prize, carried, repeatable, manage, meId, busy
       <span className="lgp-disc" aria-hidden="true">{prize.emoji}</span>
       <div className="lgp-body">
         <p className="lgp-kick">
-          Premio de esta semana
-          {carried && <span className="lgp-tag">Sigue en juego</span>}
+          {L('Premio de esta semana', 'This week’s prize')}
+          {carried && <span className="lgp-tag">{L('Sigue en juego', 'Still up for grabs')}</span>}
         </p>
         {manage ? (
           <>
@@ -84,17 +85,17 @@ export function FamilyPrizeCard({ prize, carried, repeatable, manage, meId, busy
         <p className="lgp-by">{prizeByText(prize, audience, meId)}</p>
         {manage && (
           confirming ? (
-            <div className="lgp-confirm" role="group" aria-label="Quitar el premio">
-              <span>¿Quitás el premio de esta semana?</span>
+            <div className="lgp-confirm" role="group" aria-label={L('Quitar el premio', 'Remove the prize')}>
+              <span>{L('¿Quitás el premio de esta semana?', 'Remove this week’s prize?')}</span>
               <button type="button" ref={yes} className="lgp-btn lgp-btn--warn" onClick={onClear} disabled={!!busy} aria-busy={busy === 'clear' || undefined}>
-                {busy === 'clear' ? 'Quitándolo…' : 'Sí, quitarlo'}
+                {busy === 'clear' ? L('Quitándolo…', 'Removing it…') : L('Sí, quitarlo', 'Yes, remove it')}
               </button>
-              <button type="button" className="lgp-btn lgp-btn--ghost" onClick={() => { backToQuit.current = true; setConfirming(false); }} disabled={!!busy}>No</button>
+              <button type="button" className="lgp-btn lgp-btn--ghost" onClick={() => { backToQuit.current = true; setConfirming(false); }} disabled={!!busy}>{L('No', 'No')}</button>
             </div>
           ) : (
             <div className="lgp-btns">
-              <button type="button" className="lgp-btn lgp-btn--ghost" onClick={(e) => onOpen(e.currentTarget)} disabled={!!busy}>Cambiar</button>
-              <button type="button" ref={quit} className="lgp-btn lgp-btn--ghost" onClick={() => setConfirming(true)} disabled={!!busy}>Quitar</button>
+              <button type="button" className="lgp-btn lgp-btn--ghost" onClick={(e) => onOpen(e.currentTarget)} disabled={!!busy}>{L('Cambiar', 'Change')}</button>
+              <button type="button" ref={quit} className="lgp-btn lgp-btn--ghost" onClick={() => setConfirming(true)} disabled={!!busy}>{L('Quitar', 'Remove')}</button>
             </div>
           )
         )}

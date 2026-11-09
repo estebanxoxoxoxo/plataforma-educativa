@@ -16,6 +16,7 @@
  * `lib/ytBridge.ts` del POC (`src/shared/lib/ytBridge.ts`, mismas firmas).
  */
 import { ytEmbedUrl, ytCommand, ytSubscribe, parseYtMessage } from '../../shared/lib/ytBridge'
+import { L } from '../../shared/lib/lang'
 
 export interface YtTrack {
   videoId: string
@@ -66,7 +67,7 @@ function release(): void {
 function ensureIframe(): HTMLIFrameElement {
   if (iframe) return iframe
   const el = document.createElement('iframe')
-  el.title = 'Música de escena'
+  el.title = L('Música de escena', 'Scene music')
   el.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-presentation') // misma contención que el fondo
   el.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture')
   el.setAttribute('aria-hidden', 'true')

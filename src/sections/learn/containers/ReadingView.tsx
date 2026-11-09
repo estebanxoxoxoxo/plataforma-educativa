@@ -6,6 +6,7 @@ import type { Article } from '../../../api/types';
 import { FolderSheet } from '../../../shared/components/FolderSheet';
 import { WikiArticle } from '../../discover/components/WikiArticle';
 import { useOverlay } from '../lib/overlayNav';
+import { L } from '../../../shared/lib/lang';
 
 /* Lectura de una posta (fase 'reading' del overlay) y guidebook de un módulo de artículo: port del ReadingView del POC
    (smarty-poc app/src/zones/child/ReadingView.tsx) sobre el LECTOR REAL de Smarty.
@@ -77,7 +78,7 @@ export function ReadingView({ url, title, onClose, ctaLabel, onCta }: {
       {createPortal(
         <div className="ln-ov ln-read" style={{ zIndex: z }}>
           <header className="ln-read-head">
-            <button type="button" className="ln-read-cta" onClick={onCta ?? close}>{ctaLabel ?? '✕ Volver'}</button>
+            <button type="button" className="ln-read-cta" onClick={onCta ?? close}>{ctaLabel ?? L('✕ Volver', '✕ Back')}</button>
             <div className="ln-read-tt">
               <p className="ln-read-t">{article?.title ?? title}</p>
               <p className="ln-read-host">{article?.siteName ? `${article.siteName} · ${host}` : host}</p>
@@ -85,11 +86,11 @@ export function ReadingView({ url, title, onClose, ctaLabel, onCta }: {
           </header>
 
           <div className="ln-read-body">
-            {state === 'cargando' && <p className="ln-read-msg ln-pulse">Estoy revisando esta página para vos…</p>}
-            {state === 'error' && <p className="ln-read-msg">No puedo revisar esto ahora mismo. Probemos de nuevo en un ratito 🙂</p>}
+            {state === 'cargando' && <p className="ln-read-msg ln-pulse">{L('Estoy revisando esta página para vos…', 'I\'m checking this page for you…')}</p>}
+            {state === 'error' && <p className="ln-read-msg">{L('No puedo revisar esto ahora mismo. Probemos de nuevo en un ratito 🙂', "I can't check this right now. Let's try again in a bit 🙂")}</p>}
             {state === 'bloqueado' && (
               <div className="ln-read-msg">
-                Esta página no está disponible.<br /><span>Si te interesa, podés pedírsela a tu familia.</span>
+                {L('Esta página no está disponible.', "This page isn't available.")}<br /><span>{L('Si te interesa, podés pedírsela a tu familia.', 'If you want it, you can ask your family for it.')}</span>
               </div>
             )}
             {state === 'ok' && article && (
@@ -103,22 +104,22 @@ export function ReadingView({ url, title, onClose, ctaLabel, onCta }: {
             <footer className="ln-read-foot">
               {saved ? (
                 <button type="button" className="ln-read-save is-on" onClick={() => go(`/espacio/carpetas/${saved.folderId}`)}>
-                  ⭐ Guardado en {saved.folderName} ›
+                  {L(`⭐ Guardado en ${saved.folderName} ›`, `⭐ Saved to ${saved.folderName} ›`)}
                 </button>
               ) : (
-                <button type="button" className="ln-read-save" onClick={() => setPicking(true)}>☆ Guardar artículo</button>
+                <button type="button" className="ln-read-save" onClick={() => setPicking(true)}>{L('☆ Guardar artículo', '☆ Save article')}</button>
               )}
-              <span className="ln-read-ok">✓ Página revisada por Smarty</span>
+              <span className="ln-read-ok">{L('✓ Página revisada por Smarty', '✓ Page checked by Smarty')}</span>
             </footer>
           )}
 
           {article && (
-            <FolderSheet open={picking} title="¿Dónde lo guardás?" cta="Guardar acá"
+            <FolderSheet open={picking} title={L('¿Dónde lo guardás?', 'Where do you want to save it?')} cta={L('Guardar acá', 'Save here')}
               onPick={async (folderId, folderName) => {
                 const r = await api.saveItem({ folderId, article: { url: article.id, title: article.title, source: article.siteName } }).catch(() => null);
-                if (!r) return { error: 'No se pudo guardar ahora.' };
+                if (!r) return { error: L('No se pudo guardar ahora.', "Couldn't save it right now.") };
                 setSaved({ folderId, folderName });
-                return { done: r.existed ? `Ya estaba en ${folderName}` : `Guardado en ${folderName}` };
+                return { done: r.existed ? L(`Ya estaba en ${folderName}`, `Already in ${folderName}`) : L(`Guardado en ${folderName}`, `Saved to ${folderName}`) };
               }}
               onClose={() => setPicking(false)} />
           )}

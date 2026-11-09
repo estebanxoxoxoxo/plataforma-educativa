@@ -7,6 +7,7 @@ import { AdEmpty, AdFail, AdSkeleton } from '../components/AdStates';
 import { AdWatch } from '../components/AdWatch';
 import { tapTrack } from '../lib/track';
 import { trackAudio } from '../lib/trackAudio';
+import { L } from '../../../shared/lib/lang';
 
 /** After Day (porte EXACTO de AfterDay.tsx del POC, tanda W6): la lista que curó el padre, para escuchar SOLO como audio
  *  de fondo. Grilla 2/3/4 del más nuevo al más viejo (el orden lo da el server); tocar una tarjeta = playTrack(…, audioOnly)
@@ -51,7 +52,7 @@ export function AfterDayPage() {
       <header className="ad-head">
         <h2 className="h2">After Day</h2>
         {/* Texto de Esteban, 29-oct (reemplaza al heredado del POC solo-audio). */}
-        <p className="lede">Contenido para ver o escuchar después del día.</p>
+        <p className="lede">{L('Contenido para ver o escuchar después del día.', 'Content to watch or listen to after the day.')}</p>
       </header>
       {tracks === null ? (failed ? <AdFail onRetry={() => void load()} /> : <AdSkeleton />)
         : tracks.length === 0 ? <AdEmpty />

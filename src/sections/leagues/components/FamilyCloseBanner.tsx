@@ -3,6 +3,7 @@ import type { FamilyCloseResult } from '../../../api/types';
 import { IcCoin, IcArrowRight, IcClose } from '../../../shared/components/icons';
 import { closesLabel } from '../lib/cycle';
 import { familyCloseCopy } from '../lib/familyWeek';
+import { L } from '../../../shared/lib/lang';
 
 /** Las chispas del festejo (los mismos colores del aviso del cierre de liga). */
 const SPARKS = ['#F2A81D', '#3A5BD9', '#13A39A', '#E5487A', '#8A5CF5', '#F26B3A', '#FFC23D', '#18A957'];
@@ -32,7 +33,7 @@ export function FamilyCloseBanner({ r, meId, coins, onDismiss, onFeed }: {
         <h3 className="lgx-t" id={id} ref={head} tabIndex={-1}>{c.title}</h3>
         {c.cup && <p className="lgx-p">{c.cup}</p>}
         {c.marks.length > 0 && (
-          <ul className="lgx-marks" aria-label="Lo que logró cada uno">
+          <ul className="lgx-marks" aria-label={L('Lo que logró cada uno', 'What each person achieved')}>
             {c.marks.map((m) => <li key={m.id}><b>{m.name}</b> {m.text}</li>)}
           </ul>
         )}
@@ -40,15 +41,15 @@ export function FamilyCloseBanner({ r, meId, coins, onDismiss, onFeed }: {
         {c.prize && (
           <p className="lgx-prize">
             {c.prize}
-            {prizeWon && <span className="lgx-prize-n"> · Lo ves en Familia → Premios para marcarlo cuando se lo des.</span>}
+            {prizeWon && <span className="lgx-prize-n">{L(' · Lo ves en Familia → Premios para marcarlo cuando se lo des.', ' · You’ll find it in Family → Prizes to mark it once you give it.')}</span>}
           </p>
         )}
         <p className="lgx-note">
-          {c.mine} Arrancó la semana nueva: la XP de todos vuelve a 0{coins && <> y las <IcCoin className="ec-coin" aria-hidden="true" />{' '}Energy Coins siguen en cada billetera</>}. {closesLabel(days)}{days > 0 && '.'}
+          {c.mine} {L('Arrancó la semana nueva: la XP de todos vuelve a 0', 'A new week started: everyone’s XP goes back to 0')}{coins && <> {L('y las', 'and the')} <IcCoin className="ec-coin" aria-hidden="true" />{' '}Energy Coins {L('siguen en cada billetera', 'stay in each wallet')}</>}. {closesLabel(days)}{days > 0 && '.'}
         </p>
-        {r.mine.feedAdded > 0 && <button type="button" className="lgx-go" onClick={onFeed}>Ver las novedades del cierre en el Feed<IcArrowRight /></button>}
+        {r.mine.feedAdded > 0 && <button type="button" className="lgx-go" onClick={onFeed}>{L('Ver las novedades del cierre en el Feed', 'See the week’s results in the Feed')}<IcArrowRight /></button>}
       </div>
-      <button type="button" className="lgx-x" onClick={onDismiss} aria-label="Cerrar el aviso del cierre de la familia"><IcClose /></button>
+      <button type="button" className="lgx-x" onClick={onDismiss} aria-label={L('Cerrar el aviso del cierre de la familia', 'Close the family week-end notice')}><IcClose /></button>
     </section>
   );
 }

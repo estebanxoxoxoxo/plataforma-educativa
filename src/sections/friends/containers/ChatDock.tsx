@@ -12,6 +12,7 @@ import {
   useChatDock, type DockWin,
 } from '../lib/chatDock';
 import { useSocial } from '../lib/social';
+import { L } from '../../../shared/lib/lang';
 
 /** Cada cuánto cada ventana (abierta o minimizada) pregunta por las respuestas nuevas de su amigo. */
 const POLL_MS = 1500;
@@ -313,7 +314,7 @@ function Conversation({ f, win, hidden, modal, focusKey, onClose, onMinimize, on
       return false;
     } catch (e) {
       onApiError(e);
-      if (live.current) note('sys', 'No pude mandar tu mensaje. Probá de nuevo en un ratito.');
+      if (live.current) note('sys', L('No pude mandar tu mensaje. Probá de nuevo en un ratito.', 'I couldn’t send your message. Try again in a little bit.'));
       return false;
     } finally {
       if (live.current) setSending(false);

@@ -1,6 +1,7 @@
 import { useId } from 'react';
 import type { FamilyWeekClosed } from '../../../api/types';
 import { capFirst, closedPrizeLine, cupLine, marksOf, totalLine } from '../lib/familyWeek';
+import { L } from '../../../shared/lib/lang';
 
 /** El resumen de UNA semana cerrada: la copa, las marcas alcanzables por todos, la línea cooperativa y el premio. SIN
  *  puestos (§2.2: no hay "último" ni "2.º" en el resumen; solo la copa). `latest` = es history[0] (solo ahí un premio sin
@@ -13,7 +14,7 @@ function WeekSummary({ w, meId, latest }: { w: FamilyWeekClosed; meId?: string; 
     <>
       {cup && <p className="lgw-cup">{cup}</p>}
       {marks.length > 0 && (
-        <ul className="lgw-marks" aria-label="Lo que logró cada uno">
+        <ul className="lgw-marks" aria-label={L('Lo que logró cada uno', 'What each person achieved')}>
           {marks.map((m) => <li key={m.id}><b>{m.name}</b> {m.text}</li>)}
         </ul>
       )}
@@ -37,7 +38,7 @@ export function FamilyWeekCard({ history, meId }: { history: FamilyWeekClosed[];
       <WeekSummary w={last} meId={meId} latest />
       {older.length > 0 && (
         <details className="lgw-more">
-          <summary>Semanas anteriores</summary>
+          <summary>{L('Semanas anteriores', 'Previous weeks')}</summary>
           <ol className="lgw-older">
             {older.map((w) => (
               <li key={w.week} data-week={w.week}>

@@ -6,6 +6,7 @@ import { ChatArticleCard } from '../cards/ChatArticleCard';
 import { ShareCard } from '../cards/ShareCard';
 import { ChatGallery } from './ChatGallery';
 import { MediaGroup } from './MediaGroup';
+import { L } from '../../../shared/lib/lang';
 
 export type ChatMsg =
   | { id: number; role: 'kid'; text: string }
@@ -42,7 +43,7 @@ export function ChatBubble({ m, h, slow }: { m: ChatMsg; h: ChatMediaHandlers; s
     <div className="cx-msg cx-ai">
       <BrandMark className="mark cx-mark" />
       {m.pending && !m.text
-        ? <div className="cx-think" role="status">{slow ? 'Esto está tardando más de lo normal…' : 'Pensando…'}</div>
+        ? <div className="cx-think" role="status">{slow ? L('Esto está tardando más de lo normal…', 'This is taking longer than usual…') : L('Pensando…', 'Thinking…')}</div>
         : <div className="cx-md"><ReactMarkdown allowedElements={MD_ALLOWED} unwrapDisallowed>{m.text}</ReactMarkdown></div>}
       {!!media?.images?.length && <Group kind="images" items={media.images} render={(s) => <ChatGallery images={s} onOpen={h.onImage} />} />}
       {!!media?.videos?.length && <Group kind="videos" items={media.videos}

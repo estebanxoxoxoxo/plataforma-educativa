@@ -6,22 +6,24 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../../../api';
 import type { FamilyMember, UserInfo } from '../../../api/types';
+import { L } from '../../../shared/lib/lang';
 
 /** Las solapas que son de TODA la familia: el selector no aplica (se ve deshabilitado, con su nota). F2 (28-oct): YouTube
  *  pasó a llamarse MyTube (/familia/youtube redirige) y After Day tiene su solapa propia. */
 export const FAMILY_WIDE: ReadonlySet<string> = new Set(['/familia/mytube', '/familia/afterday', '/familia/mentorias']);
 /** Nota del selector en cada solapa de familia. */
 export const FAMILY_NOTE: Record<string, string> = {
-  '/familia/mytube': 'Mis videos vale para toda la familia: lo que aprobás acá lo puede ver cada integrante.',
-  '/familia/afterday': 'After Day vale para toda la familia: la misma lista suena en el After Day de cada integrante.',
-  '/familia/mentorias': 'Las mentorías son de toda la familia: cada una dice para quién es (también las tuyas).',
+  // i18n: getters, así cada lectura resuelve L() con el idioma actual (no se congela al importar).
+  get '/familia/mytube'() { return L('Mis videos vale para toda la familia: lo que aprobás acá lo puede ver cada integrante.', 'My videos applies to the whole family: what you approve here every member can watch.'); },
+  get '/familia/afterday'() { return L('After Day vale para toda la familia: la misma lista suena en el After Day de cada integrante.', 'After Day applies to the whole family: the same playlist plays in every member’s After Day.'); },
+  get '/familia/mentorias'() { return L('Las mentorías son de toda la familia: cada una dice para quién es (también las tuyas).', 'Mentorships belong to the whole family: each one says who it’s for (yours too).'); },
 };
 
 /** La nota de la solapa de toda la familia a la que pertenece `pathname` (también sus subrutas, como la vista de un canal
  *  en /familia/mytube/canal/:id); null = la ruta es de una solapa del integrante elegido. */
 export function familyNoteFor(pathname: string): string | null {
   const p = pathname.replace(/\/+$/, '');
-  for (const tab of FAMILY_WIDE) if (p === tab || p.startsWith(tab + '/')) return FAMILY_NOTE[tab] ?? 'Esta sección vale para toda la familia.';
+  for (const tab of FAMILY_WIDE) if (p === tab || p.startsWith(tab + '/')) return FAMILY_NOTE[tab] ?? L('Esta sección vale para toda la familia.', 'This section applies to the whole family.');
   return null;
 }
 

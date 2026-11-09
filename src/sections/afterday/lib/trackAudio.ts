@@ -4,6 +4,7 @@
 // (TrackCard por props), las dos grillas (el After Day del chico y Familia → After Day) y el visor (AdWatch); tests en
 // __tests__/trackAudio.test.ts.
 import type { BgAudioState } from '../../../shared/audio/bgAudio';
+import { L } from '../../../shared/lib/lang';
 
 /** Dónde está un track respecto del audio de fondo: sin el fondo, SONANDO o EN PAUSA. */
 export type TrackAudio = 'off' | 'playing' | 'paused';
@@ -22,8 +23,8 @@ export function trackTap(a: TrackAudio): 'play' | 'pause' | 'resume' {
 
 /** El nombre accesible del botón principal de la tarjeta: lo que hace tocarlo. Sin título, "audio" (como hasta ahora). */
 export function trackLabel(a: TrackAudio, title?: string): string {
-  const x = title || 'audio';
-  return a === 'off' ? `Escuchar ${x} de fondo` : a === 'playing' ? `Pausar ${x}` : `Seguir escuchando ${x}`;
+  const x = title || L('audio', 'audio');
+  return a === 'off' ? L(`Escuchar ${x} de fondo`, `Listen to ${x} in the background`) : a === 'playing' ? L(`Pausar ${x}`, `Pause ${x}`) : L(`Seguir escuchando ${x}`, `Keep listening to ${x}`);
 }
 
 /** «Ver» al CERRARSE: ¿reanuda el fondo que pausó al abrirse? `pausedId` = el track que sonaba y el visor pausó (null si no

@@ -22,9 +22,11 @@ import { LEAGUE_WEEK_CLOSED } from '../lib/cycle';
 import { familyCloseOn, prizeCarried, repeatablePrize, repeatRequest } from '../lib/familyWeek';
 import { BASE_TABS, FAMILY_TAB, familyTabOn, geoCaption, leagueCaption, resolveTab } from '../lib/tabs';
 import { useFontReady } from '../lib/useFontReady';
+import { L } from '../../../shared/lib/lang';
 
-/** Para medir la fuente de las solapas: TODAS las etiquetas posibles (la de Familia aparece con los datos). */
-const TAB_TEXT = [...BASE_TABS, FAMILY_TAB].map((t) => t.label).join(' ');
+/** Para medir la fuente de las solapas: TODAS las etiquetas posibles (la de Familia aparece con los datos). Función: los
+ *  rótulos dependen del idioma, se arman en el render (una constante de módulo quedaría en el idioma de la carga). */
+const tabText = () => [...BASE_TABS, FAMILY_TAB].map((t) => t.label).join(' ');
 
 /** Todo lo de la vista: mi liga (con su ciclo) + su tabla + zona + país + la tabla de la semana de la familia (U4 · D2).
  *  La de la familia va en la MISMA carga pero no la tumba: si falla (o es un chico con Ligas apagadas: 403), la solapa no
@@ -63,7 +65,7 @@ type Closed = { kind: 'mine'; r: CloseWeekResult; n: number } | { kind: 'family'
  *  las ligas públicas de cada uno). En los dos la vista se vuelve a pedir entera y el aviso del resultado queda arriba. */
 export function LeaguesPage() {
   const [params, setParams] = useSearchParams();
-  const fontReady = useFontReady('800 14.5px Nunito', TAB_TEXT);
+  const fontReady = useFontReady('800 14.5px Nunito', tabText());
   const { data, error, setData, reload } = useAsync(loadLeagues, []);
   const features = useFeatures();
   const adult = useUser()?.kind === 'adult';
@@ -171,7 +173,7 @@ export function LeaguesPage() {
       opener.current = null; // la tarjeta cambió: el foco va a su título
       refocusPrize();
     } catch (e) {
-      setSheetErr((s) => ({ msg: reasonOf(e, 'No pude guardar el premio ahora. Probá de nuevo en un ratito.'), n: (s?.n ?? 0) + 1 }));
+      setSheetErr((s) => ({ msg: reasonOf(e, L('No pude guardar el premio ahora. Probá de nuevo en un ratito.', 'I couldn’t save the prize right now. Try again in a little bit.')), n: (s?.n ?? 0) + 1 }));
     } finally {
       setSheetBusy(false);
     }
@@ -184,7 +186,7 @@ export function LeaguesPage() {
       setFamily(await api.clearFamilyPrize());
       refocusPrize();
     } catch (e) {
-      setCardErr(reasonOf(e, 'No pude quitar el premio ahora. Probá de nuevo en un ratito.'));
+      setCardErr(reasonOf(e, L('No pude quitar el premio ahora. Probá de nuevo en un ratito.', 'I couldn’t remove the prize right now. Try again in a little bit.')));
     } finally {
       setCardBusy(null);
     }
@@ -200,7 +202,7 @@ export function LeaguesPage() {
       setFamily(await api.setFamilyPrize(repeatRequest(p)));
       refocusPrize();
     } catch (e) {
-      setCardErr(reasonOf(e, 'No pude poner el premio ahora. Probá de nuevo en un ratito.'));
+      setCardErr(reasonOf(e, L('No pude poner el premio ahora. Probá de nuevo en un ratito.', 'I couldn’t set the prize right now. Try again in a little bit.')));
     } finally {
       setCardBusy(null);
     }
@@ -216,7 +218,7 @@ export function LeaguesPage() {
       {closed?.kind === 'family' && (
         <FamilyCloseBanner key={closed.n} r={closed.r} meId={meId} coins={coins} onDismiss={() => setClosed(null)} onFeed={() => go('/')} />
       )}
-      {error && <p className="lempty">No pude cargar las ligas ahora. Probemos de nuevo en un ratito.</p>}
+      {error && <p className="lempty">{L('No pude cargar las ligas ahora. Probemos de nuevo en un ratito.', 'I couldn’t load the leagues right now. Let’s try again in a little bit.')}</p>}
       {data && <>
         <div className="lhead">
           <LeagueIcon color={data.league.color} />
@@ -233,13 +235,13 @@ export function LeaguesPage() {
         <UnderlineTabs key={`${fontReady ? 'font' : 'fallback'}-${tabs.length}`} tabs={tabs} value={tab}
           onChange={(t) => { setCloseFail(null); setParams(t === 'liga' ? {} : { tab: t }); }} className="ltabs" tabClass="ltab" inkClass="ltink" />
         <div className="lpanels">
-          <LeaguePanel on={tab === 'liga'} label="Mi liga" caption={leagueCaption(data.league.name, data.league.total, adult)}>
+          <LeaguePanel on={tab === 'liga'} label={L('Mi liga', 'My league')} caption={leagueCaption(data.league.name, data.league.total, adult)}>
             <FullRanking rows={data.standing.rows} />
           </LeaguePanel>
-          <LeaguePanel on={tab === 'zona'} label="Tu zona" caption={geoCaption(data.zona.name, adult)}><Ranking r={data.zona} /></LeaguePanel>
-          <LeaguePanel on={tab === 'pais'} label="País" caption={geoCaption(data.pais.name, adult)}><Ranking r={data.pais} /></LeaguePanel>
+          <LeaguePanel on={tab === 'zona'} label={L('Tu zona', 'Your area')} caption={geoCaption(data.zona.name, adult)}><Ranking r={data.zona} /></LeaguePanel>
+          <LeaguePanel on={tab === 'pais'} label={L('País', 'Country')} caption={geoCaption(data.pais.name, adult)}><Ranking r={data.pais} /></LeaguePanel>
           {familyOn && family && (
-            <LeaguePanel on={tab === 'familia'} label="Familia" caption="Tu familia · esta semana">
+            <LeaguePanel on={tab === 'familia'} label={L('Familia', 'Family')} caption={L('Tu familia · esta semana', 'Your family · this week')}>
               <div className="lgw-top">
                 <FamilyWeekCard history={family.history ?? []} meId={meId} />
                 <FamilyPrizeCard prize={family.prize ?? null} carried={prizeCarried(family)} repeatable={repeatablePrize(family)}
@@ -252,8 +254,8 @@ export function LeaguesPage() {
         </div>
         {famClose ? (
           <SimulateCloseChip busy={closing} failed={closeFail !== null} failedText={closeFail} onClick={() => void simulateFamilyClose()}
-            label="Simular cierre de la semana de la familia" busyLabel="Cerrando la semana de la familia…"
-            title="Botón de demo: cierra ahora la semana de toda la familia (copa, premio y la liga de cada uno)" />
+            label={L('Simular cierre de la semana de la familia', 'Simulate family week close')} busyLabel={L('Cerrando la semana de la familia…', 'Closing the family week…')}
+            title={L('Botón de demo: cierra ahora la semana de toda la familia (copa, premio y la liga de cada uno)', 'Demo button: closes the whole family’s week now (cup, prize and everyone’s league)')} />
         ) : (
           <SimulateCloseChip busy={closing} failed={closeFail !== null} onClick={() => void simulateClose()} />
         )}

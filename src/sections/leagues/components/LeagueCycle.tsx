@@ -1,5 +1,6 @@
 import type { AssignedLeague } from '../../../api/types';
 import { MEDAL_INFO, closesLabel, lastWeekLabel } from '../lib/cycle';
+import { L } from '../../../shared/lib/lang';
 
 /** Chips del ciclo semanal en el hero de Ligas: cuánto falta para el cierre y el estandarte de la semana pasada.
  *  El estandarte es solo para el podio (con medalla); sin datos del ciclo no se muestra nada.
@@ -12,7 +13,7 @@ export function LeagueCycle({ league, fresh }: { league: AssignedLeague; fresh?:
   return (
     <div className="lchips">
       {days !== undefined && (
-        <span className="lchip lclose" data-today={days <= 0 || undefined} title={`La liga cierra ${league.closes}`}>
+        <span className="lchip lclose" data-today={days <= 0 || undefined} title={L(`La liga cierra ${league.closes}`, `The league closes ${league.closes}`)}>
           <span className="lchip-ic" aria-hidden>⏳</span>{closesLabel(days)}
         </span>
       )}

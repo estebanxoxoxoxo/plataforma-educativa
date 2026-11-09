@@ -3,6 +3,7 @@ import { IcCoin } from '../../../shared/components/icons';
 import type { Redemption } from '../../../api/types';
 import { useCycle } from '../../parent/lib/cycle';
 import { fmtEc, fmtFull, fmtWhen, isoOf, tintFor } from '../lib/format';
+import { L } from '../../../shared/lib/lang';
 
 /** Un canje del chico: qué fue, cuánto costó, cuándo, y si sus papás ya lo entregaron.
  *  U5: el premio de la semana de la liga de la familia (`origin: 'liga-familia'`) llega como un canje más, pero no costó ⚡
@@ -18,12 +19,12 @@ export function RedemptionRow({ r, fresh }: { r: Redemption; fresh?: boolean }) 
       <span className="st-row-main">
         <b>{r.title}</b>
         {league
-          ? <span className="stfp-orig"><span aria-hidden="true">🏆</span> Lo ganaste en la liga de la familia</span>
+          ? <span className="stfp-orig"><span aria-hidden="true">🏆</span> {L('Lo ganaste en la liga de la familia', 'You won it in the family league')}</span>
           : null}
         <time dateTime={isoOf(r.ts)} title={fmtFull(r.ts, tz)}>{fmtWhen(r.ts, undefined, tz)}</time>
       </span>
       {!league && <span className="st-row-amt"><IcCoin className="ec-coin" aria-hidden="true" /> {fmtEc(r.price)}<span className="st-sr"> Energy Coins</span></span>}
-      <span className={`st-status ${done ? 'is-done' : 'is-pend'}`}>{done ? 'Entregado' : 'Pendiente'}</span>
+      <span className={`st-status ${done ? 'is-done' : 'is-pend'}`}>{done ? L('Entregado', 'Delivered') : L('Pendiente', 'Pending')}</span>
     </li>
   );
 }

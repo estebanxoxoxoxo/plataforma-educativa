@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import type { User } from '../../api/types';
 import { pickBar } from '../lib/navBar';
 import { NAV, NAV_ID, activeFrom, useNavItems, type Sec } from './Sidebar';
+import { L } from '../lib/lang';
 
 /* Navegación del TELÉFONO (RESPONSIVE.md §2.2; decisiones D1/D2 del dueño, 28-oct). Debajo de 640 px de contenedor
    (@container app, shell.css) la barra lateral pasa a ser un CAJÓN y aparece esta barra inferior: 4 secciones + «Menú»,
@@ -84,7 +85,7 @@ export function BottomNav({ user, drawer, covered = false }: {
   const bar = pickBar(useNavItems(user), user?.kind === 'adult' ? BAR_ADULT : BAR, MENU_ORDER);
   const menuOn = drawer.open || (sec !== undefined && !bar.some((n) => n.sec === sec));
   return (
-    <nav className="bnav" aria-label="Secciones principales" inert={drawer.open || covered} aria-hidden={drawer.open || covered || undefined}>
+    <nav className="bnav" aria-label={L('Secciones principales', 'Main sections')} inert={drawer.open || covered} aria-hidden={drawer.open || covered || undefined}>
       {bar.map((n) => {
         const on = !drawer.open && sec === n.sec;
         return (
@@ -96,7 +97,7 @@ export function BottomNav({ user, drawer, covered = false }: {
       })}
       <button ref={drawer.menuRef} type="button" className={`bnav-item bnav-menu${menuOn ? ' on' : ''}`}
         aria-expanded={drawer.open} aria-controls={NAV_ID} onClick={drawer.toggle}>
-        <IcNavMenu /><span>Menú</span>
+        <IcNavMenu /><span>{L('Menú', 'Menu')}</span>
       </button>
     </nav>
   );
@@ -104,5 +105,5 @@ export function BottomNav({ user, drawer, covered = false }: {
 
 /** Velo del cajón (teléfono): tocarlo cierra. Fuera del teléfono no se dibuja; cerrado está oculto (visibility). */
 export function NavScrim({ drawer }: { drawer: NavDrawer }) {
-  return <button type="button" className="nav-scrim" tabIndex={-1} aria-label="Cerrar menú" onClick={drawer.close} />;
+  return <button type="button" className="nav-scrim" tabIndex={-1} aria-label={L('Cerrar menú', 'Close menu')} onClick={drawer.close} />;
 }

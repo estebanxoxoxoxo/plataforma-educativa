@@ -3,6 +3,7 @@ import { IcCoin } from '../../../shared/components/icons';
 import type { MarketItem } from '../../../api/types';
 import { fmtEc, tintFor } from '../lib/format';
 import { useVeil } from '../lib/sheet';
+import { L, isEn } from '../../../shared/lib/lang';
 
 export type SheetState =
   | { item: MarketItem; phase: 'confirm' | 'busy' }
@@ -64,37 +65,37 @@ export function RedeemSheet({ s, ec, onConfirm, onClose }: {
                 {BURST.map((c, i) => <i key={c} style={{ '--c': c, '--a': `${i * 45}deg` } as CSSProperties} />)}
               </span>
             </div>
-            <h3 className="st-done-t" id="st-sheet-t">Canjeado ✓</h3>
-            <p className="st-done-p" id="st-sheet-d">Quedó pendiente: avisale a tu familia.</p>
+            <h3 className="st-done-t" id="st-sheet-t">{L('Canjeado ✓', 'Redeemed ✓')}</h3>
+            <p className="st-done-p" id="st-sheet-d">{L('Quedó pendiente: avisale a tu familia.', 'It’s pending: let your family know.')}</p>
             <p className="st-done-bal">
-              <span>Canjeaste {item.title} por {fmtEc(item.price)} <IcCoin className="ec-coin" aria-hidden="true" /></span>{' '}
-              <span>Te quedan <b>{fmtEc(s.ec)} <IcCoin className="ec-coin" aria-hidden="true" /></b></span>
+              <span>{isEn() ? <>You redeemed {item.title} for</> : <>Canjeaste {item.title} por</>} {fmtEc(item.price)} <IcCoin className="ec-coin" aria-hidden="true" /></span>{' '}
+              <span>{L('Te quedan', 'You have')} <b>{fmtEc(s.ec)} <IcCoin className="ec-coin" aria-hidden="true" /></b></span>
             </p>
             <div className="st-sheet-btns">
-              <button type="button" className="st-btn" data-autofocus onClick={onClose}>Listo</button>
+              <button type="button" className="st-btn" data-autofocus onClick={onClose}>{L('Listo', 'Done')}</button>
             </div>
           </div>
         ) : s.phase === 'error' ? (
           <>
             <div className="st-sheet-art is-dim" style={tint}><span aria-hidden="true">{item.emoji}</span></div>
-            <h3 className="st-sheet-q" id="st-sheet-t">No se pudo canjear</h3>
+            <h3 className="st-sheet-q" id="st-sheet-t">{L('No se pudo canjear', 'Couldn’t redeem it')}</h3>
             <p className="st-sheet-err" id="st-sheet-d" role="alert">{s.message}</p>
             <div className="st-sheet-btns">
-              <button type="button" className="st-btn st-btn--ghost" data-autofocus onClick={onClose}>Entendido</button>
+              <button type="button" className="st-btn st-btn--ghost" data-autofocus onClick={onClose}>{L('Entendido', 'Got it')}</button>
             </div>
           </>
         ) : (
           <>
             <div className="st-sheet-art" style={tint}><span aria-hidden="true">{item.emoji}</span></div>
-            <h3 className="st-sheet-q" id="st-sheet-t">¿Canjeás {fmtEc(item.price)} <IcCoin className="ec-coin" aria-hidden="true" /> por {item.title}?</h3>
+            <h3 className="st-sheet-q" id="st-sheet-t">{L('¿Canjeás', 'Redeem')} {fmtEc(item.price)} <IcCoin className="ec-coin" aria-hidden="true" /> {L('por', 'for')} {item.title}?</h3>
             <p className="st-sheet-sub" id="st-sheet-d">
-              {after >= 0 && <><span>Después te quedan <b>{fmtEc(after)} <IcCoin className="ec-coin" aria-hidden="true" /></b></span>{' '}</>}
-              <span>Queda pendiente hasta que tus papás te lo den.</span>
+              {after >= 0 && <><span>{L('Después te quedan', 'After that you’ll have')} <b>{fmtEc(after)} <IcCoin className="ec-coin" aria-hidden="true" /></b></span>{' '}</>}
+              <span>{L('Queda pendiente hasta que tus papás te lo den.', 'It stays pending until your parents give it to you.')}</span>
             </p>
             <div className="st-sheet-btns">
-              <button type="button" className="st-btn st-btn--ghost" data-autofocus={busy ? undefined : true} disabled={busy} onClick={onClose}>Cancelar</button>
+              <button type="button" className="st-btn st-btn--ghost" data-autofocus={busy ? undefined : true} disabled={busy} onClick={onClose}>{L('Cancelar', 'Cancel')}</button>
               <button type="button" className={`st-btn${busy ? ' is-busy' : ''}`} disabled={busy} aria-busy={busy} onClick={onConfirm}>
-                {busy ? <><span className="st-spin" aria-hidden="true" />Canjeando…</> : 'Canjear'}
+                {busy ? <><span className="st-spin" aria-hidden="true" />{L('Canjeando…', 'Redeeming…')}</> : L('Canjear', 'Redeem')}
               </button>
             </div>
           </>

@@ -2,6 +2,7 @@ import type { FeedItem } from '../../../api/types';
 import { imgSrc } from '../../../shared/lib/img';
 import { FeedCard } from '../components/FeedCard';
 import { IcRouteLine } from '../components/feedIcons';
+import { L } from '../../../shared/lib/lang';
 
 type It = Extract<FeedItem, { kind: 'route' }>;
 
@@ -18,12 +19,12 @@ type It = Extract<FeedItem, { kind: 'route' }>;
 export const FeedRouteCard = ({ it, onOpen, onLess }: { it: It; onOpen: (courseId: string) => void; onLess: () => void }) => {
   const c = it.course;
   const src = c.img ? (/^(data:|https?:\/\/)/.test(c.img) ? c.img : imgSrc(c.img)) : '';
-  const word = c.units === 1 ? 'posta' : 'postas';
+  const word = c.units === 1 ? L('posta', 'step') : L('postas', 'steps');
   const done = typeof c.done === 'number' && Number.isFinite(c.done) ? Math.min(Math.max(Math.floor(c.done), 0), c.units) : 0;
   const full = c.units > 0 && done === c.units;
   const going = done > 0 && !full;
   return (
-    <FeedCard family="ruta" icon={<IcRouteLine />} label="Ruta" time={it.time} reason={it.reason} onLess={onLess} link
+    <FeedCard family="ruta" icon={<IcRouteLine />} label={L('Ruta', 'Route')} time={it.time} reason={it.reason} onLess={onLess} link
       thumb={(
         <span className="hf-th is-art" style={{ backgroundImage: `linear-gradient(135deg,${c.bg[0]},${c.bg[1]})` }}>
           {src ? <img src={src} alt="" loading="lazy" /> : <span className="hf-th-em" aria-hidden="true">{c.emoji ?? '🧭'}</span>}
@@ -31,14 +32,14 @@ export const FeedRouteCard = ({ it, onOpen, onLess }: { it: It; onOpen: (courseI
       )}
       title={c.name}
       meta={full
-        ? <><span className="hf-ok" aria-hidden="true">✓</span> Completa · {c.units} {word}</>
-        : going ? `${done} de ${c.units} ${word}` : `${c.units} ${word}`}
+        ? <><span className="hf-ok" aria-hidden="true">✓</span> {L('Completa', 'Complete')} · {c.units} {word}</>
+        : going ? L(`${done} de ${c.units} ${word}`, `${done} of ${c.units} ${word}`) : `${c.units} ${word}`}
       extra={going ? (
         <span className="hf-prog" aria-hidden="true">
           <i style={{ width: `${Math.round((done / c.units) * 100)}%`, background: `linear-gradient(90deg,${c.bg[0]},${c.bg[1]})` }} />
         </span>
       ) : undefined}
-      action={<button type="button" className="hf-cta is-quiet hf-stretch" aria-label={`Ver la ruta «${c.name}»`} onClick={() => onOpen(c.id)}>Ver ruta</button>}
+      action={<button type="button" className="hf-cta is-quiet hf-stretch" aria-label={L(`Ver la ruta «${c.name}»`, `See the route “${c.name}”`)} onClick={() => onOpen(c.id)}>{L('Ver ruta', 'See route')}</button>}
     />
   );
 };

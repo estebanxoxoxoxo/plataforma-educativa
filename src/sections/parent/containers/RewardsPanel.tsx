@@ -11,14 +11,16 @@ import { famTo } from '../lib/member';
 import { useMemberConfig } from '../lib/memberConfig';
 import { patchFrom } from '../lib/rewardDraft';
 import type { ParentDashboard, ParentItemPatch, ParentItemView } from '../lib/types';
+import { L } from '../../../shared/lib/lang';
 
 type FormState = { mode: 'new' } | { mode: 'edit'; item: ParentItemView } | null;
 type Notice = { text: string; err?: boolean; undo?: () => void } | null;
 
 /** La condición del premio de la semana de la familia, como la dice la línea de solo lectura (spec §3.2). */
+// i18n: getters (no valores congelados al importar).
 const PRIZE_FOR: Record<FamilyPrizeCondition, string> = {
-  'supera-su-semana': 'para todos los que superen su semana',
-  'gana-la-semana': 'para el que gane la semana',
+  get 'supera-su-semana'() { return L('para todos los que superen su semana', 'for everyone who beats their week'); },
+  get 'gana-la-semana'() { return L('para el que gane la semana', 'for whoever wins the week'); },
 };
 
 /** U5 (spec §3.2): arriba del panel, una línea de SOLO LECTURA con el premio de la semana de la liga de la familia (es de la
@@ -38,9 +40,9 @@ function FamilyPrizeLine() {
     <p className="pz-fprize" data-family-prize={prize ? 'on' : 'off'}>
       <span className="pz-fprize-ic" aria-hidden="true">🏆</span>
       <span>
-        Premio de la semana de la familia:{' '}
-        {prize ? <><b>{prize.emoji} {prize.title}</b> · {PRIZE_FOR[prize.condition]}</> : 'ninguno por ahora'}
-        {' · '}Se elige en <Link to="/ligas?tab=familia" className="pz-inline pz-inline--tight">Ligas → Familia</Link>
+        {L('Premio de la semana de la familia:', 'Family prize of the week:')}{' '}
+        {prize ? <><b>{prize.emoji} {prize.title}</b> · {PRIZE_FOR[prize.condition]}</> : L('ninguno por ahora', 'none for now')}
+        {' · '}{L('Se elige en ', 'Chosen in ')}<Link to="/ligas?tab=familia" className="pz-inline pz-inline--tight">{L('Ligas → Familia', 'Leagues → Family')}</Link>
       </span>
     </p>
   );
@@ -92,7 +94,7 @@ export function RewardsPanel({ kid, member, dash, failed, reload }: { kid: strin
     if (busy.includes(key)) return;
     setBusy((b) => [...b, key]);
     try { await fn(); }
-    catch (e) { if (alive.current) setNotice({ text: rejectedReason(e) ?? 'No se pudo guardar el cambio. Probá de nuevo.', err: true }); }
+    catch (e) { if (alive.current) setNotice({ text: rejectedReason(e) ?? L('No se pudo guardar el cambio. Probá de nuevo.', 'Couldn’t save the change. Try again.'), err: true }); }
     finally { if (alive.current) setBusy((b) => b.filter((k) => k !== key)); }
   };
 
@@ -111,22 +113,22 @@ export function RewardsPanel({ kid, member, dash, failed, reload }: { kid: strin
         if (!alive.current) return;
         setForm(null);
         flash(it.id);
-        setNotice({ text: tiendaOff ? `Publicado: “${it.title}”. ${kid} lo va a ver cuando prendas la Tienda.` : `Publicado: “${it.title}”. ${kid} ya lo ve en la Tienda.` });
+        setNotice({ text: tiendaOff ? L(`Publicado: “${it.title}”. ${kid} lo va a ver cuando prendas la Tienda.`, `Published: “${it.title}”. ${kid} will see it when you turn on the Store.`) : L(`Publicado: “${it.title}”. ${kid} ya lo ve en la Tienda.`, `Published: “${it.title}”. ${kid} can now see it in the Store.`) });
       } else {
         const patch = patchFrom(form.item, v);
         if (Object.keys(patch).length) {
           const r = await parentCall(api.parentItemUpdate(form.item.id, patch, member));
-          if (!r.ok) { if (alive.current) setFormError('Ese premio ya no existe.'); await reload(); return; }
+          if (!r.ok) { if (alive.current) setFormError(L('Ese premio ya no existe.', 'That reward no longer exists.')); await reload(); return; }
           await reload();
         }
         if (!alive.current) return;
         setForm(null);
         flash(form.item.id);
-        setNotice({ text: `Cambios guardados en “${v.title}”.` });
+        setNotice({ text: L(`Cambios guardados en “${v.title}”.`, `Changes saved to “${v.title}”.`) });
       }
     } catch (e) {
       // un 400 trae el motivo del server (qué campo y por qué); si no vino, el genérico de siempre
-      if (alive.current) setFormError(e instanceof ApiError && e.status === 400 ? (rejectedReason(e) ?? 'El servidor no aceptó esos datos. Revisá los campos.') : 'No se pudo guardar. Revisá la conexión y probá de nuevo.');
+      if (alive.current) setFormError(e instanceof ApiError && e.status === 400 ? (rejectedReason(e) ?? L('El servidor no aceptó esos datos. Revisá los campos.', 'The server didn’t accept that data. Check the fields.')) : L('No se pudo guardar. Revisá la conexión y probá de nuevo.', 'Couldn’t save. Check your connection and try again.'));
     } finally {
       if (alive.current) setSaving(false);
     }
@@ -137,45 +139,45 @@ export function RewardsPanel({ kid, member, dash, failed, reload }: { kid: strin
     const r = await parentCall(api.parentItemUpdate(it.id, reactivate, member));
     await reload();
     if (!alive.current) return;
-    if (!r.ok) { setNotice({ text: 'Ese premio ya no existe.', err: true }); return; }
+    if (!r.ok) { setNotice({ text: L('Ese premio ya no existe.', 'That reward no longer exists.'), err: true }); return; }
     flash(it.id);
-    setNotice({ text: `Reactivado: “${it.title}” vuelve a la Tienda.` });
+    setNotice({ text: L(`Reactivado: “${it.title}” vuelve a la Tienda.`, `Reactivated: “${it.title}” is back in the Store.`) });
   });
   const archive = (it: ParentItemView) => run(`item:${it.id}`, async () => {
     if (form?.mode === 'edit' && form.item.id === it.id) closeForm();
     const r = await parentCall(api.parentItemArchive(it.id, member));
     await reload();
     if (!alive.current) return;
-    if (!r.ok) { setNotice({ text: 'Ese premio ya no existe.', err: true }); return; }
-    setNotice({ text: `Archivado: “${it.title}”. ${kid} ya no lo ve en la Tienda.`, undo: () => void restore(it) });
+    if (!r.ok) { setNotice({ text: L('Ese premio ya no existe.', 'That reward no longer exists.'), err: true }); return; }
+    setNotice({ text: L(`Archivado: “${it.title}”. ${kid} ya no lo ve en la Tienda.`, `Archived: “${it.title}”. ${kid} no longer sees it in the Store.`), undo: () => void restore(it) });
   });
   const deliver = (r: Redemption) => run(`red:${r.id}`, async () => {
     const res = await parentCall(api.deliverRedemption(r.id, member));
     await reload();
     if (!alive.current) return;
-    setNotice(res.ok ? { text: `Marcado como entregado: “${r.title}”.` } : { text: 'Ese canje ya no existe (la demo se reinició al recargar).', err: true });
+    setNotice(res.ok ? { text: L(`Marcado como entregado: “${r.title}”.`, `Marked as delivered: “${r.title}”.`) } : { text: L('Ese canje ya no existe (la demo se reinició al recargar).', 'That redemption no longer exists (the demo restarted on reload).'), err: true });
   });
 
   return (
     <section className="pz-panel" aria-labelledby="pz-rw-h">
       <header className="pz-panel-head pz-panel-head--act">
         <div>
-          <h3 id="pz-rw-h">Premios de la Tienda</h3>
-          <p>Publicá recompensas a la medida de {kid}. Las canjea con las Energy Coins que gana practicando.</p>
+          <h3 id="pz-rw-h">{L('Premios de la Tienda', 'Store rewards')}</h3>
+          <p>{L(`Publicá recompensas a la medida de ${kid}. Las canjea con las Energy Coins que gana practicando.`, `Publish rewards tailored to ${kid}. They redeem them with the Energy Coins they earn by practicing.`)}</p>
         </div>
-        {form?.mode !== 'new' && <button type="button" className="pz-btn" onClick={openNew}>Publicar premio</button>}
+        {form?.mode !== 'new' && <button type="button" className="pz-btn" onClick={openNew}>{L('Publicar premio', 'Publish reward')}</button>}
       </header>
 
       <FamilyPrizeLine />
 
       {tiendaOff && (
         <p className="pz-warn">
-          La Tienda está apagada: {kid} no ve estos premios ni puede canjear. Podés prepararlos igual. <Link to={famTo('/familia', member)} className="pz-inline">Prenderla</Link>
+          {L(`La Tienda está apagada: ${kid} no ve estos premios ni puede canjear. Podés prepararlos igual.`, `The Store is off: ${kid} can’t see these rewards or redeem them. You can still set them up.`)} <Link to={famTo('/familia', member)} className="pz-inline">{L('Prenderla', 'Turn it on')}</Link>
         </p>
       )}
       <p className={`pz-notice${notice?.err ? ' is-err' : ''}${notice ? '' : ' is-empty'}`} role="status">
         {notice?.text}
-        {notice?.undo && <button type="button" className="pz-link" onClick={() => { const u = notice.undo; setNotice(null); u?.(); }}>Deshacer</button>}
+        {notice?.undo && <button type="button" className="pz-link" onClick={() => { const u = notice.undo; setNotice(null); u?.(); }}>{L('Deshacer', 'Undo')}</button>}
       </p>
 
       {form && (
@@ -187,11 +189,11 @@ export function RewardsPanel({ kid, member, dash, failed, reload }: { kid: strin
         <>
           <div className="pz-block">
             <h4 className="pz-block-h">
-              Canjes de {kid}
-              {pendingReds.length > 0 && <span className="pz-block-n is-warn">{pendingReds.length} por entregar</span>}
+              {L(`Canjes de ${kid}`, `${kid}’s redemptions`)}
+              {pendingReds.length > 0 && <span className="pz-block-n is-warn">{L(`${pendingReds.length} por entregar`, `${pendingReds.length} to deliver`)}</span>}
             </h4>
             {ordered.length === 0 ? (
-              <p className="pz-muted">Todavía no canjeó nada. Cuando canjee un premio, aparece acá hasta que se lo des.</p>
+              <p className="pz-muted">{L('Todavía no canjeó nada. Cuando canjee un premio, aparece acá hasta que se lo des.', 'Nothing redeemed yet. When they redeem a reward, it shows up here until you give it to them.')}</p>
             ) : (
               <ul className="pz-dls">
                 {ordered.map((r) => <DeliveryRow key={r.id} r={r} busy={busy.includes(`red:${r.id}`)} onDeliver={() => void deliver(r)} />)}
@@ -200,11 +202,11 @@ export function RewardsPanel({ kid, member, dash, failed, reload }: { kid: strin
           </div>
 
           <div className="pz-block">
-            <h4 className="pz-block-h">Publicados <span className="pz-block-n">{live.length}</span></h4>
+            <h4 className="pz-block-h">{L('Publicados', 'Published')} <span className="pz-block-n">{live.length}</span></h4>
             {!dash.items ? (
-              <p className="pz-muted">No pude leer la lista de premios.</p>
+              <p className="pz-muted">{L('No pude leer la lista de premios.', 'I couldn’t read the rewards list.')}</p>
             ) : live.length === 0 ? (
-              <p className="pz-muted">No hay premios publicados. {kid} ve la Tienda vacía.</p>
+              <p className="pz-muted">{L(`No hay premios publicados. ${kid} ve la Tienda vacía.`, `No rewards published. ${kid} sees an empty Store.`)}</p>
             ) : (
               <RewardTable rows={live} busy={busy} fresh={fresh} onEdit={openEdit} onArchive={(it) => void archive(it)} onRestore={(it) => void restore(it)} />
             )}
@@ -212,8 +214,8 @@ export function RewardsPanel({ kid, member, dash, failed, reload }: { kid: strin
 
           {archived.length > 0 && (
             <div className="pz-block">
-              <h4 className="pz-block-h">Archivados <span className="pz-block-n">{archived.length}</span></h4>
-              <p className="pz-help">No aparecen en la Tienda. Podés reactivarlos cuando quieras.</p>
+              <h4 className="pz-block-h">{L('Archivados', 'Archived')} <span className="pz-block-n">{archived.length}</span></h4>
+              <p className="pz-help">{L('No aparecen en la Tienda. Podés reactivarlos cuando quieras.', 'They don’t show up in the Store. You can reactivate them anytime.')}</p>
               <RewardTable rows={archived} busy={busy} fresh={fresh} onEdit={openEdit} onArchive={(it) => void archive(it)} onRestore={(it) => void restore(it)} />
             </div>
           )}
@@ -235,7 +237,7 @@ function RewardTable({ rows, busy, fresh, onEdit, onArchive, onRestore }: {
         {/* anchos fijos: "Publicados" y "Archivados" quedan con las columnas alineadas */}
         <colgroup><col className="pz-c-emo" /><col /><col className="pz-c-price" /><col className="pz-c-stock" /><col className="pz-c-state" /><col className="pz-c-act" /></colgroup>
         <thead role="rowgroup">
-          <tr role="row"><th role="columnheader" scope="col" colSpan={2}>Premio</th><th role="columnheader" scope="col" className="pz-th-num">Precio</th><th role="columnheader" scope="col">Stock</th><th role="columnheader" scope="col">Estado</th><th role="columnheader" scope="col"><span className="pz-sr">Acciones</span></th></tr>
+          <tr role="row"><th role="columnheader" scope="col" colSpan={2}>{L('Premio', 'Reward')}</th><th role="columnheader" scope="col" className="pz-th-num">{L('Precio', 'Price')}</th><th role="columnheader" scope="col">{L('Stock', 'Stock')}</th><th role="columnheader" scope="col">{L('Estado', 'Status')}</th><th role="columnheader" scope="col"><span className="pz-sr">{L('Acciones', 'Actions')}</span></th></tr>
         </thead>
         <tbody role="rowgroup">
           {rows.map((it) => (

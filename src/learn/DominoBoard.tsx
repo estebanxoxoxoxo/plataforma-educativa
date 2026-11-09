@@ -4,6 +4,7 @@ import { useActivitySnapshot } from './react/useActivity'
 import { DragDropProvider, useDraggable, useDropTarget } from './kits/dragdrop'
 import type { Cell, DominoEngine, EndSide, Tile } from './activities/domino'
 import './learn-engine.css'
+import { L } from '../shared/lib/lang'
 
 /* Vista app-native (Tailwind) del dominó, sobre el motor + DragDropKit portados del
    lab. Arrastrá una ficha de la mano hasta el extremo donde encaja (matchea por key
@@ -64,7 +65,7 @@ function EndZone({ side, cell, engine }: { side: EndSide; cell: Cell; engine: Do
   return (
     <div ref={setRef} className={`lrn-dom-end ${state}`}>
       <div className="lrn-dom-endlabel">{cell.label}</div>
-      <div className="lrn-dom-endhint">{side === 'left' ? '◀ soltar' : 'soltar ▶'}</div>
+      <div className="lrn-dom-endhint">{side === 'left' ? L('◀ soltar', '◀ drop') : L('soltar ▶', 'drop ▶')}</div>
     </div>
   )
 }
@@ -87,16 +88,16 @@ export default function DominoBoard({ engine }: { engine: DominoEngine }) {
         <EndZone side="right" cell={snap.rightEnd} engine={engine} />
       </div>
 
-      <h3 className="lrn-dom-handtitle">Tu mano</h3>
+      <h3 className="lrn-dom-handtitle">{L('Tu mano', 'Your hand')}</h3>
       <div className="lrn-dom-hand">
         {snap.hand.map((t) => (
           <HandTile key={t.id} tile={t} hintId={hintId} wrong={snap.lastWrongId === t.id} />
         ))}
-        {snap.hand.length === 0 && <p className="lrn-dom-empty">Mano vacía ✓</p>}
+        {snap.hand.length === 0 && <p className="lrn-dom-empty">{L('Mano vacía ✓', 'Empty hand ✓')}</p>}
       </div>
 
       <p className="lrn-help is-left">
-        {playing ? 'Arrastrá una ficha hasta el extremo donde encaja (se pone verde si va).' : ''}
+        {playing ? L('Arrastrá una ficha hasta el extremo donde encaja (se pone verde si va).', 'Drag a tile to the end where it fits (it turns green if it does).') : ''}
       </p>
       <button
         onClick={() => {
@@ -105,7 +106,7 @@ export default function DominoBoard({ engine }: { engine: DominoEngine }) {
         }}
         disabled={!playing}
         className="lrn-hintbtn">
-        <Lightbulb width={16} height={16} /> Pista
+        <Lightbulb width={16} height={16} /> {L('Pista', 'Hint')}
       </button>
     </DragDropProvider>
   )

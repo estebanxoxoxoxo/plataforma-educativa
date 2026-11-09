@@ -5,6 +5,7 @@ import { useAsync } from '../../../hooks/useAsync';
 import { ListCard, NewListCard } from '../cards/ListCard';
 import { NameSheet } from '../components/Sheets';
 import { listPath, type MtDetailState } from '../lib/nav';
+import { L } from '../../../shared/lib/lang';
 
 /** Mis listas (MisListas del POC): primero «Nueva lista», después las listas de la más nueva a la más vieja. Usa el CRUD
  *  de listas que ya existe (/api/space/playlists*). Crear una la abre. */
@@ -30,10 +31,10 @@ export function ListsPane() {
     }
   };
 
-  if (error) return <p className="mt-empty">No pude cargar tus listas ahora.</p>;
+  if (error) return <p className="mt-empty">{L('No pude cargar tus listas ahora.', 'I couldn’t load your lists right now.')}</p>;
   return (
     <>
-      {failed && <p className="mt-empty" role="alert">No pude crear la lista. Probá de nuevo.</p>}
+      {failed && <p className="mt-empty" role="alert">{L('No pude crear la lista. Probá de nuevo.', 'I couldn’t create the list. Try again.')}</p>}
       <div className="mt-lgrid" aria-busy={!data}>
         <NewListCard onClick={() => setCreating(true)} />
         {data?.playlists.map((l) => <ListCard key={l.id} l={l} onOpen={() => open(l.id)} />)}

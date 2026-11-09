@@ -2,6 +2,7 @@ import type { GeoRanking } from '../../../api/types';
 import { Avatar, lookFor } from '../../../shared/components/Avatar';
 import { MyAvatar } from '../../../shared/components/ProfileCard';
 import { MEDAL, fmt } from '../lib/format';
+import { L } from '../../../shared/lib/lang';
 
 export const Ranking = ({ r, loading }: { r: GeoRanking; loading?: boolean }) => (
   <div className={`rank${loading ? ' loading' : ''}`}>
@@ -15,7 +16,7 @@ export const Ranking = ({ r, loading }: { r: GeoRanking; loading?: boolean }) =>
     <div className="rk me">
       <span className="pos">{fmt(r.me.pos)}</span>
       <MyAvatar name={r.me.nick} />
-      <span className="nm">{r.me.nick}<span className="you">Vos</span></span><span className="xp">{fmt(r.me.xp)} XP</span>
+      <span className="nm">{r.me.nick}<span className="you">{L('Vos', 'You')}</span></span><span className="xp">{fmt(r.me.xp)} XP</span>
     </div>
   </div>
 );

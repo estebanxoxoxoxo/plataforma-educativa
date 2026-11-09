@@ -7,6 +7,7 @@ import { CalendarEmpty, CalendarFail, CalendarSkeleton } from '../components/Cal
 import { NextClassHero } from '../components/NextClassHero';
 import { UpcomingList } from '../components/UpcomingList';
 import { buildCalendar, endOf } from '../lib/calendar';
+import { L, isEn } from '../../../shared/lib/lang';
 
 /** Cada cuánto se rearma la pantalla con la hora nueva ("faltan 2 horas", la clase que pasa a "Ahora mismo"). */
 const TICK_MS = 30_000;
@@ -76,10 +77,11 @@ export function CalendarPage() {
     if (!tzReady) return null;
     const d = new Date(now);
     const opts = { timeZone: tz || undefined } as const;
+    const loc = isEn() ? 'en-US' : 'es-AR';
     try {
-      return { w: d.toLocaleDateString('es-AR', { weekday: 'short', ...opts }).replace('.', ''), d: d.toLocaleDateString('es-AR', { day: 'numeric', ...opts }) };
+      return { w: d.toLocaleDateString(loc, { weekday: 'short', ...opts }).replace('.', ''), d: d.toLocaleDateString(loc, { day: 'numeric', ...opts }) };
     } catch {
-      return { w: d.toLocaleDateString('es-AR', { weekday: 'short' }).replace('.', ''), d: String(d.getDate()) };
+      return { w: d.toLocaleDateString(loc, { weekday: 'short' }).replace('.', ''), d: String(d.getDate()) };
     }
   }, [now, tz, tzReady]);
 
@@ -88,7 +90,7 @@ export function CalendarPage() {
       <header className="cal-head">
         {leaf && <span className="cal-tleaf" aria-hidden="true"><small>{leaf.w}</small><b>{leaf.d}</b></span>}
         {/* Sin lede (pedido de Esteban, 30-oct: quitar «Tus clases con los mentores…»). */}
-        <h2 className="h2">Calendario</h2>
+        <h2 className="h2">{L('Calendario', 'Calendar')}</h2>
       </header>
 
       {!view ? (failed ? <CalendarFail onRetry={() => void load()} /> : <CalendarSkeleton />)

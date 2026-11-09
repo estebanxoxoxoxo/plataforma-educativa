@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { L } from '../../../shared/lib/lang';
 
 /** Lo que ve el chico si entra (por URL directa, un link viejo, etc.) a una sección que su familia apagó.
  *  `error` = no se pudo confirmar si está prendida: tampoco se muestra (fail-closed), pero se puede reintentar. */
@@ -12,11 +13,11 @@ export function FeatureOff({ error = false, onRetry }: { error?: boolean; onRetr
             <circle cx="7.5" cy="12" r="3" fill="currentColor" stroke="none" />
           </svg>
         </span>
-        <p className="pz-off-t" id="pz-off-t">{error ? 'No pude cargar esta parte ahora.' : 'Esta parte está apagada por tu familia.'}</p>
+        <p className="pz-off-t" id="pz-off-t">{error ? L('No pude cargar esta parte ahora.', 'I couldn’t load this part right now.') : L('Esta parte está apagada por tu familia.', 'Your family turned this part off.')}</p>
         {error ? (
-          <button type="button" className="pz-btn pz-btn--ghost" onClick={onRetry}>Reintentar</button>
+          <button type="button" className="pz-btn pz-btn--ghost" onClick={onRetry}>{L('Reintentar', 'Retry')}</button>
         ) : (
-          <Link className="pz-btn" to="/">Ir al Feed</Link>
+          <Link className="pz-btn" to="/">{L('Ir al Feed', 'Go to Feed')}</Link>
         )}
       </div>
     </section>

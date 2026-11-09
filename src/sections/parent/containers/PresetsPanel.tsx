@@ -9,33 +9,36 @@ import { FEATURE_LABEL, FEATURE_ORDER, listEs, quoted } from '../lib/format';
 import { publishLimits } from '../lib/limits';
 import { patchMemberConfig, useMemberConfig } from '../lib/memberConfig';
 import type { PresetView } from '../lib/types';
+import { L } from '../../../shared/lib/lang';
 
 type Data = { presets: PresetView[]; current: string | null };
 const sameSet = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x));
 const volText = (v: { maxMusic: number; maxNoise: number }) =>
-  v.maxMusic >= 100 && v.maxNoise >= 100 ? 'sin topes' : `música hasta ${v.maxMusic} y ruidos hasta ${v.maxNoise}`;
+  v.maxMusic >= 100 && v.maxNoise >= 100 ? L('sin topes', 'no caps') : L(`música hasta ${v.maxMusic} y ruidos hasta ${v.maxNoise}`, `music up to ${v.maxMusic} and sounds up to ${v.maxNoise}`);
 
 /** Qué cambiaría al aplicar el preset `p` sobre la configuración actual, en palabras (para la confirmación). */
 function changesFor(p: PresetView, f: ParentFeatures | null, c: ParentConfig | null): string[] {
   const s = p.spec;
-  if (!s || !f || !c) return ['Reemplaza las funcionalidades, los temas, las palabras de la familia y los topes de volumen.'];
+  if (!s || !f || !c) return [L('Reemplaza las funcionalidades, los temas, las palabras de la familia y los topes de volumen.', 'It replaces the features, topics, family words and volume caps.')];
   const out: string[] = [];
   const on = FEATURE_ORDER.filter((k) => s.features[k] && !f[k]).map((k) => FEATURE_LABEL[k]);
   const off = FEATURE_ORDER.filter((k) => !s.features[k] && f[k]).map((k) => FEATURE_LABEL[k]);
-  if (off.length) out.push(`Se apaga${off.length > 1 ? 'n' : ''}: ${listEs(off)}.`);
-  if (on.length) out.push(`Se prende${on.length > 1 ? 'n' : ''}: ${listEs(on)}.`);
-  for (const [k, label] of [['white', 'sugerencias'], ['black', 'temas que no tienen que aparecer']] as const) {
+  if (off.length) out.push(L(`Se apaga${off.length > 1 ? 'n' : ''}: ${listEs(off)}.`, `Turns off: ${listEs(off)}.`));
+  if (on.length) out.push(L(`Se prende${on.length > 1 ? 'n' : ''}: ${listEs(on)}.`, `Turns on: ${listEs(on)}.`));
+  const lists = [['white', L('sugerencias', 'suggestions')], ['black', L('temas que no tienen que aparecer', 'topics that shouldn’t show up')]] as const;
+  for (const [k, label] of lists) {
     if (sameSet(s.topics[k], c.topics[k])) continue;
     const gone = c.topics[k].filter((t) => !s.topics[k].includes(t));
-    out.push(s.topics[k].length ? `${label[0].toUpperCase()}${label.slice(1)}: quedan ${quoted(s.topics[k])}${gone.length ? ` (salen ${quoted(gone)})` : ''}.`
-      : `Se borran tus ${label}: ${quoted(gone)}.`);
+    const cap = `${label[0].toUpperCase()}${label.slice(1)}`;
+    out.push(s.topics[k].length ? L(`${cap}: quedan ${quoted(s.topics[k])}${gone.length ? ` (salen ${quoted(gone)})` : ''}.`, `${cap}: keeps ${quoted(s.topics[k])}${gone.length ? ` (removes ${quoted(gone)})` : ''}.`)
+      : L(`Se borran tus ${label}: ${quoted(gone)}.`, `Your ${label} are deleted: ${quoted(gone)}.`));
   }
   if (!sameSet(s.words, c.words.extra)) {
     const gone = c.words.extra.filter((w) => !s.words.includes(w));
-    out.push(s.words.length ? `Palabras de la familia: quedan ${quoted(s.words)}.` : `Se borran tus palabras bloqueadas: ${quoted(gone)}.`);
+    out.push(s.words.length ? L(`Palabras de la familia: quedan ${quoted(s.words)}.`, `Family words: keeps ${quoted(s.words)}.`) : L(`Se borran tus palabras bloqueadas: ${quoted(gone)}.`, `Your blocked words are deleted: ${quoted(gone)}.`));
   }
-  if (s.volume.maxMusic !== c.volume.maxMusic || s.volume.maxNoise !== c.volume.maxNoise) out.push(`Volumen: ${volText(s.volume)}.`);
-  return out.length ? out : ['No cambia nada: la configuración ya es esta.'];
+  if (s.volume.maxMusic !== c.volume.maxMusic || s.volume.maxNoise !== c.volume.maxNoise) out.push(L(`Volumen: ${volText(s.volume)}.`, `Volume: ${volText(s.volume)}.`));
+  return out.length ? out : [L('No cambia nada: la configuración ya es esta.', 'Nothing changes: this is already the setup.')];
 }
 
 /** Presets (audios 56 y 66: "grandes presets, no mil detalles"): puntos de partida que dejan configurado de una vez lo
@@ -84,9 +87,9 @@ export function PresetsPanel({ kid, member }: { kid: string; member: string }) {
       if (!alive.current) return;
       setData((d) => (d ? { ...d, current: r.config.preset } : d));
       setConfirming(null);
-      setNotice({ text: `Listo: «${p.name}» ya se aplica a ${kid}. Podés ajustar lo que quieras abajo y en las otras secciones.` });
+      setNotice({ text: L(`Listo: «${p.name}» ya se aplica a ${kid}. Podés ajustar lo que quieras abajo y en las otras secciones.`, `Done: “${p.name}” now applies to ${kid}. You can adjust anything below and in the other sections.`) });
     } catch (e) {
-      if (alive.current) setNotice({ text: rejectedReason(e) ?? 'No se pudo aplicar el preset. Probá de nuevo.', err: true });
+      if (alive.current) setNotice({ text: rejectedReason(e) ?? L('No se pudo aplicar el preset. Probá de nuevo.', 'Couldn’t apply the preset. Try again.'), err: true });
     } finally {
       if (alive.current) setApplying(null);
     }
@@ -98,14 +101,16 @@ export function PresetsPanel({ kid, member }: { kid: string; member: string }) {
   return (
     <section className="pz-panel" aria-labelledby="pz-pre-h">
       <header className="pz-panel-head">
-        <h3 id="pz-pre-h">Presets</h3>
-        <p>Puntos de partida para no configurar todo a mano. Aplicar uno deja listas de una vez las funcionalidades, los temas, las palabras bloqueadas y los topes de volumen de {kid}; después ajustás lo que quieras.</p>
+        <h3 id="pz-pre-h">{L('Presets', 'Presets')}</h3>
+        <p>{L(`Puntos de partida para no configurar todo a mano. Aplicar uno deja listas de una vez las funcionalidades, los temas, las palabras bloqueadas y los topes de volumen de ${kid}; después ajustás lo que quieras.`, `Starting points so you don’t set everything up by hand. Applying one sets ${kid}’s features, topics, blocked words and volume caps all at once; then you adjust whatever you want.`)}</p>
       </header>
       <p className={`pz-notice${notice?.err ? ' is-err' : ''}${notice ? '' : ' is-empty'}`} role="status">{notice?.text}</p>
       {!data ? <PanelState failed={failed} onRetry={() => { void load(); void reloadCfg(); }} /> : (
         <>
           <p className="pz-preset-now">
-            {current ? <>Para {kid} rige <b>{current.name}</b>.</> : <>Para {kid} rige una <b>configuración propia</b>: ningún preset aplicado (o se cambió algo a mano después).</>}
+            {current
+              ? <>{L(`Para ${kid} rige `, `For ${kid}, the active one is `)}<b>{current.name}</b>.</>
+              : <>{L(`Para ${kid} rige una `, `For ${kid}, a `)}<b>{L('configuración propia', 'custom setup')}</b>{L(': ningún preset aplicado (o se cambió algo a mano después).', ' applies: no preset applied (or something was changed by hand afterward).')}</>}
           </p>
           <ul className="pz-presets">
             {data.presets.map((p) => (

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { ContactRequestCard } from '../cards/ContactRequestCard';
 import type { Highlight } from '../lib/highlights';
+import { L } from '../../../shared/lib/lang';
 
 /** Zona PINNEADA del Feed (tanda F2): la franja de notificaciones destacadas que va ARRIBA del stream, fija mientras haya
  *  algo que responder. Una lista pensada para crecer (lib/highlights.ts): cada destacado dibuja su tarjeta según su
@@ -15,10 +16,10 @@ export function PinnedZone({ hero, items, onAccept, onDecline }: {
   const leaving = !hero && items.length > 0 && items.every((h) => h.phase === 'out');
   const live = items.filter((h) => h.phase !== 'out').length + (hero ? 1 : 0);
   return (
-    <section className={`fpin${leaving ? ' out' : ''}`} aria-label="Destacados">
+    <section className={`fpin${leaving ? ' out' : ''}`} aria-label={L('Destacados', 'Highlights')}>
       <div className="fpin-clip">
         <div className="fpin-box">
-          <h3 className="fpin-head"><span aria-hidden="true">📌</span>{live > 1 ? 'Destacados' : 'Destacado'}</h3>
+          <h3 className="fpin-head"><span aria-hidden="true">📌</span>{live > 1 ? L('Destacados', 'Highlights') : L('Destacado', 'Highlight')}</h3>
           <ul className="fpin-list">
             {hero && (
               <li className="fpin-item">

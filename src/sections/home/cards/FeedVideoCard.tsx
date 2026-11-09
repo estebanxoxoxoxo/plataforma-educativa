@@ -2,6 +2,7 @@ import type { FeedItem, VideoResult } from '../../../api/types';
 import { IcPlay, IcResVideo } from '../../../shared/components/icons';
 import { imgSrc } from '../../../shared/lib/img';
 import { FeedCard } from '../components/FeedCard';
+import { L } from '../../../shared/lib/lang';
 
 type It = Extract<FeedItem, { kind: 'video' }>;
 
@@ -20,6 +21,6 @@ export const FeedVideoCard = ({ it, onOpen, onLess }: { it: It; onOpen: (v: Vide
     )}
     title={it.video.title}
     meta={it.video.channel}
-    action={<button type="button" className="hf-cta is-quiet hf-stretch" aria-label={`Mirar «${it.video.title}»`} onClick={() => onOpen(it.video)}>Mirar</button>}
+    action={<button type="button" className="hf-cta is-quiet hf-stretch" aria-label={L(`Mirar «${it.video.title}»`, `Watch “${it.video.title}”`)} onClick={() => onOpen(it.video)}>{L('Mirar', 'Watch')}</button>}
   />
 );

@@ -7,6 +7,7 @@ import {
 import { AMBIENTS } from '../audio/ambientNoise';
 import { refreshLimits, useLimits } from '../../sections/parent/lib/limits';
 import { IcBgHeadphones, IcClose, IcPause, IcPlay, IcRepeat, IcSkipNext, IcSkipPrev } from './icons';
+import { L } from '../lib/lang';
 
 const fmtT = (s: number) => { const m = Math.floor(s / 60); const sec = Math.floor(s % 60); return `${m}:${String(sec).padStart(2, '0')}`; };
 
@@ -50,7 +51,7 @@ export function MiniPlayer() {
   return (
     <div className="mp" ref={panel}>
       <button type="button" className="mp-hp" data-state={activo ? 'on' : bg.video ? 'paused' : 'idle'} aria-expanded={open}
-        aria-label={bg.video ? `Sonido de fondo: ${bg.playing ? 'sonando' : 'en pausa'}` : 'Sonido de fondo'} onClick={() => setOpen((o) => !o)}>
+        aria-label={bg.video ? L(`Sonido de fondo: ${bg.playing ? 'sonando' : 'en pausa'}`, `Background sound: ${bg.playing ? 'playing' : 'paused'}`) : L('Sonido de fondo', 'Background sound')} onClick={() => setOpen((o) => !o)}>
         <IcBgHeadphones />
         {/* Con el play/pausa en la tarjeta de After Day (29-oct) el fondo puede quedar EN PAUSA un rato largo: la marca de
             pausa lo distingue de «sonando» (puntito que late) y de «nada» (neutro). */}
@@ -63,26 +64,26 @@ export function MiniPlayer() {
           {bg.video && (
             <div className="mp-music">
               <p className="mp-title">🎵 {bg.video.title}</p>
-              {bg.queue.length > 1 && <p className="mp-queue">Pista {bg.index + 1} de {bg.queue.length}</p>}
+              {bg.queue.length > 1 && <p className="mp-queue">{L(`Pista ${bg.index + 1} de ${bg.queue.length}`, `Track ${bg.index + 1} of ${bg.queue.length}`)}</p>}
               <div className="mp-row">
                 {bg.queue.length > 1
-                  ? <button className="mp-b" aria-label="Anterior" onClick={prevTrack}><IcSkipPrev /></button>
-                  : <button className="mp-b" aria-label="Reiniciar" onClick={restartMusic}><IcSkipPrev /></button>}
-                <button className="mp-b main" aria-label={bg.playing ? 'Pausar' : 'Reproducir'} onClick={() => (bg.playing ? pauseMusic() : resumeMusic())}>
+                  ? <button className="mp-b" aria-label={L('Anterior', 'Previous')} onClick={prevTrack}><IcSkipPrev /></button>
+                  : <button className="mp-b" aria-label={L('Reiniciar', 'Restart')} onClick={restartMusic}><IcSkipPrev /></button>}
+                <button className="mp-b main" aria-label={bg.playing ? L('Pausar', 'Pause') : L('Reproducir', 'Play')} onClick={() => (bg.playing ? pauseMusic() : resumeMusic())}>
                   {bg.playing ? <IcPause /> : <IcPlay />}
                 </button>
-                {bg.queue.length > 1 && <button className="mp-b" aria-label="Siguiente" onClick={nextTrack}><IcSkipNext /></button>}
+                {bg.queue.length > 1 && <button className="mp-b" aria-label={L('Siguiente', 'Next')} onClick={nextTrack}><IcSkipNext /></button>}
                 <button className={`mp-b${bg.repeat !== 'off' ? ' mpa' : ''}`} onClick={cycleRepeat}
-                  aria-label={`Repetir: ${bg.repeat === 'off' ? 'no' : bg.repeat === 'one' ? 'una' : 'todas'}`}>
+                  aria-label={L(`Repetir: ${bg.repeat === 'off' ? 'no' : bg.repeat === 'one' ? 'una' : 'todas'}`, `Repeat: ${bg.repeat === 'off' ? 'off' : bg.repeat === 'one' ? 'one' : 'all'}`)}>
                   <IcRepeat />{bg.repeat === 'one' && <b className="mp-one">1</b>}
                 </button>
                 {/* After Day (audioOnly, como el MiniPlayer del POC): solo audio de fondo, nunca a pantalla completa. */}
                 {!bg.audioOnly && (
-                  <button className="mp-b" aria-label="Abrir el video" onClick={() => { go(`/buscar/video/${bg.video!.id}`); setOpen(false); }}>
+                  <button className="mp-b" aria-label={L('Abrir el video', 'Open the video')} onClick={() => { go(`/buscar/video/${bg.video!.id}`); setOpen(false); }}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M9 5H5v4M15 5h4v4M9 19H5v-4M15 19h4v-4" /></svg>
                   </button>
                 )}
-                <button className="mp-b stop" aria-label="Parar el audio" onClick={stopMusic}><IcClose /></button>
+                <button className="mp-b stop" aria-label={L('Parar el audio', 'Stop the audio')} onClick={stopMusic}><IcClose /></button>
               </div>
               {bg.duration > 0 && (
                 <div className="mp-seek">
@@ -91,29 +92,29 @@ export function MiniPlayer() {
                     style={{ '--p': `${bg.duration > 0 ? (Math.min(scrub ?? shown, bg.duration) / bg.duration) * 100 : 0}%` } as CSSProperties}
                     onChange={(e) => setScrub(Number(e.target.value))}
                     onPointerUp={() => { if (scrub != null) { seekMusic(scrub); setScrub(null); } }}
-                    onPointerCancel={() => setScrub(null)} aria-label="Posición del audio" />
+                    onPointerCancel={() => setScrub(null)} aria-label={L('Posición del audio', 'Audio position')} />
                   <div className="mp-times"><span>{fmtT(scrub ?? shown)}</span><span>{fmtT(bg.duration)}</span></div>
                 </div>
               )}
               <div className="mp-vol">
                 <span className="mp-vlbl">Vol</span>
-                <input type="range" min={0} max={caps.maxMusic} value={Math.min(bg.volume, caps.maxMusic)} onChange={(e) => setMusicVolume(Number(e.target.value))} aria-label="Volumen de la música" />
-                {caps.maxMusic < 100 && <small className="pz-cap" title="Volumen máximo que eligió tu familia">máx. {caps.maxMusic}</small>}
+                <input type="range" min={0} max={caps.maxMusic} value={Math.min(bg.volume, caps.maxMusic)} onChange={(e) => setMusicVolume(Number(e.target.value))} aria-label={L('Volumen de la música', 'Music volume')} />
+                {caps.maxMusic < 100 && <small className="pz-cap" title={L('Volumen máximo que eligió tu familia', 'Max volume your family chose')}>{L('máx.', 'max')} {caps.maxMusic}</small>}
               </div>
             </div>
           )}
 
           <div className={`mp-amb${bg.video ? ' sep' : ''}`}>
-            <p className="mp-sub">Ruidos para concentrarte{caps.maxNoise < 100 && <span className="pz-cap" title="Volumen máximo que eligió tu familia"> · máx. {caps.maxNoise}</span>}</p>
+            <p className="mp-sub">{L('Ruidos para concentrarte', 'Focus sounds')}{caps.maxNoise < 100 && <span className="pz-cap" title={L('Volumen máximo que eligió tu familia', 'Max volume your family chose')}> · {L('máx.', 'max')} {caps.maxNoise}</span>}</p>
             {AMBIENTS.map((a) => {
               const st = bg.ambient[a.key];
               return (
                 <div key={a.key} className="mp-arow">
                   <button className={`mp-achip${st.on ? ' on' : ''}`} aria-pressed={st.on} onClick={() => toggleAmbient(a.key)}>
-                    <span>{a.emoji}</span>{a.label.replace('Ruido ', '')}
+                    <span>{a.emoji}</span>{a.short}
                   </button>
                   <input type="range" min={0} max={caps.maxNoise} step={1} value={Math.min(st.volume, caps.maxNoise)} onChange={(e) => setAmbientVolume(a.key, Number(e.target.value))}
-                    className={st.on ? '' : 'off'} aria-label={`Volumen ${a.label}`} />
+                    className={st.on ? '' : 'off'} aria-label={L(`Volumen ${a.label}`, `${a.label} volume`)} />
                 </div>
               );
             })}

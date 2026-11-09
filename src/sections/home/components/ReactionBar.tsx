@@ -1,8 +1,9 @@
 import type { FeedReaction } from '../../../api/types';
+import { L } from '../../../shared/lib/lang';
 
 /** Reacciones con emojis fijos sobre una noticia de amigo. */
 export const ReactionBar = ({ reactions, onReact }: { reactions: FeedReaction[]; onReact: (emoji: string) => void }) => (
-  <div className="rbar" role="group" aria-label="Reaccionar">
+  <div className="rbar" role="group" aria-label={L('Reaccionar', 'React')}>
     {reactions.map((r) => (
       <button key={r.emoji} className={`rchip${r.mine ? ' on' : ''}`} aria-pressed={r.mine}
         onClick={(e) => { e.stopPropagation(); onReact(r.emoji); }}>

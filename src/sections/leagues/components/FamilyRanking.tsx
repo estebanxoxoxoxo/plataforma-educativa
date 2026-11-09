@@ -4,6 +4,7 @@ import { AVATAR_COLORS, Avatar, avatarHash } from '../../../shared/components/Av
 import { beatLastWeek, upPrizeEmoji } from '../lib/familyWeek';
 import { MEDAL, fmt } from '../lib/format';
 import { DaysDots } from './DaysDots';
+import { L } from '../../../shared/lib/lang';
 
 /** U4 · D2 + U5 (§4.5): la tabla de la SEMANA de la familia (solapa Familia de /ligas). Todos los integrantes —grandes y
  *  chicos— por su XP de la semana (el orden de U4: XP → racha → seed, lo arma el server), con el avatar que ELIGIÓ cada uno.
@@ -15,7 +16,7 @@ import { DaysDots } from './DaysDots';
 export function FamilyRanking({ rows, prize, coins }: { rows: FamilyLeagueRow[]; prize: FamilyWeekPrize | null; coins: boolean }) {
   return (
     <>
-      <h4 className="lgf-t">Esta semana: ¿quién aprende más días?</h4>
+      <h4 className="lgf-t">{L('Esta semana: ¿quién aprende más días?', 'This week: who learns on the most days?')}</h4>
       <div className="rank full lgf">
         {rows.map((r) => {
           const up = beatLastWeek(r);
@@ -27,16 +28,16 @@ export function FamilyRanking({ rows, prize, coins }: { rows: FamilyLeagueRow[];
               <span className="lgf-who">
                 <span className="nm">
                   <span className="lgf-name">{r.name}</span>
-                  {r.wonLastWeek && <span className="lgf-cup" role="img" aria-label="Ganó la semana pasada" title="Ganó la semana pasada">🏆</span>}
-                  {r.me && <span className="you">Vos</span>}
+                  {r.wonLastWeek && <span className="lgf-cup" role="img" aria-label={L('Ganó la semana pasada', 'Won last week')} title={L('Ganó la semana pasada', 'Won last week')}>🏆</span>}
+                  {r.me && <span className="you">{L('Vos', 'You')}</span>}
                 </span>
                 {(typeof r.days === 'number' || up) && (
                   <span className="lgf-meta">
                     {typeof r.days === 'number' && <DaysDots days={r.days} />}
                     {up && (
-                      <span className="lgf-up" data-up title={`${r.name} ya sumó más XP que su semana anterior`}>
-                        <span aria-hidden="true">↑</span> superó su semana
-                        {pe && <span className="lgf-up-prize" role="img" aria-label={`y se gana el premio de la semana`}>{pe}</span>}
+                      <span className="lgf-up" data-up title={L(`${r.name} ya sumó más XP que su semana anterior`, `${r.name} already earned more XP than their last week`)}>
+                        <span aria-hidden="true">↑</span> {L('superó su semana', 'beat their week')}
+                        {pe && <span className="lgf-up-prize" role="img" aria-label={L('y se gana el premio de la semana', 'and wins the prize of the week')}>{pe}</span>}
                       </span>
                     )}
                   </span>
@@ -47,11 +48,11 @@ export function FamilyRanking({ rows, prize, coins }: { rows: FamilyLeagueRow[];
           );
         })}
       </div>
-      <p className="lgf-foot">Un día cuenta cuando aprendés algo nuevo. Si un día no se pudo, no se pierde nada: la semana sigue.</p>
+      <p className="lgf-foot">{L('Un día cuenta cuando aprendés algo nuevo. Si un día no se pudo, no se pierde nada: la semana sigue.', 'A day counts when you learn something new. If you miss a day, nothing is lost: the week goes on.')}</p>
       <p className="lgf-foot lgf-foot--xp">
         {coins
-          ? <>Cuenta la XP que cada uno suma aprendiendo lo suyo esta semana (los <IcCoin className="ec-coin" role="img" aria-label="Energy Coins" />{' '}que gana). Vuelve a cero el lunes.</>
-          : 'Cuenta la XP que cada uno suma aprendiendo lo suyo esta semana. Vuelve a cero el lunes.'}
+          ? <>{L('Cuenta la XP que cada uno suma aprendiendo lo suyo esta semana (los', 'It counts the XP each person earns learning their own stuff this week (the')} <IcCoin className="ec-coin" role="img" aria-label="Energy Coins" />{' '}{L('que gana). Vuelve a cero el lunes.', 'they earn). It resets on Monday.')}</>
+          : L('Cuenta la XP que cada uno suma aprendiendo lo suyo esta semana. Vuelve a cero el lunes.', 'It counts the XP each person earns learning their own stuff this week. It resets on Monday.')}
       </p>
     </>
   );

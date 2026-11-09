@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { bgHandleMessage, bgOnIframeLoad, bgStartAt, setBgIframe, useBgAudio } from './bgAudio';
 import { ytEmbedUrl } from '../lib/ytBridge';
+import { L } from '../lib/lang';
 
 /* Host del reproductor de fondo: monta el iframe OCULTO de YouTube con la MISMA contención que el
    player (sandbox restringido + pointer-events:none), fuera de pantalla pero NO display:none (algunos
@@ -25,7 +26,7 @@ export function BgAudioHost() {
       ref={ref}
       key={video.id}
       src={ytEmbedUrl(video.id, bgStartAt())}
-      title="Música de fondo"
+      title={L('Música de fondo', 'Background music')}
       sandbox="allow-scripts allow-same-origin allow-presentation"
       allow="autoplay; encrypted-media; picture-in-picture"
       referrerPolicy="strict-origin-when-cross-origin"

@@ -4,6 +4,7 @@ import { DOMAIN_MODE, fmtNum } from '../lib/format';
 import { famTo } from '../lib/member';
 import type { ParentDashboard } from '../lib/types';
 import { PanelState } from './PanelState';
+import { L } from '../../../shared/lib/lang';
 
 /** "Protecciones": lo que el backend real filtra SIEMPRE, sin interruptor (solo lectura). Las palabras y los temas
  *  cuentan lo de fábrica (Smarty) + lo que sumó la familia en "Temas y palabras". Sitios y catálogo se importan del
@@ -14,21 +15,21 @@ import { PanelState } from './PanelState';
 export function ProtectionsPanel({ kid, member, dash, failed, onRetry }: { kid: string; member: string; dash: ParentDashboard | null; failed: boolean; onRetry: () => void }) {
   const p = dash?.protections;
   const rows = p ? [
-    { k: 'Sitios aprobados para leer', v: fmtNum(p.sites), d: 'Los artículos solo se abren desde estos sitios, y cada página pasa además por un revisor automático.' },
-    { k: 'Videos aprobados', v: fmtNum(p.videos), d: 'El buscador, el chat, Aprender y Mi espacio muestran solo videos de este catálogo.' },
-    { k: 'Palabras bloqueadas', v: fmtNum(p.blockedWords), d: 'Las de fábrica más las de la familia. Se frenan en búsquedas, títulos, respuestas del chat, mensajes a amigos y ejercicios.' },
-    { k: 'Temas bloqueados', v: fmtNum(p.blockedTopics), d: 'Los de fábrica más los de la familia. El revisor automático rechaza lecturas, respuestas del chat y mensajes entre amigos sobre estos temas.' },
-    { k: 'Modo de dominios', v: DOMAIN_MODE[p.domainMode] ?? p.domainMode, d: p.domainMode === 'blanca' ? 'Un sitio que no está en la lista no se abre.' : 'Se aplican las reglas de dominios configuradas.' },
-    { k: 'Versión de la política', v: String(p.policyVersion), d: 'Cambia cada vez que se actualizan las listas de fábrica.' },
+    { k: L('Sitios aprobados para leer', 'Sites approved for reading'), v: fmtNum(p.sites), d: L('Los artículos solo se abren desde estos sitios, y cada página pasa además por un revisor automático.', 'Articles only open from these sites, and every page also goes through an automatic reviewer.') },
+    { k: L('Videos aprobados', 'Approved videos'), v: fmtNum(p.videos), d: L('El buscador, el chat, Aprender y Mi espacio muestran solo videos de este catálogo.', 'Search, chat, Learn and My space only show videos from this catalog.') },
+    { k: L('Palabras bloqueadas', 'Blocked words'), v: fmtNum(p.blockedWords), d: L('Las de fábrica más las de la familia. Se frenan en búsquedas, títulos, respuestas del chat, mensajes a amigos y ejercicios.', 'The built-in ones plus your family’s. They’re stopped in searches, titles, chat answers, messages to friends and exercises.') },
+    { k: L('Temas bloqueados', 'Blocked topics'), v: fmtNum(p.blockedTopics), d: L('Los de fábrica más los de la familia. El revisor automático rechaza lecturas, respuestas del chat y mensajes entre amigos sobre estos temas.', 'The built-in ones plus your family’s. The automatic reviewer rejects readings, chat answers and messages between friends about these topics.') },
+    { k: L('Modo de dominios', 'Domain mode'), v: DOMAIN_MODE[p.domainMode] ?? p.domainMode, d: p.domainMode === 'blanca' ? L('Un sitio que no está en la lista no se abre.', 'A site that isn’t on the list won’t open.') : L('Se aplican las reglas de dominios configuradas.', 'The configured domain rules apply.') },
+    { k: L('Versión de la política', 'Policy version'), v: String(p.policyVersion), d: L('Cambia cada vez que se actualizan las listas de fábrica.', 'It changes every time the built-in lists are updated.') },
   ] : [];
   return (
     <section className="pz-panel" aria-labelledby="pz-prot-h">
       <header className="pz-panel-head">
-        <h3 id="pz-prot-h">Protecciones</h3>
-        <p>Lo que Smarty filtra para {kid} todo el tiempo. Está siempre activo y no depende de los interruptores.</p>
+        <h3 id="pz-prot-h">{L('Protecciones', 'Protections')}</h3>
+        <p>{L(`Lo que Smarty filtra para ${kid} todo el tiempo. Está siempre activo y no depende de los interruptores.`, `What Smarty filters for ${kid} all the time. It’s always on and doesn’t depend on the switches.`)}</p>
       </header>
       {!dash ? <PanelState failed={failed} onRetry={onRetry} /> : !p ? (
-        <p className="pz-muted">No pude leer las protecciones ahora.</p>
+        <p className="pz-muted">{L('No pude leer las protecciones ahora.', 'I couldn’t read the protections right now.')}</p>
       ) : (
         <dl className="pz-prot">
           {rows.map((r) => (
@@ -42,7 +43,7 @@ export function ProtectionsPanel({ kid, member, dash, failed, onRetry }: { kid: 
       )}
       <FeedMotionControl kid={kid} member={member} />
       <p className="pz-foot">
-        Para sumar temas o palabras para {kid}, andá a <Link to={famTo('/familia/temas', member)} className="pz-inline pz-inline--tight">Temas y palabras</Link>; los topes de volumen están en <Link to={famTo('/familia/limites', member)} className="pz-inline pz-inline--tight">Límites</Link>.
+        {L(`Para sumar temas o palabras para ${kid}, andá a `, `To add topics or words for ${kid}, go to `)}<Link to={famTo('/familia/temas', member)} className="pz-inline pz-inline--tight">{L('Temas y palabras', 'Topics and words')}</Link>{L('; los topes de volumen están en ', '; volume caps are in ')}<Link to={famTo('/familia/limites', member)} className="pz-inline pz-inline--tight">{L('Límites', 'Limits')}</Link>.
       </p>
     </section>
   );

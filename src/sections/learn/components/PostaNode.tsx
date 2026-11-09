@@ -6,6 +6,7 @@ import {
   IcBookOpen, IcCheck, IcCircle, IcCircleCheckBig, IcDice3, IcListChecks, IcMonitorPlay, IcRefreshCw, IcShapes, IcStar, IcWalletCards,
   type LearnIcon,
 } from './LearnIcons';
+import { L } from '../../../shared/lib/lang';
 
 /* Nodo del camino de una ruta (PostaNode + Stars de RutaView del POC, mismas reglas y textos; estética de Smarty).
    El estado —lograda/disponible/bloqueada— se comunica por color y titileo, no por el ícono. */
@@ -30,7 +31,7 @@ function activityIcon(posta: Posta): LearnIcon {
 
 export function Stars({ n }: { n: number }) {
   return (
-    <span className="ln-stars" aria-label={`${n} de 3 estrellas`}>
+    <span className="ln-stars" aria-label={L(`${n} de 3 estrellas`, `${n} of 3 stars`)}>
       {[0, 1, 2].map((i) => (
         <IcStar key={i} className={i < n ? 'on' : undefined} fill={i < n ? 'currentColor' : 'none'} strokeWidth={1.75} />
       ))}
@@ -57,7 +58,7 @@ export function PostaNode({ view, index, onPlay, color }: { view: PostaView; ind
         </button>
         <span className="ln-nlabel">
           <b className="is-recall">{posta.title}</b>
-          {!locked && <small>repaso</small>}
+          {!locked && <small>{L('repaso', 'review')}</small>}
         </span>
       </div>
     );
@@ -76,7 +77,7 @@ export function PostaNode({ view, index, onPlay, color }: { view: PostaView; ind
   const TypeIcon = activityIcon(posta);
   // Rótulo: una posta de CONTENIDO se anuncia por lo que hay que hacer ("Ver video" / "Lectura"),
   // no por su título de comprensión. Las demás mantienen su título.
-  const label = posta.reading ? (posta.reading.kind === 'video' ? 'Ver video' : 'Lectura') : posta.title;
+  const label = posta.reading ? (posta.reading.kind === 'video' ? L('Ver video', 'Watch video') : L('Lectura', 'Reading')) : posta.title;
   return (
     <div className={`ln-node ${offset}${locked ? ' is-locked' : ''}`} data-state={state}>
       <button type="button" disabled={locked} onClick={() => onPlay(posta)} aria-label={label} className={`ln-dot ${circle}`} style={circleStyle}>

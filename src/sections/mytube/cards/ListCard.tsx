@@ -1,5 +1,6 @@
 import type { Playlist } from '../../../api/types';
 import { IcMtPlus } from '../components/MtIcons';
+import { L } from '../../../shared/lib/lang';
 
 /** Tarjeta de una lista del chico (MisListas del POC): portada = el primer video que siga aprobado y sin palabra
  *  bloqueada; el conteo cuenta solo esos (los resuelve el server al leer). Es la tarjeta de video común (.mt-card, 30-oct):
@@ -22,7 +23,7 @@ export function NewListCard({ onClick }: { onClick: () => void }) {
   return (
     <button type="button" className="mt-card mt-lnew" onClick={onClick}>
       <span className="mt-cmedia"><IcMtPlus /></span>
-      <span className="mt-cbody"><span>Nueva lista</span></span>
+      <span className="mt-cbody"><span>{L('Nueva lista', 'New list')}</span></span>
     </button>
   );
 }

@@ -6,6 +6,7 @@ import { SwitchUserSection } from '../components/SwitchUserSection';
 // Las demás secciones importan su CSS desde src/main.tsx; esta tanda solo puede tocar src/sections/settings/**, así que el
 // CSS entra desde acá (Vite lo mete igual en el bundle: App importa esta página de forma estática).
 import '../settings.css';
+import { L } from '../../../shared/lib/lang';
 
 /** Configuración del usuario ACTIVO (/configuracion). Tanda CONFIG, 30-oct — pedido de Esteban: «si el usuario clickea en
  *  el avatar tiene que ir configuración de usuario; la sacás de smarty-poc y agregale toda la parte que tenemos de edición
@@ -19,8 +20,8 @@ export function SettingsPage() {
     <section className="view cfg">
       <div className="cfg-col">
         <header className="cfg-head">
-          <h2 className="h2">Configuración</h2>
-          {user && <p className="lede">Cuenta de {user.name}</p>}
+          <h2 className="h2">{L('Configuración', 'Settings')}</h2>
+          {user && <p className="lede">{L(`Cuenta de ${user.name}`, `${user.name}'s account`)}</p>}
         </header>
         <ProfileSection user={user} />
         <SoundSection adult={user?.kind === 'adult'} />
