@@ -1,5 +1,5 @@
 import { IcTrash } from '../../../shared/components/icons';
-import { LEARN_CATEGORIES } from '../lib/routeDraft';
+import { learnCategoriesNow } from '../lib/routeDraft';
 import { IcCrFilePlus, IcCrUpload } from './CreateIcons';
 import { L } from '../../../shared/lib/lang';
 
@@ -59,7 +59,7 @@ export function RouteIdentity({ emoji, title, category, cover, coverPreview, onE
       <div className="cr-field-row">
         <label className="cr-label" htmlFor="cr-cat">{L('Categoría', 'Category')}</label>
         <input id="cr-cat" className="cr-input" list="cr-cats" value={category} onChange={(e) => onCategory(e.target.value)} placeholder={L('Ej: Ciencias Naturales, Filosofía…', 'E.g. Natural Sciences, Philosophy…')} />
-        <datalist id="cr-cats">{LEARN_CATEGORIES.map((c) => <option key={c} value={c} />)}</datalist>
+        <datalist id="cr-cats">{learnCategoriesNow().map((c) => <option key={c} value={c} />)}</datalist>
       </div>
 
       <div className="cr-cover">

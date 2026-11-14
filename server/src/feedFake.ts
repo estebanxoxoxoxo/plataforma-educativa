@@ -788,11 +788,13 @@ function localizeFeedItem(it: FeedItem): FeedItem {
 }
 export function getFeed(after?: string | null): FeedResponse {
   const r = getFeedEs(after)
-  // (pedido 9-nov: en inglés sin rutas) learnRoutes.servedRoutes ya viene vacío en inglés (sin hero de ruta ni cards del
-  // catálogo); acá sale además cualquier ruta COMPARTIDA que haya entrado en vivo antes (ráfaga en castellano, en la RAM).
-  // (10-nov) idem videos del catálogo real (en castellano): ninguna tarjeta 'video' ni grilla 'videos' (red de seguridad: la
-  // edición en inglés ya nace sin ellas, seedStream/shelfOf).
-  return requestLang() === 'en' ? { ...r, items: r.items.filter(it => it.kind !== 'route' && it.kind !== 'video' && it.kind !== 'videos').map(localizeFeedItem) } : r
+  // (14-nov, idioma por ruta) una card de ruta sale solo si SU ruta se sirve en el idioma del pedido (learnRoutes filtra
+  // por fila): tapa los dos sentidos — la edición/ráfaga sembrada en un idioma que la RAM le serviría al otro (fr-/fs-).
+  // (10-nov) videos del catálogo real (en castellano): en inglés ninguna tarjeta 'video' ni grilla 'videos' (red de
+  // seguridad: la edición en inglés ya nace sin ellas, seedStream/shelfOf).
+  const okRoute = (() => { let ids: Set<string> | null = null; return (id: string) => (ids ??= new Set(servedRoutes().map(x => String(x.id)))).has(id) })()
+  const items = r.items.filter(it => (it.kind === 'route' ? okRoute(it.course.id) : requestLang() !== 'en' || (it.kind !== 'video' && it.kind !== 'videos')))
+  return requestLang() === 'en' ? { ...r, items: items.map(localizeFeedItem) } : { ...r, items }
 }
 function getFeedEs(after?: string | null): FeedResponse {
   const now = new Date()

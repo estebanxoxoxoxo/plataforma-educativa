@@ -225,8 +225,8 @@ describe('FIX-MINT: un param que escala tiene que ser un NÚMERO (hallazgo ALTA 
   });
 });
 
-describe('i18n (pedido 9-nov: en inglés sin rutas)', () => {
-  it('con lang en: lista y definiciones vacías, /one 404 y servedRoutes vacío; en castellano, todo igual', async () => {
+describe('i18n (14-nov: idioma por ruta; el detalle, en learnRouteLang.test.ts)', () => {
+  it('las filas de este catálogo no tienen lang (castellano): con lang en, lista y definiciones vacías, /one 404 y servedRoutes vacío; en castellano, todo igual', async () => {
     expect((await callEn('ian', 'GET', '/api/learn-routes')).body.routes).toEqual([]);
     expect((await callEn('andres', 'GET', '/api/learn-routes/definitions')).body.definitions).toEqual([]);
     const one = await callEn('ian', 'GET', '/api/learn-routes/one?id=r.seed');

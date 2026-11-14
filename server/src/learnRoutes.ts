@@ -96,7 +96,13 @@ interface Bundle { kind: unknown; schemaVersion: unknown; route: RouteData; defi
 /** `importedBy` (FS-BASE-A, ADITIVO, no se sirve): quién la importó la ÚLTIMA vez —una reimportación cambia el contenido—;
  *  decide si lo que ve un chico es de un HERMANO (sin revisar por un adulto: servedRoute). Las filas de antes no lo tienen:
  *  vale su `createdBy`. */
-interface RouteRow { id: Key; enabled: boolean; origin: 'generated'; importedAt: number; route: RouteData; meta?: unknown; editorial?: unknown; createdBy?: string; createdAt?: number; importedBy?: string }
+/** `lang` (i18n, 14-nov: idioma POR RUTA, ADITIVO, no se sirve): el idioma del contenido de la ruta. Ausente = castellano
+ *  (migración cero: las filas de siempre no se tocan); 'en' = se armó con la app en inglés. Se estampa al CREARLA (el import
+ *  de una ruta nueva con X-Smarty-Lang: en) y una reimportación (editarla en /crear) o un borrado no lo cambian. Decide en
+ *  qué idioma se SIRVE (servedRows): una ruta solo aparece en la app de su idioma. */
+interface RouteRow { id: Key; enabled: boolean; origin: 'generated'; importedAt: number; route: RouteData; meta?: unknown; editorial?: unknown; createdBy?: string; createdAt?: number; importedBy?: string; lang?: 'en' }
+/** El idioma de una fila (ver RouteRow.lang): sin el campo, castellano. */
+const langOf = (row: Pick<RouteRow, 'lang'>): 'es' | 'en' => (row.lang === 'en' ? 'en' : 'es')
 interface DefRow { id: Key; routeId: Key; target: unknown; importedAt: number; def: DefData }
 type ImportOk = { ok: true; routeId: Key; title: unknown; definitions: number; postas: number }
 type ImportFail = { ok: false; error: string; status?: number }
@@ -229,7 +235,10 @@ function importBundle(input: unknown): ImportOk | ImportFail {
   const createdAt = createdBy === undefined ? undefined : prev ? (prev.createdAt ?? prev.importedAt) : now
   // FS-BASE-A: quién la importa AHORA (decide qué ve un hermano: servedRoute); fuera de un pedido (la seed), nadie
   const importedBy = currentUser()?.id
-  nextRoutes.set(routeId, { id: routeId, enabled: true, origin: 'generated', importedAt: now, route: b.route, meta: b.meta, editorial: b.editorial, createdBy, createdAt, importedBy })
+  // i18n (14-nov, idioma por ruta; ver RouteRow): el de la fila que ya existía (editar no lo cambia) o, si es nueva, el del
+  // pedido. Castellano NO escribe el campo (undefined no va al JSON: el archivo queda como siempre).
+  const lang = prev ? prev.lang : requestLang() === 'en' ? 'en' as const : undefined
+  nextRoutes.set(routeId, { id: routeId, enabled: true, origin: 'generated', importedAt: now, route: b.route, meta: b.meta, editorial: b.editorial, createdBy, createdAt, importedBy, lang })
   for (const d of b.definitions) nextDefs.set(d.id, { id: d.id, routeId, target: d.target, importedAt: now, def: d })
   if (!persist(nextRoutes, nextDefs)) return { ok: false, status: 500, error: 'No pude guardar la ruta en el catálogo. Probá de nuevo.' }
   routes = nextRoutes
@@ -417,13 +426,13 @@ function servedRoute(row: RouteRow): RouteData | null {
   if (childBlocked(textOf(row)) || !readingsApproved(r)) return null
   return r.cover !== undefined && !isWikiImage(r.cover) ? { ...r, cover: undefined } : r // la portada subida por un chico, no
 }
-/** i18n (pedido 9-nov: en inglés sin rutas): el contenido de las rutas (títulos, postas, lecturas) está generado en
- *  castellano y no debe aparecer en la app en inglés → con X-Smarty-Lang: en NO se sirve ninguna (lista, definiciones, una
- *  sola: 404, y el Feed, que lee servedRoutes, queda sin hero de ruta ni cards de ruta). Importar y borrar NO cambian.
- *  «después me ocupo» (Esteban): es un corte deliberado, no una traducción. */
-const noRoutesInEnglish = () => requestLang() === 'en'
-/** Las filas habilitadas que se le sirven al usuario del pedido, en el orden de la clave (ninguna en inglés: arriba). */
-const servedRows = () => (noRoutesInEnglish() ? [] : [...routes.values()]).filter((r) => r.enabled !== false).sort(byId)
+/** i18n (14-nov: idioma POR RUTA; reemplaza el corte del 9-nov «en inglés sin rutas», que servía el catálogo vacío en
+ *  inglés): cada ruta tiene UN idioma (RouteRow.lang) y se sirve SOLO en la app de ese idioma (X-Smarty-Lang del pedido):
+ *  lista, definiciones, una sola (la de otro idioma: el mismo 404) y el Feed, que lee servedRoutes. El contenido no se
+ *  traduce. catalogRoutes() crudo NO filtra por idioma (economía y medallas: no cambian según quién mira). */
+const inRequestLang = (row: RouteRow) => langOf(row) === requestLang()
+/** Las filas habilitadas que se le sirven al usuario del pedido, en el orden de la clave (solo las de su idioma: arriba). */
+const servedRows = () => [...routes.values()].filter((r) => r.enabled !== false && inRequestLang(r)).sort(byId)
   .map((row) => ({ row, route: servedRoute(row) })).filter((x): x is { row: RouteRow; route: RouteData } => x.route !== null)
 /** FS-BASE-A: catalogRoutes() con lo que ve el usuario del pedido (servedRoute): el Feed sirve ESTO. catalogRoutes() queda
  *  crudo para lo que no se muestra (la economía y los hechos de las medallas: no pueden cambiar según quién mira). */
@@ -491,10 +500,11 @@ export async function learnRoutesRoutes(req: IncomingMessage, res: ServerRespons
 
   if (path === '/api/learn-routes/definitions') {
     if (req.method !== 'GET') return send(res, 405, { error: 'method' })
-    // FS-BASE-A: solo las de las rutas que se le sirven al usuario del pedido (con un adulto: todas, como siempre)
-    if (noRoutesInEnglish()) return send(res, 200, { definitions: [] }) // (pedido 9-nov: en inglés sin rutas)
+    // FS-BASE-A: solo las de las rutas que se le sirven al usuario del pedido (con un adulto: todas las de su idioma)
+    // i18n (14-nov): las de las rutas del idioma del pedido (una definición sin su fila —no debería haber— cuenta castellano)
     const served = currentUser()?.kind === 'child' ? new Set(servedRows().map((x) => x.row.id)) : null
-    return send(res, 200, { definitions: [...defs.values()].filter((d) => !served || served.has(d.routeId)).sort(byId).map((d) => d.def) })
+    const langOk = (d: DefRow) => { const row = routes.get(d.routeId); return row ? inRequestLang(row) : requestLang() === 'es' }
+    return send(res, 200, { definitions: [...defs.values()].filter((d) => (served ? served.has(d.routeId) : langOk(d))).sort(byId).map((d) => d.def) })
   }
 
   if (path === '/api/learn-routes/one') {
@@ -502,7 +512,7 @@ export async function learnRoutesRoutes(req: IncomingMessage, res: ServerRespons
     const id = url.searchParams.get('id') ?? ''
     const row = routes.get(id)
     // FS-BASE-A: una ruta que no se le sirve al usuario del pedido no existe para él (mismo 404)
-    const route = row && !noRoutesInEnglish() ? servedRoute(row) : null // (pedido 9-nov: en inglés sin rutas → el mismo 404)
+    const route = row && inRequestLang(row) ? servedRoute(row) : null // (i18n 14-nov: la de otro idioma → el mismo 404)
     if (!row || !route) return send(res, 404, { error: tx('No encontré esa ruta.', 'I couldn’t find that route.') })
     const definitions = [...defs.values()].filter((d) => d.routeId === row.id).sort(byId).map((d) => d.def)
     return send(res, 200, { route, definitions, editorial: editorialFor(row.editorial) })

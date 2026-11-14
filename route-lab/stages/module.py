@@ -15,7 +15,8 @@ from core import llm
 from stages import mc
 from stages.generate import _check_card
 from stages.plan import _difficulty, MIN_FACTS
-from stages.bundle import BLOCKLIST
+from stages.bundle import BLOCKLIST, BLOCKLIST_EN
+from core.lang import is_en, pick
 
 EMOJI = "🪐"
 # Tipos que el módulo sabe generar hoy; precedencia si el creador pide varios.
@@ -59,18 +60,22 @@ def run(job: Job, route_id: str, module_id: str, edad: int = 10, nivel: str = "m
     # tipo primario: multiplechoice gana si está (gate objetivo); si no, flashcards.
     prim = next((t for t in SUPPORTED_TYPES if t in activity_types), None)
     if prim is None:
-        raise ValueError(
-            f"v1 genera 'flashcards' o 'multiplechoice'; activityTypes {activity_types} no incluye ninguno"
-        )
+        raise ValueError(pick(
+            lang,
+            f"v1 genera 'flashcards' o 'multiplechoice'; activityTypes {activity_types} no incluye ninguno",
+            f"v1 generates 'flashcards' or 'multiplechoice'; activityTypes {activity_types} includes neither",
+        ))
     skipped = [t for t in activity_types if t != prim]
 
     data = job.read_json("20-facts.json")
     facts = data["facts"]
     concepts = data["concepts"]
     if len(facts) < 2:
-        raise ValueError(
-            f"el artículo no rinde suficientes facts verificables ({len(facts)}) para un módulo (mín 2)"
-        )
+        raise ValueError(pick(
+            lang,
+            f"el artículo no rinde suficientes facts verificables ({len(facts)}) para un módulo (mín 2)",
+            f"the source doesn't yield enough verifiable facts ({len(facts)}) for a module (min 2)",
+        ))
 
     # fuente real (una sola): título + url del front-matter del corpus
     doc_ids = job.corpus_ids()
@@ -102,14 +107,20 @@ def run(job: Job, route_id: str, module_id: str, edad: int = 10, nivel: str = "m
     for concept in ordered:
         fs = facts_by_concept[concept]
         if len(fs) < MIN_FACTS:
-            dropped.append({"concept": concept, "reason": f"sólo {len(fs)} fact(s) < MIN_FACTS {MIN_FACTS} (no se estira)"})
+            dropped.append({"concept": concept, "reason": pick(
+                lang, f"sólo {len(fs)} fact(s) < MIN_FACTS {MIN_FACTS} (no se estira)",
+                f"only {len(fs)} fact(s) < MIN_FACTS {MIN_FACTS} (not stretched)")})
             continue
         if len(prof_specs) >= concept_cap:
-            dropped.append({"concept": concept, "reason": f"supera el cap de conceptos del módulo ({concept_cap})"})
+            dropped.append({"concept": concept, "reason": pick(
+                lang, f"supera el cap de conceptos del módulo ({concept_cap})",
+                f"exceeds the module's concept cap ({concept_cap})")})
             continue
         usable = [f for f in fs[:max_cards] if _fact_ok(f)]
         if len(usable) < 2:
-            dropped.append({"concept": concept, "reason": f"quedó con {len(usable)} fact(s) usable(s) < 2"})
+            dropped.append({"concept": concept, "reason": pick(
+                lang, f"quedó con {len(usable)} fact(s) usable(s) < 2",
+                f"ended up with {len(usable)} usable fact(s) < 2")})
             continue
         prof_specs.append({"concept": concept, "target": f"{R}.t.{concept}",
                            "title": label.get(concept, concept), "facts": usable})
@@ -147,7 +158,8 @@ def run(job: Job, route_id: str, module_id: str, edad: int = 10, nivel: str = "m
             if len(check_facts) >= 2:
                 break
     if len(check_facts) < 2:
-        raise ValueError("no se pudieron muestrear ≥2 preguntas de comprensión verificables del artículo")
+        raise ValueError(pick(lang, "no se pudieron muestrear ≥2 preguntas de comprensión verificables del artículo",
+                              "couldn't sample ≥2 verifiable comprehension questions from the source"))
 
     # ---- DISTRACTORES (una sola llamada LLM) si el tipo es multiplechoice ----
     distractor_map: dict[str, list[str]] = {}
@@ -197,7 +209,9 @@ def run(job: Job, route_id: str, module_id: str, edad: int = 10, nivel: str = "m
         concept, target, title = spec["concept"], spec["target"], spec["title"]
         made = _make_deck(f"{R}.{M}.d.{concept}", title, target, spec["facts"], f"{M}.{concept}")
         if made is None:
-            dropped.append({"concept": concept, "reason": "no rindió ≥2 jugadas válidas del tipo pedido"})
+            dropped.append({"concept": concept, "reason": pick(
+                lang, "no rindió ≥2 jugadas válidas del tipo pedido",
+                "didn't yield ≥2 valid items of the requested type")})
             continue
         definition, _n = made
         emitted_concepts.add(concept)
@@ -209,12 +223,14 @@ def run(job: Job, route_id: str, module_id: str, edad: int = 10, nivel: str = "m
 
     # comprensión
     check_def_id = f"{R}.{M}.d.check"
-    made = _make_deck(check_def_id, "Comprensión de la lectura", check_target, check_facts, f"{M}.check")
+    check_title = pick(lang, "Comprensión de la lectura", "Reading comprehension")
+    made = _make_deck(check_def_id, check_title, check_target, check_facts, f"{M}.check")
     if made is None:
-        raise ValueError("no se pudieron armar ≥2 preguntas de comprensión válidas del tipo pedido")
+        raise ValueError(pick(lang, "no se pudieron armar ≥2 preguntas de comprensión válidas del tipo pedido",
+                              "couldn't build ≥2 valid comprehension questions of the requested type"))
     comp_def, n_check = made
     comprehension = {
-        "posta": {"id": f"{M}.check", "title": "Comprensión de la lectura", "kind": "activity",
+        "posta": {"id": f"{M}.check", "title": check_title, "kind": "activity",
                   "definitionId": check_def_id, "target": check_target, "moduleId": M,
                   "reading": src_ref, "passThreshold": 0.7},
         "definition": comp_def,
@@ -233,8 +249,11 @@ def run(job: Job, route_id: str, module_id: str, edad: int = 10, nivel: str = "m
         if f["id"] in used_ids:
             return None
         if not _fact_ok(f):
-            return "sin pregunta/respuesta válida (front o back vacío)"
-        return drop_reason_by_concept.get(f["concept"]) or "no entró en la selección automática del módulo"
+            return pick(lang, "sin pregunta/respuesta válida (front o back vacío)",
+                        "no valid question/answer (empty front or back)")
+        return drop_reason_by_concept.get(f["concept"]) or pick(
+            lang, "no entró en la selección automática del módulo",
+            "not picked by the module's automatic selection")
 
     inv_facts = [{
         "id": f["id"], "concept": f["concept"], "conceptLabel": label.get(f["concept"], f["concept"]),
@@ -280,10 +299,12 @@ def run(job: Job, route_id: str, module_id: str, edad: int = 10, nivel: str = "m
             yield item["posta"]["title"]
             yield from _texts_of(item["definition"])
 
+    # en 'en' la lista negra castellana no muerde → se suma la inglesa (en 'es' queda igual)
+    blocklist = (BLOCKLIST | BLOCKLIST_EN) if is_en(lang) else BLOCKLIST
     flagged = []
     for s in _visible():
         low = (s or "").lower()
-        hit = next((w for w in BLOCKLIST if w in low), None)
+        hit = next((w for w in blocklist if w in low), None)
         if hit:
             flagged.append({"text": s, "word": hit})
     review = {

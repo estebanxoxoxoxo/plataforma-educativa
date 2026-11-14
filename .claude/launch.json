@@ -51,6 +51,20 @@
         "route-lab"
       ],
       "port": 5203
+    },
+    {
+      "name": "route-lab-alt",
+      "runtimeExecutable": "route-lab/.venv/bin/python",
+      "runtimeArgs": [
+        "-m",
+        "uvicorn",
+        "server:app",
+        "--port",
+        "5204",
+        "--app-dir",
+        "route-lab"
+      ],
+      "port": 5204
     }
   ]
 }

@@ -13,7 +13,7 @@ import { IcNavLearn } from '../../../shared/components/icons';
 import { IcPlus } from '../components/LearnIcons';
 import { RecallRootButton } from '../components/RecallRootButton';
 import { bindLearnBgAudio } from '../lib/bgAudioBinding';
-import { LEARN_CATEGORIES, progressByTarget, routeProgress, type LearnRoute } from '../lib/learn';
+import { LEARN_CATEGORIES, LEARN_CATEGORIES_EN, progressByTarget, routeProgress, type LearnRoute } from '../lib/learn';
 import { loadLearn, useLearnData } from '../lib/learnData';
 import { ActivityOverlay } from './ActivityOverlay';
 import { RouteView } from './RouteView';
@@ -83,8 +83,10 @@ export function LearnPage() {
       if (arr) arr.push(r);
       else byCat.set(cat, [r]);
     }
-    const known = LEARN_CATEGORIES.filter((c) => byCat.has(c));
-    const custom = [...byCat.keys()].filter((c) => c !== UNCATEGORIZED && !LEARN_CATEGORIES.includes(c)).sort((a, b) => a.localeCompare(b));
+    // Conocidas en AMBOS idiomas, por pares de índice (una ruta EN con «Math» ordena como «Matemática»).
+    const knownCats = LEARN_CATEGORIES.flatMap((c, i) => [c, LEARN_CATEGORIES_EN[i]]);
+    const known = knownCats.filter((c) => byCat.has(c));
+    const custom = [...byCat.keys()].filter((c) => c !== UNCATEGORIZED && !knownCats.includes(c)).sort((a, b) => a.localeCompare(b));
     const order = [...known, ...custom, ...(byCat.has(UNCATEGORIZED) ? [UNCATEGORIZED] : [])];
     return order.map((cat) => ({ cat, routes: byCat.get(cat)! }));
   }, [allRoutes]);

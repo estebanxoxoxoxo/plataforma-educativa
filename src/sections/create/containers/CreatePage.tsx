@@ -239,7 +239,7 @@ export function CreatePage() {
     rememberRouteLabUrl(url);
     const base = routeLabBase(url);
     try {
-      const data = await postModule(base, { source: src, routeId: state.routeId, moduleId: mid, edad, nivel, lang: 'es', activityTypes: m.types, size: m.size });
+      const data = await postModule(base, { source: src, routeId: state.routeId, moduleId: mid, edad, nivel, activityTypes: m.types, size: m.size });
       const comp: DraftPosta = {
         id: data.comprehension.posta.id, title: data.comprehension.posta.title,
         target: data.comprehension.posta.target, def: data.comprehension.definition,
@@ -288,7 +288,7 @@ export function CreatePage() {
     patchModule(m.id, { error: null });
     const base = routeLabBase(url);
     try {
-      const data = await postEmit(base, { facts: inv.facts, postas: specs, edad, nivel, lang: 'es', activityType: m.types[0] ?? 'multiplechoice', jobId: m.jobId });
+      const data = await postEmit(base, { facts: inv.facts, postas: specs, edad, nivel, activityType: m.types[0] ?? 'multiplechoice', jobId: m.jobId });
       const emitted = (data.definitions ?? []).filter((d) => d.definition);
       const specById = new Map(specs.map((s) => [s.postaId, s]));
       const newProf: DraftPosta[] = emitted.map((d) => ({ id: d.postaId, title: d.title, target: d.target, def: d.definition! }));
@@ -298,8 +298,8 @@ export function CreatePage() {
       const usedFacts = new Set<string>(emitted.flatMap((d) => specById.get(d.postaId)?.factIds ?? []));
       const newInv: ModuleInventory = {
         ...inv,
-        concepts: inv.concepts.map((c) => ({ ...c, proposedAsPosta: emittedConcepts.has(c.id), dropReason: emittedConcepts.has(c.id) ? null : (c.dropReason ?? 'no seleccionado por el editor') })),
-        facts: inv.facts.map((f) => ({ ...f, selected: usedFacts.has(f.id), dropReason: usedFacts.has(f.id) ? null : (f.dropReason ?? 'no evaluado por el editor') })),
+        concepts: inv.concepts.map((c) => ({ ...c, proposedAsPosta: emittedConcepts.has(c.id), dropReason: emittedConcepts.has(c.id) ? null : (c.dropReason ?? L('no seleccionado por el editor', 'not picked by the editor')) })),
+        facts: inv.facts.map((f) => ({ ...f, selected: usedFacts.has(f.id), dropReason: usedFacts.has(f.id) ? null : (f.dropReason ?? L('no evaluado por el editor', 'not assessed by the editor')) })),
       };
       updateModule(m.id, (mm) => {
         const conceptPostaIds = new Set(inv.concepts.map((c) => `${m.id}.t.${c.id}`));

@@ -7,6 +7,7 @@ de flashcards; NO toca el path automático de module.run (que sigue byte-idénti
 from __future__ import annotations
 
 from core.job import Job
+from core.lang import pick
 from stages import mc
 from stages.generate import _check_card
 from stages.plan import _difficulty
@@ -63,5 +64,7 @@ def run(job: Job, *, postas: list[dict], facts: list[dict], edad: int = 10, nive
         definition = _emit_deck(activity_type, p["defId"], p.get("title", ""), p["target"], pfacts,
                                 p.get("idPrefix", p["defId"]), distractor_map, pool_backs, dur)
         out.append({"postaId": p.get("postaId"), "defId": p["defId"], "target": p["target"], "title": p.get("title", ""),
-                    "definition": definition, "reason": None if definition else "menos de 2 preguntas/tarjetas válidas"})
+                    "definition": definition,
+                    "reason": None if definition else pick(lang, "menos de 2 preguntas/tarjetas válidas",
+                                                           "fewer than 2 valid questions/cards")})
     return {"definitions": out}

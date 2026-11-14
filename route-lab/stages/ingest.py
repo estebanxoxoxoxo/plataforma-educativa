@@ -9,6 +9,7 @@ import urllib.parse
 import urllib.request
 
 from core.job import Job
+from core.lang import pick
 
 WIKI_API = "https://{lang}.wikipedia.org/w/api.php"
 UA = "route-lab/0.1 (Smarty PoC; educational)"
@@ -17,6 +18,9 @@ UA = "route-lab/0.1 (Smarty PoC; educational)"
 SKIP = {
     "véase también", "referencias", "enlaces externos", "notas", "bibliografía",
     "notas y referencias", "galería", "fuentes",
+    # equivalentes de en.wikipedia (ruta en inglés): sin esto se comen el cupo de MAX_SECTIONS
+    "see also", "references", "external links", "notes", "bibliography", "further reading",
+    "sources", "gallery", "notes and references", "citations", "footnotes",
 }
 MAX_SECTIONS = 8
 MAX_SECTION_CHARS = 1600
@@ -29,7 +33,37 @@ def slugify(title: str) -> str:
     return s
 
 
-def _get(lang: str, title: str) -> dict:
+class SourceNotFound(ValueError):
+    """La fuente pedida no existe en esa Wikipedia. ValueError → el server la devuelve como 422 con
+    el mensaje tal cual (viaja al usuario → en el idioma del pedido)."""
+
+
+def _not_found_msg(wiki_lang: str, title: str, ui_lang: str) -> str:
+    return pick(
+        ui_lang,
+        f"Wikipedia no devolvió texto para '{title}' (¿título inexistente?)",
+        f"Couldn't find a Wikipedia article titled '{title}' in {wiki_lang}.wikipedia.org. "
+        "English routes look sources up in English Wikipedia: try the English title, or paste the article's link.",
+    )
+
+
+def _wiki_url(source: str) -> tuple[str, str] | None:
+    """(lang, título) de un link de artículo de Wikipedia (https://xx.wikipedia.org/wiki/Título), o None."""
+    s = source.strip()
+    if "wikipedia.org" not in s.lower():
+        return None
+    try:
+        u = urllib.parse.urlparse(s if "://" in s else "https://" + s)
+    except ValueError:
+        return None
+    m = re.match(r"^([a-z]{2,3}(?:-[a-z]+)?)\.(?:m\.)?wikipedia\.org$", (u.hostname or "").lower())
+    if not m or not u.path.startswith("/wiki/"):
+        return None
+    title = urllib.parse.unquote(u.path[len("/wiki/"):]).replace("_", " ").strip()
+    return (m.group(1), title) if title else None
+
+
+def _get(lang: str, title: str, ui_lang: str | None = None) -> dict:
     params = {
         "action": "query", "format": "json", "redirects": 1,
         "prop": "extracts|links", "explaintext": 1, "exsectionformat": "wiki",
@@ -42,7 +76,7 @@ def _get(lang: str, title: str) -> dict:
     pages = data["query"]["pages"]
     page = next(iter(pages.values()))
     if "extract" not in page:
-        raise RuntimeError(f"Wikipedia no devolvió texto para '{title}' (¿título inexistente?)")
+        raise SourceNotFound(_not_found_msg(lang, title, ui_lang if ui_lang is not None else lang))
     return page
 
 
@@ -74,14 +108,18 @@ def run(job: Job, sources: list[str], lang: str = "es") -> dict:
     for source in sources:
         if _yt_video_id(source):
             docs.extend(_ingest_youtube(job, source, lang))
+        elif (wu := _wiki_url(source)):
+            # link de artículo: se ingesta de LA Wikipedia del link (su idioma = idioma original de la fuente);
+            # la salida igual va en `lang` (extract recibe el idioma de la ruta aparte).
+            docs.append(_ingest_wikipedia(job, wu[1], wu[0], ui_lang=lang))
         else:
             docs.append(_ingest_wikipedia(job, source, lang))
     job.stamp("ingest", {"docs": docs, "sources": sources})
     return {"docs": docs}
 
 
-def _ingest_wikipedia(job: Job, title: str, lang: str) -> dict:
-    page = _get(lang, title)
+def _ingest_wikipedia(job: Job, title: str, lang: str, ui_lang: str | None = None) -> dict:
+    page = _get(lang, title, ui_lang)
     real_title = page.get("title", title)
     doc_id = slugify(real_title)
     sections = _parse_sections(page["extract"])
@@ -141,7 +179,7 @@ def _yt_title(video_id: str) -> str | None:
         return None
 
 
-def _yt_transcript(video_id: str) -> tuple[str, str, str]:
+def _yt_transcript(video_id: str, ui_lang: str = "es") -> tuple[str, str, str]:
     """Devuelve (texto, lang_original, caption_kind). Idioma ORIGINAL = el de la pista auto
     (el ASR se genera del audio); se prefiere la MANUAL en ese idioma, si no la auto."""
     from youtube_transcript_api import YouTubeTranscriptApi  # dep opcional, solo para video
@@ -149,9 +187,13 @@ def _yt_transcript(video_id: str) -> tuple[str, str, str]:
     try:
         tracks = list(api.list(video_id))
     except Exception as e:
-        raise ValueError(f"no pude leer subtítulos del video ({type(e).__name__}): puede no tenerlos, ser privado o estar bloqueado")
+        raise ValueError(pick(
+            ui_lang,
+            f"no pude leer subtítulos del video ({type(e).__name__}): puede no tenerlos, ser privado o estar bloqueado",
+            f"couldn't read the video's captions ({type(e).__name__}): it may have none, be private or be blocked",
+        ))
     if not tracks:
-        raise ValueError("el video no tiene subtítulos disponibles")
+        raise ValueError(pick(ui_lang, "el video no tiene subtítulos disponibles", "the video has no captions available"))
     asr = [t for t in tracks if t.is_generated]
     orig_lang = (asr[0].language_code if asr else tracks[0].language_code)
     base = orig_lang.split("-")[0]
@@ -170,7 +212,8 @@ def _yt_transcript(video_id: str) -> tuple[str, str, str]:
             parts.append(t)
     text = re.sub(r"\s+", " ", " ".join(parts)).strip()
     if len(text) < 200:
-        raise ValueError("el transcript del video es demasiado corto para generar un módulo")
+        raise ValueError(pick(ui_lang, "el transcript del video es demasiado corto para generar un módulo",
+                              "the video's transcript is too short to generate a module"))
     return text, chosen.language_code, caption_kind
 
 
@@ -191,8 +234,9 @@ def _chunk_text(text: str, size: int, max_chunks: int) -> tuple[list[str], bool]
 def _ingest_youtube(job: Job, url: str, lang: str) -> list[dict]:
     video_id = _yt_video_id(url)
     if not video_id:
-        raise ValueError(f"no pude extraer el video de la URL: {url}")
-    text, orig_lang, caption_kind = _yt_transcript(video_id)
+        raise ValueError(pick(lang, f"no pude extraer el video de la URL: {url}",
+                              f"couldn't get the video from the URL: {url}"))
+    text, orig_lang, caption_kind = _yt_transcript(video_id, lang)
     title = _yt_title(video_id) or f"Video {video_id}"
     watch_url = f"https://www.youtube.com/watch?v={video_id}"
     chunks, truncated = _chunk_text(text, MAX_TRANSCRIPT_CHARS, MAX_TRANSCRIPT_CHUNKS)

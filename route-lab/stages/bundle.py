@@ -6,6 +6,9 @@ from core.job import Job
 
 # lista negra mínima de demo (el juez LLM real es la etapa que falta cablear)
 BLOCKLIST = {"droga", "arma", "sexo", "matar"}
+# equivalente para contenido en inglés (module.run la suma cuando lang='en'); se evitan raíces
+# que matchean por substring palabras inocentes (p.ej. "kill" ⊂ "skill", "sex" ⊂ "Sussex").
+BLOCKLIST_EN = {"drug", "weapon", "sexual", "murder"}
 
 
 def _visible_strings(bundle: dict):

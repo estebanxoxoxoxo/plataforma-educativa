@@ -9,6 +9,7 @@ from pathlib import Path
 from core.job import Job
 from core import llm
 from core.fuzzy import quote_ok
+from core.lang import is_en, pick
 
 FIXTURES = Path(__file__).resolve().parent.parent / "fixtures"
 QUOTE_THRESHOLD = 0.85
@@ -18,7 +19,19 @@ def _norm_stmt(s: str) -> str:
     return re.sub(r"[^\wáéíóúñ ]+", "", s.lower()).strip()
 
 
-def run(job: Job) -> dict:
+def _request_lang(job: Job) -> str:
+    """Idioma del request persistido (CLI corre etapas sueltas); default 'es'."""
+    try:
+        if job.exists("00-request.json"):
+            return job.read_json("00-request.json").get("lang") or "es"
+    except Exception:
+        pass
+    return "es"
+
+
+def run(job: Job, lang: str | None = None) -> dict:
+    # idioma de SALIDA de los facts (el de la ruta). None → el del 00-request.json (o 'es').
+    lang = lang or _request_lang(job)
     # fixture opcional: sólo se usa como stub cuando NO hay OPENAI_API_KEY
     fpath = FIXTURES / f"{job.id}.json"
     fixture = json.loads(fpath.read_text(encoding="utf-8")) if fpath.exists() else {}
@@ -39,14 +52,17 @@ def run(job: Job) -> dict:
         full_doc_id = meta.get("id", f"doc-{doc_id}")
         prompt = _pase_a_prompt(meta.get("title", doc_id), body, known,
                                 source_kind=meta.get("source_kind", "wikipedia"),
-                                lang_original=meta.get("lang", "es"))
+                                lang_original=meta.get("lang", "es"), lang=lang)
         # pase A: en real, el LLM emite estos facts; en stub salen del fixture
         resp = llm.complete_json(job, f"extract.paseA.{doc_id}", prompt, stub=facts_by_doc.get(full_doc_id, []))
         raw_facts = llm.unwrap(resp, "facts")
         for f in raw_facts:
             ok, score = quote_ok(f["quote"], body, QUOTE_THRESHOLD)
             if not ok:
-                dropped.append({"id": f["id"], "reason": f"quote no verificable en el corpus (score {score} < {QUOTE_THRESHOLD})", "quote": f["quote"]})
+                # el motivo viaja al cliente (inventory.integrityDropped → panel de curaduría) → en el idioma de la ruta
+                reason = pick(lang, f"quote no verificable en el corpus (score {score} < {QUOTE_THRESHOLD})",
+                              f"quote not verifiable in the source (score {score} < {QUOTE_THRESHOLD})")
+                dropped.append({"id": f["id"], "reason": reason, "quote": f["quote"]})
                 continue
             fid = f["id"]
             if fid in seen_ids:  # colisión cross-chunk → prefijar por doc para unicidad global
@@ -106,7 +122,11 @@ def run(job: Job) -> dict:
 
 
 def _pase_a_prompt(title: str, body: str, known: dict[str, str],
-                   source_kind: str = "wikipedia", lang_original: str = "es") -> str:
+                   source_kind: str = "wikipedia", lang_original: str = "es", lang: str = "es") -> str:
+    """`lang` = idioma de SALIDA (el de la ruta); `lang_original` = el de la fuente (para el quote).
+    En 'es' (default) el prompt es byte-idéntico al histórico; en 'en' sale el prompt inglés."""
+    if is_en(lang):
+        return _pase_a_prompt_en(title, body, known, source_kind=source_kind, lang_original=lang_original)
     vocab = ""
     if known:
         listado = "\n".join(f"- {slug}: {label}" for slug, label in known.items())
@@ -146,4 +166,51 @@ def _pase_a_prompt(title: str, body: str, known: dict[str, str],
         + lang_note
         + vocab
         + f"\n\nTEXTO:\n{body[:8000]}"
+    )
+
+
+def _pase_a_prompt_en(title: str, body: str, known: dict[str, str],
+                      source_kind: str = "wikipedia", lang_original: str = "en") -> str:
+    """Pase A con SALIDA EN INGLÉS (ruta en 'en'). Misma estructura/contrato JSON que el castellano;
+    el `quote` siempre queda literal en el idioma ORIGINAL de la fuente (no se traduce: se valida)."""
+    vocab = ""
+    if known:
+        listado = "\n".join(f"- {slug}: {label}" for slug, label in known.items())
+        vocab = (
+            "\n\nCONCEPTS ALREADY IDENTIFIED in earlier sources. Reuse EXACTLY these `concept` slugs "
+            "when a fact is about the same concept (that is how they merge across sources); create a new one ONLY if "
+            f"it truly doesn't fit any of them:\n{listado}"
+        )
+    spoken = ""
+    if source_kind == "youtube-transcript":
+        spoken = (
+            "\n\nHEADS UP: the source is a VIDEO TRANSCRIPT (speech, not an article). It may contain filler "
+            "(\"uh\", \"so\"), repetitions, cut-off sentences, sponsor plugs / \"subscribe\" messages, and automatic "
+            "transcription errors. IGNORE all of that: extract ONLY clear, correct, self-contained facts that are "
+            "WELL supported by the text. When in doubt, leave it out."
+        )
+    base = (lang_original or "en").split("-")[0]
+    lang_note = ""
+    if base != "en":
+        lang_note = (
+            f"\n\nTHE SOURCE IS IN «{lang_original}» (not English). Still write `concept_label`, `statement`, "
+            "`front` and `back` IN ENGLISH, but the `quote` MUST be a LITERAL quote of the original text in "
+            f"«{lang_original}» — do NOT translate it (it is checked against the source)."
+        )
+    return (
+        "You are an extractor of atomic FACTS for educational material for kids around 13, in English.\n"
+        f"Document: «{title}».\n\n"
+        "LANGUAGE: write `concept_label`, `statement`, `front` and `back` in US English, with a warm, simple tone "
+        "a 13-year-old can follow. The `quote` stays in the ORIGINAL language of the document, copied literally "
+        "(never translated).\n\n"
+        "Group the material into a FEW BROAD concepts (ideally 3-6 for this document); each concept should "
+        "gather SEVERAL facts (aim for 3 or more). Do NOT make one concept per fact or ultra-specific concepts: "
+        "the goal is that each concept is enough for a review activity.\n"
+        "Return JSON {facts:[{id, concept (short kebab-case slug), concept_label, kind (definition|property|numeric|relation), "
+        "statement (one simple claim), front (question), back (short answer), section, quote (VERBATIM from the document)}]}.\n"
+        "HARD RULE: every `quote` must be a LITERAL quote of the text (it is validated). A fact without a literal quote is discarded."
+        + spoken
+        + lang_note
+        + vocab
+        + f"\n\nTEXT:\n{body[:8000]}"
     )

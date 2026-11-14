@@ -1,5 +1,6 @@
 import type { DefinitionRecipeData } from '../../../api/types';
 import type { DraftModule, FactInv, ModuleInventory } from './routeDraft';
+import { getLang, type Lang } from '../../../shared/lib/lang';
 
 /* Cliente de route-lab para /crear. Como en el POC (RouteCreator.tsx), el navegador le habla DIRECTO a route-lab: solo
    POST /module (generar un módulo) y POST /emit (re-emitir la profundización tras curar, sin re-extraer). route-lab no lleva
@@ -31,7 +32,7 @@ export const routeLabBase = (url: string) => url.replace(/\/$/, '');
 /* ---- contratos (route-lab/server.py + stages/module.py y emit.py; se tipa solo lo que usa /crear) ---- */
 export interface ModuleRequest {
   source: string; routeId: string; moduleId: string;
-  edad: number; nivel: string; lang: 'es'; activityTypes: string[]; size: string;
+  edad: number; nivel: string; lang: Lang; activityTypes: string[]; size: string;
 }
 type PostaRef = { id: string; title: string; target: string };
 export interface ModuleResponse {
@@ -44,7 +45,7 @@ export interface ModuleResponse {
 export interface EmitPostaSpec { postaId: string; defId: string; target: string; title: string; idPrefix: string; factIds: string[]; conceptId: string }
 export interface EmitRequest {
   facts: FactInv[]; postas: EmitPostaSpec[];
-  edad: number; nivel: string; lang: 'es'; activityType: string; jobId?: string;
+  edad: number; nivel: string; lang: Lang; activityType: string; jobId?: string;
 }
 export interface EmitResponse {
   definitions?: { postaId: string; defId: string; target: string; title: string; definition: DefinitionRecipeData | null; reason: string | null }[];
@@ -68,7 +69,12 @@ async function post<T>(base: string, path: string, body: unknown): Promise<T> {
   return data;
 }
 
+/** i18n (14-nov, idioma por ruta): `lang` de cada pedido es el idioma ACTIVO de la app (getLang()) al armarlo, para que
+ *  route-lab genere en ese idioma; pisa el que traiga quien llama (CreatePage todavía manda 'es' literal). */
+type WithLang<T extends { lang: Lang }> = Omit<T, 'lang'> & { lang?: Lang };
 /** Generar UN módulo (síncrono: la conexión queda abierta todo el pipeline ingest → extract → module). */
-export const postModule = (base: string, body: ModuleRequest) => post<ModuleResponse>(base, '/module', body);
+export const postModule = (base: string, body: WithLang<ModuleRequest>) =>
+  post<ModuleResponse>(base, '/module', { ...body, lang: getLang() } satisfies ModuleRequest);
 /** Curaduría: re-emitir las postas de los conceptos tildados con los facts tildados (no re-extrae). */
-export const postEmit = (base: string, body: EmitRequest) => post<EmitResponse>(base, '/emit', body);
+export const postEmit = (base: string, body: WithLang<EmitRequest>) =>
+  post<EmitResponse>(base, '/emit', { ...body, lang: getLang() } satisfies EmitRequest);

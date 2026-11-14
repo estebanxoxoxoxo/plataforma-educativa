@@ -48,11 +48,11 @@ def main() -> int:
             return 2
         _p("ingest", ingest.run(job, args.sources, args.lang))
     if args.stage in ("extract", "run"):
-        _p("extract", extract.run(job))
+        _p("extract", extract.run(job))  # lang: lo toma del 00-request.json (default 'es')
     if args.stage in ("graph", "run"):
         _p("graph", graph.run(job))
     if args.stage in ("plan", "run"):
-        _p("plan", plan.run(job, args.edad, args.nivel))
+        _p("plan", plan.run(job, args.edad, args.nivel, args.lang))
     if args.stage in ("generate", "run"):
         _p("generate", generate.run(job))
     if args.stage in ("bundle", "run"):

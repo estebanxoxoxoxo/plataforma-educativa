@@ -1,5 +1,5 @@
 import type { DefinitionRecipeData, LearnModule, LearnPosta, LearnRouteData, RouteBundle } from '../../../api/types';
-import { L } from '../../../shared/lib/lang';
+import { L, isEn } from '../../../shared/lib/lang';
 
 /* Port EXACTO de smarty-poc app/src/learn/routeDraft.ts: estado INTERNO del creador de rutas módulo-céntrico + aplanado al
    modelo persistido. El creador trabaja ANIDADO (un módulo = contenido→comprensión + profundización + repaso) por
@@ -366,6 +366,25 @@ export const LEARN_CATEGORIES = [
   'Educación Física',
   'Valores y Ciudadanía',
 ];
+/** i18n (14-nov): las mismas 13, en inglés y EN EL MISMO ORDEN (los índices se corresponden: Aprender ordena por pares).
+ *  La categoría es DATA de la ruta (queda como se eligió/escribió): en EN se SUGIEREN estas; nada se traduce al servir. */
+export const LEARN_CATEGORIES_EN = [
+  'Natural Sciences',
+  'Social Studies',
+  'Philosophy',
+  'Math',
+  'Language & Literature',
+  'History',
+  'Geography',
+  'Art',
+  'Music',
+  'Technology',
+  'Languages',
+  'Physical Education',
+  'Values & Citizenship',
+];
+/** Las sugerencias del idioma ACTUAL (resuelto al llamar, no al importar). */
+export const learnCategoriesNow = () => (isEn() ? LEARN_CATEGORIES_EN : LEARN_CATEGORIES);
 
 /** Tipos de actividad que se pueden generar (GEN_TYPES del POC): quiz y dominó, "próximamente" (deshabilitados). */
 /* El `label` es un GETTER (i18n): resuelve el idioma al dibujar, no al importar (una constante con L() se congelaría). */

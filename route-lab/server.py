@@ -13,6 +13,7 @@ from pydantic import BaseModel
 
 from core.env import load_env
 from core.job import Job
+from core.lang import is_en
 from stages import ingest, extract, graph, plan, generate, bundle, module, emit
 
 load_env()
@@ -65,6 +66,14 @@ class EmitRequest(BaseModel):
     jobId: str | None = None
 
 
+def _job_id(sources: list[str], lang: str) -> str:
+    """Job por fuente E idioma: el job reusa su carpeta (10-corpus no se limpia), así que una ruta en
+    inglés no debe compartir carpeta con la castellana de la misma fuente (se mezclarían corpus de
+    distintas Wikipedias en el extract). En 'es' el id queda idéntico al histórico."""
+    base = _slug(sources)
+    return f"{base}-en" if is_en(lang) else base
+
+
 def _slug(sources: list[str]) -> str:
     s = "-".join(sources).lower()
     for a, b in (("á", "a"), ("é", "e"), ("í", "i"), ("ó", "o"), ("ú", "u"), ("ñ", "n")):
@@ -82,16 +91,16 @@ def health():
 def make_route(req: RouteRequest):
     if not req.sources:
         raise HTTPException(status_code=400, detail="Falta 'sources' (al menos una fuente)")
-    job_id = req.jobId or _slug(req.sources)
+    job_id = req.jobId or _job_id(req.sources, req.lang)
     job = Job(job_id)
     job.write_json("00-request.json", {
         "jobId": job_id, "sources": req.sources, "lang": req.lang, "edad": req.edad, "nivel": req.nivel,
     })
     try:
         ingest.run(job, req.sources, req.lang)
-        extract.run(job)
+        extract.run(job, req.lang)
         graph.run(job)
-        plan.run(job, req.edad, req.nivel)
+        plan.run(job, req.edad, req.nivel, req.lang)
         generate.run(job)
         summary = bundle.run(job)
     except Exception as e:  # causa concreta al cliente (regla de la casa)
@@ -107,7 +116,7 @@ def make_module(req: ModuleRequest):
         raise HTTPException(status_code=400, detail="Faltan 'routeId'/'moduleId'")
     if not any(t in ("flashcards", "multiplechoice") for t in req.activityTypes):  # fail-fast: no gastar Wikipedia/LLM
         raise HTTPException(status_code=422, detail="v1 genera 'flashcards' o 'multiplechoice'; activityTypes no incluye ninguno")
-    job_id = req.jobId or _slug([req.source])
+    job_id = req.jobId or _job_id([req.source], req.lang)
     job = Job(job_id)
     job.write_json("00-request.json", {
         "jobId": job_id, "sources": [req.source], "lang": req.lang, "edad": req.edad, "nivel": req.nivel,
@@ -115,7 +124,7 @@ def make_module(req: ModuleRequest):
     })
     try:
         ingest.run(job, [req.source], req.lang)
-        extract.run(job)
+        extract.run(job, req.lang)
         result = module.run(job, req.routeId, req.moduleId, req.edad, req.nivel,
                             activity_types=req.activityTypes, size=req.size, lang=req.lang)
     except ValueError as e:  # validación de negocio → 422 con causa

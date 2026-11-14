@@ -24,7 +24,7 @@ export type RouteModule = LearnModule;
 export type LearnRoute = LearnRouteData;
 
 /** Sugerencias de categoría (para agrupar el mosaico). UNA sola lista: la que ya portó /crear (W1). */
-export { LEARN_CATEGORIES } from '../../create/lib/routeDraft';
+export { LEARN_CATEGORIES, LEARN_CATEGORIES_EN } from '../../create/lib/routeDraft';
 
 // --- persistencia + progreso (por objetivo) ---
 

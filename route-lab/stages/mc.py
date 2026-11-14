@@ -9,6 +9,7 @@ import json
 
 from core.job import Job
 from core import llm
+from core.lang import is_en
 
 
 def _stub_distractors(items: list[dict]) -> dict:
@@ -28,7 +29,10 @@ def _stub_distractors(items: list[dict]) -> dict:
     return {"items": out}
 
 
-def _prompt(items: list[dict], edad: int) -> str:
+def _prompt(items: list[dict], edad: int, lang: str = "es") -> str:
+    """En 'es' (default) byte-idéntico al histórico; en 'en' los distractores se piden en inglés."""
+    if is_en(lang):
+        return _prompt_en(items, edad)
     payload = json.dumps(
         [{"id": it["id"], "pregunta": it["question"], "correcta": it["answer"], "contexto": it.get("statement", "")}
          for it in items],
@@ -51,6 +55,29 @@ def _prompt(items: list[dict], edad: int) -> str:
     )
 
 
+def _prompt_en(items: list[dict], edad: int) -> str:
+    payload = json.dumps(
+        [{"id": it["id"], "question": it["question"], "correct": it["answer"], "context": it.get("statement", "")}
+         for it in items],
+        ensure_ascii=False,
+    )
+    return (
+        f"You generate WRONG OPTIONS (distractors) for a multiple-choice game "
+        f"for {edad}-year-old kids.\n"
+        "I give you questions with their CORRECT answer and a bit of context. For EACH question generate "
+        "EXACTLY 3 WRONG options that meet ALL of this:\n"
+        "- CLEARLY wrong for that question (NEVER an option that is also correct);\n"
+        "- plausible: same type and similar length as the correct answer (number->numbers, "
+        "name->names), reflecting typical mistakes a kid would make;\n"
+        "- written in US English, like the correct answer;\n"
+        "- short and simple, suitable for a kid; different from each other and from the correct one;\n"
+        "- NO 'all of the above', 'none of the above' or 'I don't know'.\n"
+        'Return ONLY a JSON object with this exact shape: '
+        '{"items":[{"id":"<id>","distractors":["d1","d2","d3"]}]} with one item per question and the SAME id.\n\n'
+        f"Questions:\n{payload}"
+    )
+
+
 def generate_distractors(job: Job, items: list[dict], *, edad: int = 10, lang: str = "es") -> dict[str, list[str]]:
     """items: [{id, question, answer, statement?}] -> {id: [distractores]}. Una sola llamada LLM.
     Robusto: ante error de red cae al stub determinista (no tumba el módulo)."""
@@ -59,7 +86,7 @@ def generate_distractors(job: Job, items: list[dict], *, edad: int = 10, lang: s
         return {}
     stub = _stub_distractors(items)
     try:
-        resp = llm.complete_json(job, "mc-distractors", _prompt(items, edad), stub=stub)
+        resp = llm.complete_json(job, "mc-distractors", _prompt(items, edad, lang), stub=stub)
     except Exception:
         resp = stub  # fallback determinista: MC igual se genera con distractores de otros backs
     out: dict[str, list[str]] = {}

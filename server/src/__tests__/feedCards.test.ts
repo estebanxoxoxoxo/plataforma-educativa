@@ -254,13 +254,20 @@ describe('i18n (pedido 9-nov): el feed en el idioma del pedido, traducido AL SER
   beforeEach(() => { vi.setSystemTime(new Date(2026, 9, 29, 16, 30)); resetFeed(); resetFriends(); NO_ROUTES.on = false; });
   afterEach(() => { NO_ROUTES.on = false; });
 
-  it('con lang en: lo de castellano salvo rutas y videos del catálogo (en inglés no se sirven), con los textos en inglés', () => {
+  it('con lang en: lo de castellano salvo videos del catálogo, con los textos en inglés; las rutas salen si servedRoutes las sirve', () => {
     const es = runAsUser('ian', () => getFeed(), 'es');
     const en = runAsUser('ian', () => getFeed(), 'en');
     // (10-nov) sin videos la edición en inglés se arma con menos tarjetas: lo que trae es lo mismo que la de castellano, en otro corte
     const esIds = new Set(es.items.map((it) => it.id));
-    expect(en.items.filter((it) => it.kind !== 'article' && it.kind !== 'friend').every((it) => esIds.has(it.id))).toBe(true);
-    expect(en.items.some((it) => it.kind === 'route' || it.kind === 'video' || it.kind === 'videos')).toBe(false);
+    // rutas afuera del chequeo de ids: sin videos, la página 1 en inglés llega más hondo y trae cards de ruta que en
+    // castellano caen en la página siguiente (mismo stream, otro corte)
+    expect(en.items.filter((it) => it.kind !== 'article' && it.kind !== 'friend' && it.kind !== 'route').every((it) => esIds.has(it.id))).toBe(true);
+    expect(en.items.some((it) => it.kind === 'video' || it.kind === 'videos')).toBe(false);
+    // (14-nov, idioma por ruta): el corte de rutas ya no es por idioma — las cards salen si learnRoutes las sirve en ese
+    // pedido (el mock las sirve también en inglés), con el porqué traducido por feedText
+    const route = en.items.find((it) => it.kind === 'route') as Extract<Item, { kind: 'route' }> | undefined;
+    expect(route, 'con rutas servidas en inglés hay cards de ruta').toBeDefined();
+    expect(route!.reason).toBe('A route to start something new');
     const streakEs = es.items.find((it) => it.kind === 'friend' && it.text === 'llegó a una racha de 12 días seguidos practicando');
     expect(streakEs, 'la noticia sembrada de TomasApolo').toBeDefined();
     const streakEn = en.items.find((it) => it.id === streakEs!.id) as Extract<Item, { kind: 'friend' }>;

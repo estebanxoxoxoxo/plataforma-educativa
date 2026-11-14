@@ -3,6 +3,7 @@ concepto) + recall cada K + recall endless al cierre. Regla de oro: NUNCA estira
 (concepto con menos de MIN_FACTS se cae con causa)."""
 from __future__ import annotations
 from core.job import Job
+from core.lang import pick
 
 MIN_FACTS = 2
 EMOJI = "🪐"
@@ -15,7 +16,7 @@ def _difficulty(edad: int, nivel: str) -> dict:
     return base
 
 
-def run(job: Job, edad: int = 10, nivel: str = "medio") -> dict:
+def run(job: Job, edad: int = 10, nivel: str = "medio", lang: str = "es") -> dict:
     facts = job.read_json("20-facts.json")
     graph = job.read_json("25-graph.json")
     diff = _difficulty(edad, nivel)
@@ -37,7 +38,9 @@ def run(job: Job, edad: int = 10, nivel: str = "medio") -> dict:
     for concept in order:
         fs = facts_by_concept[concept]
         if len(fs) < MIN_FACTS:
-            dropped.append({"concept": concept, "reason": f"sólo {len(fs)} fact(s) < MIN_FACTS {MIN_FACTS} (no se estira)"})
+            dropped.append({"concept": concept, "reason": pick(
+                lang, f"sólo {len(fs)} fact(s) < MIN_FACTS {MIN_FACTS} (no se estira)",
+                f"only {len(fs)} fact(s) < MIN_FACTS {MIN_FACTS} (not stretched)")})
             continue
         n += 1
         postas.append({
@@ -48,14 +51,14 @@ def run(job: Job, edad: int = 10, nivel: str = "medio") -> dict:
             "durationSec": diff["durationSec"],
         })
         if n % K == 0:  # recall cada K postas de actividad
-            postas.append({"posta_id": f"r{n}", "kind": "recall", "title": "Repaso", "target": f"{route_id}.recall-{n}"})
+            postas.append({"posta_id": f"r{n}", "kind": "recall", "title": pick(lang, "Repaso", "Review"), "target": f"{route_id}.recall-{n}"})
 
     # recall endless de cierre
-    postas.append({"posta_id": "rend", "kind": "recall", "title": "Repaso final", "target": f"{route_id}.recall-final"})
+    postas.append({"posta_id": "rend", "kind": "recall", "title": pick(lang, "Repaso final", "Final review"), "target": f"{route_id}.recall-final"})
 
     out = {
         "route_id": route_id,
-        "title": _title(facts),
+        "title": _title(facts, lang),
         "emoji": EMOJI,
         "learner": {"edad": edad, "nivel": nivel},
         "postas": postas,
@@ -72,7 +75,9 @@ def run(job: Job, edad: int = 10, nivel: str = "medio") -> dict:
     return summary
 
 
-def _title(facts: dict) -> str:
+def _title(facts: dict, lang: str = "es") -> str:
     # título simple desde el concepto más "central" (el que más facts tiene)
     top = max(facts["concepts"], key=lambda c: c["fact_count"], default=None)
-    return f"Ruta: {top['label']}" if top else "Ruta generada"
+    if top:
+        return pick(lang, f"Ruta: {top['label']}", f"Route: {top['label']}")
+    return pick(lang, "Ruta generada", "Generated route")
