@@ -15,6 +15,14 @@ import MiniSearch from 'minisearch'
 import { SERVER_ROOT, ov } from './config'
 import { matchBlockedWord } from './filters'
 
+/* El idioma del pedido (requestContext.ts). Import DINÁMICO a propósito: requestContext arrastra users.ts → config.config, y
+   tests que importan este módulo con un mock mínimo de '../config' (videosStrict.test.ts) no lo tienen. Si no se puede
+   cargar, se avisa fuerte y rige 'es' (el comportamiento de siempre). En el server real carga siempre. */
+const requestLang: () => 'es' | 'en' = await import('./requestContext').then(
+  m => m.requestLang,
+  e => { console.error('[videos] requestContext no cargó: el filtro de idioma queda en castellano:', (e as Error)?.message ?? e); return () => 'es' as const },
+)
+
 export interface CatalogVideo {
   videoId: string; title: string; thumb: string; channelId: string; channelTitle: string; source: string
   description: string; duration: number; addedAt: number; tags: string[]; topics: string[]
@@ -45,6 +53,63 @@ export const getCatalogVideo = (id: string): CatalogVideo | undefined => byId.ge
 export const familyCatalogVersion = (): number => (family ? family.version() : 0)
 /** Tamaño del catálogo BASE (mytube.ts le suma las filas de la familia en su `total`: no cambiar sin mirar ahí). */
 export const catalogSize = () => catalog.length
+
+/* ---------- i18n (regla del dueño, 10-nov): en INGLÉS no se sirve contenido real en castellano ----------
+   El catálogo no trae idioma, así que la fuente de verdad es el CANAL: ES_CHANNELS = todos los canales del catálogo
+   (catalog.json, 152 channelTitle únicos al 10-nov) que hablan castellano — por nombre («Español», «ES») o porque se
+   conocen hispanos; ante la duda, ES (el filtro es conservador: esconde de más, nunca de menos). La música instrumental,
+   los coros y lo que no tiene habla quedan del lado inglés. Además, un TÍTULO claramente castellano (looksSpanish) dentro de
+   un canal inglés tampoco se sirve en inglés (p. ej. «Palabras de Inspiración» de The Tabernacle Choir o los temas de
+   «Gracia Soberana Música»). Se resuelve AL SERVIR (requestLang): nada de esto cambia lo guardado, y en castellano
+   (el default, también fuera de un pedido) todo queda EXACTO como antes. getCatalogVideo NO filtra: lo usan los lookups
+   internos de ítems ya guardados. Un canal nuevo en castellano que sume la familia (Zona de padres → YouTube) cae igual por
+   el título de sus videos; si no, se suma acá. */
+export const ES_CHANNELS: ReadonlySet<string> = new Set([
+  // educación / ciencia
+  'KhanAcademyEspañol', 'Matemáticas profe Alex', 'Susi Profe', 'unicoos', 'Derivando', 'La Hiperactina', 'Un Mundo Inmenso',
+  'Date un Vlog', 'Veritasium en español', 'CienciaDeSofa', 'Andy Enriquez', 'EnFoco', 'Educatutos', 'Thomas Schwenke ES',
+  'Adictos a la Filosofía', 'Smile and Learn - Español', 'Shackleton Kids', 'Aventuras con los Kratt - Scholastic',
+  // naturaleza / documentales
+  'Club de Vida', 'Mundo de las Aves', 'Wild Nature - Español', 'Documentales gratuitos', 'EpicExplorationsTV ES',
+  // tecnología / programación / IA
+  'Platzi', 'midudev', 'MoureDev by Brais Moure', 'Fazt', 'Fazt Code', 'Dot CSV', 'Dot CSV Lab ', 'Dot CSV Lab', 'Nate Gentile',
+  'TechZone', 'SensIO', 'The Glass Box AI Project', 'fatdev;', 'Cortés Creativo',
+  // juegos / entretenimiento / vlogs
+  'Cuby', 'SoyCubo', 'Dana Lucia', 'Buster’s Mind', "Buster's Mind", 'Sir Pino', 'Búho Narrativo. Formación de escritores & Booktube',
+  // negocios
+  'Startupeable con Enzo Cavalie', 'Romuald Fons', 'Tiempo de Emprender',
+  // fe
+  'Fe Razonable', 'Carlos Erazo', 'BITE', 'Gracia a Vosotros', 'Charles Spurgeon', 'Lucas Magnin ★ Teología Pop',
+  'Conferencia Expositores', 'C.S. Lewis En Minutos', 'Lo de Davi', 'La Biblia en Minecraft',
+  // música con habla/canto en castellano o títulos mezclados (duda → ES)
+  'Marcos Vidal', 'Jesus Molina', 'InsidePiano Tutorials',
+])
+const ES_CHANNELS_NORM = new Set([...ES_CHANNELS].map(c => c.trim().toLowerCase()))
+/** ¿El canal habla castellano? (la fuente de verdad del filtro de idioma; vacío → no). */
+export const channelLangEs = (channelTitle: string | undefined | null): boolean =>
+  !!channelTitle && ES_CHANNELS_NORM.has(channelTitle.trim().toLowerCase())
+
+/* Detector de castellano para TEXTOS sueltos (títulos sin canal, títulos de canales ingleses, ítems que no son video):
+   ¿ ¡ ñ, o tilde + alguna palabra función del castellano, o palabras función "fuertes" (que no existen en inglés). Calibrado
+   sobre el catálogo: de los 53.555 videos de canales ingleses marca 257, casi todos castellano de verdad (el resto, francés o
+   portugués o un nombre con ñ: también se esconden en inglés, lo que es aceptable). «La La Land», «El Capitan», «Con Calma»
+   solos no alcanzan. */
+const ES_WORDS = new Set(['el', 'la', 'los', 'las', 'del', 'de', 'que', 'por', 'para', 'con', 'una', 'uno', 'un', 'como', 'cómo', 'más', 'mas', 'qué', 'y', 'en', 'es', 'se', 'su', 'sus', 'al', 'lo', 'mi', 'tu', 'sin', 'muy', 'este', 'esta', 'pero', 'porque', 'cuando', 'donde', 'dónde', 'todo', 'toda', 'todos', 'nuestro', 'nuestra', 'hay', 'ser', 'son', 'está', 'así', 'también', 'ya', 'nos', 'te', 'le', 'yo', 'tú', 'él', 'ella', 'sobre', 'entre', 'hasta', 'desde', 'o'])
+const ES_STRONG = new Set(['los', 'las', 'del', 'que', 'por', 'para', 'una', 'como', 'cómo', 'más', 'qué', 'pero', 'porque', 'cuando', 'donde', 'dónde', 'está', 'así', 'también', 'nuestro', 'nuestra', 'hay', 'sobre', 'entre', 'hasta', 'desde', 'sus', 'muy', 'todo', 'toda', 'todos', 'este', 'esta'])
+export function looksSpanish(text: string | undefined | null): boolean {
+  const t = (text ?? '').normalize('NFC')
+  if (!t.trim()) return false
+  if (/[¿¡ñÑ]/.test(t)) return true
+  const words = new Set(t.toLowerCase().split(/[^a-záéíóúüñ]+/).filter(w => ES_WORDS.has(w)))
+  if (!words.size) return false
+  if (/[áéíóúÁÉÍÓÚ]/.test(t)) return true
+  const strong = [...words].filter(w => ES_STRONG.has(w)).length
+  return strong >= 2 || (strong >= 1 && words.size >= 2) || words.size >= 3 // «Es un canal de ciencia» (sin tildes)
+}
+/** ¿Se puede SERVIR este video en el idioma del pedido? En castellano, siempre; en inglés, ni canal castellano ni título
+ *  castellano. */
+export const videoVisibleNow = (v: Pick<CatalogVideo, 'channelTitle' | 'title'>): boolean =>
+  requestLang() !== 'en' || (!channelLangEs(v.channelTitle) && !looksSpanish(v.title))
 
 const normalize = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ')
 /** El documento del índice: el MISMO que arma el POC (videoSearch.ts buildDocs), incluida la descripción CORTADA a 140
@@ -99,7 +164,7 @@ function searchHits(query: string, combineWith: 'AND' | 'OR') {
 export function searchVideos(query: string, limit = ov.num('const.videoMostrados')): CatalogVideo[] {
   return searchHits(query, 'AND')
     .map(r => getCatalogVideo(r.id as string))
-    .filter((v): v is CatalogVideo => !!v && matchBlockedWord(v.title) === null)
+    .filter((v): v is CatalogVideo => !!v && matchBlockedWord(v.title) === null && videoVisibleNow(v)) // i18n: ANTES del corte
     .slice(0, limit)
 }
 
@@ -174,7 +239,7 @@ export function searchVideosStrict(query: string, limit = ov.num('const.videoMos
     if (seen.has(id)) continue
     seen.add(id)
     const v = getCatalogVideo(id)
-    if (!v || matchBlockedWord(v.title) !== null || !hasAllTerms(v, forms)) continue
+    if (!v || matchBlockedWord(v.title) !== null || !hasAllTerms(v, forms) || !videoVisibleNow(v)) continue
     out.push(v)
     if (out.length >= limit) break
   }
@@ -205,7 +270,7 @@ export function relatedVideos(video: CatalogVideo, limit: number): CatalogVideo[
   const seen = new Set<string>([video.videoId])
   const tryPush = (v: CatalogVideo) => {
     if (out.length >= limit || seen.has(v.videoId)) return
-    if (matchBlockedWord(v.title) !== null) return
+    if (matchBlockedWord(v.title) !== null || !videoVisibleNow(v)) return // i18n: en inglés, nada en castellano
     seen.add(v.videoId); out.push(v)
   }
   // 1) Mismo canal, más recientes primero.
@@ -298,25 +363,31 @@ export function videosOfChannel(channelId: string): CatalogVideo[] {
 
 /* ---------- formato para la UI (types.ts VideoResult / Video) ---------- */
 const mmss = (s: number) => (s >= 3600 ? `${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}` : `${Math.floor(s / 60)}`) + `:${String(Math.floor(s % 60)).padStart(2, '0')}`
-const fecha = (iso?: string) => (iso ? new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' }).replace('.', '') : '')
-const compact = (n: number) => new Intl.NumberFormat('es-AR', { notation: 'compact', maximumFractionDigits: 1 }).format(n)
+/* i18n (10-nov): fecha, cifras y «de suscriptores» en el idioma del pedido (en castellano, EXACTO como antes). */
+const locale = () => (requestLang() === 'en' ? 'en-US' : 'es-AR')
+const fecha = (iso?: string) => (iso ? new Date(iso).toLocaleDateString(locale(), { day: 'numeric', month: 'short', year: 'numeric' }).replace('.', '') : '')
+const compact = (n: number) => new Intl.NumberFormat(locale(), { notation: 'compact', maximumFractionDigits: 1 }).format(n)
 
+/** `source` es el título de la entrada de la ingesta, en castellano («Canal Superbook (3008 videos)», «Lista X (40 videos)»).
+ *  En inglés se sirve solo el nombre (sin «Canal»/«Lista» ni el conteo); en castellano, tal cual. */
+const sourceNow = (s: string) => (requestLang() === 'en' ? s.replace(/^(?:Canal|Lista) (.*) \(\d+\+? videos\)$/s, '$1') : s)
 export function toVideoResult(v: CatalogVideo) {
   return {
     id: v.videoId, img: v.thumb || `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`, title: v.title,
-    subtitle: v.description ? v.description.replace(/\s+/g, ' ').trim() : v.source,
-    duration: v.duration ? mmss(v.duration) : '', channel: v.channelTitle || v.source, date: fecha(meta.get(v.videoId)?.publishedAt),
+    subtitle: v.description ? v.description.replace(/\s+/g, ' ').trim() : sourceNow(v.source),
+    duration: v.duration ? mmss(v.duration) : '', channel: v.channelTitle || sourceNow(v.source), date: fecha(meta.get(v.videoId)?.publishedAt),
   }
 }
 
 export async function getVideo(id: string) {
   const v = getCatalogVideo(id) // base o familia
   if (!v || matchBlockedWord(v.title) !== null) return null // solo videos aprobados
+  if (!videoVisibleNow(v)) return null // i18n (10-nov): en inglés el reproductor no sirve un video castellano (404)
   const [, ch] = await Promise.all([loadVideoMeta([id]), loadChannelMeta(v.channelId)]) // en paralelo (FS-BASE-B)
   const m = meta.get(id) ?? {}
   return {
     ...toVideoResult(v), channelId: v.channelId, durationSec: v.duration, reviewed: true, verified: false,
-    subscribers: ch.subscribers != null ? `${compact(ch.subscribers)} de suscriptores` : '',
+    subscribers: ch.subscribers != null ? (requestLang() === 'en' ? `${compact(ch.subscribers)} subscribers` : `${compact(ch.subscribers)} de suscriptores`) : '',
     likes: m.likes != null ? compact(m.likes) : '', channelThumb: ch.thumb,
     // Relacionados del POC (Video.related, contrato 14-oct): hasta 12, ya filtrados.
     related: relatedVideos(v, 12).map(toVideoResult),

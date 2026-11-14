@@ -46,6 +46,7 @@ import { registerMedalFacts } from './medals'
 import { perUser } from './perUser'
 import { send } from './web'
 import { requestLang } from './requestContext'
+import { prizeTitleEn } from './parentEn'
 
 export interface EcTx { id: number; ts: number; kind: 'earn' | 'spend'; amount: number; label: string }
 /** La semana que cerró el último corte (U5). `prevXp` = la XP de la semana ANTERIOR a esa con la que se comparó (null = no
@@ -309,7 +310,7 @@ registerMedalFacts((uid) => { const s = stores.of(uid); return { bestStreak: s.b
 
 /* ---------- rutas (del usuario activo: el contexto del pedido es el de su cabecera) ---------- */
 /* ---------- i18n (9-nov): el rótulo de cada movimiento en el idioma del pedido, AL SERVIR (lo guardado queda en castellano:
-   lo escriben learnResults.txLabel, market.spendEc y el seed de arriba). Títulos de rutas y premios del padre son data. ---------- */
+   lo escriben learnResults.txLabel, market.spendEc y el seed de arriba). Títulos de rutas son data; los premios del padre sembrados se traducen por tabla (parentEn, regla del 10-nov). ---------- */
 const TX_COURSE_EN: Record<string, string> = {
   'El sistema solar': 'The solar system', Álgebra: 'Algebra', 'Inglés intermedio': 'Intermediate English', Anatomía: 'Anatomy',
   Paleontología: 'Paleontology', 'Biología marina': 'Marine biology',
@@ -322,7 +323,7 @@ function txLabelEn(l: string): string {
   if ((m = /^Ruta: (.+)$/.exec(l))) return `Route: ${m[1]}`
   if ((m = /^Ropa para tu avatar: (.+)$/.exec(l))) return `Avatar clothes: ${TX_ROPA_EN[m[1]] ?? m[1]}`
   if ((m = /^Regalo para (.+?): (.+)$/.exec(l))) return `Gift for ${m[1]}: ${TX_ROPA_EN[m[2]] ?? m[2]}`
-  if ((m = /^Canje: (.+)$/.exec(l))) return `Redeemed: ${m[1]}`
+  if ((m = /^Canje: (.+)$/.exec(l))) return `Redeemed: ${prizeTitleEn(m[1])}`
   return l
 }
 const txOut = (t: EcTx): EcTx => (requestLang() === 'en' ? { ...t, label: txLabelEn(t.label) } : t)

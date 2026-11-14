@@ -91,7 +91,7 @@ import { currentUser, requestLang } from './requestContext'
 // i18n (9-nov): lo que se arma POR PEDIDO (el hero, la tarjeta de mi liga) usa L() directo; lo que vive en pools o en lo
 // vivo (RAM) queda en castellano y se traduce al salir (feedEn.feedText, en localizeFeedItem): nunca se guarda inglés.
 import { L as tx } from './lang'
-import { feedText } from './feedEn'
+import { articleText, feedText, leagueName, leaguesInEn } from './feedEn'
 import { localizeMedal } from './medals'
 import {
   BURST_MAX_PER_TYPE, EDITIONS, NPC_MEDALS, NPC_NEWS, SHARERS, composeBurst, interleave, newBurstMemory, roundRobinBy, spaceOut,
@@ -434,7 +434,9 @@ function seedStream(dp: Daypart): FeedItem[] {
     friend: social.filter(e => !LEAGUEISH.has(e.icon)).map(friendItem),
     article: p.arts.map(({ n, ...a }): Of<'article'> => ({ kind: 'article', id: `fa-${n}`, time: '', ...a })),
     route: routes.map(({ route, run }): Of<'route'> => ({ kind: 'route', id: `fr-${run.id}`, time: '', reason: routeWhy(run), course: routeCourse(route, run) })),
-    video: (dp === 'noche' ? p.short : p.vids).map(({ video, reason }): Of<'video'> => ({ kind: 'video', id: `fv-${video.id}`, time: '', reason, video })),
+    // (regla del dueño, 10-nov: «que en inglés no tenga rutas», extendida a los videos) el catálogo real de videos es en
+    // castellano: en inglés la cola de videos sale VACÍA (interleave saltea un tipo sin ítems y reparte el resto).
+    video: requestLang() === 'en' ? [] : (dp === 'noche' ? p.short : p.vids).map(({ video, reason }): Of<'video'> => ({ kind: 'video', id: `fv-${video.id}`, time: '', reason, video })),
   }
   const out = interleave(queues, EDITIONS[dp].pattern).map((it, i) => withTime(it, timeOf(i)))
   // Lo del cierre: la tarjeta de la liga de la semana (la liga se ASIGNA por resultados: la noticia cuenta el ciclo, no
@@ -555,6 +557,7 @@ const SHELF_MEMO_MAX = 32
  *  ninguno, la grilla pasa al siguiente con SU propio motivo; si rinde menos de 3, sale más chica; si ninguno rinde, no
  *  hay grilla. NUNCA se completa con resultados fuzzy bajo el motivo de otro tema. */
 function shelfOf(dp: Daypart, stream: readonly FeedItem[]): Of<'videos'> | null {
+  if (requestLang() === 'en') return null // (10-nov) en inglés no hay grilla «Videos para vos»: el catálogo es en castellano
   const cands = shelfCandidates()
   const key = JSON.stringify([poolKey(), dp, cands])
   if (shelfMemo.has(key)) return shelfMemo.get(key)!
@@ -779,13 +782,17 @@ function localizeFeedItem(it: FeedItem): FeedItem {
   if (base.kind === 'friend') return { ...base, text: feedText(base.text) }
   if (base.kind === 'videos') return { ...base, title: feedText(base.title) }
   if (base.kind === 'medal') return { ...base, medal: localizeMedal(base.medal) }
+  if (base.kind === 'article') return articleText(base)
+  if (base.kind === 'league') return { ...base, name: leagueName(base.name), desc: leaguesInEn(base.desc) }
   return base
 }
 export function getFeed(after?: string | null): FeedResponse {
   const r = getFeedEs(after)
   // (pedido 9-nov: en inglés sin rutas) learnRoutes.servedRoutes ya viene vacío en inglés (sin hero de ruta ni cards del
   // catálogo); acá sale además cualquier ruta COMPARTIDA que haya entrado en vivo antes (ráfaga en castellano, en la RAM).
-  return requestLang() === 'en' ? { ...r, items: r.items.filter(it => it.kind !== 'route').map(localizeFeedItem) } : r
+  // (10-nov) idem videos del catálogo real (en castellano): ninguna tarjeta 'video' ni grilla 'videos' (red de seguridad: la
+  // edición en inglés ya nace sin ellas, seedStream/shelfOf).
+  return requestLang() === 'en' ? { ...r, items: r.items.filter(it => it.kind !== 'route' && it.kind !== 'video' && it.kind !== 'videos').map(localizeFeedItem) } : r
 }
 function getFeedEs(after?: string | null): FeedResponse {
   const now = new Date()

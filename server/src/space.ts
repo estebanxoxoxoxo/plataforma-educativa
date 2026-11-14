@@ -36,10 +36,10 @@ import { DiskWriteError, backupBeforeMigrate, quarantine, writeFileAtomic } from
 import { isObject } from './familyMigrate'
 import { isAllowedArticleSite, matchBlockedWord } from './filters'
 import { ensureMedals, registerMedalFacts, syncMedals } from './medals'
-import { currentUser, runAsUser } from './requestContext'
+import { currentUser, requestLang, runAsUser } from './requestContext'
 import { upgradeSpaceRaw } from './userDataMigrate'
 import { DEFAULT_USER_ID, userById, users } from './users'
-import { getCatalogVideo, toVideoResult, type CatalogVideo } from './videos'
+import { getCatalogVideo, looksSpanish, toVideoResult, videoVisibleNow, type CatalogVideo } from './videos'
 
 export const ROOT = 0
 
@@ -252,10 +252,28 @@ function visible(i: SavedItem): boolean {
   return i.target.type === 'article' ? isAllowedArticleSite(i.target.url) : isApprovedImage(i.target.url)
 }
 
+/** i18n (regla del dueño, 10-nov): ¿se SIRVE hoy en el idioma del pedido? = visible() y, en inglés, que no sea contenido
+ *  castellano: un video del catálogo de un canal o con un título castellano (videos.ts: videoVisibleNow) o un artículo /
+ *  imagen con título castellano (looksSpanish). Lo que nombró el USUARIO (carpetas, listas) nunca se toca ni se esconde; el
+ *  ítem escondido sigue guardado (restaurar, mover y borrar por id no cambian) y vuelve al pasar a castellano. Familia →
+ *  Actividad (allSavedForParent) NO lo usa: el adulto ve todo lo que guardó el chico. El chequeo de idioma va primero: hay
+ *  tests que mockean '../videos' sin estas funciones (en castellano no se llaman). */
+function servedNow(i: SavedItem): boolean {
+  if (!visible(i)) return false
+  if (requestLang() !== 'en') return true
+  if (i.target.type === 'video') {
+    const v = getCatalogVideo(i.target.id)
+    return !!v && videoVisibleNow(v)
+  }
+  return !looksSpanish(i.title)
+}
+/** Los videos de una lista del usuario que se sirven hoy (en castellano, todos los que resolveList deja). */
+const servedVideo = (v: CatalogVideo) => requestLang() !== 'en' || videoVisibleNow(v)
+
 const itemCard = (i: SavedItem) => ({ id: i.id, type: i.type, title: i.title, img: i.img, subtitle: i.subtitle, target: i.target, createdAt: i.createdAt })
 function folderCard(s: UserSpace, f: Folder) {
   const live = liveFolders(s)
-  const count = live.filter(x => x.parentId === f.id).length + s.items.filter(i => !i.trashedAt && (i.folderId || ROOT) === f.id && visible(i)).length
+  const count = live.filter(x => x.parentId === f.id).length + s.items.filter(i => !i.trashedAt && (i.folderId || ROOT) === f.id && servedNow(i)).length
   return { id: f.id, name: f.name, parentId: f.parentId, count }
 }
 
@@ -268,7 +286,7 @@ export function driveView(folderId: number) {
   return {
     path: pathOf(live, at).map(f => ({ id: f.id, name: f.name })),
     folders: live.filter(f => (f.parentId || ROOT) === at).sort((a, b) => a.name.localeCompare(b.name)).map(f => folderCard(s, f)),
-    items: s.items.filter(i => !i.trashedAt && (i.folderId || ROOT) === at && visible(i)).sort((a, b) => b.createdAt - a.createdAt).map(itemCard),
+    items: s.items.filter(i => !i.trashedAt && (i.folderId || ROOT) === at && servedNow(i)).sort((a, b) => b.createdAt - a.createdAt).map(itemCard),
   }
 }
 
@@ -389,7 +407,7 @@ export function trashView() {
   const enPapelera = new Set(s.folders.filter(f => f.trashedAt).map(f => f.id))
   return {
     folders: s.folders.filter(f => f.trashedAt && !enPapelera.has(f.parentId)).map(f => ({ id: f.id, name: f.name })),
-    items: s.items.filter(i => i.trashedAt && !enPapelera.has(i.folderId || ROOT) && visible(i)).map(itemCard),
+    items: s.items.filter(i => i.trashedAt && !enPapelera.has(i.folderId || ROOT) && servedNow(i)).map(itemCard),
   }
 }
 
@@ -505,7 +523,7 @@ registerMedalFacts((id) => savedFactsOf(id), 'Mi espacio')
 
 /* ---------- listas de reproducción (port de listas.ts) ---------- */
 function playlistCard(l: UserPlaylist) {
-  const first = l.videoIds.map(getCatalogVideo).find(v => v && matchBlockedWord(v.title) === null)
+  const first = l.videoIds.map(getCatalogVideo).find(v => v && matchBlockedWord(v.title) === null && servedVideo(v))
   return { id: l.id, name: l.name, count: resolveList(l).length, cover: first ? first.thumb || `https://i.ytimg.com/vi/${first.videoId}/mqdefault.jpg` : undefined }
 }
 /** Resuelve en el ORDEN de la lista, dedup, descartando des-aprobados o bloqueados. */
@@ -516,7 +534,7 @@ function resolveList(l: UserPlaylist) {
     if (seen.has(vid)) continue
     seen.add(vid)
     const v = getCatalogVideo(vid)
-    if (v && matchBlockedWord(v.title) === null) out.push(v)
+    if (v && matchBlockedWord(v.title) === null && servedVideo(v)) out.push(v) // i18n: en inglés, sin lo castellano
   }
   return out
 }

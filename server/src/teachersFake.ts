@@ -71,7 +71,9 @@ import { quarantine, tryWriteFileAtomic } from './durable'
 import { familyTzNow } from './schedule'
 import { DEFAULT_USER_ID, actingUser, isAdultReq, userById, type UserInfo } from './users'
 import { readJson, send } from './web'
-// i18n (9-nov): los rechazos que la UI muestra tal cual, en el idioma del pedido. Catálogo, materias y bios: data (no).
+// i18n (9-nov): los rechazos que la UI muestra tal cual, en el idioma del pedido. (10-nov, regla del dueño: TODO lo visible
+// en inglés) las materias y las bios del catálogo también se sirven en inglés AL SERVIR (SUBJECT_EN / BIO_EN, más abajo): el
+// catálogo y teachers.json siguen en castellano; nombres de mentores, tal cual.
 import { L as tx } from './lang'
 import { wallClock } from '../../src/shared/lib/zonedClock'
 
@@ -341,7 +343,7 @@ const nextId = () => store.seq++
 
 /* ---------- vistas ---------- */
 const catalogView = (t: TeacherDef): Teacher => ({
-  id: t.id, name: t.name, emoji: t.emoji, color: t.color, subject: t.subject, pricePerHour: t.pricePerHour, bio: t.bio, rating: t.rating,
+  id: t.id, name: t.name, emoji: t.emoji, color: t.color, subject: subjectOut(t.subject), pricePerHour: t.pricePerHour, bio: bioOut(t.bio), rating: t.rating,
 })
 /** El contrato como viaja al cliente: los slots SIN `since`. */
 const contractView = (c: Contract): MentorContract => ({
@@ -353,7 +355,7 @@ function takenOf(beneficiary: string): TakenSlot[] {
   const out: TakenSlot[] = []
   for (const c of store.contracts) {
     const t = c.status === 'active' && c.beneficiary === beneficiary ? teacherDef(c.teacherId) : undefined
-    if (t) for (const s of c.slots) out.push({ weekday: s.weekday, hour: s.hour, subject: t.subject, mentorName: t.name })
+    if (t) for (const s of c.slots) out.push({ weekday: s.weekday, hour: s.hour, subject: subjectOut(t.subject), mentorName: t.name })
   }
   return out.sort(byTime)
 }
@@ -372,12 +374,27 @@ function mentorsView(adult: UserInfo): MentorsResponse {
  *  estable por mentor + inicio (minutos desde epoch × 100 + posición en el catálogo), así una relectura no cambia las keys
  *  de la UI; dos días del mismo contrato no chocan (empiezan en momentos distintos) y dos mentores tampoco (un
  *  beneficiario nunca tiene dos clases a la misma hora). */
-/** i18n (9-nov): las materias del catálogo en inglés, SOLO para el título de la clase (que se arma acá, al servir: el
- *  calendario se calcula en cada pedido, nada en inglés queda guardado). La materia que no está en la tabla queda tal cual. */
+/** i18n (9-nov; 10-nov: en TODO lo que se sirve —catálogo, horas ocupadas, calendario y el título de la clase—): las materias
+ *  del catálogo en inglés, al servir (nada en inglés queda guardado). La materia que no está en la tabla queda tal cual. */
 const SUBJECT_EN: Record<string, string> = {
   Matemática: 'Math', Ciencias: 'Science', Historia: 'History', Inglés: 'English', Música: 'Music', Programación: 'Programming',
   'Lectura y escritura': 'Reading & writing', Ajedrez: 'Chess',
 }
+/** La materia en el idioma del pedido (catálogo de Buscar, horas ocupadas, calendario); la que no está en la tabla, tal cual. */
+export const subjectOut = (subject: string) => tx(subject, SUBJECT_EN[subject] ?? subject)
+/** i18n (10-nov): las bios del catálogo en inglés, por su castellano EXACTO (si una bio cambia y no se actualiza acá, sale
+ *  en castellano: tal cual). */
+const BIO_EN: Record<string, string> = {
+  'Convierte cada problema en un desafío de lógica: de las ecuaciones al álgebra, sin fórmulas de memoria.': 'Turns every problem into a logic challenge: from equations to algebra, with no memorized formulas.',
+  'Club de lectura de a dos y taller de escritura: cuento, ensayo y cómo armar un buen argumento.': 'A two-person book club and a writing workshop: short stories, essays and how to build a good argument.',
+  'Clases todo en inglés desde el primer minuto: conversación, series y debate a tu nivel.': 'Classes all in English from the very first minute: conversation, TV shows and debate at your level.',
+  'Física y química con experimentos reales y el porqué de cada resultado.': 'Physics and chemistry with real experiments and the why behind every result.',
+  'La historia como un caso a investigar: fuentes, mapas y personajes de verdad.': 'History as a case to crack: sources, maps and real people.',
+  'De Python a tu primer videojuego: en pocas semanas tenés un proyecto propio funcionando.': 'From Python to your first video game: in a few weeks you’ll have your own project up and running.',
+  'Piano y teoría: acordes, lectura y tus canciones favoritas desde la primera clase.': 'Piano and theory: chords, reading music and your favorite songs from the very first class.',
+  'Aperturas, táctica y el análisis de tus propias partidas, a tu ritmo.': 'Openings, tactics and breaking down your own games, at your own pace.',
+}
+export const bioOut = (bio: string) => tx(bio, BIO_EN[bio] ?? bio)
 /** «Clase de Ciencias con Sam» / "Science class with Sam" según el idioma del pedido. */
 export const classTitle = (subject: string, name: string) => tx(`Clase de ${subject} con ${name}`, `${SUBJECT_EN[subject] ?? subject} class with ${name}`)
 function calendar(userId: string, now = Date.now()): CalendarEvent[] {
@@ -392,7 +409,7 @@ function calendar(userId: string, now = Date.now()): CalendarEvent[] {
       for (const start of classesOf(s, now, tz)) {
         out.push({
           id: Math.floor(start / 60_000) * 100 + i + 1, teacherId: t.id, title: classTitle(t.subject, firstName(t.name)),
-          subject: t.subject, emoji: t.emoji, color: t.color, start, durationMin: DURATION_MIN,
+          subject: subjectOut(t.subject), emoji: t.emoji, color: t.color, start, durationMin: DURATION_MIN,
         })
       }
     }

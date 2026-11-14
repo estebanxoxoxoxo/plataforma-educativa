@@ -7,4 +7,6 @@ export type ParentDashboard = ParentActivity;
 /** Lo que deja configurado un preset: ADITIVO del server (GET /api/parent/presets, campo `spec`; pendiente de
  *  formalizar en types.ts). Con él la tarjeta muestra qué prende y qué apaga sin duplicar la definición acá. */
 export type PresetSpec = { features: ParentFeatures; topics: ParentTopics; words: string[]; volume: ParentVolume };
-export type PresetView = ParentPreset & { spec?: PresetSpec };
+/** i18n (10-nov): en EN el server suma `topicLabels` (valor castellano → rótulo inglés) SOLO para MOSTRAR los temas
+ *  del preset; `spec.topics` sigue siendo los valores que se aplican y comparan (la config guarda castellano). */
+export type PresetView = ParentPreset & { spec?: PresetSpec; topicLabels?: Record<string, string> };

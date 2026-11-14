@@ -21,7 +21,7 @@ import { judgeInput, judgeOutput, type InputVerdict, type Verdict } from './judg
 import { searchPages } from './search'
 import { articleTextForChat } from './articles'
 import { expandQuery, searchImageTerm, type ImageHit } from './images'
-import { getCatalogVideo, loadVideoMeta, searchVideos, toVideoResult, catalogSize } from './videos'
+import { getCatalogVideo, loadVideoMeta, searchVideos, toVideoResult, catalogSize, videoVisibleNow } from './videos'
 
 type Source = { title: string; url: string; snippet?: string }
 type Ui = { kind: 'videos'; ids: string[] } | { kind: 'images'; terms: { q: string; lente: string | null }[] } | { kind: 'articles'; sources: Source[] }
@@ -257,7 +257,11 @@ const markerFor = (u: Ui) => (u.kind === 'videos' ? u.ids.map(id => `[video:${id
 async function resolveMedia(uis: Ui[]): Promise<ChatReply['media']> {
   const ids = uis.flatMap(u => (u.kind === 'videos' ? u.ids : [])).slice(0, 6)
   await loadVideoMeta(ids)
-  const videos = ids.map(getCatalogVideo).filter(Boolean).map(v => toVideoResult(v!))
+  // i18n (10-nov): en inglés no se sugiere ningún video castellano (si no queda ninguno, el chat no muestra videos). El
+  // chequeo de idioma va primero: los tests del chat mockean '../videos' sin videoVisibleNow (en castellano no se llama).
+  const videos = ids.map(getCatalogVideo).filter(Boolean)
+    .filter(v => requestLang() !== 'en' || videoVisibleNow(v!))
+    .map(v => toVideoResult(v!))
   const terms = uis.flatMap(u => (u.kind === 'images' ? u.terms : []))
   const lists = await Promise.all(terms.map(t => searchImageTerm(t.q)))
   const images: ImageHit[] = []

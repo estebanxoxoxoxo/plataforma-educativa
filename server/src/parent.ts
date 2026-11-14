@@ -140,7 +140,9 @@ import { isObject, upgradeParentRaw } from './familyMigrate'
 import { deliverRedemption, listRedemptions, redeemedCount, stockLeft } from './market'
 import { localizeMedal, medalsOf, registerMedalGate, syncMedals } from './medals'
 import { L as tx } from './lang'
-import { currentUser, runAsUser } from './requestContext'
+// i18n (10-nov): los premios se sirven en el idioma del pedido (parentEn, por tabla); parent.json sigue en castellano.
+import { PRESET_TOPIC_EN, alertSourceEn, alertTextEn, localizePrize } from './parentEn'
+import { currentUser, requestLang, runAsUser } from './requestContext'
 import { checkCycle, cycleOf, cycleView, saveCycle, setFamilyTzSource } from './schedule'
 import { setProgressTzSource, summaryOf } from './progress'
 import { allSavedForParent } from './space'
@@ -148,6 +150,8 @@ import { DEFAULT_USER_ID, actingUser, allDependents, isAdultReq, memberFor, user
 import { catalogSize } from './videos'
 import { readJson, send } from './web'
 import { isValidTimeZone } from '../../src/shared/lib/zonedClock'
+/** i18n: ¿el pedido es en inglés? (los textos se resuelven al servir) */
+const en = () => requestLang() === 'en'
 
 /* ---------- modelo ---------- */
 export const FEATURE_KEYS = ['tienda', 'ligas', 'amigos', 'chat'] as const
@@ -780,7 +784,9 @@ export function notifyUnreviewed(text: string, source: string): void {
 const alertList = (member?: string) => alerts.slice().reverse()
   .filter(a => member === undefined || a.childId === member)
   .map(a => ({
-    id: a.id, ts: a.ts, kind: a.kind, text: a.text, source: a.source, seen: a.seen,
+    // i18n (10-nov): el cuerpo y la fuente en el idioma del pedido AL SERVIR (parentEn: plantillas por regex; lo citado del
+    // chico y su nombre, tal cual). alerts.json sigue en castellano.
+    id: a.id, ts: a.ts, kind: a.kind, text: en() ? alertTextEn(a.text) : a.text, source: en() ? alertSourceEn(a.source) : a.source, seen: a.seen,
     ...(a.childId ? { childId: a.childId, childName: userById(a.childId)?.name ?? a.childId } : {}),
   }))
 
@@ -971,6 +977,9 @@ export const presetView = (p: PresetDef) => ({
   id: p.id, name: tx(p.name, PRESET_EN[p.id]?.name ?? p.name), desc: tx(p.desc, PRESET_EN[p.id]?.desc ?? p.desc),
   // aditivo (ver cabecera): lo que deja configurado, para que el panel muestre qué prende y qué apaga
   spec: { features: { ...p.features }, topics: { white: [...p.topics.white], black: [...p.topics.black] }, words: [...p.words], volume: { ...p.volume } },
+  // i18n (10-nov, ADITIVO): en inglés, cómo MOSTRAR cada tema de spec.topics («animales» → "animals"). spec queda en
+  // castellano a propósito: son los valores que aplica el preset y el cliente los compara con la config actual (changesFor).
+  ...(en() ? { topicLabels: Object.fromEntries([...p.topics.white, ...p.topics.black].map(t => [t, PRESET_TOPIC_EN[t] ?? t])) } : {}),
 })
 function applyPreset(mid: string, id: unknown): { ok: true; preset: PresetDef } | { ok: false; status: number; error: string } {
   const p = PRESETS.find(x => x.id === id)
@@ -1017,7 +1026,7 @@ function activity(mid: string) {
     redemptions: listRedemptions(mid),
     // aditivos de la v1 (ya formalizados en types.ts)
     items: m.items.map(i => ({
-      id: i.id, emoji: i.emoji, title: i.title, ...(i.desc ? { desc: i.desc } : {}), price: i.price,
+      id: i.id, emoji: i.emoji, ...localizePrize({ title: i.title, ...(i.desc ? { desc: i.desc } : {}) }), price: i.price,
       stock: i.stock, left: stockLeft(i), redeemed: redeemedCount(i.id), archived: i.archived, createdAt: i.createdAt,
     })),
     protections: protections(m),
@@ -1133,7 +1142,7 @@ export async function parentRoutes(req: IncomingMessage, res: ServerResponse, ur
       if (!r.ok) return send(res, 400, { error: r.error })
       const it = r.value
       // Forma MarketItem (lo que vería el chico): recién publicado → stock completo y fuera de la lista de deseos.
-      return send(res, 200, { id: it.id, title: it.title, ...(it.desc ? { desc: it.desc } : {}), price: it.price, emoji: it.emoji, source: 'padre', stock: it.stock, wished: false })
+      return send(res, 200, { id: it.id, ...localizePrize({ title: it.title, ...(it.desc ? { desc: it.desc } : {}) }), price: it.price, emoji: it.emoji, source: 'padre', stock: it.stock, wished: false })
     }
     case '/api/parent/items/update':
     case '/api/parent/items/archive': {

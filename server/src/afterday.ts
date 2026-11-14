@@ -25,6 +25,8 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { join } from 'node:path'
 import { SERVER_ROOT } from './config'
 import { quarantine, writeFileAtomic } from './durable'
+import { requestLang } from './requestContext'
+import { getCatalogVideo, looksSpanish, videoVisibleNow } from './videos'
 import { send } from './web'
 
 export interface AfterDayTrack { videoId: string; url: string; title?: string; thumb: string; addedAt: number }
@@ -161,8 +163,22 @@ export function removeTrack(videoId: string): boolean {
   return true
 }
 
+/** i18n (regla del dueño, 10-nov): lo que ve el CHICO en el idioma del pedido. En castellano, la lista entera (como
+ *  siempre); en inglés, sin los temas castellanos: si el video está en el catálogo aprobado decide su canal o su título
+ *  (videoVisibleNow); si no, el título que guardó el padre / noembed (looksSpanish). Sin título ni catálogo, se sirve
+ *  («Audio» en la tarjeta). La lista guardada no cambia; el panel del padre (parent.ts → allTracks) la ve entera. */
+export function tracksNow(): AfterDayTrack[] {
+  const all = allTracks()
+  if (requestLang() !== 'en') return all
+  return all.filter(t => {
+    const v = getCatalogVideo(t.videoId)
+    if (v && !videoVisibleNow(v)) return false
+    return !looksSpanish(t.title)
+  })
+}
+
 export async function afterdayRoutes(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
   // Sin filtro de palabras bloqueadas: quirk FIEL del POC (informe 03 §6, "After Day no filtra palabras bloqueadas").
-  if (url.pathname === '/api/afterday' && req.method === 'GET') return send(res, 200, { tracks: allTracks() })
+  if (url.pathname === '/api/afterday' && req.method === 'GET') return send(res, 200, { tracks: tracksNow() })
   return send(res, 404, { error: 'No existe.' })
 }

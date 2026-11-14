@@ -79,6 +79,7 @@ import { readJson, send } from './web'
 // Los premios del padre (parent.json) son DATA: no se traducen.
 import { L as tx } from './lang'
 import { requestLang } from './requestContext'
+import { localizePrize, prizeTitleEn } from './parentEn'
 
 type Status = 'pendiente' | 'entregado'
 /** U5-A: `origin: 'liga-familia'` = el premio de la semana de la familia que ganó este chico (grantFamilyPrize): itemId 0
@@ -221,9 +222,10 @@ export function setWish(itemId: number, value?: boolean): number[] {
 }
 
 /* ---------- lógica ---------- */
-const toItem = (i: ParentItem) => ({ id: i.id, title: i.title, ...(i.desc ? { desc: i.desc } : {}), price: i.price, emoji: i.emoji, source: 'padre' as const, stock: stockLeft(i), wished: wishNow().includes(i.id), kind: 'premio' as const })
+// i18n (10-nov): título y descripción de los premios en el idioma del pedido AL SERVIR (parentEn; lo guardado sigue en castellano).
+const toItem = (i: ParentItem) => ({ id: i.id, ...localizePrize({ title: i.title, ...(i.desc ? { desc: i.desc } : {}) }), price: i.price, emoji: i.emoji, source: 'padre' as const, stock: stockLeft(i), wished: wishNow().includes(i.id), kind: 'premio' as const })
 const toRedemption = (r: Redemption) => ({
-  id: r.id, itemId: r.itemId, title: r.title, emoji: r.emoji, price: r.price, ts: r.ts, status: r.status,
+  id: r.id, itemId: r.itemId, title: requestLang() === 'en' ? prizeTitleEn(r.title) : r.title, emoji: r.emoji, price: r.price, ts: r.ts, status: r.status,
   ...(r.origin ? { origin: r.origin } : {}), ...(r.closedAt !== undefined ? { closedAt: r.closedAt } : {}),
 })
 /** ¿Este canje es de `member`? Uno de un premio suyo (U3: el dueño sale del premio) o el premio de la liga de la familia que

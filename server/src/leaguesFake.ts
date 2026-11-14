@@ -88,9 +88,16 @@ import { ensureMedals, registerMedalFacts, syncMedals } from './medals'
 import { checkPrizeFields, familyTz, featureOn, memberItemsOf } from './parent'
 import { perUser } from './perUser'
 import { familyWeekStart, seedLastWeekOf, startNewWeek, summaryOf, weekFactsOf, weekXp, weekXpOf } from './progress'
-import { currentUser, runAsUser } from './requestContext'
+import { currentUser, requestLang, runAsUser } from './requestContext'
 // i18n (9-nov): los rótulos de tiempo se resuelven al servir (estas funciones corren en cada pedido; nada las cachea).
 import { L as tx } from './lang'
+import { LEAGUE_EN } from './feedEn'
+import { localizePrize } from './parentEn'
+/** i18n (regla del 9-nov: todo lo visible en el idioma activo): los NOMBRES de liga de una respuesta («Liga Cometa» →
+ *  «Comet League»), al servir. Solo strings IGUALES a un nombre de la escalera: ids, colores y lo demás no se tocan. */
+const leaguesOut = <T,>(v: T): T => (requestLang() === 'en'
+  ? JSON.parse(JSON.stringify(v), (_k, x: unknown) => (typeof x === 'string' && LEAGUE_EN[x] ? LEAGUE_EN[x] : x)) as T
+  : v)
 import { actingUser, familyKeyOf, familyOf, userById, users, type UserInfo } from './users'
 import { readJson, send } from './web'
 import { wallClock, wallDate } from '../../src/shared/lib/zonedClock'
@@ -595,9 +602,11 @@ function liveRows(viewerId: string): (FamilyWeekInputRow & { u: UserInfo; bestRu
  *  true en cada una de ellas (es la misma promesa). */
 const prizeInPlay = (st: FamilyWeekState, h: FamilyWeekClosedRaw): boolean =>
   !!h.prize && h.prize.winners.length === 0 && !!st.prize && st.prize.setAt === h.prize.setAt
+// i18n (10-nov): el título/desc del premio (copiado de la Tienda o "uno nuevo" del adulto) en el idioma del pedido AL SERVIR
+// (parentEn.localizePrize: los sembrados por tabla; el texto libre del adulto, tal cual). El estado sigue en castellano.
 const servedHistory = (st: FamilyWeekState): FamilyWeekClosed[] =>
-  st.history.map((h, i) => ({ ...h, label: weeksAgoLabel(i + 1), prizeInPlay: prizeInPlay(st, h) }))
-const copyPrize = (p: FamilyWeekPrize): FamilyWeekPrize => ({ ...p, by: { ...p.by }, from: p.from ? { ...p.from } : null })
+  st.history.map((h, i) => ({ ...h, ...(h.prize ? { prize: localizePrize(h.prize) } : {}), label: weeksAgoLabel(i + 1), prizeInPlay: prizeInPlay(st, h) }))
+const copyPrize = (p: FamilyWeekPrize): FamilyWeekPrize => localizePrize({ ...p, by: { ...p.by }, from: p.from ? { ...p.from } : null })
 
 /** La tabla de la semana de la familia de `viewer` (U4) + lo de U5: días, mejor tramo, semana anterior, la 🏆 chiquita de
  *  la semana pasada, el premio en juego, el historial con rótulos y si el que mira lo administra. XP y racha de CADA UNO con
@@ -722,7 +731,7 @@ export function familyPrizeOptions(viewer: UserInfo): FamilyPrizeOptions {
   return {
     groups: (viewer.dependents ?? []).flatMap(d => {
       const u = userById(d)
-      return u ? [{ member: d, name: u.name, items: memberItemsOf(d).map(i => ({ itemId: i.id, emoji: i.emoji, title: i.title, ...(i.desc ? { desc: i.desc } : {}) })) }] : []
+      return u ? [{ member: d, name: u.name, items: memberItemsOf(d).map(i => ({ itemId: i.id, emoji: i.emoji, ...localizePrize({ title: i.title, ...(i.desc ? { desc: i.desc } : {}) }) })) }] : []
     }),
   }
 }
@@ -816,22 +825,22 @@ export async function leaguesRoutes(req: IncomingMessage, res: ServerResponse, u
   // Botón de demo "Simular cierre de semana" (Ligas): cierra TU liga; el efecto vive en RAM y una recarga vuelve al seed.
   if (url.pathname === '/api/leagues/close-week') {
     if (req.method !== 'POST') return send(res, 405, { error: 'method' })
-    return send(res, 200, closeWeek())
+    return send(res, 200, leaguesOut(closeWeek()))
   }
   if (req.method !== 'GET') return send(res, 405, { error: 'method' })
-  if (url.pathname === '/api/leagues/mine') return send(res, 200, myLeague())
+  if (url.pathname === '/api/leagues/mine') return send(res, 200, leaguesOut(myLeague()))
   if (url.pathname === '/api/leagues/family') return send(res, 200, familyLeague(me))
   if (url.pathname === '/api/leagues/standing') {
     const L = leagueOf()
     if (url.searchParams.get('id') !== L.id) return send(res, 404, { error: tx('Esa liga no es tuya', 'That league isn’t yours') })
     const rows = standing()
     const pos = rows.findIndex(r => r.me) + 1
-    return send(res, 200, { league: { id: L.id, name: L.name, color: L.color, total: TOTAL, pos }, rows })
+    return send(res, 200, leaguesOut({ league: { id: L.id, name: L.name, color: L.color, total: TOTAL, pos }, rows }))
   }
   if (url.pathname === '/api/leagues/geo') {
     const scope = url.searchParams.get('scope')
     if (scope !== 'zona' && scope !== 'pais') return send(res, 400, { error: 'scope: zona | pais' })
-    return send(res, 200, geoRanking(scope))
+    return send(res, 200, leaguesOut(geoRanking(scope)))
   }
   return send(res, 404, { error: 'not found' })
 }

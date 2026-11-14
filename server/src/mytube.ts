@@ -84,7 +84,8 @@ import { complete } from './llm'
 import { hasParentSession } from './parent'
 import * as space from './space'
 import * as videosModule from './videos'
-import { allChannels, catalogSize, getCatalogVideo, videosOfChannel, type CatalogVideo } from './videos'
+import { allChannels, catalogSize, channelLangEs, getCatalogVideo, looksSpanish, videosOfChannel, videoVisibleNow, type CatalogVideo } from './videos'
+import { requestLang } from './requestContext'
 import { readJson, send } from './web'
 
 /* ---------- formas (espejo de las tablas Dexie del POC, app/src/db.ts) ---------- */
@@ -892,14 +893,47 @@ function enrichChannel(cid: string): void {
   inflight.set(cid, job)
 }
 
+/* ---------- i18n de las vistas del chico (regla del dueño, 10-nov: en inglés no se sirve nada en castellano) ----------
+   Se resuelve AL SERVIR (requestLang); lo guardado no cambia y en castellano todo sale EXACTO como antes (cada helper
+   devuelve lo de siempre si el pedido no es en inglés). En inglés: un canal castellano (videos.ts: channelLangEs, por el
+   nombre de la entidad o el del catálogo) no existe; de los demás se sirven solo los videos que pasan videoVisibleNow (canal
+   + título) y las playlists que no tienen título castellano y conservan ≥1 de esos videos (una lista mixta sirve solo lo
+   inglés). La descripción curada la escribe el modelo en castellano: en inglés va la limpia de YouTube si no es castellana,
+   y si no, ninguna. El panel del padre (admin/*) no se filtra: el adulto administra todo lo aprobado. */
+const enNow = () => requestLang() === 'en'
+const channelName = (cid: string) => channels.get(cid)?.title || catalogTitle(cid) || ''
+const channelServedNow = (cid: string) => !enNow() || (!channelLangEs(channelName(cid)) && !channelLangEs(catalogTitle(cid)))
+const mtVisibleNow = (v: MtVideo) => !enNow() || videoVisibleNow({ title: v.title, channelTitle: v.channelTitle || (v.channelId ? channelName(v.channelId) : '') })
+function channelVideosNow(cid: string): MtVideo[] {
+  if (!enNow()) return channelVideos(cid)
+  return channelServedNow(cid) ? channelVideos(cid).filter(mtVisibleNow) : []
+}
+function playlistVideosNow(pl: YtPlaylist): MtVideo[] {
+  if (!enNow()) return playlistVideos(pl)
+  return channelServedNow(pl.channelId) && !looksSpanish(pl.title) ? playlistVideos(pl).filter(mtVisibleNow) : []
+}
+function channelPlaylistsNow(cid: string): YtPlaylist[] {
+  const all = channelPlaylists(cid)
+  return enNow() ? all.filter(p => playlistVideosNow(p).length > 0) : all
+}
+function descNow(ch: YtChannel | undefined): string | undefined {
+  if (!enNow()) return ch?.desc || undefined
+  // `desc` (curada por el modelo, que escribe en castellano, o editada por el padre) no se sirve en inglés: aunque el
+  // detector no la marque, lo más probable es que sea castellano. Va la descripción de YouTube limpia, si no es castellana.
+  const raw = limpiarDesc(ch?.descRaw ?? '').slice(0, 400)
+  return raw && !looksSpanish(raw) ? raw : undefined
+}
+
 /* ---------- vistas del chico ---------- */
 async function followedChannelCards() {
   const ids = space.followedIds().filter(hasContent)
   await ensureMeta(ids)
+  // i18n: en inglés, solo los canales con ≥1 video servible (y el conteo es de esos)
+  const shown = enNow() ? ids.map(cid => ({ cid, n: channelVideosNow(cid).length })).filter(x => x.n > 0) : ids.map(cid => ({ cid, n: channelRowCount(cid) }))
   return {
-    channels: ids.slice().sort(cmpKey).map(cid => {
+    channels: shown.sort((a, b) => cmpKey(a.cid, b.cid)).map(({ cid, n }) => {
       const ch = channels.get(cid)
-      return { channelId: cid, title: ch?.title || catalogTitle(cid) || cid, thumb: ch?.thumb || undefined, videos: channelRowCount(cid) }
+      return { channelId: cid, title: ch?.title || catalogTitle(cid) || cid, thumb: ch?.thumb || undefined, videos: n }
     }),
   }
 }
@@ -907,16 +941,19 @@ async function followedChannelCards() {
 function channelDetail(cid: string) {
   const ch = channels.get(cid)
   const content = hasContent(cid)
+  const none = { channel: null, followed: false, total: 0, playlists: [], pending: false }
+  if (!ch && !content) return none
+  const total = channelVideosNow(cid).length
+  if (enNow() && !total) return none // i18n: un canal castellano (o sin nada servible en inglés) no existe en inglés
   if (content) enrichChannel(cid)
-  if (!ch && !content) return { channel: null, followed: false, total: 0, playlists: [], pending: false }
   return {
     channel: {
       channelId: cid, title: ch?.title || catalogTitle(cid) || cid,
-      handle: ch?.handle || undefined, desc: ch?.desc || undefined, thumb: ch?.thumb || undefined,
+      handle: ch?.handle || undefined, desc: descNow(ch), thumb: ch?.thumb || undefined,
     },
     followed: space.isFollowed(cid),
-    total: channelVideos(cid).length,
-    playlists: channelPlaylists(cid).map(p => ({ playlistId: p.playlistId, title: p.title })),
+    total,
+    playlists: channelPlaylistsNow(cid).map(p => ({ playlistId: p.playlistId, title: p.title })),
     pending: inflight.has(cid),
   }
 }
@@ -977,14 +1014,16 @@ export async function mytubeRoutes(req: IncomingMessage, res: ServerResponse, ur
     if (path === '/api/mytube/channels') return send(res, 200, await followedChannelCards())
     if (path === '/api/mytube/channel') return send(res, 200, channelDetail(qid))
     if (path === '/api/mytube/channel/videos') {
-      const all = channelVideos(qid)
+      const all = channelVideosNow(qid) // i18n: en inglés, sin lo castellano (en castellano, channelVideos tal cual)
       const offset = Math.max(0, Number(url.searchParams.get('offset')) || 0)
       const limit = Math.min(200, Math.max(1, Number(url.searchParams.get('limit')) || 40))
       return send(res, 200, { videos: all.slice(offset, offset + limit), total: all.length })
     }
     if (path === '/api/mytube/channel/playlist') {
       const pl = playlists.get(qid)
-      return pl ? send(res, 200, { videos: playlistVideos(pl) }) : send(res, 404, { error: 'playlist' })
+      const vids = pl ? playlistVideosNow(pl) : []
+      // i18n: en inglés, una lista con solo videos castellanos (o con título castellano) no existe
+      return pl && (!enNow() || vids.length) ? send(res, 200, { videos: vids }) : send(res, 404, { error: 'playlist' })
     }
     if (path === '/api/mytube/admin/state') return send(res, 200, adminState())
     if (path === '/api/mytube/admin/channels') return send(res, 200, await adminChannels())

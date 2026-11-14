@@ -254,16 +254,19 @@ describe('i18n (pedido 9-nov): el feed en el idioma del pedido, traducido AL SER
   beforeEach(() => { vi.setSystemTime(new Date(2026, 9, 29, 16, 30)); resetFeed(); resetFriends(); NO_ROUTES.on = false; });
   afterEach(() => { NO_ROUTES.on = false; });
 
-  it('con lang en: los mismos ítems que en castellano (salvo las rutas: en inglés no se sirven), con los textos en inglés', () => {
+  it('con lang en: lo de castellano salvo rutas y videos del catálogo (en inglés no se sirven), con los textos en inglés', () => {
     const es = runAsUser('ian', () => getFeed(), 'es');
     const en = runAsUser('ian', () => getFeed(), 'en');
-    expect(en.items.map((it) => it.id)).toEqual(es.items.filter((it) => it.kind !== 'route').map((it) => it.id));
+    // (10-nov) sin videos la edición en inglés se arma con menos tarjetas: lo que trae es lo mismo que la de castellano, en otro corte
+    const esIds = new Set(es.items.map((it) => it.id));
+    expect(en.items.filter((it) => it.kind !== 'article' && it.kind !== 'friend').every((it) => esIds.has(it.id))).toBe(true);
+    expect(en.items.some((it) => it.kind === 'route' || it.kind === 'video' || it.kind === 'videos')).toBe(false);
     const streakEs = es.items.find((it) => it.kind === 'friend' && it.text === 'llegó a una racha de 12 días seguidos practicando');
     expect(streakEs, 'la noticia sembrada de TomasApolo').toBeDefined();
     const streakEn = en.items.find((it) => it.id === streakEs!.id) as Extract<Item, { kind: 'friend' }>;
     expect(streakEn.text).toBe('hit a 12-day practice streak');
     expect(streakEn.reason).toBe('TomasApolo is your friend');
-    expect((en.items.find((it) => it.kind === 'videos') as Extract<Item, { kind: 'videos' }> | undefined)?.title).toBe('Videos for you');
+    expect((es.items.find((it) => it.kind === 'videos') as Extract<Item, { kind: 'videos' }> | undefined)?.title).toBe('Videos para vos');
     // el castellano no cambió por haber servido en inglés (lo guardado en RAM/pools sigue en castellano)
     expect(runAsUser('ian', () => getFeed(), 'es')).toEqual(es);
   });
@@ -277,6 +280,30 @@ describe('i18n (pedido 9-nov): el feed en el idioma del pedido, traducido AL SER
     expect(en.every((it) => it.time === 'just now')).toBe(true);
     expect(en.map((it) => it.id)).toEqual(es.map((it) => it.id));
     expect(en.some((it, i) => it.text !== es[i].text)).toBe(true);
+  });
+
+  it('(10-nov) en inglés ningún video del catálogo real (en castellano): ni tarjetas fv- ni la grilla «Videos para vos», en ninguna página', () => {
+    const es = runAsUser('ian', () => getFeed(), 'es');
+    expect(es.items.some((it) => it.kind === 'video'), 'en castellano sí hay tarjetas de video').toBe(true);
+    expect(es.items.some((it) => it.kind === 'videos'), 'en castellano sí hay grilla').toBe(true);
+    const catalogTitles = es.items.flatMap((it) => (it.kind === 'video' ? [it.video.title] : it.kind === 'videos' ? it.videos.map((v) => v.title) : []));
+    const pages: Item[][] = [];
+    let page = runAsUser('ian', () => getFeed(), 'en');
+    for (let n = 0; n < 30; n++) {
+      pages.push(page.items);
+      if (!page.next) break;
+      const after = page.next;
+      page = runAsUser('ian', () => getFeed(after), 'en');
+    }
+    const all = pages.flat();
+    expect(pages[0].length).toBeGreaterThan(3); // el mix no se cae con menos tarjetas
+    expect(all.some((it) => it.kind === 'article')).toBe(true);
+    expect(all.some((it) => it.kind === 'friend')).toBe(true);
+    expect(all.some((it) => it.kind === 'video' || it.kind === 'videos' || it.id.startsWith('fv'))).toBe(false);
+    const json = JSON.stringify(all);
+    for (const t of catalogTitles) expect(json).not.toContain(t);
+    // y en castellano sigue todo igual después de servir en inglés
+    expect(runAsUser('ian', () => getFeed(), 'es')).toEqual(es);
   });
 
   it('con el catálogo de rutas vacío (en inglés no se sirven rutas) el feed responde igual: sin cards de ruta y con el hero de elegir', () => {

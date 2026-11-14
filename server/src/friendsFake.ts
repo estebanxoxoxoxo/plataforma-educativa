@@ -83,6 +83,7 @@ import { currentUser, requestLang } from './requestContext'
 // i18n (9-nov): lo guardado en RAM queda SIEMPRE en castellano; se traduce al servir (friendsEn: hilos, notas, perfil).
 import { L as tx } from './lang'
 import { coursesEn, dmText, garmentEn, monthEn, statusEn, streakEn } from './friendsEn'
+import { leagueName } from './feedEn'
 import { DEFAULT_USER_ID, actingUser, userById } from './users'
 import { readJson, send } from './web'
 import { GRAPH_IDS, NPC_ROSTER } from './npcRoster'
@@ -456,7 +457,7 @@ const monthNow = () => new Date().toLocaleString('es-AR', { month: 'long' })
 const pick = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)]
 // i18n: status, racha, mes y cursos en el idioma del pedido (friendsEn); la liga queda (nombre del universo fake).
 const toFriend = (st: State, n: Npc): Friend => ({
-  id: n.id, nick: n.nick, color: n.color, status: statusEn(n.status), xp: n.xp, streak: streakEn(n.streak), league: n.league,
+  id: n.id, nick: n.nick, color: n.color, status: statusEn(n.status), xp: n.xp, streak: streakEn(n.streak), league: leagueName(n.league),
   since: monthEn(st.since[n.id] ?? monthNow()), commonCourses: coursesEn([...n.commonCourses]), accessory: st.wearing[n.id] ?? null,
 })
 /** i18n: los mensajes de un hilo como salen por la API (los del NPC plantillados/sembrados, traducidos; friendsEn.dmText). */

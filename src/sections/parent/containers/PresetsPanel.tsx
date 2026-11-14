@@ -25,13 +25,15 @@ function changesFor(p: PresetView, f: ParentFeatures | null, c: ParentConfig | n
   const off = FEATURE_ORDER.filter((k) => !s.features[k] && f[k]).map((k) => FEATURE_LABEL[k]);
   if (off.length) out.push(L(`Se apaga${off.length > 1 ? 'n' : ''}: ${listEs(off)}.`, `Turns off: ${listEs(off)}.`));
   if (on.length) out.push(L(`Se prende${on.length > 1 ? 'n' : ''}: ${listEs(on)}.`, `Turns on: ${listEs(on)}.`));
+  // Los temas se COMPARAN por su valor (castellano, lo que guarda la config) y se MUESTRAN con topicLabels en EN.
+  const shown = (xs: string[]) => quoted(xs.map((t) => p.topicLabels?.[t] ?? t));
   const lists = [['white', L('sugerencias', 'suggestions')], ['black', L('temas que no tienen que aparecer', 'topics that shouldn’t show up')]] as const;
   for (const [k, label] of lists) {
     if (sameSet(s.topics[k], c.topics[k])) continue;
     const gone = c.topics[k].filter((t) => !s.topics[k].includes(t));
     const cap = `${label[0].toUpperCase()}${label.slice(1)}`;
-    out.push(s.topics[k].length ? L(`${cap}: quedan ${quoted(s.topics[k])}${gone.length ? ` (salen ${quoted(gone)})` : ''}.`, `${cap}: keeps ${quoted(s.topics[k])}${gone.length ? ` (removes ${quoted(gone)})` : ''}.`)
-      : L(`Se borran tus ${label}: ${quoted(gone)}.`, `Your ${label} are deleted: ${quoted(gone)}.`));
+    out.push(s.topics[k].length ? L(`${cap}: quedan ${shown(s.topics[k])}${gone.length ? ` (salen ${shown(gone)})` : ''}.`, `${cap}: keeps ${shown(s.topics[k])}${gone.length ? ` (removes ${shown(gone)})` : ''}.`)
+      : L(`Se borran tus ${label}: ${shown(gone)}.`, `Your ${label} are deleted: ${shown(gone)}.`));
   }
   if (!sameSet(s.words, c.words.extra)) {
     const gone = c.words.extra.filter((w) => !s.words.includes(w));

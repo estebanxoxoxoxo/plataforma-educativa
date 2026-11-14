@@ -47,8 +47,8 @@ export function PresetCard({ p, applied, confirming, busy, changes, onApply, onC
             <dd>
               {s.topics.black.length === 0 && s.topics.white.length === 0 ? L('Sin temas de la familia', 'No family topics') : (
                 <>
-                  {s.topics.white.length > 0 && <span className="pz-preset-line">{L('Sugiere', 'Suggests')} {quoted(s.topics.white)}</span>}
-                  {s.topics.black.length > 0 && <span className="pz-preset-line">{L('Fuera:', 'Out:')} {quoted(s.topics.black)}</span>}
+                  {s.topics.white.length > 0 && <span className="pz-preset-line">{L('Sugiere', 'Suggests')} {quoted(s.topics.white.map((t) => p.topicLabels?.[t] ?? t))}</span>}
+                  {s.topics.black.length > 0 && <span className="pz-preset-line">{L('Fuera:', 'Out:')} {quoted(s.topics.black.map((t) => p.topicLabels?.[t] ?? t))}</span>}
                 </>
               )}
             </dd>

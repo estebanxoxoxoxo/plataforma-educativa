@@ -3,8 +3,10 @@
 // los pools/lo vivo (RAM) las guardan así. GOTCHA: esas constantes se evalúan al importar (fuera de todo pedido), así que
 // un L() ahí quedaría clavado en 'es'; por eso la traducción vive acá, como tabla es→en (exactas + plantillas), y feedFake
 // la aplica en el punto donde cada ítem sale hacia la respuesta (localizeFeedItem). Lo que no está en la tabla sale como
-// vino (castellano): nunca se rompe nada. Nombres propios que NO se traducen: nicks de NPCs, nombres de ligas (Liga
-// Cometa…: universo fake), títulos de rutas del catálogo y temas que escribió la familia (data).
+// vino (castellano): nunca se rompe nada. Nombres propios que NO se traducen: nicks de NPCs, títulos de rutas del catálogo
+// y temas que escribió la familia (data). Regla del 9-nov (Esteban: «títulos, subtítulos, descripciones de cualquier card…
+// hay que traducirlo»): los NOMBRES DE LIGAS («Liga Cometa» → «Comet League») y el pool de LECTURAS de feedFake (título y
+// bajada) también se traducen al servir; los links siguen yendo a donde iban.
 import { requestLang } from './requestContext'
 
 /** Frases fijas: noticias de los NPCs (seed y ráfaga), "por qué", rótulos de tiempo y títulos. Clave = el castellano EXACTO. */
@@ -13,12 +15,12 @@ const EXACT = new Map<string, string>([
   ['ganó la medalla de oro 🥇 en la Liga Cometa', 'won the gold medal 🥇 in Liga Cometa'],
   ['llegó a una racha de 12 días seguidos practicando', 'hit a 12-day practice streak'],
   ['se ganó la insignia «Placas Tectónicas»', 'earned the “Tectonic Plates” badge'],
-  ['compartió la ruta «Cómo funciona el corazón»', 'shared the route “Cómo funciona el corazón”'],
+  ['compartió la ruta «Cómo funciona el corazón»', 'shared the route “How the heart works”'],
   ['subió a la Liga Estrella ⭐', 'moved up to Liga Estrella ⭐'],
   ['terminó la unidad 1 de Álgebra', 'finished unit 1 of Algebra'],
   ['completó 40 pasos este mes', 'completed 40 steps this month'],
   ['ganó la medalla de bronce 🥉 en la Liga Cometa', 'won the bronze medal 🥉 in Liga Cometa'],
-  ['compartió la ruta «Volcanes de Argentina»', 'shared the route “Volcanes de Argentina”'],
+  ['compartió la ruta «Volcanes de Argentina»', 'shared the route “Volcanoes of Argentina”'],
   ['llegó a una racha de 7 días seguidos practicando', 'hit a 7-day practice streak'],
   ['se ganó la insignia «Progresión de Acordes»', 'earned the “Chord Progression” badge'],
   ['se ganó la insignia «Datación por Carbono» en Paleontología 🦴', 'earned the “Carbon Dating” badge in Paleontology 🦴'],
@@ -185,6 +187,43 @@ const PATTERNS: [RegExp, (...m: string[]) => string][] = [
   [/^hace (\d+) semanas$/, (n) => `${n} weeks ago`],
 ]
 
+/* ---------- nombres de ligas (leaguesFake.LADDER) ---------- */
+export const LEAGUE_EN: Record<string, string> = {
+  'Liga Chispa': 'Spark League', 'Liga Cometa': 'Comet League', 'Liga Estrella': 'Star League',
+  'Liga Supernova': 'Supernova League', 'Liga Galaxia': 'Galaxy League',
+}
+const LEAGUE_RE = /\b(in|to|from|of) Liga (Chispa|Cometa|Estrella|Supernova|Galaxia)\b|Liga (Chispa|Cometa|Estrella|Supernova|Galaxia)\b/g
+/** Los nombres de liga dentro de un texto YA en inglés ("in Liga Cometa" → "in the Comet League"). */
+export const leaguesInEn = (s: string): string =>
+  s.replace(LEAGUE_RE, (_m, prep: string | undefined, a: string | undefined, b: string | undefined) =>
+    prep ? `${prep} the ${LEAGUE_EN[`Liga ${a}`]}` : LEAGUE_EN[`Liga ${b}`])
+/** Un nombre de liga suelto en el idioma del pedido (el campo `name` de una card o un perfil). */
+export const leagueName = (name: string): string => (requestLang() === 'en' ? LEAGUE_EN[name] ?? name : name)
+
+/* ---------- el pool de LECTURAS de feedFake.ARTICLES (por URL: título y bajada) ---------- */
+export const ARTICLE_EN: Record<string, { title: string; snippet: string }> = {
+  'https://es.wikipedia.org/wiki/Apolo_11': { title: 'Apollo 11: the journey to the Moon', snippet: 'The mission that took the first humans to walk on the Moon, in July 1969.' },
+  'https://spaceplace.nasa.gov/sun-compare/sp/': { title: 'How our Sun compares to other stars', snippet: 'Our Sun is impressive, but how does it compare to the other stars in the galaxy?' },
+  'https://www.esa.int/kids/es/Aprende/Nuestro_Universo/Cometas_y_meteoritos/Estrellas_fugaces': { title: 'Shooting stars', snippet: 'What are shooting stars really, and why do they come in showers?' },
+  'https://es.wikipedia.org/wiki/Cintur%C3%B3n_de_asteroides': { title: 'The asteroid belt', snippet: 'Between Mars and Jupiter there are millions of rocks orbiting the Sun.' },
+  'https://concepto.de/cometas/': { title: 'What is a comet?', snippet: 'Celestial bodies with a core of ice and dust that grow a bright tail.' },
+  'https://es.wikipedia.org/wiki/V%C3%ADa_L%C3%A1ctea': { title: 'The Milky Way', snippet: 'The spiral galaxy where the solar system lives, with hundreds of billions of stars.' },
+  'https://es.wikipedia.org/wiki/Tyrannosaurus_rex': { title: 'Tyrannosaurus rex, king of the dinosaurs', snippet: 'One of the biggest meat-eaters ever to walk the Earth: it lived at the end of the Cretaceous.' },
+  'https://concepto.de/volcan/': { title: 'What is a volcano?', snippet: 'How they form, what kinds there are, and why some stay asleep for centuries.' },
+  'https://concepto.de/tiburon/': { title: 'The great white shark', snippet: 'Where it lives, what it eats, and what one of the ocean’s great hunters is like.' },
+  'https://es.wikipedia.org/wiki/Arduino': { title: 'Arduino: the board for building robots', snippet: 'The programmable board used to build robots, lights and sensors: open hardware since 2005.' },
+  'https://es.wikipedia.org/wiki/Imprenta': { title: 'The printing press', snippet: 'The invention that made it possible to copy books in large numbers and changed how the world learns.' },
+  'https://concepto.de/metodo-cientifico/': { title: 'The scientific method', snippet: 'Observe, ask, test and draw conclusions: the steps of every good experiment.' },
+  'https://www.disfrutalasmatematicas.com/fracciones.html': { title: 'Fractions', snippet: 'Numerator, denominator and operations: the foundation all of algebra builds on.' },
+  'https://es.wikipedia.org/wiki/Triceratops': { title: 'Triceratops', snippet: 'The three-horned ceratopsian: what its fossils tell us about how it lived.' },
+  'https://es.wikipedia.org/wiki/Fase_lunar': { title: 'The phases of the Moon', snippet: 'Why the Moon looks full, half or new over the course of the month.' },
+}
+/** Título y bajada de una lectura del pool en el idioma del pedido (las que no están en la tabla, tal cual). */
+export function articleText<T extends { url: string; title: string; snippet?: string }>(a: T): T {
+  const e = requestLang() === 'en' ? ARTICLE_EN[a.url] : undefined
+  return e ? { ...a, title: e.title, ...(a.snippet !== undefined ? { snippet: e.snippet } : {}) } : a
+}
+
 /** El espacio duro que feedFake.glue pone antes de cada emoji (para buscar en la tabla se vuelve espacio común). */
 const NBSP = / /g
 const glue = (text: string) => text.replace(/ (?=\p{Extended_Pictographic})/gu, ' ')
@@ -203,6 +242,8 @@ export function feedText(s: string | undefined): string | undefined {
       if (m) { out = fn(...m.slice(1)); break }
     }
   }
-  if (out === undefined) return s
+  if (out === undefined) out = key
+  out = leaguesInEn(out)
+  if (out === key) return s
   return glued ? glue(out) : out
 }
