@@ -138,7 +138,7 @@
 .prof-av .av3{width:36px;height:36px;font-size:18px;line-height:1;transition:box-shadow .2s ease}
 .prof-av:hover .av3{box-shadow:0 0 0 3px #D3D9E6}
 .prof-name{flex:1 1 auto;min-width:0;font-family:var(--display);font-weight:800;font-size:16px;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.prof-lg{flex:none;display:inline-flex;align-items:center;gap:3px;height:30px;padding:0 7px 0 4px;border-radius:999px;border:1.5px solid #F2D9A8;background:#FFF8E6;
+.prof-lg{flex:none;display:inline-flex;align-items:center;gap:3px;height:30px;padding:0 5px 0 4px;border-radius:999px;border:1.5px solid #F2D9A8;background:#FFF8E6;
   color:#7F5300;font-family:var(--display);font-weight:800;font-size:14px;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap;text-decoration:none;
   transition:background-color .2s ease,border-color .2s ease}
 .prof-lg:hover{background:#FFEFC7;border-color:#E8B94A}

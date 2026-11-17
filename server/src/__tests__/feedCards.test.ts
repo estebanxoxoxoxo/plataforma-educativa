@@ -313,6 +313,33 @@ describe('i18n (pedido 9-nov): el feed en el idioma del pedido, traducido AL SER
     expect(runAsUser('ian', () => getFeed(), 'es')).toEqual(es);
   });
 
+  it('(14-nov) la lectura de Apolo 11 en inglés abre su página inglesa (misma id); en castellano, es.wikipedia; las otras 14 no cambian de URL', () => {
+    type Art = Extract<Item, { kind: 'article' }>;
+    const arts = (lang: 'es' | 'en') => {
+      const out = new Map<string, Art>();
+      let page = runAsUser('ian', () => getFeed(), lang);
+      for (let n = 0; n < 40; n++) {
+        for (const it of page.items) if (it.kind === 'article') out.set(it.id, it);
+        if (!page.next) break;
+        const after = page.next;
+        page = runAsUser('ian', () => getFeed(after), lang);
+      }
+      return out;
+    };
+    const es = arts('es'), en = arts('en');
+    expect(es.size).toBe(15);
+    expect([...en.keys()].sort()).toEqual([...es.keys()].sort());
+    const apoloEs = [...es.values()].find((a) => a.url === 'https://es.wikipedia.org/wiki/Apolo_11');
+    expect(apoloEs, 'la de Apolo 11 en castellano').toBeDefined();
+    expect(apoloEs).toMatchObject({ id: 'fa-1', source: 'es.wikipedia.org', title: 'Apolo 11: el viaje a la Luna' });
+    expect(en.get(apoloEs!.id)).toMatchObject({ url: 'https://airandspace.si.edu/explore/stories/apollo-11-moon-landing', source: 'Smithsonian Air and Space', title: 'Apollo 11: the journey to the Moon' });
+    for (const [id, a] of es) {
+      if (id === apoloEs!.id) continue;
+      expect(en.get(id)!.url, id).toBe(a.url);
+      expect(en.get(id)!.source, id).toBe(a.source);
+    }
+  });
+
   it('con el catálogo de rutas vacío (en inglés no se sirven rutas) el feed responde igual: sin cards de ruta y con el hero de elegir', () => {
     NO_ROUTES.on = true;
     const en = runAsUser('ian', () => getFeed(), 'en');

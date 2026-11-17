@@ -200,9 +200,17 @@ export const leaguesInEn = (s: string): string =>
 /** Un nombre de liga suelto en el idioma del pedido (el campo `name` de una card o un perfil). */
 export const leagueName = (name: string): string => (requestLang() === 'en' ? LEAGUE_EN[name] ?? name : name)
 
-/* ---------- el pool de LECTURAS de feedFake.ARTICLES (por URL: título y bajada) ---------- */
-export const ARTICLE_EN: Record<string, { title: string; snippet: string }> = {
-  'https://es.wikipedia.org/wiki/Apolo_11': { title: 'Apollo 11: the journey to the Moon', snippet: 'The mission that took the first humans to walk on the Moon, in July 1969.' },
+/* ---------- el pool de LECTURAS de feedFake.ARTICLES (por URL: título y bajada) ----------
+   (14-nov, «en inglés no se sirve contenido castellano») una entrada puede traer además `url` y `source` propios: la página
+   EN INGLÉS a la que lleva la tarjeta (de un sitio que ya está en la lista blanca, verificada con GET /api/article en en).
+   El id de la lectura (fa-N, por lugar en el pool) no cambia: reacciones, «menos de esto» y el orden siguen igual en los
+   dos idiomas; solo cambia a dónde abre (el cliente abre /buscar/articulo/<url> con la url servida). Las que no la traen
+   siguen abriendo la página castellana (pendiente). */
+export const ARTICLE_EN: Record<string, { title: string; snippet: string; url?: string; source?: string }> = {
+  'https://es.wikipedia.org/wiki/Apolo_11': {
+    title: 'Apollo 11: the journey to the Moon', snippet: 'The mission that took the first humans to walk on the Moon, in July 1969.',
+    url: 'https://airandspace.si.edu/explore/stories/apollo-11-moon-landing', source: 'Smithsonian Air and Space',
+  },
   'https://spaceplace.nasa.gov/sun-compare/sp/': { title: 'How our Sun compares to other stars', snippet: 'Our Sun is impressive, but how does it compare to the other stars in the galaxy?' },
   'https://www.esa.int/kids/es/Aprende/Nuestro_Universo/Cometas_y_meteoritos/Estrellas_fugaces': { title: 'Shooting stars', snippet: 'What are shooting stars really, and why do they come in showers?' },
   'https://es.wikipedia.org/wiki/Cintur%C3%B3n_de_asteroides': { title: 'The asteroid belt', snippet: 'Between Mars and Jupiter there are millions of rocks orbiting the Sun.' },
@@ -218,10 +226,15 @@ export const ARTICLE_EN: Record<string, { title: string; snippet: string }> = {
   'https://es.wikipedia.org/wiki/Triceratops': { title: 'Triceratops', snippet: 'The three-horned ceratopsian: what its fossils tell us about how it lived.' },
   'https://es.wikipedia.org/wiki/Fase_lunar': { title: 'The phases of the Moon', snippet: 'Why the Moon looks full, half or new over the course of the month.' },
 }
-/** Título y bajada de una lectura del pool en el idioma del pedido (las que no están en la tabla, tal cual). */
-export function articleText<T extends { url: string; title: string; snippet?: string }>(a: T): T {
+/** Título y bajada de una lectura del pool en el idioma del pedido (las que no están en la tabla, tal cual); si la entrada
+ *  trae su página en inglés, también la URL y la fuente (el id del ítem, si lo tiene, queda igual). */
+export function articleText<T extends { url: string; title: string; snippet?: string; source?: string }>(a: T): T {
   const e = requestLang() === 'en' ? ARTICLE_EN[a.url] : undefined
-  return e ? { ...a, title: e.title, ...(a.snippet !== undefined ? { snippet: e.snippet } : {}) } : a
+  if (!e) return a
+  return {
+    ...a, title: e.title, ...(a.snippet !== undefined ? { snippet: e.snippet } : {}),
+    ...(e.url ? { url: e.url } : {}), ...(e.url && e.source ? { source: e.source } : {}),
+  }
 }
 
 /** El espacio duro que feedFake.glue pone antes de cada emoji (para buscar en la tabla se vuelve espacio común). */

@@ -3,6 +3,7 @@
 // la solapa Páginas muestra directamente el top N ya filtrado y ordenado.
 import { articleBlacklist, config, ov, whitelistSites } from './config'
 import { applyDomainFilter, isBlockedSite, matchBlockedWord } from './filters'
+import { type Lang, requestLang } from './requestContext'
 
 export interface SerperOrganic { title: string; link: string; snippet?: string; date?: string; position?: number }
 
@@ -18,7 +19,8 @@ async function serperSearch(q: string): Promise<{ organic: SerperOrganic[]; erro
     const r = await fetch('https://google.serper.dev/search', {
       method: 'POST',
       headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ q, num: 10, gl: config.searchGl, hl: config.searchHl }),
+      // En inglés se busca como en EE. UU. (si no, Google prioriza resultados de Argentina/castellano); en castellano, los de config.
+      body: JSON.stringify({ q, num: 10, ...(requestLang() === 'en' ? { gl: 'us', hl: 'en' } : { gl: config.searchGl, hl: config.searchHl }) }),
       signal: AbortSignal.timeout(SERPER_TIMEOUT_MS),
     })
     if (!r.ok) return { organic: [], error: `Serper HTTP ${r.status}` }
@@ -31,11 +33,21 @@ async function serperSearch(q: string): Promise<{ organic: SerperOrganic[]; erro
 
 const norm = (s: string) => (s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 const STOP = new Set(['el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'de', 'del', 'para', 'por', 'con', 'en', 'y', 'o', 'u', 'que', 'como', 'se', 'su', 'sus', 'a', 'al', 'sobre', 'mas', 'ninos', 'nino', 'chicos', 'chicas'])
-export const queryTokens = (q: string) => [...new Set(norm(q).split(/[^a-z0-9]+/).filter(t => t.length > 2 && !STOP.has(t)))]
+const STOP_EN = new Set(['the', 'and', 'for', 'how', 'what', 'why', 'who', 'when', 'where', 'which', 'are', 'is', 'was', 'were', 'with', 'about', 'from', 'this', 'that', 'these', 'those', 'does', 'did', 'can', 'into', 'its', 'their', 'there', 'they', 'you', 'your', 'our', 'all', 'more', 'most', 'some', 'kids', 'kid', 'children', 'child', 'boys', 'girls'])
+/** Palabras del tema (para el re-rank léxico). `lang` por defecto es el del pedido; en castellano, igual que siempre. */
+export const queryTokens = (q: string, lang: Lang = requestLang()) => {
+  const stop = lang === 'en' ? STOP_EN : STOP
+  return [...new Set(norm(q).split(/[^a-z0-9]+/).filter(t => t.length > 2 && !stop.has(t)))]
+}
+
+/* Wikimedia (commons, upload…) está en la lista blanca por otros usos (imágenes), pero sus páginas son archivos y
+   categorías, nunca artículos: no se piden con site: ni vuelven como resultado de páginas. */
+const isWikimediaHost = (h: string) => { const x = h.toLowerCase().replace(/^www\./, ''); return x === 'wikimedia.org' || x.endsWith('.wikimedia.org') }
+const isWikimediaUrl = (u: string) => { try { return isWikimediaHost(new URL(u).hostname) } catch { return false } }
 
 /* opts.maxBatches: tope de búsquedas paralelas (créditos de Serper); por defecto el de Smarty. */
 export async function searchPages(q: string, opts?: { maxBatches?: number; limit?: number }): Promise<{ results: SerperOrganic[]; error?: string }> {
-  const blanca = whitelistSites()
+  const blanca = whitelistSites().filter(d => !isWikimediaHost(d))
   const negra = articleBlacklist()
   const modo = config.articulosModo
   const MAX_SITIOS = 12
@@ -68,6 +80,7 @@ export async function searchPages(q: string, opts?: { maxBatches?: number; limit
 
   const filtered = applyDomainFilter(hits, h => h.link, { modo, blanca, negra })
     .filter(h => !isBlockedSite(h.link))
+    .filter(h => !isWikimediaUrl(h.link))
     // veto por ítem: un resultado con palabra bloqueada en título o resumen se descarta solo a él
     .filter(h => matchBlockedWord(`${h.title} ${h.snippet ?? ''}`) === null)
   return { results: filtered.slice(0, opts?.limit ?? ov.num('const.articulosMostrados')), error }

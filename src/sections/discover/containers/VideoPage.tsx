@@ -100,7 +100,7 @@ export function VideoPage() {
       {/* «Crear ruta» con este video ya cargado en el 1er módulo: el id de la URL alcanza, no espera a que cargue `v` (pedido 4-nov) */}
       <div className="phead">
         <button className="back" onClick={() => go(back.to)}>{back.label}</button>
-        <button className="pcreate" onClick={() => go('/crear?video=' + encodeURIComponent(id))}>{L('+ Crear ruta', '+ Create path')}</button>
+        <button className="pcreate" onClick={() => go('/crear?video=' + encodeURIComponent(id))}>{L('+ Crear ruta', '+ Create route')}</button>
       </div>
       {queue.length > 1 && <p className="pqueue">{L(`Lista · video ${qi + 1} de ${queue.length}`, `List · video ${qi + 1} of ${queue.length}`)}</p>}
       <div className="pmain">

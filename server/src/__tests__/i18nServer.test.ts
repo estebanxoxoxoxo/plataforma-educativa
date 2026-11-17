@@ -46,9 +46,14 @@ describe('feedEn: noticias, "por qué" y plantillas', () => {
     expect(en(() => leagueName('Liga Cometa'))).toBe('Comet League');
     expect(leagueName('Liga Cometa')).toBe('Liga Cometa');
     expect(en(() => feedText('compartió la ruta «Cómo funciona el corazón»'))).toBe('shared the route “How the heart works”');
-    const a = { url: 'https://es.wikipedia.org/wiki/Apolo_11', title: 'Apolo 11: el viaje a la Luna', snippet: 'x' };
-    expect(en(() => articleText(a))).toMatchObject({ url: a.url, title: 'Apollo 11: the journey to the Moon', snippet: 'The mission that took the first humans to walk on the Moon, in July 1969.' });
+    const a = { url: 'https://es.wikipedia.org/wiki/Apolo_11', title: 'Apolo 11: el viaje a la Luna', snippet: 'x', source: 'es.wikipedia.org' };
+    // (14-nov) Apolo 11 trae su página en inglés: en inglés la tarjeta abre esa, con su fuente
+    expect(en(() => articleText(a))).toEqual({ url: 'https://airandspace.si.edu/explore/stories/apollo-11-moon-landing', source: 'Smithsonian Air and Space', title: 'Apollo 11: the journey to the Moon', snippet: 'The mission that took the first humans to walk on the Moon, in July 1969.' });
     expect(articleText(a)).toBe(a);
+    expect(runAsUser('ian', () => articleText(a), 'es')).toBe(a);
+    // una entrada sin página inglesa: solo título y bajada (la URL y la fuente, las de siempre)
+    const t = { url: 'https://es.wikipedia.org/wiki/Triceratops', title: 'Triceratops', snippet: 'x', source: 'es.wikipedia.org' };
+    expect(en(() => articleText(t))).toEqual({ ...t, title: 'Triceratops', snippet: 'The three-horned ceratopsian: what its fossils tell us about how it lived.' });
   });
   it('respeta el espacio duro antes de un emoji (feedFake.glue)', () => {
     expect(en(() => feedText('llegó a 8 días seguidos practicando 🔥'))).toBe('hit 8 days of practice in a row 🔥');

@@ -122,9 +122,11 @@ export default function MultipleChoiceBoard({ engine }: { engine: MultipleChoice
           )}
 
           <div className="lrn-mc-grid">
+            {/* La key incluye la pregunta: si dos preguntas repiten ids de opción, React reusaba la card ya dada vuelta y
+                la vuelta atrás (0,5 s) mostraba el dorso de la pregunta NUEVA, con su respuesta correcta a la vista. */}
             {q.options.map((opt) => (
               <OptionCard
-                key={opt.id}
+                key={`${q.id}:${opt.id}`}
                 opt={opt}
                 mode={snap.mode}
                 selected={sel.has(opt.id)}
